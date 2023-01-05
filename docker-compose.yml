@@ -6,4 +6,4 @@ services:
     ports:
       - 8001:8000
     volumes:
-      - ./upc_manager:/app
+      - ./product_manager:/app
