@@ -1,6 +1,13 @@
 import datetime
 from django.db import models
 
+class WorkCycle(models.Model):
+    start_date = models.DateField(default=datetime.date.today)
+    end_date = models.DateField(default=datetime.date.today)
+
+    def __str__(self):
+        return f'{self.start_date} to {self.end_date}'
+
 
 class Product(models.Model):
     upc = models.CharField(max_length=12)
