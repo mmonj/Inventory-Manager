@@ -9,6 +9,14 @@ class WorkCycle(models.Model):
         return f'{self.start_date} to {self.end_date}'
 
 
+class FieldRepresentative(models.Model):
+    name = models.CharField(max_length=255)
+    work_email = models.EmailField(max_length=255)
+
+    def __str__(self):
+        return f'{self.name}; {self.work_email}'
+
+
 class Product(models.Model):
     upc = models.CharField(max_length=12)
     name = models.CharField(max_length=255)
@@ -30,6 +38,7 @@ class PersonnelContact(models.Model):
 class Store(models.Model):
     name = models.CharField(max_length=255, null=True)
     store_contact = models.ForeignKey(PersonnelContact, null=True, on_delete=models.DO_NOTHING, related_name="associated_stores")
+    field_representative = models.ForeignKey(FieldRepresentative, null=True, on_delete=models.DO_NOTHING, related_name="stores")
 
     def __str__(self):
         return f'{self.name}'
