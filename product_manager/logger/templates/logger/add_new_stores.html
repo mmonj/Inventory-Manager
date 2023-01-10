@@ -1,0 +1,32 @@
+{% extends "logger/layout.html"%}
+{% load widget_tweaks %}
+
+{% block title %}Add New Stores{% endblock %}
+
+{% block body_header %}
+    {% include "logger/navbar.html" %}
+{% endblock %}
+
+{% block body_main %}
+  <div class="m-4">
+    {% if error_messages %}
+      <div class="alert alert-warning my-3" role="alert">
+        <h4 class="alert-heading">You have some errors to fix</h4>
+          {% for error in error_messages %}
+            <p>{{ error }}</p>
+          {% endfor %}
+      </div>
+    {% endif %}
+    <form action="{% url 'logger:add_new_stores' %}" method="POST">
+      {% csrf_token %}
+    
+      <div>
+        <label for="stores-list-text" class="form-label">Enter new stores (separate stores with a new line)</label>
+        {% render_field form.stores_text class="form-control" id="stores-list-text" style="height: 70vh" %}
+        <div class="d-grid gap-2 col-6 mx-auto mt-2">
+          <button class="btn btn-primary" type="submit">Button</button>
+        </div>
+      </div>
+    </form>
+  </div>
+{% endblock%}

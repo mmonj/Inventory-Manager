@@ -1,20 +1,34 @@
+{% extends "logger/layout.html" %}
 {% load static %}
 
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+{% block title %}UPC Scanner{% endblock %}
 
-    <script>var scan_sound_file = "{% static 'logger/scan_sound.ogg' %}";</script>
+{% block extra_head_elements %}
+  <meta name="csrf_token" content="{{ csrf_token }}" />
 
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script src="{% static 'logger/logger.js' %}"></script>
-    <link rel="stylesheet" href="{% static 'logger/logger.css' %}">
-  </head>
-  <body>
-    <div id="reader"></div>
-  </body>
-</html>
+  <script>
+    var scan_sound_file = "{% static 'logger/scan_sound.ogg' %}";
+  </script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="{% static 'logger/logger.js' %}"></script>
+
+  <link rel="stylesheet" href="{% static 'logger/logger.css' %}" />
+{% endblock %}
+
+{% block body_header %}
+  {% include "logger/navbar.html" %}
+{% endblock %}
+
+{% block body_main %}
+  <div id="reader"></div>
+  
+  <!-- <ol class="list-group list-group-numbered mt-3">
+    <li class="list-group-item d-flex justify-content-between align-items-start">
+      <div class="ms-2 me-auto">
+        <div class="fw-bold">UPC number</div>
+        Product Description if exist
+      </div>
+      <button class="btn badge bg-primary rounded-pill my-auto">Remove</button>
+    </li>
+  </ol> -->
+{% endblock %}
