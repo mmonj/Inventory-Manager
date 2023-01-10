@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'api', 
     'products', 
-    'logger'
+    'logger', 
+    'widget_tweaks', 
 ]
 
 MIDDLEWARE = [

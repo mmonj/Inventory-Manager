@@ -5,10 +5,28 @@ var scan_audio = new Audio(scan_sound_file);
 function on_scan(decodedText, decodedResult) {
   console.log(decodedText, decodedResult);
   scan_audio.play();
+
+  send_upc(decodedText);
+}
+
+function send_upc(upc) {
+  let payload_data = {
+    upc: upc,
+  };
+
+  fetch("/logger/log_upc", {
+    method: "POST",
+    headers: { "X-CSRFToken": document.head.querySelector("meta[name=csrf_token]").content },
+    body: JSON.stringify(payload_data),
+  })
+    .then((response) => response.json())
+    .then((response_json) => {
+      console.log(response_json);
+    });
 }
 
 function qrboxFunction(viewfinderWidth, viewfinderHeight) {
-  let minEdgePercentage = 0.4; // 70%
+  let minEdgePercentage = 0.4;
   let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
   let qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
   return {

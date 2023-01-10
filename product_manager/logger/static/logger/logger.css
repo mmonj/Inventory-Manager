@@ -3,5 +3,10 @@ body {
 }
 
 #reader {
+    z-index: -1;
+}
+
+#reader video {
     margin-top: -2rem;
+    margin-bottom: -2rem;
 }
