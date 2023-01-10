@@ -1,12 +1,37 @@
 from django.contrib import admin
 from . import models
 
+
+class FieldRepresentativeAdmin(admin.ModelAdmin):
+    list_display = ['name', 'work_email']
+
+
+class ProductAdmin(admin.ModelAdmin):
+    search_fields = ['upc', 'name']
+    list_display = ['upc', 'name']
+
+
+class ProductAdditionAdmin(admin.ModelAdmin):
+    search_fields = ['store__name', 'product__upc', 'product__name', 'added_date', 'is_carried']
+    list_display = ['store', 'product', 'added_date', 'is_carried']
+
+class StoreAdmin(admin.ModelAdmin):
+    search_fields = ['name']
+    list_display = ['name', 'store_contact', 'get_field_representative']
+    list_filter = ['field_representative__work_email']
+
+    def get_field_representative(self, obj):
+        if obj.field_representative is None:
+            return '-'
+        return obj.field_representative.name
+    get_field_representative.admin_order_field = 'field_representative__name'
+    get_field_representative.short_description = 'Field Rep'
+
+
 # Register your models here.
-
-
 admin.site.register(models.WorkCycle)
-admin.site.register(models.FieldRepresentative)
-admin.site.register(models.Product)
-admin.site.register(models.Store)
-admin.site.register(models.ProductAddition)
+admin.site.register(models.FieldRepresentative, FieldRepresentativeAdmin)
+admin.site.register(models.Product, ProductAdmin)
+admin.site.register(models.Store, StoreAdmin)
+admin.site.register(models.ProductAddition, ProductAdditionAdmin)
 admin.site.register(models.PersonnelContact)
