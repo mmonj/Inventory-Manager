@@ -17,9 +17,18 @@ class FieldRepresentative(models.Model):
         return f'{self.name}; {self.work_email}'
 
 
+class BrandParentCompany(models.Model):
+    short_name = models.CharField(max_length=50, unique=True, null=True)
+    expanded_name = models.CharField(max_length=50, unique=True, null=True, blank=True)
+
+    def __str__(self):
+        return self.expanded_name or self.short_name
+
+
 class Product(models.Model):
     upc = models.CharField(max_length=12, unique=True)
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, null=True, blank=True)
+    parent_company = models.ForeignKey(BrandParentCompany, null=True, blank=True, on_delete=models.DO_NOTHING, related_name='upcs')
 
     def __str__(self):
         return f'{self.upc}: {self.name}'
