@@ -6,6 +6,6 @@ services:
     ports:
       - 8001:8000
     volumes:
-      - ./inventory_manager:/app
+      - ./:/app
     environment:
       - TZ=America/New_York
