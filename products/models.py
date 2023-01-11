@@ -25,6 +25,10 @@ class FieldRepresentative(models.Model):
     def _strd(self):
         return f'FieldRepresentative(name={ repr(self.name) }, work_email={ repr(self.work_email) })'
 
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
 
 class BrandParentCompany(models.Model):
     short_name = models.CharField(max_length=50, unique=True, null=True)

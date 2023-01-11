@@ -11,7 +11,9 @@ def printdebug(*items):
 class FieldRepresentativeTest(TestCase):
     def setUp(self) -> None:
         rep1 = models.FieldRepresentative.objects.create(name='jon1', work_email='jondoe1@gmail.com')
-        rep2 = models.FieldRepresentative.objects.create(name='jon2', work_email='jondoe2')
+
+        rep2 = models.FieldRepresentative(name='jon2', work_email='jondoe2')
+        self.assertRaises(ValidationError, rep2.save)
     
     def test_create(self):
         rep1 = models.FieldRepresentative.objects.get(name='jon1')
