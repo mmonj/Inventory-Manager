@@ -88,15 +88,21 @@ class Store(models.Model):
     store_contact = models.ForeignKey(PersonnelContact, null=True, blank=True, on_delete=models.DO_NOTHING, related_name="associated_stores")
     field_representative = models.ForeignKey(FieldRepresentative, null=True, blank=True, on_delete=models.DO_NOTHING, related_name="stores")
 
+    # non-column attribute
+    trailing_number_re = re.compile(r' *-* *[0-9]+ *$', flags=re.I)
+
     def __str__(self):
         return f'{self.name}'
 
     def _strf(self):
         return f'Store(name={ repr(self.name) }, store_contact={self.store_contact}, field_representative={self.field_representative})'
 
+    def sanitize_store_name(self):
+        self.name = re.sub(self.trailing_number_re, '', self.name)
+
     def clean(self, *args, **kwargs):
-        trailing_number_re = re.compile(r' *-* *[0-9]+ *$', flags=re.I)
-        self.name = re.sub(trailing_number_re, '', self.name)
+        if re.search(self.trailing_number_re, self.name):
+            raise ValidationError(f'Store must not have a dash or trailing numbers: {self.name}')
 
         super().clean(*args, **kwargs)
 
@@ -108,14 +114,14 @@ class Store(models.Model):
 class ProductAddition(models.Model):
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="associated_additions")
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="associated_additions")
-    added_date = models.DateField(default=datetime.date.today)
+    date_added = models.DateField(default=datetime.date.today)
     is_carried = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.product.upc}; Carried {self.is_carried}; Store {self.store}'
 
     def _strd(self):
-        return f'ProductAddition(store={self.store}, product={self.product}, added_date={self.added_date}, is_carried={self.is_carried})'
+        return f'ProductAddition(store={self.store}, product={self.product}, date_added={self.date_added}, is_carried={self.is_carried})'
 
     class Meta:
         unique_together = ('store', 'product',)
