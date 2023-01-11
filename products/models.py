@@ -1,6 +1,10 @@
 import datetime
 import re
+from checkdigit import gs1
+
+from django.core.exceptions import ValidationError
 from django.db import models
+
 
 class WorkCycle(models.Model):
     start_date = models.DateField(default=datetime.date.today)
@@ -17,6 +21,10 @@ class FieldRepresentative(models.Model):
     def __str__(self):
         return f'{self.name}; {self.work_email}'
 
+    # string for debugging
+    def _strd(self):
+        return f'FieldRepresentative(name={ repr(self.name) }, work_email={ repr(self.work_email) })'
+
 
 class BrandParentCompany(models.Model):
     short_name = models.CharField(max_length=50, unique=True, null=True)
@@ -24,6 +32,11 @@ class BrandParentCompany(models.Model):
 
     def __str__(self):
         return self.expanded_name or self.short_name
+
+    # string for debugging
+    def _strd(self):
+        return f'BrandParentCompany(short_name={ repr(self.short_name) }, expanded_name={ repr(self.expanded_name) })'
+
 
 
 class Product(models.Model):
@@ -33,6 +46,23 @@ class Product(models.Model):
 
     def __str__(self):
         return f'{self.upc}: {self.name}'
+    
+    # string for debugging
+    def _strd(self):
+        return f'Product(upc={ repr(self.upc) }, name={ repr(self.name) }, parent_company={ self.parent_company })'
+
+    def clean(self, *args, **kwargs):
+        if len(self.upc) != 12:
+            raise ValidationError('UPC number must be 12 digits')
+        if len(self.upc) == 12 and not gs1.validate(self.upc):
+            expected_check_digit = gs1.calculate(self.upc[:11])
+            raise ValidationError(f'The UPC number is invalid. Expected a check digit of {expected_check_digit}')
+        super().clean(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
 
 
 class PersonnelContact(models.Model):
@@ -44,6 +74,10 @@ class PersonnelContact(models.Model):
             return '<Blank>'
         return f'{self.first_name} {self.last_name}'
 
+    # string for debugging
+    def _strd(self):
+        return f'PersonnelContact(first_name={ repr(self.first_name) }, last_name={ repr(self.last_name) })'
+
 
 class Store(models.Model):
     name = models.CharField(max_length=255, null=True, unique=True)
@@ -52,6 +86,9 @@ class Store(models.Model):
 
     def __str__(self):
         return f'{self.name}'
+
+    def _strf(self):
+        return f'Store(name={ repr(self.name) }, store_contact={self.store_contact}, field_representative={self.field_representative})'
 
     def clean(self, *args, **kwargs):
         trailing_number_re = re.compile(r' *-* *[0-9]+ *$', flags=re.I)
@@ -72,6 +109,9 @@ class ProductAddition(models.Model):
 
     def __str__(self):
         return f'{self.product.upc}; Carried {self.is_carried}; Store {self.store}'
+
+    def _strd(self):
+        return f'ProductAddition(store={self.store}, product={self.product}, added_date={self.added_date}, is_carried={self.is_carried})'
 
     class Meta:
         unique_together = ('store', 'product',)
