@@ -1,4 +1,5 @@
 import datetime
+import re
 from django.db import models
 
 class WorkCycle(models.Model):
@@ -46,11 +47,21 @@ class PersonnelContact(models.Model):
 
 class Store(models.Model):
     name = models.CharField(max_length=255, null=True, unique=True)
-    store_contact = models.ForeignKey(PersonnelContact, null=True, on_delete=models.DO_NOTHING, related_name="associated_stores")
+    store_contact = models.ForeignKey(PersonnelContact, null=True, blank=True, on_delete=models.DO_NOTHING, related_name="associated_stores")
     field_representative = models.ForeignKey(FieldRepresentative, null=True, blank=True, on_delete=models.DO_NOTHING, related_name="stores")
 
     def __str__(self):
         return f'{self.name}'
+
+    def clean(self, *args, **kwargs):
+        trailing_number_re = re.compile(r' *-* *[0-9]+ *$', flags=re.I)
+        self.name = re.sub(trailing_number_re, '', self.name)
+
+        super().clean(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class ProductAddition(models.Model):
