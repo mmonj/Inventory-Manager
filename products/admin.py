@@ -12,7 +12,7 @@ class BrandParentCompanyAdmin(admin.ModelAdmin):
 
 class ProductAdmin(admin.ModelAdmin):
     search_fields = ['upc', 'name']
-    list_display = ['upc', 'name']
+    list_display = ['upc', 'name', 'parent_company']
     list_filter = ['parent_company']
 
 
