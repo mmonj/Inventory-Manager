@@ -10,3 +10,29 @@ body {
     margin-top: -2rem;
     margin-bottom: -2rem;
 }
+
+@keyframes shrink {
+    0% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+.shrink-zero {
+    animation-name: shrink;
+    animation-duration: 0.2s;
+    animation-fill-mode: forwards;
+    animation-play-state: running;
+}
+
+.product-container {
+    min-width: 0;
+}
+
+.product-name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
