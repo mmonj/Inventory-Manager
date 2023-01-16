@@ -11,6 +11,10 @@ body {
   margin-bottom: -3rem;
 }
 
+.card-title {
+  color: rgb(247, 223, 186);
+}
+
 @keyframes shrink {
   0% {
     opacity: 1;
