@@ -45,6 +45,13 @@ function populate_initial_dropdown_values() {
 }
 
 function update_store_select_options(new_field_rep_name, store_select_node) {
+  let disabled_placeholder_option = document.createElement('option');
+  disabled_placeholder_option.disabled = true;
+  disabled_placeholder_option.selected = true;
+  disabled_placeholder_option.value = "";
+  disabled_placeholder_option.innerText = 'Search Stores';
+  store_select_node.appendChild(disabled_placeholder_option);
+
   for (let field_rep_info of window.LOGGER_INFO.field_rep_stores_info.field_reps_list) {
     if (field_rep_info.field_rep_name === new_field_rep_name) {
       for (let store_info of field_rep_info.stores) {
