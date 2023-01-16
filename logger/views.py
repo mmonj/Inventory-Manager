@@ -1,21 +1,53 @@
 import json
+
 from django.http import JsonResponse
 from django.shortcuts import render, HttpResponse, redirect
 from .forms import NewStoresForm
+from products import models
 import products.helpers
 
 
 # Create your views here.
 def index(request):
-    return render(request, 'logger/index.html')
+    field_rep_stores_info = get_field_rep_stores_info()
+    return render(request, 'logger/index.html', {
+        'field_rep_stores_info': json.dumps(field_rep_stores_info)
+    })
 
 
 def log_upc(request):
-    import json
     body = json.loads(request.body)
     products.helpers.printerr(body['upc'])
 
-    return JsonResponse({'message': 'Success'})
+    existing_product = models.Product.objects.get(upc=body['upc'])
+    resp_json = {
+        'upc': existing_product.upc, 
+        'name': existing_product.name
+    }
+
+    return JsonResponse(resp_json)
+
+
+def get_field_rep_stores_info():
+    ret_dict = {
+        'field_reps_list': []
+    }
+    field_reps_list = ret_dict['field_reps_list']
+    
+    field_reps = models.FieldRepresentative.objects.all()
+    for field_rep in field_reps:
+        field_reps_list.append(
+            {
+                'field_rep_name': field_rep.name, 
+                'field_rep_id': field_rep.pk, 
+                'stores': [
+                    {'store_name': store.name, 'store_id': store.pk} for store in field_rep.stores.all()
+                ]
+            }
+        )
+    
+    return ret_dict
+
 
 
 def add_new_stores(request):
@@ -38,17 +70,13 @@ def add_new_stores(request):
 
     new_stores = []
     try:
-        all_stores_dict = json.loads(received_form.cleaned_data['stores_text'])
-        if isinstance(all_stores_dict, list):
-            new_stores = all_stores_dict
-        else:
-            new_stores = all_stores_dict['All Stores'].keys()
+        categorized_store_listings = json.loads(received_form.cleaned_data['stores_text'])
+        products.helpers.import_employee_stores(categorized_store_listings)
     except json.decoder.JSONDecodeError as e:
         products.helpers.printerr('Json Decode error: falling back to parsing from raw text')
         new_stores = [s for s in (f.strip() for f in received_form.cleaned_data['stores_text'].split('\n')) if s]
-
-    for store_name in new_stores:
-        products.helpers.add_store(store_name)
+        for store_name in new_stores:
+            products.helpers.add_store(store_name)
 
     return redirect('logger:add_new_stores')
     

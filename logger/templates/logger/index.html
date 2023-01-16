@@ -11,8 +11,11 @@
   </script>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <script src="{% static 'logger/logger.js' %}"></script>
-
   <link rel="stylesheet" href="{% static 'logger/logger.css' %}" />
+
+  <script defer src="https://code.jquery.com/jquery-3.6.3.slim.min.js"></script>
+  <link defer href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <script defer src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 {% endblock %}
 
 {% block body_header %}
@@ -20,8 +23,32 @@
 {% endblock %}
 
 {% block body_main %}
-  <div id="reader"></div>
-  
-  <ol id="upc-scan-results" class="list-group list-group-numbered mt-3">
-  </ol>
+  <section id="store-select-container" class="m-3">
+    <form id="store-selector-form">
+      <fieldset>
+        <legend>Store Selector</legend>
+        <div class="mb-3">
+          <label for="field-representative-select" class="form-label">Field Representative</label>
+          <select id="field-representative-select" class="form-select" required></select>
+        </div>
+        <div class="mb-3">
+          <label for="store-select" class="form-label">Store</label>
+          <select id="store-select" class="d-block col-12" required></select>
+        </div>
+        <button type="submit" class="btn btn-primary col-12 my-2">Submit</button>
+      </fieldset>
+    </form>
+  </section>
+
+  <section id="scanner-container" hidden>
+    <div id="reader"></div>
+    <div id="scanner-store-indicator" class="card" class="d-block">
+      <div class="card-body text-center p-2">
+        <h6 class="card-title">Special title treatment</h5>
+      </div>
+    </div>
+    <ol id="scanner-results" class="list-group list-group-numbered"></ol>
+  </section>
+
+  <script id="field-rep-stores-info" type="application/json">{{ field_rep_stores_info | safe }}</script>
 {% endblock %}
