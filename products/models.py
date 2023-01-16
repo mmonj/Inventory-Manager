@@ -46,7 +46,7 @@ class BrandParentCompany(models.Model):
 class Product(models.Model):
     upc = models.CharField(max_length=12, unique=True)
     name = models.CharField(max_length=255, null=True, blank=True)
-    parent_company = models.ForeignKey(BrandParentCompany, null=True, blank=True, on_delete=models.DO_NOTHING, related_name='upcs')
+    parent_company = models.ForeignKey(BrandParentCompany, null=True, blank=True, on_delete=models.SET_NULL, related_name='upcs')
 
     def __str__(self):
         return f'{self.upc}: {self.name}'
@@ -55,10 +55,13 @@ class Product(models.Model):
     def _strd(self):
         return f'Product(upc={ repr(self.upc) }, name={ repr(self.name) }, parent_company={ self.parent_company })'
 
+    def is_valid_upc(self):
+        return gs1.validate(self.upc)
+
     def clean(self, *args, **kwargs):
         if len(self.upc) != 12:
             raise ValidationError('UPC number must be 12 digits')
-        if len(self.upc) == 12 and not gs1.validate(self.upc):
+        if not gs1.validate(self.upc):
             expected_check_digit = gs1.calculate(self.upc[:11])
             raise ValidationError(f'The UPC number is invalid. Expected a check digit of {expected_check_digit}')
         super().clean(*args, **kwargs)
@@ -66,7 +69,6 @@ class Product(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
-
 
 
 class PersonnelContact(models.Model):
@@ -85,8 +87,8 @@ class PersonnelContact(models.Model):
 
 class Store(models.Model):
     name = models.CharField(max_length=255, null=True, unique=True)
-    store_contact = models.ForeignKey(PersonnelContact, null=True, blank=True, on_delete=models.DO_NOTHING, related_name="associated_stores")
-    field_representative = models.ForeignKey(FieldRepresentative, null=True, blank=True, on_delete=models.DO_NOTHING, related_name="stores")
+    store_contact = models.ForeignKey(PersonnelContact, null=True, blank=True, on_delete=models.SET_NULL, related_name="associated_stores")
+    field_representative = models.ForeignKey(FieldRepresentative, null=True, blank=True, on_delete=models.SET_NULL, related_name="stores")
 
     # non-column attribute
     trailing_number_re = re.compile(r' *-* *[0-9]+ *$', flags=re.I)
@@ -94,7 +96,7 @@ class Store(models.Model):
     def __str__(self):
         return f'{self.name}'
 
-    def _strf(self):
+    def _strd(self):
         return f'Store(name={ repr(self.name) }, store_contact={self.store_contact}, field_representative={self.field_representative})'
 
     def sanitize_store_name(self):
