@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 from django.test import TestCase
+from . import helpers
 from . import models
 
 def printdebug(*items):
@@ -136,3 +137,46 @@ class ProductAdditionTest(TestCase):
 
         product_addition = models.ProductAddition(store=store1, product=product1, is_carried=True)
         self.assertRaises(IntegrityError, product_addition.save)
+
+
+class ImportTest(TestCase):
+    def setUp(self) -> None:
+        self.import_dict = {
+            "Mauri": [
+                "test1_store",
+                "test2_store",
+                "test3_store"
+            ], 
+            "All Stores": {
+                "test1_store": {
+                    "manager_names": [
+                        "jon",
+                        "doe"
+                    ]
+                },
+                "test2_store": {
+                    "manager_names": [
+                        "jon",
+                        "doe"
+                    ]
+                }, 
+                "test3_store": {
+                    "manager_names": [
+                        "first_3",
+                        "last_3"
+                    ]
+                }
+            }
+        }
+
+        models.Store.objects.create(name='test1_store')
+
+        field_rep = models.FieldRepresentative.objects.create(name='Mauri', work_email='mauri@testmail.com')
+        models.Store.objects.create(name='test2_store', field_representative=field_rep)
+
+        personnel_contact = models.PersonnelContact.objects.create(first_name='randomfirst', last_name='randomlast')
+        models.Store.objects.create(name='test3_store', store_contact=personnel_contact)
+
+
+    def test_import(self):
+        helpers.import_employee_stores(self.import_dict)
