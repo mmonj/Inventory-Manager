@@ -44,7 +44,7 @@ def log_product_scan(request):
             'is_carried': product_addition.is_carried
         }
     }
-
+    
     return JsonResponse(resp_json)
 
 
@@ -86,6 +86,7 @@ def get_field_rep_stores_info():
             {
                 'field_rep_name': field_rep.name, 
                 'field_rep_id': field_rep.pk, 
+                # add list of dictionaries to 'stores' key
                 'stores': [
                     {'store_name': store.name, 'store_id': store.pk} for store in field_rep.stores.all()
                 ]

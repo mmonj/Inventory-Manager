@@ -46,7 +46,7 @@ function handle_submit_upc(upc_number, is_scan_sound_play = true) {
       document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
       console.log(resp_json);
       if (!resp_json.errors) {
-        console.log('An unexpected server error occurred');
+        show_alert_toast('Error', 'An unexpected server error occurred.\nYou may try again.');
       }
 
       return Promise.reject(resp_json);
@@ -80,6 +80,16 @@ function handle_remove_upc(event) {
     list_item.remove();
     window.LOGGER_INFO.scanned_upcs.delete(upc_number);
   });
+}
+
+function show_alert_toast(title, message) {
+  const toast_node = document.getElementById('alert-toast');
+  toast_node.querySelector('._toast-title').innerText = title;
+  toast_node.querySelector('.toast-body').innerText = message;
+
+  const _toast = new bootstrap.Toast(toast_node);
+  _toast.show();
+
 }
 
 function show_manual_upc_errors(errors) {
