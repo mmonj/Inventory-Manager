@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
+  window.LOGGER_INFO.scanner = new Html5Qrcode("reader");
   window.LOGGER_INFO.scanned_upcs = new Set();
-  window.LOGGER_INFO.scan_sound = new Audio(window.LOGGER_INFO.scan_sound_file);
+  window.LOGGER_INFO.scan_sound = new Audio(window.LOGGER_INFO.scan_sound_path);
   window.LOGGER_INFO.field_rep_stores_info = JSON.parse(
     document.getElementById("field-rep-stores-info").textContent
   );
@@ -39,15 +40,15 @@ document.addEventListener("DOMContentLoaded", () => {
     let upc_number_node = document.getElementById("text-input-upc");
     on_scan(upc_number_node.value, (is_scan_sound_play = false))
       .then(() => {
-        upc_number_node.value = '';
+        upc_number_node.value = "";
       })
       .catch((resp_json) => {
         if (resp_json.is_upc_already_scanned) {
-          upc_number_node.value = '';
-          console.log('already scanned');
+          upc_number_node.value = "";
+          console.log("already scanned");
         }
         console.log(resp_json);
-        console.log('manual upc input: error occured');
+        console.log("manual upc input: error occured");
       });
   });
 });
@@ -88,12 +89,12 @@ function update_store_select_options(new_field_rep_name, store_select_node) {
   }
 }
 
-function on_scan(decoded_text, is_scan_sound_play = true) {
-  let ret = {errors: []};
+function on_scan(upc_number, is_scan_sound_play = true) {
+  let ret = { errors: [] };
 
-  if (window.LOGGER_INFO.scanned_upcs.has(decoded_text)) {
+  if (window.LOGGER_INFO.scanned_upcs.has(upc_number)) {
     ret.is_upc_already_scanned = true;
-    ret.errors.push('This UPC has already been scanned in this session');
+    ret.errors.push("This UPC has already been scanned in this session");
     return Promise.reject(ret);
   }
 
@@ -101,16 +102,16 @@ function on_scan(decoded_text, is_scan_sound_play = true) {
     window.LOGGER_INFO.scan_sound.play();
   }
 
-  let [scan_results, new_li] = show_upc_submission_loading(decoded_text);
+  let [scan_results, new_li] = show_upc_submission_loading(upc_number);
 
-  return submit_upc_scan(decoded_text)
+  return submit_upc_scan(upc_number)
     .then((resp_json) => {
-      window.LOGGER_INFO.scanned_upcs.add(decoded_text);
+      window.LOGGER_INFO.scanned_upcs.add(upc_number);
       scan_results.prepend(new_li);
       new_li.querySelector("button").addEventListener("click", handle_remove_upc);
       new_li.querySelector(".product-name").innerText = resp_json.product_info.name;
       document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
-      document.getElementById('text-input-upc').value = '';
+      document.getElementById("text-input-upc").value = "";
       return resp_json;
     })
     .catch((resp_json) => {
@@ -206,8 +207,10 @@ function qrboxFunction(viewfinderWidth, viewfinderHeight) {
 }
 
 function init_scanner() {
-  const scanner = new Html5Qrcode("reader");
-
-  const config = { fps: 0.5, qrbox: qrboxFunction };
-  scanner.start({ facingMode: "environment" }, config, on_scan);
+  const config = {
+    fps: 0.5,
+    qrbox: qrboxFunction,
+    formatsToSupport: [Html5QrcodeSupportedFormats.UPC_A],
+  };
+  window.LOGGER_INFO.scanner.start({ facingMode: "environment" }, config, on_scan);
 }
