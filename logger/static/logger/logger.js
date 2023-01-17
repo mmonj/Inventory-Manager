@@ -34,8 +34,9 @@ document.addEventListener("DOMContentLoaded", () => {
     init_scanner();
   });
 
-  document.getElementById("upc-submit-manual").addEventListener("submit", (event) => {
+  document.getElementById("form-manual-upc").addEventListener("submit", (event) => {
     event.preventDefault();
+    document.getElementById("error-manual-upc").hidden = true;
 
     let upc_number_node = document.getElementById("text-input-upc");
     on_scan(upc_number_node.value, (is_scan_sound_play = false))
@@ -47,11 +48,21 @@ document.addEventListener("DOMContentLoaded", () => {
           upc_number_node.value = "";
           console.log("already scanned");
         }
-        console.log(resp_json);
+
+        show_manual_upc_errors(resp_json.errors);
         console.log("manual upc input: error occured");
       });
   });
 });
+
+function show_manual_upc_errors(errors) {
+  if (!errors) {
+    return;
+  }
+  let error_message = errors.join("\n");
+  document.getElementById("error-manual-upc").innerText = error_message;
+  document.getElementById("error-manual-upc").hidden = false;
+}
 
 function populate_initial_dropdown_values() {
   let field_rep_select_node = document.getElementById("field-representative-select");
@@ -117,7 +128,7 @@ function on_scan(upc_number, is_scan_sound_play = true) {
     .catch((resp_json) => {
       document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
       console.log(resp_json);
-      throw new Error(resp_json);
+      return Promise.reject(resp_json);
     });
 }
 
@@ -217,14 +228,14 @@ function init_scanner() {
 
 function pause_scanner() {
   if (window.LOGGER_INFO.scanner.getState() == Html5QrcodeScannerState.SCANNING) {
-    console.log('Pausing scanner');
+    console.log("Pausing scanner");
     window.LOGGER_INFO.scanner.pause();
   }
 }
 
 function resume_scanner() {
   if (window.LOGGER_INFO.scanner.getState() == Html5QrcodeScannerState.PAUSED) {
-    console.log('Resuming scanner');
+    console.log("Resuming scanner");
     window.LOGGER_INFO.scanner.resume();
   }
 }

@@ -64,9 +64,10 @@
         <div id="reader"></div>
       </div>
       <div class="tab-pane fade" id="keyboard-tab-pane" role="tabpanel" aria-labelledby="keyboard-tab" tabindex="0">
-        <form id="upc-submit-manual" action="{% url 'logger:log_product_scan' %}" method="POST">
+        <form id="form-manual-upc" action="{% url 'logger:log_product_scan' %}" method="POST">
           <label for="text-input-upc" class="d-block mb-2">UPC Number</label>
-          <input id="text-input-upc" type="text" class="form-control mb-3" placeholder="Type a UPC number" minlength="12" maxlength="12" required>
+          <input id="text-input-upc" type="text" autocomplete="off" class="form-control mb-3" placeholder="Type a UPC number" minlength="12" maxlength="12" required>
+          <div id="error-manual-upc" class="alert alert-warning" role="alert" hidden></div>
           <button type="submit" class="btn btn-primary form-control mb-2">Submit</button>
         </form>
       </div>
