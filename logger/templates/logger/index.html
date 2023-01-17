@@ -11,7 +11,7 @@
     window.LOGGER_INFO.scan_sound_path = "{% static 'logger/scan_sound.ogg' %}";
     window.LOGGER_INFO.upc_submit_action_url = "{% url 'logger:log_product_scan' %}";
   </script>
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="{% static 'logger/libs/html5-qrcode-2.3.4.js' %}"></script>
   <script src="{% static 'logger/logger.js' %}"></script>
   <link rel="stylesheet" href="{% static 'logger/logger.css' %}" />
 
@@ -46,8 +46,6 @@
     <div id="scanner-store-indicator" class="p-2">
       <h5 class="card-title text-center">Special title treatment</h5>
     </div>
-
-    
 
     <ul class="nav nav-tabs justify-content-center mt-1" role="tablist">
       <li class="nav-item" role="presentation">
