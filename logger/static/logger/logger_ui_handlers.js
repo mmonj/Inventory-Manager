@@ -18,16 +18,16 @@ function handle_manual_upc_submission(event) {
 }
 
 function handle_submit_upc(upc_number, is_scan_sound_play = true) {
+  if (is_scan_sound_play) {
+    window.LOGGER_INFO.scan_sound.play();
+  }
+
   let ret = { errors: [] };
 
   if (window.LOGGER_INFO.scanned_upcs.has(upc_number)) {
     ret.is_upc_already_scanned = true;
     ret.errors.push("This UPC has already been scanned in this session");
     return Promise.reject(ret);
-  }
-
-  if (is_scan_sound_play) {
-    window.LOGGER_INFO.scan_sound.play();
   }
 
   let [scan_results, new_li] = show_upc_submission_loading(upc_number);
@@ -46,7 +46,7 @@ function handle_submit_upc(upc_number, is_scan_sound_play = true) {
       document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
       console.log(resp_json);
       if (!resp_json.errors) {
-        show_alert_toast('Error', 'An unexpected server error occurred.\nYou may try again.');
+        show_alert_toast("Error", "An unexpected server error occurred.\nYou may try again.");
       }
 
       return Promise.reject(resp_json);
@@ -65,6 +65,7 @@ function handle_remove_upc(event) {
     })
     .catch((resp_json) => {
       console.log(resp_json);
+      show_alert_toast("Error", "An unexpected server error occurred.\nYou may try again.");
       list_item.querySelector(".button-remove-product").hidden = false;
       list_item.querySelector(".spinner-remove-product").hidden = true;
     });
@@ -83,13 +84,12 @@ function handle_remove_upc(event) {
 }
 
 function show_alert_toast(title, message) {
-  const toast_node = document.getElementById('alert-toast');
-  toast_node.querySelector('._toast-title').innerText = title;
-  toast_node.querySelector('.toast-body').innerText = message;
+  const toast_node = document.getElementById("alert-toast");
+  toast_node.querySelector("._toast-title").innerText = title;
+  toast_node.querySelector(".toast-body").innerText = message;
 
   const _toast = new bootstrap.Toast(toast_node);
   _toast.show();
-
 }
 
 function show_manual_upc_errors(errors) {
