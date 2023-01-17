@@ -1,7 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
-  window.LOGGER_INFO = {};
   window.LOGGER_INFO.scanned_upcs = new Set();
-  window.LOGGER_INFO.scan_sound = new Audio(scan_sound_file);
+  window.LOGGER_INFO.scan_sound = new Audio(window.LOGGER_INFO.scan_sound_file);
   window.LOGGER_INFO.field_rep_stores_info = JSON.parse(
     document.getElementById("field-rep-stores-info").textContent
   );
@@ -32,6 +31,24 @@ document.addEventListener("DOMContentLoaded", () => {
     scanner_store_indicator_node.querySelector(".card-title").innerText = store_select_node.value;
 
     init_scanner();
+  });
+
+  document.getElementById("upc-submit-manual").addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    let upc_number_node = document.getElementById("text-input-upc");
+    on_scan(upc_number_node.value, (is_scan_sound_play = false))
+      .then(() => {
+        upc_number_node.value = '';
+      })
+      .catch((resp_json) => {
+        if (resp_json.is_upc_already_scanned) {
+          upc_number_node.value = '';
+          console.log('already scanned');
+        }
+        console.log(resp_json);
+        console.log('manual upc input: error occured');
+      });
   });
 });
 
@@ -71,12 +88,39 @@ function update_store_select_options(new_field_rep_name, store_select_node) {
   }
 }
 
-function on_scan(decoded_text, decoded_result) {
+function on_scan(decoded_text, is_scan_sound_play = true) {
+  let ret = {errors: []};
+
   if (window.LOGGER_INFO.scanned_upcs.has(decoded_text)) {
-    return;
+    ret.is_upc_already_scanned = true;
+    ret.errors.push('This UPC has already been scanned in this session');
+    return Promise.reject(ret);
   }
 
-  window.LOGGER_INFO.scan_sound.play();
+  if (is_scan_sound_play) {
+    window.LOGGER_INFO.scan_sound.play();
+  }
+
+  let [scan_results, new_li] = show_upc_submission_loading(decoded_text);
+
+  return submit_upc_scan(decoded_text)
+    .then((resp_json) => {
+      window.LOGGER_INFO.scanned_upcs.add(decoded_text);
+      scan_results.prepend(new_li);
+      new_li.querySelector("button").addEventListener("click", handle_remove_upc);
+      new_li.querySelector(".product-name").innerText = resp_json.product_info.name;
+      document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
+      document.getElementById('text-input-upc').value = '';
+      return resp_json;
+    })
+    .catch((resp_json) => {
+      document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
+      console.log(resp_json);
+      throw new Error(resp_json);
+    });
+}
+
+function show_upc_submission_loading(decoded_text) {
   document.getElementById("spinner-loading-scan").classList.remove("visually-hidden");
 
   let scan_results = document.getElementById("scanner-results");
@@ -96,21 +140,10 @@ function on_scan(decoded_text, decoded_result) {
         <span class="visually-hidden">Loading...</span>
       </div>
     </div>
-    <button class="button-remove-product btn badge bg-primary rounded-pill my-auto">Remove</button>
+    <button class="button-remove-product btn badge bg-primary rounded-pill my-auto ms-2 py-2">Delete</button>
   `;
 
-  submit_upc_scan(decoded_text)
-    .then((resp_json) => {
-      window.LOGGER_INFO.scanned_upcs.add(decoded_text);
-      scan_results.prepend(new_li);
-      new_li.querySelector("button").addEventListener("click", handle_remove_upc);
-      new_li.querySelector(".product-name").innerText = resp_json.product_info.name;
-      document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
-    })
-    .catch((resp_json) => {
-      document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
-      console.log(resp_json);
-    });
+  return [scan_results, new_li];
 }
 
 async function submit_upc_scan(upc, is_remove = false) {
@@ -121,7 +154,7 @@ async function submit_upc_scan(upc, is_remove = false) {
     is_remove: is_remove,
   };
 
-  let resp = await fetch("/logger/log_product_scan", {
+  let resp = await fetch(window.LOGGER_INFO.upc_submit_action_url, {
     method: "POST",
     headers: { "X-CSRFToken": document.head.querySelector("meta[name=csrf_token]").content },
     body: JSON.stringify(payload_data),
@@ -137,8 +170,8 @@ async function submit_upc_scan(upc, is_remove = false) {
 function handle_remove_upc(event) {
   let upc_number = event.target.parentElement.querySelector(".upc-container").innerText;
   let list_item = event.target.parentElement;
-  list_item.querySelector('.button-remove-product').hidden = true;
-  list_item.querySelector('.spinner-remove-product').hidden = false;
+  list_item.querySelector(".button-remove-product").hidden = true;
+  list_item.querySelector(".spinner-remove-product").hidden = false;
 
   submit_upc_scan(upc_number, (is_remove = true))
     .then((resp_json) => {
@@ -146,8 +179,8 @@ function handle_remove_upc(event) {
     })
     .catch((resp_json) => {
       console.log(resp_json);
-      list_item.querySelector('.button-remove-product').hidden = false;
-      list_item.querySelector('.spinner-remove-product').hidden = true;
+      list_item.querySelector(".button-remove-product").hidden = false;
+      list_item.querySelector(".spinner-remove-product").hidden = true;
     });
 
   list_item.addEventListener("animationend", () => {
@@ -163,7 +196,7 @@ function handle_remove_upc(event) {
 }
 
 function qrboxFunction(viewfinderWidth, viewfinderHeight) {
-  let minEdgePercentage = 0.4;
+  let minEdgePercentage = 0.6;
   let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
   let qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
   return {

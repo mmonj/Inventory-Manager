@@ -4,14 +4,16 @@ body {
 
 #reader {
   z-index: -1;
+  position: relative;
+  height: 30vh;
+  overflow: hidden;
 }
 
 #reader video {
-  margin-top: -3rem;
-  margin-bottom: -3rem;
+  margin-top: -6vh;
 }
 
-.card-title {
+.navbar-brand {
   color: rgb(247, 223, 186);
 }
 
