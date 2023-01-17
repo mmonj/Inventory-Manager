@@ -62,7 +62,7 @@ function handle_remove_upc(event) {
 
   send_post_product_addition(upc_number, (is_remove = true))
     .then((resp_json) => {
-      list_item.classList.add("shrink-zero");
+      list_item.classList.add("fade-zero");
     })
     .catch((resp_json) => {
       console.log(resp_json);

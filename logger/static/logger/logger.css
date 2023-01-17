@@ -17,7 +17,7 @@ body {
   color: rgb(247, 223, 186);
 }
 
-@keyframes shrink {
+@keyframes fade_zero {
   0% {
     opacity: 1;
   }
@@ -26,8 +26,8 @@ body {
   }
 }
 
-.shrink-zero {
-  animation-name: shrink;
+.fade-zero {
+  animation-name: fade_zero;
   animation-duration: 0.2s;
   animation-fill-mode: forwards;
   animation-play-state: running;
