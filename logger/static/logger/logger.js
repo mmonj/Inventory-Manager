@@ -214,3 +214,17 @@ function init_scanner() {
   };
   window.LOGGER_INFO.scanner.start({ facingMode: "environment" }, config, on_scan);
 }
+
+function pause_scanner() {
+  if (window.LOGGER_INFO.scanner.getState() == Html5QrcodeScannerState.SCANNING) {
+    console.log('Pausing scanner');
+    window.LOGGER_INFO.scanner.pause();
+  }
+}
+
+function resume_scanner() {
+  if (window.LOGGER_INFO.scanner.getState() == Html5QrcodeScannerState.PAUSED) {
+    console.log('Resuming scanner');
+    window.LOGGER_INFO.scanner.resume();
+  }
+}
