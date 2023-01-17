@@ -11,7 +11,7 @@ def printerr(output, print_type=False):
 
 
 def add_store(store_name: str, contact_names: list = [], field_representative_name: str = ''):
-    store, new_store = models.Store.objects.get_or_create(name=store_name)
+    store, is_new_store = models.Store.objects.get_or_create(name=store_name)
 
     if contact_names and all(n for n in contact_names) and store.store_contact is None:
         new_contact = models.PersonnelContact.objects.create(
@@ -26,7 +26,7 @@ def add_store(store_name: str, contact_names: list = [], field_representative_na
             store.field_representative = field_reps.first()
             store.save(update_fields=['field_representative'])
         
-    return store or new_store
+    return store
 
 
 # import data from external categorized_store_listings.json

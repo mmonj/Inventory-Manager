@@ -75,9 +75,9 @@ function on_scan(decoded_text, decoded_result) {
   if (window.LOGGER_INFO.scanned_upcs.has(decoded_text)) {
     return;
   }
-  
+
   window.LOGGER_INFO.scan_sound.play();
-  document.getElementById('loading-spinner').classList.remove('visually-hidden');
+  document.getElementById("spinner-loading-scan").classList.remove("visually-hidden");
 
   let scan_results = document.getElementById("scanner-results");
   let new_li = document.createElement("li");
@@ -91,29 +91,37 @@ function on_scan(decoded_text, decoded_result) {
       <div class="fw-bold upc-container">${decoded_text}</div>
       <div class="product-name"></div>
     </div>
-    <button class="btn badge bg-primary rounded-pill my-auto">Remove</button>
+    <div class="spinner-remove-product my-auto" hidden>
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+    <button class="button-remove-product btn badge bg-primary rounded-pill my-auto">Remove</button>
   `;
 
-  send_upc(decoded_text)
+  submit_upc_scan(decoded_text)
     .then((resp_json) => {
       window.LOGGER_INFO.scanned_upcs.add(decoded_text);
       scan_results.prepend(new_li);
       new_li.querySelector("button").addEventListener("click", handle_remove_upc);
       new_li.querySelector(".product-name").innerText = resp_json.product_info.name;
-      document.getElementById('loading-spinner').classList.add('visually-hidden');
+      document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
     })
     .catch((resp_json) => {
-      document.getElementById('loading-spinner').classList.add('visually-hidden');
+      document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
       console.log(resp_json);
     });
 }
 
-async function send_upc(upc) {
+async function submit_upc_scan(upc, is_remove = false) {
   let payload_data = {
     upc: upc,
+    store_id: document.getElementById("scanner-store-indicator").dataset.store_id,
+    store_name: document.getElementById("scanner-store-indicator").dataset.store_name,
+    is_remove: is_remove,
   };
 
-  let resp = await fetch("/logger/log_upc", {
+  let resp = await fetch("/logger/log_product_scan", {
     method: "POST",
     headers: { "X-CSRFToken": document.head.querySelector("meta[name=csrf_token]").content },
     body: JSON.stringify(payload_data),
@@ -129,8 +137,18 @@ async function send_upc(upc) {
 function handle_remove_upc(event) {
   let upc_number = event.target.parentElement.querySelector(".upc-container").innerText;
   let list_item = event.target.parentElement;
+  list_item.querySelector('.button-remove-product').hidden = true;
+  list_item.querySelector('.spinner-remove-product').hidden = false;
 
-  list_item.classList.add("shrink-zero");
+  submit_upc_scan(upc_number, (is_remove = true))
+    .then((resp_json) => {
+      list_item.classList.add("shrink-zero");
+    })
+    .catch((resp_json) => {
+      console.log(resp_json);
+      list_item.querySelector('.button-remove-product').hidden = false;
+      list_item.querySelector('.spinner-remove-product').hidden = true;
+    });
 
   list_item.addEventListener("animationend", () => {
     list_item.classList.remove("d-flex");

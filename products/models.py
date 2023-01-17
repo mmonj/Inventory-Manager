@@ -42,7 +42,6 @@ class BrandParentCompany(models.Model):
         return f'BrandParentCompany(short_name={ repr(self.short_name) }, expanded_name={ repr(self.expanded_name) })'
 
 
-
 class Product(models.Model):
     upc = models.CharField(max_length=12, unique=True)
     name = models.CharField(max_length=255, null=True, blank=True)
@@ -114,8 +113,8 @@ class Store(models.Model):
 
 
 class ProductAddition(models.Model):
-    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="associated_additions")
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="associated_additions")
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="associated_additions")
     date_added = models.DateField(default=datetime.date.today)
     is_carried = models.BooleanField(default=False)
 

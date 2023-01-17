@@ -16,29 +16,62 @@ def index(request):
     })
 
 
-def log_upc(request):
+def log_product_scan(request):
     if request.method != 'POST':
         return JsonResponse({'message': 'Method type forbidden'}, status=405)
 
     body = json.loads(request.body)
 
     try:
-        existing_product, new_product = models.Product.objects.get_or_create(upc=body['upc'])
+        product, _is_new_product = models.Product.objects.get_or_create(upc=body['upc'])
     except ValidationError as ex:
         return JsonResponse(
             { 'message': 'Bad request', 'errors': [f for f in dict(ex)['__all__']] },
             status=400
         )
-    product = existing_product or new_product
+    
+    store = models.Store.objects.get(pk=body['store_id'])
+    if body['is_remove']:
+        product_addition = uncarry_product_addition(product, store)
+    else:
+        product_addition = record_product_addition(product, store, is_product_scanned=True)
 
     resp_json = {
         'product_info': {
-            'upc': product.upc, 
-            'name': product.name or None
+            'upc': product_addition.product.upc, 
+            'name': product_addition.product.name or '', 
+            'store_name': product_addition.store.name, 
+            'is_carried': product_addition.is_carried
         }
     }
 
     return JsonResponse(resp_json)
+
+
+def record_product_addition(product, store, is_product_scanned=False):
+    product_addition, _is_new_product_addition = models.ProductAddition.objects.get_or_create(
+        product=product, 
+        store=store
+    )
+    
+    if is_product_scanned and not product_addition.is_carried:
+        product_addition.is_carried = True
+        product_addition.save(update_fields=['is_carried'])
+
+    return product_addition
+
+
+def uncarry_product_addition(product, store):
+    product_addition = models.ProductAddition.objects.get(
+        product=product, 
+        store=store
+    )
+
+    if product_addition.is_carried:
+        product_addition.is_carried = False
+        product_addition.save(update_fields=['is_carried'])
+
+    return product_addition
 
 
 def get_field_rep_stores_info():
@@ -60,7 +93,6 @@ def get_field_rep_stores_info():
         )
     
     return ret_dict
-
 
 
 def add_new_stores(request):
