@@ -1,5 +1,6 @@
 import json
 
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import render, HttpResponse, redirect
 from .forms import NewStoresForm
@@ -16,13 +17,25 @@ def index(request):
 
 
 def log_upc(request):
-    body = json.loads(request.body)
-    products.helpers.printerr(body['upc'])
+    if request.method != 'POST':
+        return JsonResponse({'message': 'Method type forbidden'}, status=405)
 
-    existing_product = models.Product.objects.get(upc=body['upc'])
+    body = json.loads(request.body)
+
+    try:
+        existing_product, new_product = models.Product.objects.get_or_create(upc=body['upc'])
+    except ValidationError as ex:
+        return JsonResponse(
+            { 'message': 'Bad request', 'errors': [f for f in dict(ex)['__all__']] },
+            status=400
+        )
+    product = existing_product or new_product
+
     resp_json = {
-        'upc': existing_product.upc, 
-        'name': existing_product.name
+        'product_info': {
+            'upc': product.upc, 
+            'name': product.name or None
+        }
     }
 
     return JsonResponse(resp_json)

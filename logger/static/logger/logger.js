@@ -22,8 +22,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let store_select_node = document.getElementById("store-select");
 
-    document.getElementById("store-select-container").setAttribute("hidden", "");
-    document.getElementById("scanner-container").removeAttribute("hidden");
+    document.getElementById("store-select-container").hidden = true;
+    document.getElementById("scanner-container").hidden = false;
 
     let scanner_store_indicator_node = document.getElementById("scanner-store-indicator");
     scanner_store_indicator_node.dataset.store_id =
@@ -77,6 +77,7 @@ function on_scan(decoded_text, decoded_result) {
   }
   
   window.LOGGER_INFO.scan_sound.play();
+  document.getElementById('loading-spinner').classList.remove('visually-hidden');
 
   let scan_results = document.getElementById("scanner-results");
   let new_li = document.createElement("li");
@@ -99,9 +100,10 @@ function on_scan(decoded_text, decoded_result) {
       scan_results.prepend(new_li);
       new_li.querySelector("button").addEventListener("click", handle_remove_upc);
       new_li.querySelector(".product-name").innerText = resp_json.product_info.name;
-      
+      document.getElementById('loading-spinner').classList.add('visually-hidden');
     })
     .catch((resp_json) => {
+      document.getElementById('loading-spinner').classList.add('visually-hidden');
       console.log(resp_json);
     });
 }
