@@ -58,6 +58,7 @@ function handle_remove_upc(event) {
   let list_item = event.target.parentElement;
   list_item.querySelector(".button-remove-product").hidden = true;
   list_item.querySelector(".spinner-remove-product").hidden = false;
+  list_item.classList.add('remove-queued');
 
   send_post_product_addition(upc_number, (is_remove = true))
     .then((resp_json) => {
@@ -68,10 +69,15 @@ function handle_remove_upc(event) {
       show_alert_toast("Error", "An unexpected server error occurred.\nYou may try again.");
       list_item.querySelector(".button-remove-product").hidden = false;
       list_item.querySelector(".spinner-remove-product").hidden = true;
+      list_item.classList.remove('remove-queued');
     });
 
   // event listener for opacity fade-to-zero animation-end
   list_item.addEventListener("animationend", () => {
+    if (!list_item.classList.contains('remove-queued')) {
+      return;
+    }
+
     list_item.classList.remove("d-flex");
     list_item.classList.remove("list-group-item");
     new bootstrap.Collapse(list_item);
