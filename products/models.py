@@ -116,7 +116,11 @@ class ProductAddition(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="associated_additions")
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="associated_additions")
     date_added = models.DateField(default=datetime.date.today)
+    date_last_scanned = models.DateField(null=True, blank=True)
     is_carried = models.BooleanField(default=False)
+    
+    def update_date_scanned(self):
+        self.date_last_scanned = datetime.date.today()
 
     def __str__(self):
         return f'{self.product.upc}; Carried {self.is_carried}; Store {self.store}'

@@ -58,6 +58,9 @@ def record_product_addition(product, store, is_product_scanned=False):
         product_addition.is_carried = True
         product_addition.save(update_fields=['is_carried'])
 
+    product_addition.update_date_scanned()
+    product_addition.save(update_fields=['date_last_scanned'])
+
     return product_addition
 
 
