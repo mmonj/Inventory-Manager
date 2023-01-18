@@ -17,22 +17,6 @@ body {
   color: rgb(247, 223, 186);
 }
 
-@keyframes fade_zero {
-  0% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-.fade-zero {
-  animation-name: fade_zero;
-  animation-duration: 0.2s;
-  animation-fill-mode: forwards;
-  animation-play-state: running;
-}
-
 .product-container {
   min-width: 0;
 }
@@ -90,4 +74,45 @@ body {
   background-color: var(--bs-form-control-bg)!important;
   border-color: var(--bs-border-color)!important;
   height: initial!important;
+}
+
+@keyframes _fade_zero {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.fade-zero {
+  animation-name: _fade_zero;
+  animation-duration: 0.2s;
+  animation-fill-mode: forwards;
+  animation-play-state: running;
+}
+
+@keyframes _flash {
+  0% {
+    filter: brightness(100%);
+  }
+  25% {
+    filter: brightness(140%);
+  }
+  50% {
+    filter: brightness(100%);
+  }
+  75% {
+    filter: brightness(140%);
+  }
+  100% {
+    filter: brightness(100%);
+  }
+}
+
+.flash-item {
+  animation-name: _flash;
+  animation-duration: 0.9s;
+  animation-fill-mode: forwards;
+  animation-play-state: running;
 }
