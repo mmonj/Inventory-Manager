@@ -34,6 +34,11 @@ class StoreAdmin(admin.ModelAdmin):
     get_field_representative.short_description = 'Field Rep'
 
 
+class PersonnelContactAdmin(admin.ModelAdmin):
+    search_fields = ['first_name', 'last_name']
+    list_display = ['first_name', 'last_name']
+
+
 # Register your models here.
 admin.site.register(models.WorkCycle)
 admin.site.register(models.FieldRepresentative, FieldRepresentativeAdmin)
@@ -41,4 +46,4 @@ admin.site.register(models.BrandParentCompany, BrandParentCompanyAdmin)
 admin.site.register(models.Product, ProductAdmin)
 admin.site.register(models.Store, StoreAdmin)
 admin.site.register(models.ProductAddition, ProductAdditionAdmin)
-admin.site.register(models.PersonnelContact)
+admin.site.register(models.PersonnelContact, PersonnelContactAdmin)

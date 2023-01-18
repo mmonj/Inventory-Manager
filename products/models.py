@@ -71,8 +71,8 @@ class Product(models.Model):
 
 
 class PersonnelContact(models.Model):
-    first_name = models.CharField(max_length=255, null=True, blank=True)
-    last_name = models.CharField(max_length=255, null=True, blank=True)
+    first_name = models.CharField(max_length=255, null=True)
+    last_name = models.CharField(max_length=255, null=True)
 
     def __str__(self):
         if not self.first_name and not self.last_name:
