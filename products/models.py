@@ -4,11 +4,12 @@ from checkdigit import gs1
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 
 class WorkCycle(models.Model):
-    start_date = models.DateField(default=datetime.date.today)
-    end_date = models.DateField(default=datetime.date.today)
+    start_date = models.DateField(default=timezone.now)
+    end_date = models.DateField(default=timezone.now)
 
     def __str__(self):
         return f'{self.start_date} to {self.end_date}'
@@ -33,6 +34,10 @@ class FieldRepresentative(models.Model):
 class BrandParentCompany(models.Model):
     short_name = models.CharField(max_length=50, unique=True, null=True)
     expanded_name = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    
+    @staticmethod
+    def get_default():
+        return BrandParentCompany.objects.get_or_create(short_name='Unknown', expanded_name='Unknown brand')[0].pk
 
     def __str__(self):
         return self.expanded_name or self.short_name
@@ -45,7 +50,12 @@ class BrandParentCompany(models.Model):
 class Product(models.Model):
     upc = models.CharField(max_length=12, unique=True)
     name = models.CharField(max_length=255, null=True, blank=True)
-    parent_company = models.ForeignKey(BrandParentCompany, null=True, blank=True, on_delete=models.SET_NULL, related_name='upcs')
+    parent_company = models.ForeignKey(
+        BrandParentCompany, 
+        default= BrandParentCompany.get_default, 
+        on_delete=models.DO_NOTHING, 
+        related_name='upcs'
+    )
 
     def __str__(self):
         return f'{self.upc}: {self.name}'
@@ -115,18 +125,18 @@ class Store(models.Model):
 class ProductAddition(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="associated_additions")
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="associated_additions")
-    date_added = models.DateField(default=datetime.date.today)
-    date_last_scanned = models.DateField(null=True, blank=True)
+    date_added = models.DateField(default=timezone.now)
+    date_last_scanned = models.DateTimeField(null=True, blank=True)
     is_carried = models.BooleanField(default=False)
     
     def update_date_scanned(self):
-        self.date_last_scanned = datetime.date.today()
+        self.date_last_scanned = timezone.now()
 
     def __str__(self):
         return f'{self.product.upc}; Carried {self.is_carried}; Store {self.store}'
 
     def _strd(self):
-        return f'ProductAddition(store={self.store}, product={self.product}, date_added={self.date_added}, is_carried={self.is_carried})'
+        return f'ProductAddition(store={self.store}, product={self.product}, date_added={self.date_added}, date_last_scanned={self.date_last_scanned}, is_carried={self.is_carried})'
 
     class Meta:
         unique_together = ('store', 'product',)
