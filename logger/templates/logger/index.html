@@ -22,28 +22,12 @@
 {% endblock %}
 
 {% block body_header %}
-  {% include "logger/navbar.html" %}
+  {% include "logger/includes/navbar.html" %}
 {% endblock %}
 
 {% block body_main %}
-  <section id="store-select-container" class="m-3">
-    <form id="store-selector-form">
-      <fieldset>
-        <legend class="mb-3">Store Selector</legend>
-        <div class="mb-3">
-          <label for="field-representative-select" class="form-label">Field Representative</label>
-          <select id="field-representative-select" class="form-select" required></select>
-        </div>
-        <div class="mb-3">
-          <label for="store-select" class="form-label">Store</label>
-          <select id="store-select" class="d-block col-12" required></select>
-        </div>
-        <button type="submit" class="btn btn-primary col-12 my-2">Submit</button>
-      </fieldset>
-    </form>
-  </section>
-
-  {% include "logger/scanner_section.html" %}
+  {% include "logger/includes/store_picker.html" %}
+  {% include "logger/includes/scanner_section.html" %}
 
   <script id="field-rep-stores-info" type="application/json">{{ field_rep_stores_info | safe }}</script>
 {% endblock %}
