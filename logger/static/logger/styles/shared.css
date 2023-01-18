@@ -1,26 +1,5 @@
-body {
-  margin: 0;
-}
-
-#reader {
-  z-index: -1;
-  position: relative;
-  height: 30vh;
-  overflow: hidden;
-}
-
-#reader video {
-  margin-top: -6vh;
-}
-
-.product-container {
-  min-width: 0;
-}
-
-.product-name {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+.navbar-brand {
+  color: rgb(247, 223, 186);
 }
 
 .select2-container {
@@ -70,45 +49,4 @@ body {
   background-color: var(--bs-form-control-bg)!important;
   border-color: var(--bs-border-color)!important;
   height: initial!important;
-}
-
-@keyframes _fade_zero {
-  0% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-.fade-zero {
-  animation-name: _fade_zero;
-  animation-duration: 0.2s;
-  animation-fill-mode: forwards;
-  animation-play-state: running;
-}
-
-@keyframes _flash {
-  0% {
-    filter: brightness(100%);
-  }
-  25% {
-    filter: brightness(140%);
-  }
-  50% {
-    filter: brightness(100%);
-  }
-  75% {
-    filter: brightness(140%);
-  }
-  100% {
-    filter: brightness(100%);
-  }
-}
-
-.flash-item {
-  animation-name: _flash;
-  animation-duration: 0.9s;
-  animation-fill-mode: forwards;
-  animation-play-state: running;
 }
