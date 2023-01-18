@@ -25,21 +25,23 @@ function handle_submit_upc(upc_number, is_scan_sound_play = true) {
   let ret = { errors: [] };
 
   if (window.LOGGER_INFO.scanned_upcs.has(upc_number)) {
+    let existing_li_item = document.querySelector(
+      `#scanner-results > li[data-upc_number='${upc_number}']`
+    );
+    existing_li_item.classList.add("flash-item");
+    document.getElementById("scanner-results").prepend(existing_li_item);
+
     ret.is_upc_already_scanned = true;
-    ret.errors.push("This UPC has already been scanned in this session");
+    // ret.errors.push("This UPC has already been scanned in this session");
     return Promise.reject(ret);
   }
 
-  let [scan_results, new_li] = show_upc_submission_loading(upc_number);
+  document.getElementById("spinner-loading-scan").classList.remove("visually-hidden");
+  let [scan_results, new_li] = get_new_result_li_node(upc_number);
 
   return send_post_product_addition(upc_number)
     .then((resp_json) => {
-      window.LOGGER_INFO.scanned_upcs.add(upc_number);
-      scan_results.prepend(new_li);
-      new_li.querySelector("button").addEventListener("click", handle_remove_upc);
-      new_li.querySelector(".product-name").innerText = resp_json.product_info.name;
-      document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
-      document.getElementById("text-input-upc").value = "";
+      add_result_li_to_dom(scan_results, new_li, upc_number, resp_json);
       return resp_json;
     })
     .catch((resp_json) => {
@@ -53,12 +55,65 @@ function handle_submit_upc(upc_number, is_scan_sound_play = true) {
     });
 }
 
+function get_new_result_li_node(upc_number) {
+  let scan_results = document.getElementById("scanner-results");
+  let new_li = document.createElement("li");
+
+  new_li.dataset.upc_number = upc_number;
+  new_li.setAttribute(
+    "class",
+    "list-group-item d-flex justify-content-between align-items-start collapse show"
+  );
+  new_li.innerHTML = `
+    <div class="ms-2 me-auto product-container">
+      <div class="fw-bold upc-container">${upc_number}</div>
+      <div class="product-name"></div>
+    </div>
+    <div class="spinner-remove-product my-auto" hidden>
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+    <button class="button-remove-product btn badge bg-primary rounded-pill my-auto ms-2 py-2">Delete</button>
+  `;
+
+  return [scan_results, new_li];
+}
+
+function add_result_li_to_dom(scan_results, new_li, upc_number, resp_json) {
+  // event listener for opacity fade-to-zero animation-end
+  new_li.addEventListener("animationend", (event) => {
+    if (event.target.classList.contains("flash-item")) {
+      event.target.classList.remove("flash-item");
+    }
+    if (!event.target.classList.contains("remove-queued")) {
+      return;
+    }
+
+    event.target.classList.remove("d-flex");
+    event.target.classList.remove("list-group-item");
+    new bootstrap.Collapse(event.target);
+  });
+
+  new_li.addEventListener("hidden.bs.collapse", () => {
+    new_li.remove();
+    window.LOGGER_INFO.scanned_upcs.delete(upc_number);
+  });
+
+  window.LOGGER_INFO.scanned_upcs.add(upc_number);
+  scan_results.prepend(new_li);
+  new_li.querySelector("button").addEventListener("click", handle_remove_upc);
+  new_li.querySelector(".product-name").innerText = resp_json.product_info.name;
+  document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
+  document.getElementById("text-input-upc").value = "";
+}
+
 function handle_remove_upc(event) {
   let upc_number = event.target.parentElement.querySelector(".upc-container").innerText;
   let list_item = event.target.parentElement;
   list_item.querySelector(".button-remove-product").hidden = true;
   list_item.querySelector(".spinner-remove-product").hidden = false;
-  list_item.classList.add('remove-queued');
+  list_item.classList.add("remove-queued");
 
   send_post_product_addition(upc_number, (is_remove = true))
     .then((resp_json) => {
@@ -69,24 +124,8 @@ function handle_remove_upc(event) {
       show_alert_toast("Error", "An unexpected server error occurred.\nYou may try again.");
       list_item.querySelector(".button-remove-product").hidden = false;
       list_item.querySelector(".spinner-remove-product").hidden = true;
-      list_item.classList.remove('remove-queued');
+      list_item.classList.remove("remove-queued");
     });
-
-  // event listener for opacity fade-to-zero animation-end
-  list_item.addEventListener("animationend", () => {
-    if (!list_item.classList.contains('remove-queued')) {
-      return;
-    }
-
-    list_item.classList.remove("d-flex");
-    list_item.classList.remove("list-group-item");
-    new bootstrap.Collapse(list_item);
-  });
-
-  list_item.addEventListener("hidden.bs.collapse", () => {
-    list_item.remove();
-    window.LOGGER_INFO.scanned_upcs.delete(upc_number);
-  });
 }
 
 function show_alert_toast(title, message) {
@@ -99,38 +138,12 @@ function show_alert_toast(title, message) {
 }
 
 function show_manual_upc_errors(errors) {
-  if (!errors) {
+  if (errors.length === 0) {
     return;
   }
   let error_message = errors.join("\n");
   document.getElementById("error-manual-upc").innerText = error_message;
   document.getElementById("error-manual-upc").hidden = false;
-}
-
-function show_upc_submission_loading(decoded_text) {
-  document.getElementById("spinner-loading-scan").classList.remove("visually-hidden");
-
-  let scan_results = document.getElementById("scanner-results");
-  let new_li = document.createElement("li");
-
-  new_li.setAttribute(
-    "class",
-    "list-group-item d-flex justify-content-between align-items-start collapse show"
-  );
-  new_li.innerHTML = `
-    <div class="ms-2 me-auto product-container">
-      <div class="fw-bold upc-container">${decoded_text}</div>
-      <div class="product-name"></div>
-    </div>
-    <div class="spinner-remove-product my-auto" hidden>
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-    </div>
-    <button class="button-remove-product btn badge bg-primary rounded-pill my-auto ms-2 py-2">Delete</button>
-  `;
-
-  return [scan_results, new_li];
 }
 
 function populate_initial_dropdown_values() {
