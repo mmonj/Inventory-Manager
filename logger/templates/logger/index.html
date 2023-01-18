@@ -11,14 +11,17 @@
     window.__LOGGER_INFO__.scan_sound_path = "{% static 'logger/scan_sound.ogg' %}";
     window.__LOGGER_INFO__.upc_submit_action_url = "{% url 'logger:log_product_scan' %}";
   </script>
-  <script src="{% static 'logger/scripts/html5-qrcode-2.3.4.js' %}"></script>
-  <script src="{% static 'logger/scripts/logger_ui_handlers.js' %}"></script>
-  <script src="{% static 'logger/scripts/logger.js' %}"></script>
-  <link rel="stylesheet" href="{% static 'logger/styles/logger.css' %}" />
 
+  <script src="{% static 'logger/scripts/html5-qrcode-2.3.4.js' %}"></script>
+  <link rel="stylesheet" href="{% static 'logger/styles/logger.css' %}" />
+  
   <script src="{% static 'logger/scripts/jquery-3.6.3.slim.min.js' %}"></script>
   <link href="{% static 'logger/styles/select2@4.1.0-rc.min.css' %}" rel="stylesheet" />
   <script src="{% static 'logger/scripts/select2@4.1.0-rc.min.js' %}"></script>
+
+  <script src="{% static 'logger/scripts/logger_ui_handlers.js' %}"></script>
+  <script src="{% static 'logger/scripts/store_picker.js' %}"></script>
+  <script src="{% static 'logger/scripts/logger.js' %}"></script>
 {% endblock %}
 
 {% block body_header %}

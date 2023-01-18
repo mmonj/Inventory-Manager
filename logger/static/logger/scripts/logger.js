@@ -7,11 +7,11 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 
   $("#store-select").select2();
-  populate_initial_dropdown_values();
+  populate_initial_dropdown_values(window.__LOGGER_INFO__.territory_info);
 
-  document
-    .getElementById("field-representative-select")
-    .addEventListener("change", handle_field_rep_change);
+  document.getElementById("field-representative-select").addEventListener("change", (event) => {
+    handle_field_rep_change(event, window.__LOGGER_INFO__.territory_info);
+  });
   document
     .getElementById("store-selector-form")
     .addEventListener("submit", handle_store_select_submission);
