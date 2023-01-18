@@ -43,59 +43,7 @@
     </form>
   </section>
 
-  <section id="scanner-container" hidden>
-    <div id="scanner-store-indicator" class="p-2">
-      <h5 class="card-title text-center">Special title treatment</h5>
-    </div>
-
-    <ul class="nav nav-tabs justify-content-center mt-1" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button onclick="resume_scanner();" class="nav-link active" id="scanner-tab" data-bs-toggle="tab" data-bs-target="#scanner-tab-pane" type="button" role="tab" aria-controls="scanner-tab-pane" aria-selected="true">
-          Scanner
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button onclick="pause_scanner();" class="nav-link" id="keyboard-tab" data-bs-toggle="tab" data-bs-target="#keyboard-tab-pane" type="button" role="tab" aria-controls="keyboard-tab-pane" aria-selected="false">
-          Keyboard
-        </button>
-      </li>
-    </ul>
-    <div class="tab-content m-2">
-      <div class="tab-pane fade show active" id="scanner-tab-pane" role="tabpanel" aria-labelledby="scanner-tab" tabindex="0">
-        <div id="reader"></div>
-      </div>
-      <div class="tab-pane fade" id="keyboard-tab-pane" role="tabpanel" aria-labelledby="keyboard-tab" tabindex="0">
-        <form id="form-manual-upc" action="{% url 'logger:log_product_scan' %}" method="POST">
-          <label for="text-input-upc" class="d-block mb-2">UPC Number</label>
-          <input id="text-input-upc" type="text" autocomplete="off" class="form-control mb-3" placeholder="Type a UPC number" minlength="12" maxlength="12" required>
-          <div id="error-manual-upc" class="alert alert-warning" role="alert" hidden></div>
-          <button type="submit" class="btn btn-primary form-control mb-2">Submit</button>
-        </form>
-      </div>
-    </div>
-
-    <div class="toast-container top-50 start-50 translate-middle">
-      <div id="alert-toast" class="toast p-1" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-          <svg class="me-2" viewBox="0 0 16 16" fill="currentColor" height="16" width="16" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"></path>
-          </svg>
-          <strong class="_toast-title me-auto h6 mb-0">Error</strong>
-          <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-        <div class="toast-body">
-          Hello, world! This is a toast message.
-        </div>
-      </div>
-    </div>
-
-    <div id="spinner-loading-scan" class="d-flex justify-content-center my-2 visually-hidden">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-    </div>
-    <ol id="scanner-results" class="list-group list-group-numbered"></ol>
-  </section>
+  {% include "logger/scanner_section.html" %}
 
   <script id="field-rep-stores-info" type="application/json">{{ field_rep_stores_info | safe }}</script>
 {% endblock %}
