@@ -155,10 +155,9 @@ function handle_store_select_submission(event) {
   document.getElementById("scanner-container").hidden = false;
 
   let scanner_store_indicator_node = document.getElementById("scanner-store-indicator");
-  scanner_store_indicator_node.dataset.store_id =
-    store_select_node.options[store_select_node.selectedIndex].getAttribute("name");
-  scanner_store_indicator_node.dataset.store_name = store_select_node.value;
-  scanner_store_indicator_node.querySelector(".card-title").innerText = store_select_node.value;
+  scanner_store_indicator_node.dataset.store_id = store_select_node.value;
+  scanner_store_indicator_node.dataset.store_name = store_select_node.options[store_select_node.selectedIndex].innerText;
+  scanner_store_indicator_node.querySelector(".card-title").innerText = store_select_node.options[store_select_node.selectedIndex].innerText;
 
   init_scanner();
 }
