@@ -9,7 +9,6 @@ function populate_initial_dropdown_values(territory_info) {
   let field_rep_select_node = document.getElementById("field-representative-select");
   for (let territory of territory_info.territory_list) {
     let new_option_node = document.createElement("option");
-    new_option_node.setAttribute("name", 'field-rep-id');
     new_option_node.setAttribute("value", territory.field_rep_id);
     new_option_node.innerText = territory.field_rep_name;
 
@@ -34,7 +33,6 @@ function update_store_select_options(new_field_rep_name, store_select_node, terr
     if (territory.field_rep_name === new_field_rep_name) {
       for (let store_info of territory.stores) {
         let new_option_node = document.createElement("option");
-        new_option_node.setAttribute("name", 'store-id');
         new_option_node.setAttribute("value", store_info.store_id);
         new_option_node.innerText = store_info.store_name;
 
