@@ -1,9 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
-  window.LOGGER_INFO.scanner = new Html5Qrcode("reader");
-  window.LOGGER_INFO.scanned_upcs = new Set();
-  window.LOGGER_INFO.scan_sound = new Audio(window.LOGGER_INFO.scan_sound_path);
-  window.LOGGER_INFO.field_rep_stores_info = JSON.parse(
-    document.getElementById("field-rep-stores-info").textContent
+  window.__LOGGER_INFO__.scanner = new Html5Qrcode("reader");
+  window.__LOGGER_INFO__.scanned_upcs = new Set();
+  window.__LOGGER_INFO__.scan_sound = new Audio(window.__LOGGER_INFO__.scan_sound_path);
+  window.__LOGGER_INFO__.territory_info = JSON.parse(
+    document.getElementById("territory-info").textContent
   );
 
   $("#store-select").select2();
@@ -28,7 +28,7 @@ async function send_post_product_addition(upc, is_remove = false) {
     is_remove: is_remove,
   };
 
-  let resp = await fetch(window.LOGGER_INFO.upc_submit_action_url, {
+  let resp = await fetch(window.__LOGGER_INFO__.upc_submit_action_url, {
     method: "POST",
     headers: { "X-CSRFToken": document.head.querySelector("meta[name=csrf_token]").content },
     body: JSON.stringify(payload_data),
@@ -57,5 +57,5 @@ function init_scanner() {
     qrbox: qrboxFunction,
     formatsToSupport: [Html5QrcodeSupportedFormats.UPC_A],
   };
-  window.LOGGER_INFO.scanner.start({ facingMode: "environment" }, config, handle_submit_upc);
+  window.__LOGGER_INFO__.scanner.start({ facingMode: "environment" }, config, handle_submit_upc);
 }

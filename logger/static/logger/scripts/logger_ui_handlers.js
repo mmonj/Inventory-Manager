@@ -19,12 +19,12 @@ function handle_manual_upc_submission(event) {
 
 function handle_submit_upc(upc_number, is_scan_sound_play = true) {
   if (is_scan_sound_play) {
-    window.LOGGER_INFO.scan_sound.play();
+    window.__LOGGER_INFO__.scan_sound.play();
   }
 
   let ret = { errors: [] };
 
-  if (window.LOGGER_INFO.scanned_upcs.has(upc_number)) {
+  if (window.__LOGGER_INFO__.scanned_upcs.has(upc_number)) {
     let existing_li_item = document.querySelector(
       `#scanner-results > li[data-upc_number='${upc_number}']`
     );
@@ -97,10 +97,10 @@ function add_result_li_to_dom(scan_results, new_li, upc_number, resp_json) {
 
   new_li.addEventListener("hidden.bs.collapse", () => {
     new_li.remove();
-    window.LOGGER_INFO.scanned_upcs.delete(upc_number);
+    window.__LOGGER_INFO__.scanned_upcs.delete(upc_number);
   });
 
-  window.LOGGER_INFO.scanned_upcs.add(upc_number);
+  window.__LOGGER_INFO__.scanned_upcs.add(upc_number);
   scan_results.prepend(new_li);
   new_li.querySelector("button").addEventListener("click", handle_remove_upc);
   new_li.querySelector(".product-name").innerText = resp_json.product_info.name;
@@ -148,11 +148,11 @@ function show_manual_upc_errors(errors) {
 
 function populate_initial_dropdown_values() {
   let field_rep_select_node = document.getElementById("field-representative-select");
-  for (let field_rep_info of window.LOGGER_INFO.field_rep_stores_info.field_reps_list) {
+  for (let territory of window.__LOGGER_INFO__.territory_info.territory_list) {
     let new_option_node = document.createElement("option");
-    new_option_node.setAttribute("name", field_rep_info.field_rep_id);
-    new_option_node.setAttribute("value", field_rep_info.field_rep_name);
-    new_option_node.innerText = field_rep_info.field_rep_name;
+    new_option_node.setAttribute("name", territory.field_rep_id);
+    new_option_node.setAttribute("value", territory.field_rep_name);
+    new_option_node.innerText = territory.field_rep_name;
 
     field_rep_select_node.appendChild(new_option_node);
   }
@@ -174,9 +174,9 @@ function update_store_select_options(new_field_rep_name, store_select_node) {
   disabled_placeholder_option.innerText = "Search Stores";
   store_select_node.appendChild(disabled_placeholder_option);
 
-  for (let field_rep_info of window.LOGGER_INFO.field_rep_stores_info.field_reps_list) {
-    if (field_rep_info.field_rep_name === new_field_rep_name) {
-      for (let store_info of field_rep_info.stores) {
+  for (let territory of window.__LOGGER_INFO__.territory_info.territory_list) {
+    if (territory.field_rep_name === new_field_rep_name) {
+      for (let store_info of territory.stores) {
         let new_option_node = document.createElement("option");
         new_option_node.setAttribute("name", store_info.store_id);
         new_option_node.setAttribute("value", store_info.store_name);
@@ -207,15 +207,15 @@ function handle_store_select_submission(event) {
 }
 
 function pause_scanner() {
-  if (window.LOGGER_INFO.scanner.getState() == Html5QrcodeScannerState.SCANNING) {
+  if (window.__LOGGER_INFO__.scanner.getState() == Html5QrcodeScannerState.SCANNING) {
     console.log("Pausing scanner");
-    window.LOGGER_INFO.scanner.pause();
+    window.__LOGGER_INFO__.scanner.pause();
   }
 }
 
 function resume_scanner() {
-  if (window.LOGGER_INFO.scanner.getState() == Html5QrcodeScannerState.PAUSED) {
+  if (window.__LOGGER_INFO__.scanner.getState() == Html5QrcodeScannerState.PAUSED) {
     console.log("Resuming scanner");
-    window.LOGGER_INFO.scanner.resume();
+    window.__LOGGER_INFO__.scanner.resume();
   }
 }
