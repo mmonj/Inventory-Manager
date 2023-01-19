@@ -2,6 +2,33 @@
   color: rgb(247, 223, 186);
 }
 
+.truncated-text-container {
+  min-width: 0;
+}
+
+.truncated-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@keyframes _fade_zero {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.fade-zero {
+  animation-name: _fade_zero;
+  animation-duration: 0.2s;
+  animation-fill-mode: forwards;
+  animation-play-state: running;
+}
+
+
 .select2-container {
   width: 100%!important;
 }

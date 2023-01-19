@@ -7,12 +7,11 @@ from .forms import NewStoresForm
 from products import models
 import products.helpers
 
-
 # Create your views here.
 def index(request):
-    field_rep_stores_info = get_field_rep_stores_info()
+    territory_info = get_territory_info()
     return render(request, 'logger/index.html', {
-        'field_rep_stores_info': json.dumps(field_rep_stores_info)
+        'territory_info': json.dumps(territory_info)
     })
 
 
@@ -32,7 +31,7 @@ def log_product_scan(request):
     
     store = models.Store.objects.get(pk=body['store_id'])
     if body['is_remove']:
-        product_addition = uncarry_product_addition(product, store)
+        product_addition = set_not_carried(product, store)
     else:
         product_addition = record_product_addition(product, store, is_product_scanned=True)
 
@@ -64,7 +63,7 @@ def record_product_addition(product, store, is_product_scanned=False):
     return product_addition
 
 
-def uncarry_product_addition(product, store):
+def set_not_carried(product, store):
     product_addition = models.ProductAddition.objects.get(
         product=product, 
         store=store
@@ -77,15 +76,15 @@ def uncarry_product_addition(product, store):
     return product_addition
 
 
-def get_field_rep_stores_info():
-    ret_dict = {
-        'field_reps_list': []
+def get_territory_info():
+    territory_info = {
+        'territory_list': []
     }
-    field_reps_list = ret_dict['field_reps_list']
+    territory_list = territory_info['territory_list']
     
     field_reps = models.FieldRepresentative.objects.all()
     for field_rep in field_reps:
-        field_reps_list.append(
+        territory_list.append(
             {
                 'field_rep_name': field_rep.name, 
                 'field_rep_id': field_rep.pk, 
@@ -96,7 +95,7 @@ def get_field_rep_stores_info():
             }
         )
     
-    return ret_dict
+    return territory_info
 
 
 def add_new_stores(request):
@@ -129,3 +128,28 @@ def add_new_stores(request):
 
     return redirect('logger:add_new_stores')
     
+
+def scan_history(request):
+    if not request.GET:
+        territory_info = get_territory_info()
+        return render(request, 'logger/scan_history.html', {
+            'territory_info': json.dumps(territory_info)
+        })
+
+    store_id = request.GET.get('store-id')[0]
+    product_additions = models.ProductAddition.objects.filter(store__pk=store_id, is_carried=True).order_by('-date_last_scanned')[:100]
+    for product_addition in product_additions:
+        product_addition.product.name = product_addition.product.name or 'Unknown product name'
+    
+    return render(request, 'logger/scan_history.html', {
+        'product_additions': product_additions, 
+        'store_name': product_addition.store.name
+    })
+    
+
+def uncarry_product_addition(request, product_addition_pk):
+    product_addition = models.ProductAddition.objects.get(pk=product_addition_pk)
+    product_addition.is_carried = False
+    product_addition.save(update_fields=['is_carried'])
+
+    return JsonResponse({'message': 'success'})

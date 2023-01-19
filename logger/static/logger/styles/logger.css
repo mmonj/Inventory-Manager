@@ -23,22 +23,6 @@ body {
   text-overflow: ellipsis;
 }
 
-@keyframes _fade_zero {
-  0% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-.fade-zero {
-  animation-name: _fade_zero;
-  animation-duration: 0.2s;
-  animation-fill-mode: forwards;
-  animation-play-state: running;
-}
-
 @keyframes _flash {
   0% {
     filter: brightness(100%);
