@@ -1,3 +1,44 @@
+async function handle_list_item_removal_transition(_promise, list_item, options = {}) {
+  options.submit_button && (options.submit_button.hidden = true);
+  options.loading_indicator_element && (options.loading_indicator_element.hidden = false);
+
+  try {
+    let resp_json = await _promise;
+
+    if (!list_item.classList.contains("remove-queued")) {
+      list_item.addEventListener("animationend", handle_collapse);
+      list_item.addEventListener("hidden.bs.collapse", (event) => {
+        if (event.target.classList.contains("remove-queued")) {
+          list_item.remove();
+          options.action_on_removal && options.action_on_removal();
+        }
+      });
+    }
+
+    list_item.classList.add("remove-queued");
+    list_item.classList.add("fade-zero");
+  } catch (error_json) {
+    console.log(error_json);
+    show_alert_toast("Error", "An unexpected server error occurred.\nYou may try again.");
+    options.submit_button && (options.submit_button.hidden = false);
+    options.loading_indicator_element && (options.loading_indicator_element.hidden = true);
+    list_item.classList.remove("remove-queued");
+  }
+}
+
+function handle_collapse(event) {
+  if (event.target.classList.contains("flash-item")) {
+    event.target.classList.remove("flash-item");
+  }
+  if (!event.target.classList.contains("remove-queued")) {
+    return;
+  }
+
+  event.target.classList.remove("d-flex");
+  event.target.classList.remove("list-group-item");
+  new bootstrap.Collapse(event.target);
+}
+
 function handle_manual_upc_submission(event) {
   event.preventDefault();
   document.getElementById("error-manual-upc").hidden = true;
@@ -111,21 +152,19 @@ function add_result_li_to_dom(scan_results, new_li, upc_number, resp_json) {
 function handle_remove_upc(event) {
   let upc_number = event.target.parentElement.querySelector(".upc-container").innerText;
   let list_item = event.target.parentElement;
-  list_item.querySelector(".button-remove-product").hidden = true;
-  list_item.querySelector(".spinner-remove-product").hidden = false;
-  list_item.classList.add("remove-queued");
+  let loading_indicator_element = list_item.querySelector(".spinner-remove-product");
+  let submit_removal_button = list_item.querySelector(".button-remove-product");
 
-  send_post_product_addition(upc_number, (is_remove = true))
-    .then((resp_json) => {
-      list_item.classList.add("fade-zero");
-    })
-    .catch((resp_json) => {
-      console.log(resp_json);
-      show_alert_toast("Error", "An unexpected server error occurred.\nYou may try again.");
-      list_item.querySelector(".button-remove-product").hidden = false;
-      list_item.querySelector(".spinner-remove-product").hidden = true;
-      list_item.classList.remove("remove-queued");
-    });
+  // send_post_product_addition returns Promise for JSON
+  let _promise_send_post = send_post_product_addition(upc_number, (is_remove = true));
+
+  handle_list_item_removal_transition(_promise_send_post, list_item, {
+    loading_indicator_element: loading_indicator_element,
+    submit_button: submit_removal_button,
+    action_on_removal: () => {
+      window.__LOGGER_INFO__.scanned_upcs.delete(upc_number);
+    },
+  });
 }
 
 function show_alert_toast(title, message) {

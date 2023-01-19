@@ -137,13 +137,14 @@ def scan_history(request):
         })
 
     store_id = request.GET.get('store-id')[0]
-    product_additions = models.ProductAddition.objects.filter(store__pk=store_id, is_carried=True).order_by('-date_last_scanned')[:100]
+    store = models.Store.objects.get(pk=store_id)
+    product_additions = models.ProductAddition.objects.filter(store=store, is_carried=True).order_by('-date_last_scanned')[:100]
     for product_addition in product_additions:
         product_addition.product.name = product_addition.product.name or 'Unknown product name'
     
     return render(request, 'logger/scan_history.html', {
         'product_additions': product_additions, 
-        'store_name': product_addition.store.name
+        'store_name': store.name
     })
     
 
