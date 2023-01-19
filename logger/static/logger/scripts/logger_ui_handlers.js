@@ -5,15 +5,13 @@ async function handle_list_item_removal_transition(_promise, list_item, options 
   try {
     let resp_json = await _promise;
 
-    if (!list_item.classList.contains("remove-queued")) {
-      list_item.addEventListener("animationend", handle_collapse);
-      list_item.addEventListener("hidden.bs.collapse", (event) => {
-        if (event.target.classList.contains("remove-queued")) {
-          list_item.remove();
-          options.action_on_removal && options.action_on_removal();
-        }
-      });
-    }
+    list_item.addEventListener("animationend", handle_collapse);
+    list_item.addEventListener("hidden.bs.collapse", (event) => {
+      if (event.target.classList.contains("remove-queued")) {
+        list_item.remove();
+        options.action_on_removal && options.action_on_removal();
+      }
+    });
 
     list_item.classList.add("remove-queued");
     list_item.classList.add("fade-zero");
