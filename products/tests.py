@@ -169,6 +169,56 @@ class ImportTest(TestCase):
             }
         }
 
+        self.store_distribution_data = {
+            "test1_store": {
+                "851035003319": {
+                    "time_added": 1660073557.2510889,
+                    "instock": True,
+                    "date_scanned": "2022-08-09 at 03:32:37 PM"
+                },
+                "851035003227": {
+                    "instock": True,
+                    "date_scanned": "2022-08-09 at 03:32:33 PM"
+                }, 
+                "851035003562": {
+                    "instock": False
+                }
+            }, 
+            "test2_store": {
+                "044600016283": {
+                    "instock": True,
+                    "date_scanned": "2022-12-12 at 03:45:36 AM"
+                },
+                "044600600444": {
+                    "instock": True,
+                    "date_scanned": "2022-12-12 at 03:45:44 AM"
+                },
+                "044600309002": {
+                    "time_added": 1660721937.862297,
+                    "instock": False,
+                    "date_scanned": "2022-08-17 at 03:38:57 AM"
+                }
+            }, 
+            "test3_store": {
+                "078041189886": {
+                    "instock": True,
+                    "date_scanned": "2022-06-30 at 03:15:23 PM"
+                },
+                "078041143215": {
+                    "instock": True,
+                    "date_scanned": "2022-06-30 at 03:15:27 PM"
+                },
+                "044600601557": {
+                    "instock": False
+                },
+                "044600601564": {
+                    "time_added": 1674370881.578151,
+                    "instock": False,
+                    "date_scanned": "2023-01-22 at 03:01:21 AM"
+                }
+            }
+        }
+
         self.products_info = {
             "BRAND1": {
                 "851035003319": {
@@ -221,3 +271,15 @@ class ImportTest(TestCase):
                 is_product_exist = models.Product.objects.filter(upc=upc).exists()
                 self.assertTrue(is_product_exist)
 
+
+    def test_import_distribution_data(self):
+        helpers.import_distribution_data(self.store_distribution_data)
+
+        for store_name, products in self.store_distribution_data.items():
+            store = models.Store.objects.get(name=store_name)
+
+            for upc, distribution_data in products.items():
+                product = models.Product.objects.get(upc=upc)
+                is_product_addition_exist = models.ProductAddition.objects.filter(product=product, store=store).exists()
+                self.assertTrue(is_product_addition_exist)
+            
