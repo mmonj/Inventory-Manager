@@ -32,8 +32,8 @@ class FieldRepresentative(models.Model):
 
 
 class BrandParentCompany(models.Model):
-    short_name = models.CharField(max_length=50, unique=True, null=True)
-    expanded_name = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    short_name = models.CharField(max_length=50, unique=True, default='Unknown')
+    expanded_name = models.CharField(max_length=50, null=True, blank=True)
     
     @staticmethod
     def get_default():
