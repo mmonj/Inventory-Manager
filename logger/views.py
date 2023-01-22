@@ -3,7 +3,8 @@ import json
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import render, HttpResponse, redirect
-from .forms import NewStoresForm
+
+from . import forms
 from products import models
 import products.helpers
 
@@ -101,10 +102,10 @@ def get_territory_info():
 def add_new_stores(request):
     if request.method == 'GET':
         return render(request, 'logger/add_new_stores.html', {
-            'form': NewStoresForm()
+            'form': forms.NewStoresForm()
         })
 
-    received_form = NewStoresForm(request.POST)
+    received_form = forms.NewStoresForm(request.POST)
     if not received_form.is_valid():
         error_messages = []
         for field, errors in received_form.errors.items():
@@ -119,7 +120,7 @@ def add_new_stores(request):
     new_stores = []
     try:
         categorized_store_listings = json.loads(received_form.cleaned_data['stores_text'])
-        products.helpers.import_employee_stores(categorized_store_listings)
+        products.helpers.import_territories(categorized_store_listings)
     except json.decoder.JSONDecodeError as e:
         products.helpers.printerr('Json Decode error: falling back to parsing from raw text')
         new_stores = [s for s in (f.strip() for f in received_form.cleaned_data['stores_text'].split('\n')) if s]
@@ -154,3 +155,18 @@ def uncarry_product_addition(request, product_addition_pk):
     product_addition.save(update_fields=['is_carried'])
 
     return JsonResponse({'message': 'success'})
+
+
+def import_json_data_files(request):
+    if request.method == 'GET':
+        return render(request, 'logger/import_json_data_files.html', {
+            'form': forms.ImportJsonDataFiles()
+        })
+
+    form = forms.ImportJsonDataFiles(request.POST, request.FILES)
+    if form.is_valid:
+        territory_info = json.load(request.FILES['territory_info_json'])
+        store_distribution_data = json.load(request.FILES['store_distribution_data_json'])
+        product_names = json.load(request.FILES['product_names_json'])
+    
+    return redirect('logger:import_json_data_files')

@@ -30,13 +30,20 @@ def add_store(store_name: str, contact_names: list = [], field_representative_na
 
 
 # import data from external categorized_store_listings.json
-def import_employee_stores(categorized_store_listings):
-    for key, value in categorized_store_listings.items():
+def import_territories(territory_info):
+    for key, value in territory_info.items():
         if key == 'All Stores':
             continue
 
         field_representative_name = key
         store_names: list = value
         for store_name in store_names:
-            manager_names = categorized_store_listings['All Stores'].get(store_name, {}).get('manager_names', [])
+            manager_names = territory_info['All Stores'].get(store_name, {}).get('manager_names', [])
             add_store(store_name, contact_names=manager_names, field_representative_name=field_representative_name)
+
+
+def import_products(products_info: dict):
+    for parent_company, products in products_info.items():
+        parent_company, is_new_parent_company = models.BrandParentCompany.objects.get_or_create(short_name=parent_company)
+        for upc, info in products.items():
+            product, is_new_product = models.Product.objects.get_or_create(upc=upc, name=info.get('fs_name'), parent_company=parent_company)
