@@ -52,8 +52,9 @@ class Product(models.Model):
     name = models.CharField(max_length=255, null=True, blank=True)
     parent_company = models.ForeignKey(
         BrandParentCompany, 
-        default= BrandParentCompany.get_default, 
-        on_delete=models.DO_NOTHING, 
+        null=True, 
+        blank=True, 
+        on_delete=models.SET_NULL, 
         related_name='upcs'
     )
 
