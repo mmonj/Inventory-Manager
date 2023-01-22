@@ -141,7 +141,7 @@ class ProductAdditionTest(TestCase):
 
 class ImportTest(TestCase):
     def setUp(self) -> None:
-        self.import_dict = {
+        self.territory_info = {
             "Mauri": [
                 "test1_store",
                 "test2_store",
@@ -169,7 +169,39 @@ class ImportTest(TestCase):
             }
         }
 
-        models.Store.objects.create(name='test1_store')
+        self.products_info = {
+            "BRAND1": {
+                "851035003319": {
+                    "fs_name": "BRAND1-item-description1"
+                },
+                "851035003227": {
+                    "fs_name": "BRAND1-item-description2"
+                }
+            },
+            "BRAND2": {
+                "041953075059": {
+                    "fs_name": "BRAND2-item-description1"
+                },
+                "041953075066": {
+                    "fs_name": "BRAND2-item-description2"
+                }
+            }, 
+            "BRAND3": {
+                "036000514711": {
+                    "fs_name": "BRAND3-item-description1"
+                },
+                "036000514728": {
+                    "fs_name": "BRAND3-item-description2"
+                },
+                "036000514735": {
+                    "fs_name": "BRAND3-item-description3"
+                }
+            }
+        }
+
+
+    def test_import_territories(self):
+        # models.Store.objects.create(name='test1_store')
 
         field_rep = models.FieldRepresentative.objects.create(name='Mauri', work_email='mauri@testmail.com')
         models.Store.objects.create(name='test2_store', field_representative=field_rep)
@@ -177,6 +209,15 @@ class ImportTest(TestCase):
         personnel_contact = models.PersonnelContact.objects.create(first_name='randomfirst', last_name='randomlast')
         models.Store.objects.create(name='test3_store', store_contact=personnel_contact)
 
+        helpers.import_territories(self.territory_info)
 
-    def test_import(self):
-        helpers.import_employee_stores(self.import_dict)
+    def test_import_products(self):
+        helpers.import_products(self.products_info)
+
+        for parent_company, products in self.products_info.items():
+            is_company_exist = models.BrandParentCompany.objects.filter(short_name=parent_company).exists()
+            self.assertTrue(is_company_exist)
+            for upc, info in products.items():
+                is_product_exist = models.Product.objects.filter(upc=upc).exists()
+                self.assertTrue(is_product_exist)
+
