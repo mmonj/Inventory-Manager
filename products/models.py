@@ -84,6 +84,7 @@ class Product(models.Model):
 class PersonnelContact(models.Model):
     first_name = models.CharField(max_length=255, null=True)
     last_name = models.CharField(max_length=255, null=True)
+    store = models.ForeignKey('Store', null=True, blank=True, on_delete=models.CASCADE, related_name='contacts')
 
     def __str__(self):
         if not self.first_name and not self.last_name:
@@ -92,12 +93,11 @@ class PersonnelContact(models.Model):
 
     # string for debugging
     def _strd(self):
-        return f'PersonnelContact(first_name={ repr(self.first_name) }, last_name={ repr(self.last_name) })'
+        return f'PersonnelContact(first_name={ repr(self.first_name) }, last_name={ repr(self.last_name) }, store={ repr(self.store) })'
 
 
 class Store(models.Model):
     name = models.CharField(max_length=255, null=True, unique=True)
-    store_contact = models.ForeignKey(PersonnelContact, null=True, blank=True, on_delete=models.SET_NULL, related_name="associated_stores")
     field_representative = models.ForeignKey(FieldRepresentative, null=True, blank=True, on_delete=models.SET_NULL, related_name="stores")
 
     # non-column attribute
@@ -107,7 +107,7 @@ class Store(models.Model):
         return f'{self.name}'
 
     def _strd(self):
-        return f'Store(name={ repr(self.name) }, store_contact={self.store_contact}, field_representative={self.field_representative})'
+        return f'Store(name={ repr(self.name) }, field_representative={self.field_representative})'
 
     def sanitize_store_name(self):
         self.name = re.sub(self.trailing_number_re, '', self.name)

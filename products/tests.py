@@ -75,42 +75,6 @@ class PersonnelContactTest(TestCase):
         printdebug(contact1)
 
 
-class StoreTest(TestCase):
-    def setUp(self) -> None:
-        store1 = models.Store.objects.create(name='store1-name')
-
-        store_contact1 = models.PersonnelContact.objects.create(
-            first_name='contact-first-name1', 
-            last_name='contact-last-name1')
-        store2 = models.Store.objects.create(name='store2-name', store_contact=store_contact1)
-
-        store_contact2 = models.PersonnelContact.objects.create(
-            first_name='contact-first-name2', 
-            last_name='contact-last-name2')
-        field_rep1 = models.FieldRepresentative.objects.create(name='fieldrep1', work_email='fieldrep1@gmail.com')
-        store3 = models.Store.objects.create(
-            name='store3-name', 
-            store_contact=store_contact2, 
-            field_representative=field_rep1)
-
-    def test_attributes(self):
-        store1 = models.Store.objects.get(name='store1-name')
-        self.assertIsNone(store1.store_contact)
-        self.assertIsNone(store1.field_representative)
-
-        store2 = models.Store.objects.get(name='store2-name')
-        self.assertIsNotNone(store2.store_contact)
-        self.assertIsNone(store2.field_representative)
-
-        store3 = models.Store.objects.get(name='store3-name')
-        self.assertIsNotNone(store3.store_contact)
-        self.assertIsNotNone(store3.field_representative)
-
-    def test_duplicate(self):
-        new_store = models.Store(name='store1-name')
-        self.assertRaises(ValidationError, new_store.save)
-
-
 class ProductAdditionTest(TestCase):
     def setUp(self) -> None:
         store1 = models.Store.objects.create(name='store11-name')
@@ -249,15 +213,30 @@ class ImportTest(TestCase):
             }
         }
 
+    def test_bulk_import(self):
+        from .import_testfiles import testfiles_handler
+        
+        field_reps_info = testfiles_handler.get_field_reps_info()
+        territory_info = testfiles_handler.get_territory_info()
+        products_info = testfiles_handler.get_products_info()
+        stores_distribution_data = testfiles_handler.get_store_distribution_data()
+
+        helpers.import_field_reps(field_reps_info)
+        helpers.import_territories(territory_info)
+        helpers.import_products(products_info)
+        helpers.import_distribution_data(stores_distribution_data)
+        
+        self.assertEqual(models.FieldRepresentative.objects.all().count(), 5)
+
 
     def test_import_territories(self):
         # models.Store.objects.create(name='test1_store')
 
         field_rep = models.FieldRepresentative.objects.create(name='Mauri', work_email='mauri@testmail.com')
-        models.Store.objects.create(name='test2_store', field_representative=field_rep)
+        store1 = models.Store.objects.create(name='test2_store', field_representative=field_rep)
 
-        personnel_contact = models.PersonnelContact.objects.create(first_name='randomfirst', last_name='randomlast')
-        models.Store.objects.create(name='test3_store', store_contact=personnel_contact)
+        personnel_contact = models.PersonnelContact.objects.create(first_name='randomfirst', last_name='randomlast', store=store1)
+        models.Store.objects.create(name='test3_store')
 
         helpers.import_territories(self.territory_info)
 
