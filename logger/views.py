@@ -165,12 +165,15 @@ def import_json_data_files(request):
 
     form = forms.ImportJsonDataFiles(request.POST, request.FILES)
     if form.is_valid:
+        field_reps_info = json.load(request.FILES['field_reps_json'])
         territory_info = json.load(request.FILES['territory_info_json'])
         products_info = json.load(request.FILES['product_names_json'])
         store_distribution_data = json.load(request.FILES['store_distribution_data_json'])
 
+        products.helpers.import_field_reps(field_reps_info)
         products.helpers.import_territories(territory_info)
         products.helpers.import_products(products_info)
         products.helpers.import_distribution_data(store_distribution_data)
     
     return redirect('logger:import_json_data_files')
+    
