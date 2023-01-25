@@ -9,3 +9,6 @@ services:
       - ./:/app
     environment:
       - TZ=America/New_York
+      - RUN_APP_AS_TYPE=dev
+    env_file:
+      - db.env

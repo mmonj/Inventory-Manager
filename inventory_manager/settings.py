@@ -79,11 +79,27 @@ WSGI_APPLICATION = 'inventory_manager.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+_RUN_APP_AS_TYPE = os.environ['RUN_APP_AS_TYPE']
+_DATABASE_SETTINGS = {
+    'dev': {
+        'ENGINE': 'django.db.backends.postgresql',
+        "NAME": os.environ.get('psql_dev_db_name'),
+        "USER": os.environ.get('psql_dev_username'),
+        "PASSWORD": os.environ.get('psql_dev_password'),
+        "HOST": os.environ.get('psql_dev_host'),
+        "PORT": os.environ.get('psql_dev_port'),
+    }, 
+    'deploy': {
+        'ENGINE': 'django.db.backends.postgresql',
+        "NAME": os.environ.get('psql_db_name'),
+        "USER": os.environ.get('psql_username'),
+        "PASSWORD": os.environ.get('psql_password'),
+        "HOST": os.environ.get('psql_host'),
+        "PORT": os.environ.get('psql_port'),
     }
+}
+DATABASES = {
+    'default': _DATABASE_SETTINGS[_RUN_APP_AS_TYPE]
 }
 
 
