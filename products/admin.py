@@ -17,9 +17,8 @@ class ProductAdmin(admin.ModelAdmin):
 
 
 class ProductAdditionAdmin(admin.ModelAdmin):
-    search_fields = ['store__name', 'product__upc', 'product__name', 'date_added', 'is_carried']
+    search_fields = ['store__name', 'product__upc', 'product__name', 'date_added',]
     list_display = ['store', 'product', 'date_added', 'date_last_scanned', 'is_carried']
-    list_filter = ['is_carried', 'product__parent_company__short_name']
 
 
 class StoreAdmin(admin.ModelAdmin):
