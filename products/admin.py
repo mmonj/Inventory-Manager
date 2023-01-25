@@ -24,13 +24,31 @@ class ProductAdditionAdmin(admin.ModelAdmin):
 
 class StoreAdmin(admin.ModelAdmin):
     search_fields = ['name']
-    list_display = ['name', 'get_field_representative']
+    list_display = ['name', 'get_personnel_contact_first_name', 'get_personnel_contact_last_name', 'get_field_representative']
     list_filter = ['field_representative__name']
 
-    def get_field_representative(self, obj):
-        if obj.field_representative is None:
+    def get_personnel_contact_first_name(self, store):
+        contacts = store.contacts.all()
+        if not contacts.exists():
             return None
-        return obj.field_representative.name
+        return contacts.first().first_name
+
+    def get_personnel_contact_last_name(self, store):
+        contacts = store.contacts.all()
+        if not contacts.exists():
+            return None
+        return contacts.first().last_name
+
+    def get_field_representative(self, store):
+        if store.field_representative is None:
+            return None
+        return store.field_representative.name
+
+    get_personnel_contact_first_name.admin_order_field = 'contacts__first_name'
+    get_personnel_contact_first_name.short_description = 'Contact first name'
+
+    get_personnel_contact_last_name.admin_order_field = 'contacts__last_name'
+    get_personnel_contact_last_name.short_description = 'Contact last name'
 
     get_field_representative.admin_order_field = 'field_representative__name'
     get_field_representative.short_description = 'Field Rep'
