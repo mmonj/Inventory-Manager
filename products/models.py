@@ -32,7 +32,7 @@ class FieldRepresentative(models.Model):
 
 
 class BrandParentCompany(models.Model):
-    short_name = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    short_name = models.CharField(max_length=50, unique=True, null=True)
     expanded_name = models.CharField(max_length=50, null=True, blank=True)
     
     @staticmethod
@@ -120,10 +120,16 @@ class Store(models.Model):
         self.name = re.sub(self.trailing_number_re, '', self.name)
 
     def clean(self, *args, **kwargs):
+        if self.name is None:
+            return
+
         if re.search(self.trailing_number_re, self.name):
-            raise ValidationError(f'Store must not have a dash or trailing numbers: {self.name}')
+            raise ValidationError(f'Store name must not have a dash or trailing numbers: {self.name}')
 
         self.name = self.name.strip()
+        if self.name == '':
+            raise ValidationError('Store name cannot be empty')
+
         super().clean(*args, **kwargs)
 
     def save(self, *args, **kwargs):
