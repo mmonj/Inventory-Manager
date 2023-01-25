@@ -32,7 +32,7 @@ class FieldRepresentative(models.Model):
 
 
 class BrandParentCompany(models.Model):
-    short_name = models.CharField(max_length=50, unique=True, default='Unknown')
+    short_name = models.CharField(max_length=50, unique=True, null=True, blank=True)
     expanded_name = models.CharField(max_length=50, null=True, blank=True)
     
     @staticmethod
@@ -66,9 +66,16 @@ class Product(models.Model):
         return f'Product(upc={ repr(self.upc) }, name={ repr(self.name) }, parent_company={ self.parent_company })'
 
     def is_valid_upc(self):
-        return gs1.validate(self.upc)
+        # return self.upc.isnumeric() and len(self.upc) == 12 and gs1.validate(self.upc)
+        try:
+            self.clean()
+            return True
+        except ValidationError:
+            return False
 
     def clean(self, *args, **kwargs):
+        if not self.upc.isnumeric():
+            raise ValidationError('UPC number be numeric')
         if len(self.upc) != 12:
             raise ValidationError('UPC number must be 12 digits')
         if not gs1.validate(self.upc):
@@ -116,6 +123,7 @@ class Store(models.Model):
         if re.search(self.trailing_number_re, self.name):
             raise ValidationError(f'Store must not have a dash or trailing numbers: {self.name}')
 
+        self.name = self.name.strip()
         super().clean(*args, **kwargs)
 
     def save(self, *args, **kwargs):
