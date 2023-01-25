@@ -1,8 +1,8 @@
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 from django.test import TestCase
-from . import helpers
-from . import models
+
+from . import util, models
 
 def printdebug(*items):
     print('')
@@ -221,16 +221,28 @@ class ImportTest(TestCase):
         products_info = testfiles_handler.get_products_info()
         stores_distribution_data = testfiles_handler.get_store_distribution_data()
 
-        helpers.import_field_reps(field_reps_info)
-        helpers.import_territories(territory_info)
-        helpers.import_products(products_info)
-        helpers.import_distribution_data(stores_distribution_data)
+        util.import_field_reps(field_reps_info)
+        util.import_territories(territory_info)
+        util.import_products(products_info)
+        util.import_distribution_data(stores_distribution_data)
+
+        self.assertEqual(models.FieldRepresentative.objects.count(), len(field_reps_info))
+        self.assertEqual(models.Store.objects.count(), util.get_store_count(territory_info))
+
+        stores_managers_dict = util.get_stores_managers_dict(territory_info)
+        self.assertEqual(models.PersonnelContact.objects.count(), len(stores_managers_dict))
+
+        self.assertEqual(
+            models.Product.objects.count(), 
+            util.get_product_count(products_info, stores_distribution_data)
+        )
         
-        self.assertEqual(models.FieldRepresentative.objects.all().count(), 5)
+        product_additions_count = util.get_product_additions_count(stores_distribution_data)
+        self.assertEqual(models.ProductAddition.objects.count(), product_additions_count)
 
 
     def test_import_territories(self):
-        # models.Store.objects.create(name='test1_store')
+        models.Store.objects.create(name='test1_store')
 
         field_rep = models.FieldRepresentative.objects.create(name='Mauri', work_email='mauri@testmail.com')
         store1 = models.Store.objects.create(name='test2_store', field_representative=field_rep)
@@ -238,10 +250,10 @@ class ImportTest(TestCase):
         personnel_contact = models.PersonnelContact.objects.create(first_name='randomfirst', last_name='randomlast', store=store1)
         models.Store.objects.create(name='test3_store')
 
-        helpers.import_territories(self.territory_info)
+        util.import_territories(self.territory_info)
 
     def test_import_products(self):
-        helpers.import_products(self.products_info)
+        util.import_products(self.products_info)
 
         for parent_company, products in self.products_info.items():
             is_company_exist = models.BrandParentCompany.objects.filter(short_name=parent_company).exists()
@@ -252,7 +264,7 @@ class ImportTest(TestCase):
 
 
     def test_import_distribution_data(self):
-        helpers.import_distribution_data(self.store_distribution_data)
+        util.import_distribution_data(self.store_distribution_data)
 
         for store_name, products in self.store_distribution_data.items():
             store = models.Store.objects.get(name=store_name)

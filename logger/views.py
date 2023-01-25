@@ -6,7 +6,7 @@ from django.shortcuts import render, HttpResponse, redirect
 
 from . import forms
 from products import models
-import products.helpers
+import products.util
 
 # Create your views here.
 def index(request):
@@ -120,12 +120,12 @@ def add_new_stores(request):
     new_stores = []
     try:
         categorized_store_listings = json.loads(received_form.cleaned_data['stores_text'])
-        products.helpers.import_territories(categorized_store_listings)
+        products.util.import_territories(categorized_store_listings)
     except json.decoder.JSONDecodeError as e:
-        products.helpers.printerr('Json Decode error: falling back to parsing from raw text')
+        products.util.printerr('Json Decode error: falling back to parsing from raw text')
         new_stores = [s for s in (f.strip() for f in received_form.cleaned_data['stores_text'].split('\n')) if s]
         for store_name in new_stores:
-            products.helpers.add_store(store_name)
+            products.util.add_store(store_name)
 
     return redirect('logger:add_new_stores')
     
@@ -158,6 +158,8 @@ def uncarry_product_addition(request, product_addition_pk):
 
 
 def import_json_data_files(request):
+    from products import util
+
     if request.method == 'GET':
         return render(request, 'logger/import_json_data_files.html', {
             'form': forms.ImportJsonDataFiles()
@@ -168,12 +170,12 @@ def import_json_data_files(request):
         field_reps_info = json.load(request.FILES['field_reps_json'])
         territory_info = json.load(request.FILES['territory_info_json'])
         products_info = json.load(request.FILES['product_names_json'])
-        store_distribution_data = json.load(request.FILES['store_distribution_data_json'])
+        stores_distribution_data = json.load(request.FILES['store_distribution_data_json'])
 
-        products.helpers.import_field_reps(field_reps_info)
-        products.helpers.import_territories(territory_info)
-        products.helpers.import_products(products_info)
-        products.helpers.import_distribution_data(store_distribution_data)
+        util.import_field_reps(field_reps_info)
+        util.import_territories(territory_info)
+        util.import_products(products_info)
+        util.import_distribution_data(stores_distribution_data)
     
     return redirect('logger:import_json_data_files')
     
