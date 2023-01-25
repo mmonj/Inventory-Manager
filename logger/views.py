@@ -117,15 +117,14 @@ def add_new_stores(request):
             'error_messages': error_messages
         })
 
-    new_stores = []
-    try:
-        categorized_store_listings = json.loads(received_form.cleaned_data['stores_text'])
-        products.util.import_territories(categorized_store_listings)
-    except json.decoder.JSONDecodeError as e:
-        products.util.printerr('Json Decode error: falling back to parsing from raw text')
-        new_stores = [s for s in (f.strip() for f in received_form.cleaned_data['stores_text'].split('\n')) if s]
-        for store_name in new_stores:
-            products.util.add_store(store_name)
+    new_stores = (
+        store_name for store_name 
+        in (line.strip() for line in received_form.cleaned_data['stores_text'].split('\n')) 
+        if store_name
+    )
+
+    for store_name in new_stores:
+        models.Store.objects.get_or_create(name=store_name)
 
     return redirect('logger:add_new_stores')
     
