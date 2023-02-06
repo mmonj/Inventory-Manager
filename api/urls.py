@@ -4,5 +4,5 @@ from . import views
 
 app_name = "api"
 urlpatterns = [
-    path("", views.test, name="test")
+    path("update_product_names/", views.update_product_names, name="update_product_names"), 
 ]
