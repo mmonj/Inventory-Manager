@@ -10,10 +10,14 @@ class ProductSerializer(serializers.ModelSerializer):
         
         
 class ProductAdditionSerializer(serializers.ModelSerializer):
+    is_new = serializers.SerializerMethodField(read_only=True)
     product = ProductSerializer()
     class Meta:
         model = models.ProductAddition
-        fields = ['product', 'is_carried']
+        fields = ['product', 'is_carried', 'is_new']
+    
+    def get_is_new(self, obj) -> bool:
+        return self.context['current_work_cycle'].start_date <= obj.date_added and obj.date_added <= self.context['current_work_cycle'].end_date
 
 
 class PersonnelContactSerializer(serializers.ModelSerializer):

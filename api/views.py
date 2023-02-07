@@ -1,4 +1,5 @@
 from products import models
+from products.util import get_current_work_cycle
 from products.serializers import ProductAdditionSerializer, StoreSerializer
 
 from rest_framework.decorators import api_view, permission_classes
@@ -13,11 +14,16 @@ def get_store_product_additions(request):
 
     store, _ = models.Store.objects.get_or_create(name=request.data['store_name'])
     product_additions = update_product_additions(store, request.data)
+    current_work_cycle = get_current_work_cycle()
 
     # set up response
     resp_json = {
         'store': StoreSerializer(store).data, 
-        'product_additions': ProductAdditionSerializer(product_additions, many=True).data
+        'product_additions': ProductAdditionSerializer(
+            product_additions, 
+            many=True, 
+            context={'current_work_cycle': current_work_cycle}
+        ).data
     }
     return Response(resp_json)
 
@@ -63,4 +69,4 @@ def update_product_additions(store: models.Store, request_json: dict) -> list:
 
     product_addditions = models.ProductAddition.objects.bulk_create(new_product_additions, ignore_conflicts=True)
 
-    return product_addditions
+    return models.ProductAddition.objects.filter(store=store, product__upc__in=upcs)
