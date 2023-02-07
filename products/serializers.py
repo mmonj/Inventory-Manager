@@ -13,4 +13,17 @@ class ProductAdditionSerializer(serializers.ModelSerializer):
     product = ProductSerializer()
     class Meta:
         model = models.ProductAddition
-        fields = ['product']
+        fields = ['product', 'is_carried']
+
+
+class PersonnelContactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.PersonnelContact
+        fields = ['first_name', 'last_name']
+
+
+class StoreSerializer(serializers.ModelSerializer):
+    contacts = PersonnelContactSerializer(many=True)
+    class Meta:
+        model = models.Store
+        fields = ['name', 'contacts']
