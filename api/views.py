@@ -1,6 +1,5 @@
-from collections import namedtuple
 from products import models
-from products.serializers import ProductAdditionSerializer, StoreProductAdditionSerializer, StoreSerializer
+from products.serializers import ProductAdditionSerializer, StoreSerializer
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
