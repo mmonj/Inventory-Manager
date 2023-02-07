@@ -28,7 +28,12 @@ def get_store_product_additions(request):
     return Response(resp_json)
 
 
-def update_product_names(request_json):
+def update_product_names(request_json: dict):
+    """Bulk create products if they don't already exist. Bulk update existing products with product name if they don't contain it
+
+    Args:
+        request_json (dict): request json payload received from client
+    """
     def get_product_name(upc: str, products: list):
         for product_info in products:
             if product_info['upc'] == upc:
@@ -40,7 +45,7 @@ def update_product_names(request_json):
 
     upcs = [p['upc'] for p in request_json.get('products')]
 
-    # bulk create upcs
+    # bulk create products
     new_products = []
     for product_info in request_json['products']:
         temp_product = models.Product(upc=product_info['upc'], name=product_info['name'], parent_company=parent_company)
@@ -59,6 +64,15 @@ def update_product_names(request_json):
 
 
 def update_product_additions(store: models.Store, request_json: dict) -> list:
+    """Bulk create ProductAddition records if they don't already exist
+
+    Args:
+        store (products.models.Store): products.models.Store instance
+        request_json (dict): request json payload received from client
+
+    Returns:
+        list: list of products.models.ProductAddition that match the UPCs present in request_json
+    """
     upcs = [p['upc'] for p in request_json['products']]
     products = models.Product.objects.filter(upc__in=upcs)
     new_product_additions = []

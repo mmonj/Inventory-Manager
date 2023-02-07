@@ -223,6 +223,11 @@ def get_product_additions_count(stores_distribution_data) -> int:
 
 
 def get_current_work_cycle():
+    """Get the (only) current WorkCycle instance and adjust its time span if the current date is outside of it
+
+    Returns:
+        products.models.WorkCycle: latest products.models.WorkCycle instance
+    """
     work_cycle = models.WorkCycle.objects.all().first()
 
     if date.today() > work_cycle.end_date:
