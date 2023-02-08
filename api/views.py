@@ -7,6 +7,21 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def validate_api_token(request):
+    """This route is used to check the validity of the client's API token without having to send any specific data.
+    The presence of the @permission_classes decorator will assert the validity of the client's API token
+
+    Args:
+        request (_type_): _description_
+
+    Returns:
+        dict: Unimportant JSON response. The purpose of this route is to return a 200 or 403 response
+    """
+    return Response({'message': 'Validated'})
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def get_store_product_additions(request):
