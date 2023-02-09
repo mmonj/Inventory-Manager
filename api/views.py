@@ -1,3 +1,4 @@
+import logging
 from products import models
 from products.util import get_current_work_cycle
 from products.serializers import ProductAdditionSerializer, StoreSerializer
@@ -6,6 +7,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
+logger = logging.getLogger('main_logger')
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -57,6 +59,7 @@ def update_product_names(request_json: dict):
     
     client_name = request_json.get('client_name')
     parent_company, _ = models.BrandParentCompany.objects.get_or_create(short_name=client_name)
+    logger.info(f'Received client name "{client_name}", created instance {parent_company}')
 
     upcs = [p['upc'] for p in request_json.get('products')]
 
@@ -64,8 +67,12 @@ def update_product_names(request_json: dict):
     new_products = []
     for product_info in request_json['products']:
         temp_product = models.Product(upc=product_info['upc'], name=product_info['name'], parent_company=parent_company)
-        if temp_product.is_valid_upc():
-            new_products.append(temp_product)
+        if not temp_product.is_valid_upc():
+            logger.info(f'Invalid UPC {temp_product.upc}. Skipping')
+            continue
+        new_products.append(temp_product)
+
+    logger.info(f'Bulk creating {len(new_products)} products')
     new_products = models.Product.objects.bulk_create(new_products, ignore_conflicts=True)
 
     # bulk update products with no name
@@ -96,6 +103,7 @@ def update_product_additions(store: models.Store, request_json: dict) -> list:
         temp_product_addition = models.ProductAddition(store=store, product=product)
         new_product_additions.append(temp_product_addition)
 
-    product_addditions = models.ProductAddition.objects.bulk_create(new_product_additions, ignore_conflicts=True)
+    logger.info(f'Bulk creating {len(new_product_additions)} product additions')
+    models.ProductAddition.objects.bulk_create(new_product_additions, ignore_conflicts=True)
 
     return models.ProductAddition.objects.filter(store=store, product__upc__in=upcs)
