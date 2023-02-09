@@ -1,7 +1,7 @@
 import pytz
 import sys
 from . import models
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta, date
 from itertools import islice
 
 from django.core.exceptions import ValidationError
@@ -126,7 +126,6 @@ def bulk_create_in_batches(TargetModelClass, objs: iter, batch_size=50, ignore_c
         TargetModelClass.objects.bulk_create(batch, batch_size, ignore_conflicts=ignore_conflicts)
 
 
-
 def get_missing_products(upcs_batch: list, products: list) -> list:
     """Determines which UPCs in `upcs_batch` are not present in `products`
 
@@ -221,3 +220,25 @@ def get_product_additions_count(stores_distribution_data) -> int:
             except ValidationError:
                 continue
     return len(product_addition_set)                
+
+
+def get_current_work_cycle():
+    """Get the (only) current WorkCycle instance and adjust its time span if the current date is outside of it
+
+    Returns:
+        products.models.WorkCycle: latest products.models.WorkCycle instance
+    """
+    work_cycle = models.WorkCycle.objects.all().first()
+
+    if date.today() > work_cycle.end_date:
+        work_cycle_time_span = timedelta(weeks=2)
+
+        num_cycles_offset = (date.today() - work_cycle.end_date) / work_cycle_time_span
+        num_cycles_offset = int(num_cycles_offset) + 1
+
+        work_cycle.end_date += work_cycle_time_span * num_cycles_offset
+        work_cycle.start_date += work_cycle_time_span * num_cycles_offset
+
+        work_cycle.save(update_fields=['start_date', 'end_date'])
+
+    return work_cycle

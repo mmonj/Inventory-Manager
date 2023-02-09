@@ -40,7 +40,7 @@ class BrandParentCompany(models.Model):
         return BrandParentCompany.objects.get_or_create(short_name='Unknown', expanded_name='Unknown brand')[0].pk
 
     def __str__(self):
-        return self.expanded_name or self.short_name
+        return self.expanded_name or self.short_name or '--'
 
     # string for debugging
     def _strd(self):
@@ -59,7 +59,7 @@ class Product(models.Model):
     )
 
     def __str__(self):
-        return f'{self.upc}: {self.name}'
+        return f'{self.upc} - {self.parent_company} - {self.name}'
     
     # string for debugging
     def _strd(self):
@@ -74,7 +74,7 @@ class Product(models.Model):
             return False
 
     def clean(self, *args, **kwargs):
-        if not self.upc.isnumeric():
+        if self.upc is None or not self.upc.isnumeric():
             raise ValidationError('UPC number be numeric')
         if len(self.upc) != 12:
             raise ValidationError('UPC number must be 12 digits')

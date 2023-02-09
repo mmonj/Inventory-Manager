@@ -16,7 +16,6 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
@@ -28,7 +27,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
 
 INSTALLED_APPS = [
@@ -38,13 +36,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'homepage', 
-    'api', 
-    'products', 
-    'logger', 
-    'widget_tweaks', 
-    'rest_framework', 
-    'rest_framework.authtoken', 
+    'homepage',
+    'api',
+    'products',
+    'logger',
+    'widget_tweaks',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -55,6 +54,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'inventory_manager.urls'
@@ -77,7 +77,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'inventory_manager.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
@@ -90,7 +89,7 @@ _DATABASE_SETTINGS = {
         "PASSWORD": os.environ.get('psql_dev_password'),
         "HOST": os.environ.get('psql_dev_host'),
         "PORT": os.environ.get('psql_dev_port'),
-    }, 
+    },
     'deploy': {
         'ENGINE': 'django.db.backends.postgresql',
         "NAME": os.environ.get('psql_db_name'),
@@ -100,29 +99,29 @@ _DATABASE_SETTINGS = {
         "PORT": os.environ.get('psql_port'),
     }
 }
-DATABASES = {
-    'default': _DATABASE_SETTINGS[_RUN_APP_AS_TYPE]
-}
-
+DATABASES = {'default': _DATABASE_SETTINGS[_RUN_APP_AS_TYPE]}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        'NAME':
+        'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'NAME':
+        'django.contrib.auth.password_validation.MinimumLengthValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        'NAME':
+        'django.contrib.auth.password_validation.CommonPasswordValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        'NAME':
+        'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
@@ -134,7 +133,6 @@ TIME_ZONE = os.environ['TZ']
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
@@ -150,11 +148,13 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.TokenAuthentication',
-    ], 
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
-    ], 
+    ],
 }
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 # LOGGING = {
 #     'version': 1,
@@ -177,3 +177,42 @@ REST_FRAMEWORK = {
 #         }
 #     }
 # }
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {
+            "format": "{levelname} {asctime:s} {funcName:<30s} {filename:<15} {lineno:<4} {message}",
+            "datefmt": "%Y-%m-%d %I:%M:%S %p", 
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console_handler": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+        "main_handler": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": BASE_DIR / "log_files/inventory_manager.log",
+            "mode": "a",
+            "encoding": "utf-8",
+            "formatter": "simple",
+            "backupCount": 5,
+            "maxBytes": 5 * 1024**2,  # 5 MiB
+        },
+    },
+    "loggers": {
+        "django.request": {
+            "handlers": ["main_handler"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "main_logger": {
+            "handlers": ["console_handler", "main_handler"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
