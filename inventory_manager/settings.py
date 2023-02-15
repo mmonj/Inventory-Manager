@@ -156,42 +156,30 @@ REST_FRAMEWORK = {
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-# LOGGING = {
-#     'version': 1,
-#     'filters': {
-#         'require_debug_true': {
-#             '()': 'django.utils.log.RequireDebugTrue',
-#         }
-#     },
-#     'handlers': {
-#         'console': {
-#             'level': 'DEBUG',
-#             'filters': ['require_debug_true'],
-#             'class': 'logging.StreamHandler',
-#         }
-#     },
-#     'loggers': {
-#         'django.db.backends': {
-#             'level': 'DEBUG',
-#             'handlers': ['console'],
-#         }
-#     }
-# }
-
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "simple": {
             "format": "{levelname} {asctime:s} {funcName:<30s} {filename:<15} {lineno:<4} {message}",
-            "datefmt": "%Y-%m-%d %I:%M:%S %p", 
+            "datefmt": "%Y-%m-%d %I:%M:%S %p",
             "style": "{",
         },
     },
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        }
+    },
     "handlers": {
-        "console_handler": {
+        "console": {
             "class": "logging.StreamHandler",
             "formatter": "simple",
+        },
+        'console_debug': {
+            'level': 'DEBUG',
+            'filters': ['require_debug_true'],
+            'class': 'logging.StreamHandler',
         },
         "main_handler": {
             "class": "logging.handlers.RotatingFileHandler",
@@ -210,9 +198,13 @@ LOGGING = {
             "propagate": False,
         },
         "main_logger": {
-            "handlers": ["console_handler", "main_handler"],
+            "handlers": ["main_handler"],
             "level": "INFO",
             "propagate": False,
         },
+        # 'django.db.backends': {
+        #     'level': 'DEBUG',
+        #     'handlers': ['console_debug'],
+        # }
     },
 }
