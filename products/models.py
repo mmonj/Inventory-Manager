@@ -1,4 +1,3 @@
-import datetime
 import re
 from checkdigit import gs1
 
@@ -13,6 +12,9 @@ class WorkCycle(models.Model):
 
     def __str__(self):
         return f'{self.start_date} to {self.end_date}'
+
+    class Meta:
+        db_table = 'work_cycles'
 
 
 class FieldRepresentative(models.Model):
@@ -30,11 +32,14 @@ class FieldRepresentative(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
+    class Meta:
+        db_table = 'field_representatives'
+
 
 class BrandParentCompany(models.Model):
     short_name = models.CharField(max_length=50, unique=True, null=True, blank=True)
     expanded_name = models.CharField(max_length=50, null=True, blank=True)
-    
+
     @staticmethod
     def get_default():
         return BrandParentCompany.objects.get_or_create(short_name='Unknown', expanded_name='Unknown brand')[0].pk
@@ -46,21 +51,24 @@ class BrandParentCompany(models.Model):
     def _strd(self):
         return f'BrandParentCompany(short_name={ repr(self.short_name) }, expanded_name={ repr(self.expanded_name) })'
 
+    class Meta:
+        db_table = 'brand_parent_companies'
+
 
 class Product(models.Model):
     upc = models.CharField(max_length=12, unique=True)
     name = models.CharField(max_length=255, null=True, blank=True)
     parent_company = models.ForeignKey(
-        BrandParentCompany, 
-        null=True, 
-        blank=True, 
-        on_delete=models.SET_NULL, 
+        BrandParentCompany,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
         related_name='upcs'
     )
 
     def __str__(self):
         return f'{self.upc} - {self.parent_company} - {self.name}'
-    
+
     # string for debugging
     def _strd(self):
         return f'Product(upc={ repr(self.upc) }, name={ repr(self.name) }, parent_company={ self.parent_company })'
@@ -87,6 +95,9 @@ class Product(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
+    class Meta:
+        db_table = 'products'
+
 
 class PersonnelContact(models.Model):
     first_name = models.CharField(max_length=255, null=True)
@@ -100,12 +111,17 @@ class PersonnelContact(models.Model):
 
     # string for debugging
     def _strd(self):
-        return f'PersonnelContact(first_name={ repr(self.first_name) }, last_name={ repr(self.last_name) }, store={ repr(self.store) })'
+        return f'PersonnelContact(first_name={ repr(self.first_name) }, \
+            last_name={ repr(self.last_name) }, store={ repr(self.store) })'
+
+    class Meta:
+        db_table = 'personnel_contacts'
 
 
 class Store(models.Model):
     name = models.CharField(max_length=255, null=True, unique=True)
-    field_representative = models.ForeignKey(FieldRepresentative, null=True, blank=True, on_delete=models.SET_NULL, related_name="stores")
+    field_representative = models.ForeignKey(FieldRepresentative, null=True,
+                                             blank=True, on_delete=models.SET_NULL, related_name="stores")
 
     # non-column attribute
     trailing_number_re = re.compile(r' *-* *[0-9]+ *$', flags=re.I)
@@ -130,6 +146,9 @@ class Store(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
+    class Meta:
+        db_table = 'stores'
+
 
 class ProductAddition(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="associated_additions")
@@ -137,7 +156,7 @@ class ProductAddition(models.Model):
     date_added = models.DateField(default=timezone.now)
     date_last_scanned = models.DateTimeField(null=True, blank=True)
     is_carried = models.BooleanField(default=False)
-    
+
     def update_date_scanned(self):
         self.date_last_scanned = timezone.now()
 
@@ -145,7 +164,9 @@ class ProductAddition(models.Model):
         return f'{self.product.upc}; Carried {self.is_carried}; Store {self.store}'
 
     def _strd(self):
-        return f'ProductAddition(store={self.store}, product={self.product}, date_added={self.date_added}, date_last_scanned={self.date_last_scanned}, is_carried={self.is_carried})'
+        return f'ProductAddition(store={self.store}, product={self.product}, date_added={self.date_added}, \
+            date_last_scanned={self.date_last_scanned}, is_carried={self.is_carried})'
 
     class Meta:
-        unique_together = ('store', 'product',)
+        unique_together = ['store', 'product']
+        db_table = 'product_additions'
