@@ -29,7 +29,15 @@ def import_field_reps(field_reps_info: dict):
     models.FieldRepresentative.objects.bulk_create(new_field_reps)
 
 
-def bulk_add_stores(stores: list):
+def bulk_create_in_batches(TargetModelClass, objs: iter, batch_size=100, ignore_conflicts=False):
+    while True:
+        batch = list(islice(objs, batch_size))
+        if not batch:
+            break
+        TargetModelClass.objects.bulk_create(batch, batch_size, ignore_conflicts=ignore_conflicts)
+
+
+def add_new_stores(stores: list):
     """bulk adds list of stores to database
 
     Args:
@@ -43,6 +51,8 @@ def bulk_add_stores(stores: list):
             new_stores.append(new_store)
         except ValidationError:
             continue
+
+    bulk_create_in_batches(models.Store, iter(new_stores), ignore_conflicts=True)
 
 
 def import_territories(territory_info: dict):
@@ -131,14 +141,6 @@ def get_product_from_queryset(products, upc) -> models.Product:
     if not result:
         return None
     return result[0]
-
-
-def bulk_create_in_batches(TargetModelClass, objs: iter, batch_size=50, ignore_conflicts=False):
-    while True:
-        batch = list(islice(objs, batch_size))
-        if not batch:
-            break
-        TargetModelClass.objects.bulk_create(batch, batch_size, ignore_conflicts=ignore_conflicts)
 
 
 def get_missing_products(upcs_batch: list, products: list) -> list:

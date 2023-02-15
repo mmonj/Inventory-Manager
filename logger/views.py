@@ -120,8 +120,7 @@ def add_new_stores(request):
     new_stores = []
     products.util.printerr('Json Decode error: falling back to parsing from raw text')
     new_stores = [s for s in (f.strip() for f in received_form.cleaned_data['stores_text'].split('\n')) if s]
-    for store_name in new_stores:
-        products.util.add_store(store_name)
+    products.util.add_new_stores(new_stores)
 
     return redirect('logger:add_new_stores')
 
