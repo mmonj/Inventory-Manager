@@ -2,13 +2,13 @@ import json
 
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
-from django.shortcuts import render, HttpResponse, redirect
+from django.shortcuts import render, redirect
 
 from . import forms
 from products import models
 import products.util
 
-# Create your views here.
+
 def index(request):
     territory_info = get_territory_info()
     return render(request, 'logger/index.html', {
@@ -26,10 +26,10 @@ def log_product_scan(request):
         product, _is_new_product = models.Product.objects.get_or_create(upc=body['upc'])
     except ValidationError as ex:
         return JsonResponse(
-            { 'message': 'Bad request', 'errors': [f for f in dict(ex)['__all__']] },
+            {'message': 'Bad request', 'errors': [f for f in dict(ex)['__all__']]},
             status=400
         )
-    
+
     store = models.Store.objects.get(pk=body['store_id'])
     if body['is_remove']:
         product_addition = set_not_carried(product, store)
@@ -38,22 +38,22 @@ def log_product_scan(request):
 
     resp_json = {
         'product_info': {
-            'upc': product_addition.product.upc, 
-            'name': product_addition.product.name or '', 
-            'store_name': product_addition.store.name, 
+            'upc': product_addition.product.upc,
+            'name': product_addition.product.name or '',
+            'store_name': product_addition.store.name,
             'is_carried': product_addition.is_carried
         }
     }
-    
+
     return JsonResponse(resp_json)
 
 
 def record_product_addition(product, store, is_product_scanned=False):
     product_addition, _is_new_product_addition = models.ProductAddition.objects.get_or_create(
-        product=product, 
+        product=product,
         store=store
     )
-    
+
     if is_product_scanned and not product_addition.is_carried:
         product_addition.is_carried = True
         product_addition.save(update_fields=['is_carried'])
@@ -66,7 +66,7 @@ def record_product_addition(product, store, is_product_scanned=False):
 
 def set_not_carried(product, store):
     product_addition = models.ProductAddition.objects.get(
-        product=product, 
+        product=product,
         store=store
     )
 
@@ -82,20 +82,20 @@ def get_territory_info():
         'territory_list': []
     }
     territory_list = territory_info['territory_list']
-    
+
     field_reps = models.FieldRepresentative.objects.all()
     for field_rep in field_reps:
         territory_list.append(
             {
-                'field_rep_name': field_rep.name, 
-                'field_rep_id': field_rep.pk, 
+                'field_rep_name': field_rep.name,
+                'field_rep_id': field_rep.pk,
                 # add list of dictionaries to 'stores' key
                 'stores': [
                     {'store_name': store.name, 'store_id': store.pk} for store in field_rep.stores.all()
                 ]
             }
         )
-    
+
     return territory_info
 
 
@@ -110,25 +110,21 @@ def add_new_stores(request):
         error_messages = []
         for field, errors in received_form.errors.items():
             for error in errors:
-                error_messages.append( f'{field}: {error}' )
+                error_messages.append(f'{field}: {error}')
 
         return render(request, 'logger/add_new_stores.html', {
-            'form': received_form, 
+            'form': received_form,
             'error_messages': error_messages
         })
 
     new_stores = []
-    try:
-        categorized_store_listings = json.loads(received_form.cleaned_data['stores_text'])
-        products.util.import_territories(categorized_store_listings)
-    except json.decoder.JSONDecodeError as e:
-        products.util.printerr('Json Decode error: falling back to parsing from raw text')
-        new_stores = [s for s in (f.strip() for f in received_form.cleaned_data['stores_text'].split('\n')) if s]
-        for store_name in new_stores:
-            products.util.add_store(store_name)
+    products.util.printerr('Json Decode error: falling back to parsing from raw text')
+    new_stores = [s for s in (f.strip() for f in received_form.cleaned_data['stores_text'].split('\n')) if s]
+    for store_name in new_stores:
+        products.util.add_store(store_name)
 
     return redirect('logger:add_new_stores')
-    
+
 
 def scan_history(request):
     if not request.GET:
@@ -139,15 +135,16 @@ def scan_history(request):
 
     store_id = request.GET.get('store-id')[0]
     store = models.Store.objects.get(pk=store_id)
-    product_additions = models.ProductAddition.objects.filter(store=store, is_carried=True).order_by('-date_last_scanned')[:100]
+    product_additions = models.ProductAddition.objects.filter(
+        store=store, is_carried=True).order_by('-date_last_scanned')[:100]
     for product_addition in product_additions:
         product_addition.product.name = product_addition.product.name or 'Unknown product name'
-    
+
     return render(request, 'logger/scan_history.html', {
-        'product_additions': product_additions, 
+        'product_additions': product_additions,
         'store_name': store.name
     })
-    
+
 
 def uncarry_product_addition(request, product_addition_pk):
     product_addition = models.ProductAddition.objects.get(pk=product_addition_pk)
@@ -176,6 +173,5 @@ def import_json_data_files(request):
         util.import_territories(territory_info)
         util.import_products(products_info)
         util.import_distribution_data(stores_distribution_data)
-    
+
     return redirect('logger:import_json_data_files')
-    

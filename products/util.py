@@ -29,6 +29,22 @@ def import_field_reps(field_reps_info: dict):
     models.FieldRepresentative.objects.bulk_create(new_field_reps)
 
 
+def bulk_add_stores(stores: list):
+    """bulk adds list of stores to database
+
+    Args:
+        stores (list): list<str> of store names
+    """
+    new_stores = []
+    for store_name in stores:
+        try:
+            new_store = models.Store(name=store_name)
+            new_store.clean()
+            new_stores.append(new_store)
+        except ValidationError:
+            continue
+
+
 def import_territories(territory_info: dict):
     all_stores: dict = territory_info['All Stores']
     field_rep_territories = {name: territory_info[name] for name in territory_info if name != 'All Stores'}
