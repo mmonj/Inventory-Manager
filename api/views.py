@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 
 logger = logging.getLogger('main_logger')
 
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def validate_api_token(request):
@@ -35,10 +36,10 @@ def get_store_product_additions(request):
 
     # set up response
     resp_json = {
-        'store': StoreSerializer(store).data, 
+        'store': StoreSerializer(store).data,
         'product_additions': ProductAdditionSerializer(
-            product_additions, 
-            many=True, 
+            product_additions,
+            many=True,
             context={'current_work_cycle': current_work_cycle}
         ).data
     }
@@ -46,7 +47,8 @@ def get_store_product_additions(request):
 
 
 def update_product_names(request_json: dict):
-    """Bulk create products if they don't already exist. Bulk update existing products with product name if they don't contain it
+    """Bulk create products if they don't already exist.
+    Bulk update existing products with product name if they don't contain it
 
     Args:
         request_json (dict): request json payload received from client
@@ -56,7 +58,7 @@ def update_product_names(request_json: dict):
             if product_info['upc'] == upc:
                 return product_info['name']
         return None
-    
+
     client_name = request_json.get('client_name')
     parent_company, _ = models.BrandParentCompany.objects.get_or_create(short_name=client_name)
     logger.info(f'Received client name "{client_name}", created instance {parent_company}')
@@ -81,7 +83,7 @@ def update_product_names(request_json: dict):
     for product in products:
         product.parent_company = parent_company
         product.name = get_product_name(product.upc, request_json.get('products'))
-    
+
     products.bulk_update(products, ['parent_company', 'name'])
 
 
