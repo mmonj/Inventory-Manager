@@ -20,10 +20,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-$bj!##^hl#_!g1i&e8-4g_xvd4*%)1v%hdd+%0%af-8wsajs#g'
+SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ['DEBUG'] == "1"
 
 ALLOWED_HOSTS = []
 
@@ -80,26 +80,16 @@ WSGI_APPLICATION = 'inventory_manager.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
-_RUN_APP_AS_TYPE = os.environ['RUN_APP_AS_TYPE']
-_DATABASE_SETTINGS = {
-    'dev': {
+DATABASES = {
+    'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        "NAME": os.environ.get('psql_dev_db_name'),
-        "USER": os.environ.get('psql_dev_username'),
-        "PASSWORD": os.environ.get('psql_dev_password'),
-        "HOST": os.environ.get('psql_dev_host'),
-        "PORT": os.environ.get('psql_dev_port'),
-    },
-    'deploy': {
-        'ENGINE': 'django.db.backends.postgresql',
-        "NAME": os.environ.get('psql_db_name'),
-        "USER": os.environ.get('psql_username'),
-        "PASSWORD": os.environ.get('psql_password'),
-        "HOST": os.environ.get('psql_host'),
-        "PORT": os.environ.get('psql_port'),
+        "NAME": os.environ['psql_db_name'],
+        "USER": os.environ['psql_username'],
+        "PASSWORD": os.environ['psql_password'],
+        "HOST": os.environ['psql_host'],
+        "PORT": os.environ['psql_port'],
     }
 }
-DATABASES = {'default': _DATABASE_SETTINGS[_RUN_APP_AS_TYPE]}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
@@ -161,7 +151,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "simple": {
-            "format": "{levelname} {asctime:s} {funcName:<30s} {filename:<15} {lineno:<4} {message}",
+            "format": "{levelname} {asctime:s} {filename:s} {funcName:s} {lineno} {message}",
             "datefmt": "%Y-%m-%d %I:%M:%S %p",
             "style": "{",
         },
@@ -173,6 +163,7 @@ LOGGING = {
     },
     "handlers": {
         "console": {
+            "level": "INFO", 
             "class": "logging.StreamHandler",
             "formatter": "simple",
         },
@@ -198,7 +189,7 @@ LOGGING = {
             "propagate": False,
         },
         "main_logger": {
-            "handlers": ["main_handler"],
+            "handlers": ["main_handler", "console"],
             "level": "INFO",
             "propagate": False,
         },
