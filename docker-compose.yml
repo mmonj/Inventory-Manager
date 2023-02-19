@@ -1,14 +1,15 @@
 version: '3'
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        BUILD_MODE: production
+    image: inventory-manager-django
     container_name: inventory-manager
     ports:
       - 8001:8000
     volumes:
       - ./:/app
-    environment:
-      - TZ=America/New_York
-      - RUN_APP_AS_TYPE=dev
     env_file:
-      - db.env
+      - .env
