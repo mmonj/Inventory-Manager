@@ -1,14 +1,22 @@
 import json
+import logging
 
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
+from django.urls import reverse_lazy
+
 
 from . import forms
 from products import models
 import products.util
 
+logger = logging.getLogger("main_logger")
 
+
+@login_required(login_url=reverse_lazy('logger:login_view'))
 def index(request):
     territory_info = get_territory_info()
     return render(request, 'logger/index.html', {
@@ -99,6 +107,7 @@ def get_territory_info():
     return territory_info
 
 
+@login_required(login_url=reverse_lazy('logger:login_view'))
 def add_new_stores(request):
     if request.method == 'GET':
         return render(request, 'logger/add_new_stores.html', {
@@ -125,6 +134,7 @@ def add_new_stores(request):
     return redirect('logger:add_new_stores')
 
 
+@login_required(login_url=reverse_lazy('logger:login_view'))
 def scan_history(request):
     if not request.GET:
         territory_info = get_territory_info()
@@ -145,6 +155,7 @@ def scan_history(request):
     })
 
 
+@login_required(login_url=reverse_lazy('logger:login_view'))
 def uncarry_product_addition(request, product_addition_pk):
     product_addition = models.ProductAddition.objects.get(pk=product_addition_pk)
     product_addition.is_carried = False
@@ -153,6 +164,7 @@ def uncarry_product_addition(request, product_addition_pk):
     return JsonResponse({'message': 'success'})
 
 
+@login_required(login_url=reverse_lazy('logger:login_view'))
 def import_json_data_files(request):
     from products import util
 
@@ -174,3 +186,36 @@ def import_json_data_files(request):
         util.import_distribution_data(stores_distribution_data)
 
     return redirect('logger:import_json_data_files')
+
+
+@login_required(login_url=reverse_lazy('logger:login_view'))
+def barcode_sheet(request):
+    return render(request, "logger/barcode_sheet.html")
+
+
+def login_view(request):
+    if request.user.is_authenticated:
+        logger.info(f"User {request.user.get_username()} is already logged in. Redirecting to logger index")
+        return redirect("logger:index")
+
+    if request.method == 'GET':
+        return render(request, 'logger/login.html')
+    else:
+        # Attempt to sign user in
+        username = request.POST["username"]
+        password = request.POST["password"]
+        user = authenticate(request, username=username, password=password)
+
+        # Check if authentication successful
+        if user is not None:
+            login(request, user)
+            return redirect("logger:index")
+        else:
+            return render(request, "auctions/login.html", {
+                "message": "Invalid username and/or password."
+            })
+
+
+def logout_view(request):
+    logout(request)
+    return redirect("logger:login_view")
