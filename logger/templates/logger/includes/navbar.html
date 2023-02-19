@@ -1,21 +1,33 @@
-<nav class="navbar navbar-expand-lg bg-body-tertiary card">
+<nav class="navbar navbar-expand-lg bg-body-tertiary">
   <div class="container-fluid">
     <a class="navbar-brand title-color" href="{% url 'logger:index' %}">Inventory Manager</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
-    <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
 
-      <div class="navbar-nav">
-        <a class="nav-link active" aria-current="page" href="{% url 'logger:add_new_stores' %}">Add New Stores</a>
-      </div>
-      <div class="navbar-nav">
-        <a class="nav-link active" aria-current="page" href="{% url 'logger:scan_history' %}">Scan History</a>
-      </div>
-      <div class="navbar-nav">
-        <a class="nav-link active" aria-current="page" href="{% url 'logger:import_json_data_files' %}">Import Old Database</a>
-      </div>
+        {% if user.is_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'logger:scan_history' %}">Scan History</a>
+          </li>
+        {% endif %}
 
+        {% if user.is_superuser %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'logger:add_new_stores' %}">Add New Stores</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'logger:import_json_data_files' %}">Import Old Database</a>
+          </li>
+        {% endif %}
+
+      </ul>
+      {% if not user.is_authenticated %}
+        <a class="nav-link" href="{% url 'logger:login_view' %}">Log In</a>
+      {% else %}
+        <a class="nav-link" href="{% url 'logger:logout_view' %}">Log Out</a>
+      {% endif %}
     </div>
   </div>
 </nav>
