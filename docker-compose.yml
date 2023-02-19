@@ -4,7 +4,7 @@ services:
     build:
       context: .
       args:
-        BUILD_MODE: production
+        BUILD_MODE: prod
     image: inventory-manager-django
     container_name: inventory-manager
     ports:
@@ -12,4 +12,4 @@ services:
     volumes:
       - ./:/app
     env_file:
-      - .env
+      - prod.env
