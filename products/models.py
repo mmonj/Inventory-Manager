@@ -40,6 +40,7 @@ class FieldRepresentative(models.Model):
 class BrandParentCompany(models.Model):
     short_name = models.CharField(max_length=50, unique=True, null=True, blank=True)
     expanded_name = models.CharField(max_length=50, null=True, blank=True)
+    third_party_logo = models.ImageField(null=True, blank=True, upload_to='products/images/brand_logos')
 
     def __str__(self):
         return self.expanded_name or self.short_name or '--'
@@ -63,7 +64,7 @@ def product_image_upload_location(instance, filename):
         str: new image file path
     """
     file = Path(filename)
-    new_path = Path("products/images", instance.upc + file.suffix)
+    new_path = Path("products/images/product_images", instance.upc + file.suffix)
     return str(new_path)
 
 
