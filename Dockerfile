@@ -1,15 +1,15 @@
 FROM python:3.8.16-slim
 WORKDIR /app
 
-COPY requirements.txt /app
-RUN pip install -r requirements.txt
-
 ARG BUILD_MODE
 RUN if [ "$BUILD_MODE" = "dev" ] ; then pip install pipreq \
 	&& apt-get update -y \
 	&& apt-get upgrade -y \
 	&& apt-get install git -y \
 	; fi
+
+COPY requirements.txt /app
+RUN pip install -r requirements.txt
 
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
