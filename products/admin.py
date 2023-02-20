@@ -7,7 +7,7 @@ class FieldRepresentativeAdmin(admin.ModelAdmin):
 
 
 class BrandParentCompanyAdmin(admin.ModelAdmin):
-    list_display = ['short_name', 'expanded_name']
+    list_display = ['short_name', 'expanded_name', 'third_party_logo']
 
 
 class ProductAdmin(admin.ModelAdmin):
