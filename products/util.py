@@ -99,6 +99,7 @@ def import_products(products_info: dict, images_zip_path=None, brand_logos_zip=N
         bulk_create_in_batches(models.Product, new_products, batch_size=100, ignore_conflicts=True)
 
     if brand_logos_zip is not None:
+        logger.info('Importing brand logos')
         brands = models.BrandParentCompany.objects.distinct('short_name').in_bulk(field_name='short_name')
         with zipfile.ZipFile(BytesIO(brand_logos_zip)) as zf:
             for filename in zf.namelist():
@@ -109,6 +110,7 @@ def import_products(products_info: dict, images_zip_path=None, brand_logos_zip=N
                         brands[short_name].third_party_logo.save(filename, file_obj, save=True)
 
     if images_zip_path is not None:
+        logger.info('Importing product images')
         products = models.Product.objects.distinct('upc').in_bulk(field_name='upc')
         with zipfile.ZipFile(images_zip_path) as zf:
             for filename in zf.namelist():
