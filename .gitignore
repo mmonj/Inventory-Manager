@@ -4,3 +4,8 @@ __pycache__
 *.env
 log_files/*
 .vscode/*
+.devcontainer/*
+products/static/products/images/**
+/static/**
+/media/**
+products/import_testfiles/images/**
