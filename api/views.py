@@ -16,11 +16,9 @@ def validate_api_token(request):
     """This route is used to check the validity of the client's API token without having to send any specific data.
     The presence of the @permission_classes decorator will assert the validity of the client's API token
 
-    Args:
-        request (_type_): _description_
-
     Returns:
-        dict: Unimportant JSON response. The purpose of this route is to return a 200 or 403 response
+        dict: Unimportant JSON response. The purpose of this route is to return 
+        a status code of 200 or 403 in the response
     """
     return Response({'message': 'Validated'})
 
