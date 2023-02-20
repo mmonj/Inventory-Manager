@@ -10,8 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
-import os
+import sys
 from pathlib import Path
+# retrieve django settings that are included as environmental variables
+from .env_setup import *
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,17 +21,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ['DEBUG'] == "1"
-
-ALLOWED_HOSTS = []
-
 # Application definition
-
 INSTALLED_APPS = [
+    'whitenoise.runserver_nostatic',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -44,10 +38,12 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    'django_cleanup.apps.CleanupConfig',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -77,20 +73,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'inventory_manager.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/4.1/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        "NAME": os.environ['psql_db_name'],
-        "USER": os.environ['psql_username'],
-        "PASSWORD": os.environ['psql_password'],
-        "HOST": os.environ['psql_host'],
-        "PORT": os.environ['psql_port'],
-    }
-}
-
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
 
@@ -118,8 +100,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = os.environ['TZ']
-
 USE_I18N = True
 
 USE_TZ = True
@@ -128,6 +108,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -163,9 +144,10 @@ LOGGING = {
     },
     "handlers": {
         "console": {
-            "level": "INFO", 
+            "level": "INFO",
             "class": "logging.StreamHandler",
             "formatter": "simple",
+            # 'stream': sys.stdout,
         },
         'console_debug': {
             'level': 'DEBUG',
