@@ -1,7 +1,7 @@
 import logging
 from products import models
 from products.util import get_current_work_cycle
-from products.serializers import ProductAdditionSerializer, StoreSerializer
+from .serializers import ProductAdditionSerializer, StoreSerializer
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -59,7 +59,7 @@ def update_product_names(request_json: dict):
 
     client_name = request_json.get('client_name')
     parent_company, _ = models.BrandParentCompany.objects.get_or_create(short_name=client_name)
-    logger.info(f'Received client name "{client_name}", created instance {parent_company}')
+    logger.info(f'Received client name "{client_name}"')
 
     upcs = [p['upc'] for p in request_json.get('products')]
 
