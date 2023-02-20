@@ -13,5 +13,5 @@ urlpatterns = [
     path("uncarry_product_addition/<int:product_addition_pk>/",
          views.uncarry_product_addition, name="uncarry_product_addition"),
     path("import_json_data_files/", views.import_json_data_files, name="import_json_data_files"),
-    path("barcode_sheet/", views.barcode_sheet, name="barcode_sheet"), 
+    path("barcode_sheet/", views.barcode_sheet, name="barcode_sheet"),
 ]
