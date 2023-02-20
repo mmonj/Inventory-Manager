@@ -180,10 +180,13 @@ def import_json_data_files(request):
         products_info = json.load(request.FILES['product_names_json'])
         stores_distribution_data = json.load(request.FILES['store_distribution_data_json'])
         product_images_zip = request.FILES['product_images_zip']
+        brand_logos_zip = request.FILES['brand_logos_zip']
 
         util.import_field_reps(field_reps_info)
         util.import_territories(territory_info)
-        util.import_products(products_info, product_images_zip.temporary_file_path())
+        util.import_products(products_info,
+                             images_zip_path=product_images_zip.temporary_file_path(),
+                             brand_logos_zip=brand_logos_zip.read())
         util.import_distribution_data(stores_distribution_data)
 
     return redirect('logger:import_json_data_files')

@@ -11,3 +11,4 @@ class ImportJsonDataFiles(forms.Form):
     product_names_json = forms.FileField()
     store_distribution_data_json = forms.FileField()
     product_images_zip = forms.FileField()
+    brand_logos_zip = forms.FileField()

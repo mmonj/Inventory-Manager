@@ -3,6 +3,7 @@ import pytz
 import zipfile
 
 from . import models
+from io import BytesIO
 from datetime import datetime, timezone, timedelta, date
 from itertools import islice
 from pathlib import Path
@@ -19,7 +20,7 @@ def import_field_reps(field_reps_info: dict):
         work_email = rep_info['work_email']
         new_field_reps.append(models.FieldRepresentative(name=field_rep_name, work_email=work_email))
 
-    models.FieldRepresentative.objects.bulk_create(new_field_reps)
+    models.FieldRepresentative.objects.bulk_create(new_field_reps, ignore_conflicts=True)
 
 
 def bulk_create_in_batches(TargetModelClass, objs: iter, batch_size=100, ignore_conflicts=False):
@@ -80,7 +81,7 @@ def import_territories(territory_info: dict):
     bulk_create_in_batches(models.PersonnelContact, new_contacts, batch_size=100)
 
 
-def import_products(products_info: dict, images_zip_path=None):
+def import_products(products_info: dict, images_zip_path=None, brand_logos_zip=None):
     # new_products = []
     for client_brand, products_dict in products_info.items():
         logger.info(f'Importing products for: {client_brand}')
@@ -97,17 +98,25 @@ def import_products(products_info: dict, images_zip_path=None):
         )
         bulk_create_in_batches(models.Product, new_products, batch_size=100, ignore_conflicts=True)
 
-    if images_zip_path is None:
-        return
+    if brand_logos_zip is not None:
+        brands = models.BrandParentCompany.objects.distinct('short_name').in_bulk(field_name='short_name')
+        with zipfile.ZipFile(BytesIO(brand_logos_zip)) as zf:
+            for filename in zf.namelist():
+                short_name = Path(filename).stem
+                if short_name in brands and not brands[short_name].third_party_logo:
+                    with zf.open(filename, "r") as f:
+                        file_obj = File(f)
+                        brands[short_name].third_party_logo.save(filename, file_obj, save=True)
 
-    products = models.Product.objects.distinct('upc').in_bulk(field_name='upc')
-    with zipfile.ZipFile(images_zip_path) as zf:
-        for filename in zf.namelist():
-            upc = Path(filename).stem
-            if upc in products:
-                with zf.open(filename, "r") as f:
-                    file_obj = File(f)
-                    products[upc].item_image.save(filename, file_obj, save=True)
+    if images_zip_path is not None:
+        products = models.Product.objects.distinct('upc').in_bulk(field_name='upc')
+        with zipfile.ZipFile(images_zip_path) as zf:
+            for filename in zf.namelist():
+                upc = Path(filename).stem
+                if upc in products and not products[upc].item_image:
+                    with zf.open(filename, "r") as f:
+                        file_obj = File(f)
+                        products[upc].item_image.save(filename, file_obj, save=True)
 
 
 def import_distribution_data(stores_distribution_data: dict):
