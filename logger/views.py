@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
-
+from django.templatetags.static import static
 
 from . import forms
 from products import models
@@ -127,7 +127,7 @@ def add_new_stores(request):
         })
 
     new_stores = []
-    products.util.printerr('Json Decode error: falling back to parsing from raw text')
+    logger.info('Json Decode error: falling back to parsing from raw text')
     new_stores = [s for s in (f.strip() for f in received_form.cleaned_data['stores_text'].split('\n')) if s]
     products.util.add_new_stores(new_stores)
 
@@ -179,10 +179,11 @@ def import_json_data_files(request):
         territory_info = json.load(request.FILES['territory_info_json'])
         products_info = json.load(request.FILES['product_names_json'])
         stores_distribution_data = json.load(request.FILES['store_distribution_data_json'])
+        product_images_zip = request.FILES['product_images_zip']
 
         util.import_field_reps(field_reps_info)
         util.import_territories(territory_info)
-        util.import_products(products_info)
+        util.import_products(products_info, product_images_zip.temporary_file_path())
         util.import_distribution_data(stores_distribution_data)
 
     return redirect('logger:import_json_data_files')
@@ -194,6 +195,7 @@ def barcode_sheet(request):
 
 
 def login_view(request):
+    logger.info(static("logger/scan_sound.ogg"))
     if request.user.is_authenticated:
         logger.info(f"User {request.user.get_username()} is already logged in. Redirecting to logger index")
         return redirect("logger:index")
@@ -211,7 +213,7 @@ def login_view(request):
             login(request, user)
             return redirect("logger:index")
         else:
-            return render(request, "auctions/login.html", {
+            return render(request, "logger/login.html", {
                 "message": "Invalid username and/or password."
             })
 
