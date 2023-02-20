@@ -1,5 +1,6 @@
 import re
 from checkdigit import gs1
+from pathlib import Path
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -40,10 +41,6 @@ class BrandParentCompany(models.Model):
     short_name = models.CharField(max_length=50, unique=True, null=True, blank=True)
     expanded_name = models.CharField(max_length=50, null=True, blank=True)
 
-    @staticmethod
-    def get_default():
-        return BrandParentCompany.objects.get_or_create(short_name='Unknown', expanded_name='Unknown brand')[0].pk
-
     def __str__(self):
         return self.expanded_name or self.short_name or '--'
 
@@ -53,6 +50,21 @@ class BrandParentCompany(models.Model):
 
     class Meta:
         db_table = 'brand_parent_companies'
+
+
+def product_image_upload_location(instance, filename):
+    """Change filename to be based on the UPC number of the product
+
+    Args:
+        instance (Product): Product model instance
+        filename (str): <str> representation of the default image filename
+
+    Returns:
+        str: new image file path
+    """
+    file = Path(filename)
+    new_path = Path("products/images", instance.upc + file.suffix)
+    return str(new_path)
 
 
 class Product(models.Model):
@@ -65,6 +77,7 @@ class Product(models.Model):
         on_delete=models.SET_NULL,
         related_name='upcs'
     )
+    item_image = models.ImageField(null=True, blank=True, upload_to=product_image_upload_location)
 
     def __str__(self):
         return f'{self.upc} - {self.parent_company} - {self.name}'
