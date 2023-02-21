@@ -1,20 +1,36 @@
 import barcode
 import base64
 import io
+
 from rest_framework import serializers
+from django.templatetags.static import static
+
 from products import models
 
 
 class ProductSerializer(serializers.ModelSerializer):
     barcode_b64 = serializers.SerializerMethodField()
     item_image_url = serializers.SerializerMethodField()
+    upc_sections = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Product
-        fields = ['upc', 'name', 'item_image_url', 'barcode_b64']
-        read_only_fields = ['upc', 'name', 'item_image_url', 'barcode_b64']
+        fields = ['upc', 'name', 'upc_sections', 'item_image_url', 'barcode_b64']
+        read_only_fields = ['upc', 'name', 'upc_sections', 'item_image_url', 'barcode_b64']
+
+    def get_upc_sections(self, product):
+        upc_sections = []
+
+        upc_sections.append(product.upc[:1])
+        upc_sections.append(product.upc[1:6])
+        upc_sections.append(product.upc[6:11])
+        upc_sections.append(product.upc[-1])
+
+        return upc_sections
 
     def get_item_image_url(self, product):
+        if not product.item_image:
+            return static("products/images/image_not_available.png")
         return product.item_image.url
 
     def get_barcode_b64(self, product):

@@ -5,7 +5,6 @@ __pycache__
 log_files/*
 .vscode/*
 .devcontainer/*
-products/static/products/images/**
-/static/**
+/staticfiles/**
 /media/**
 products/import_testfiles/images/**

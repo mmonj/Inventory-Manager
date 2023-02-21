@@ -1,0 +1,39 @@
+main {
+  max-width: initial !important;
+}
+
+#company-logo-container {
+  height: 8rem;
+}
+
+#company-logo-container img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+#products-container {
+  list-style-type: none;
+  padding-left: 0;
+  max-width: 100%;
+}
+
+.barcode-container {
+  max-width: 60%;
+}
+
+.barcode-image {
+  object-fit: contain;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.product-image-container {
+  max-width: 40%;
+}
+
+.product-image {
+  object-fit: contain;
+  max-width: 100%;
+  max-height: 100%;
+}
