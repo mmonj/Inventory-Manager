@@ -2,7 +2,7 @@ FROM python:3.8.16-slim
 WORKDIR /app
 
 ARG BUILD_MODE
-RUN if [ "$BUILD_MODE" = "dev" ] ; then pip install pipreq \
+RUN if [ "$BUILD_MODE" = "dev" ] ; then pip install pipreqs \
 	&& apt-get update -y \
 	&& apt-get upgrade -y \
 	&& apt-get install git -y \
