@@ -192,9 +192,25 @@ def import_json_data_files(request):
     return redirect('logger:import_json_data_files')
 
 
-@login_required(login_url=reverse_lazy('logger:login_view'))
 def barcode_sheet(request):
-    return render(request, "logger/barcode_sheet.html")
+    store = models.Store.objects.get(name=request.GET.get('store-name'))
+    parent_company = models.BrandParentCompany.objects.get(short_name=request.GET.get('client-name'))
+    product_additions = models.ProductAddition.objects.filter(
+        id__in=request.GET.getlist('pa-id')).select_related('store', 'product')
+
+    current_work_cycle = get_current_work_cycle()
+
+    return render(request, "logger/barcode_sheet.html", {
+        'store': store,
+        'parent_company': parent_company,
+        'product_additions': serializers.ProductAdditionSerializer(
+            product_additions,
+            many=True,
+            context={
+                'current_work_cycle': current_work_cycle
+            }
+        ).data
+    })
 
 
 def login_view(request):
