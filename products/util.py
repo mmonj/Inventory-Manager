@@ -31,7 +31,7 @@ def bulk_create_in_batches(TargetModelClass, objs: iter, batch_size=100, ignore_
         TargetModelClass.objects.bulk_create(batch, batch_size, ignore_conflicts=ignore_conflicts)
 
 
-def add_new_stores(stores: list):
+def import_new_stores(stores: list):
     """bulk adds list of stores to database
 
     Args:

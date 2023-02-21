@@ -9,9 +9,9 @@ from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.templatetags.static import static
 
-from . import forms
+from . import forms, serializers
 from products import models
-import products.util
+from products.util import import_new_stores, get_current_work_cycle
 
 logger = logging.getLogger("main_logger")
 
@@ -129,7 +129,7 @@ def add_new_stores(request):
     new_stores = []
     logger.info('Json Decode error: falling back to parsing from raw text')
     new_stores = [s for s in (f.strip() for f in received_form.cleaned_data['stores_text'].split('\n')) if s]
-    products.util.add_new_stores(new_stores)
+    import_new_stores(new_stores)
 
     return redirect('logger:add_new_stores')
 
