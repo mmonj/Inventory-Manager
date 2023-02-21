@@ -17,7 +17,7 @@ def validate_api_token(request):
     The presence of the @permission_classes decorator will assert the validity of the client's API token
 
     Returns:
-        dict: Unimportant JSON response. The purpose of this route is to return 
+        dict: Unimportant JSON response. The purpose of this route is to return
         a status code of 200 or 403 in the response
     """
     return Response({'message': 'Validated'})
