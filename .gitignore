@@ -3,4 +3,8 @@ __pycache__
 *.sqlite3-journal
 *.env
 log_files/*
-.vscode/*
+.vscode/**
+.devcontainer/**
+/media/**
+products/import_testfiles/images/**
+/static/**
