@@ -1,59 +1,79 @@
+import logging
 import pytz
-import sys
+import zipfile
+
 from . import models
+from io import BytesIO
 from datetime import datetime, timezone, timedelta, date
 from itertools import islice
+from pathlib import Path
 
+from django.core.files import File
 from django.core.exceptions import ValidationError
 
-
-def printerr(output, print_type=False):
-    '''
-    print output to stderr for testing purposes
-    '''
-    if print_type:
-        print(f'    > Type: {type(output)}', file=sys.stderr)
-    print(f'    > {repr(output)}', file=sys.stderr)
-
-
-def print_status(*args, **kwargs):
-    print(f' > {datetime.now()}:', *args, **kwargs, file=sys.stderr)
+logger = logging.getLogger('main_logger')
 
 
 def import_field_reps(field_reps_info: dict):
     new_field_reps = []
     for field_rep_name, rep_info in field_reps_info.items():
         work_email = rep_info['work_email']
-        new_field_reps.append( models.FieldRepresentative(name=field_rep_name, work_email=work_email) )
+        new_field_reps.append(models.FieldRepresentative(name=field_rep_name, work_email=work_email))
 
-    models.FieldRepresentative.objects.bulk_create(new_field_reps)
+    models.FieldRepresentative.objects.bulk_create(new_field_reps, ignore_conflicts=True)
+
+
+def bulk_create_in_batches(TargetModelClass, objs: iter, batch_size=100, ignore_conflicts=False):
+    while True:
+        batch = list(islice(objs, batch_size))
+        if not batch:
+            break
+        TargetModelClass.objects.bulk_create(batch, batch_size, ignore_conflicts=ignore_conflicts)
+
+
+def import_new_stores(stores: list):
+    """bulk adds list of stores to database
+
+    Args:
+        stores (list): list<str> of store names
+    """
+    new_stores = []
+    for store_name in stores:
+        try:
+            new_store = models.Store(name=store_name)
+            new_store.clean()
+            new_stores.append(new_store)
+        except ValidationError:
+            continue
+
+    bulk_create_in_batches(models.Store, iter(new_stores), ignore_conflicts=True)
 
 
 def import_territories(territory_info: dict):
     all_stores: dict = territory_info['All Stores']
-    field_rep_territories = {name:territory_info[name] for name in territory_info if name != 'All Stores'}
-    
+    field_rep_territories = {name: territory_info[name] for name in territory_info if name != 'All Stores'}
+
     new_stores = []
     new_contacts = []
     stores_with_contacts = {}
 
-    print_status('Importing territories')
+    logger.info('Importing territories')
     for field_rep_name, store_list in field_rep_territories.items():
         field_rep = models.FieldRepresentative.objects.get(name=field_rep_name)
         for store_name in store_list:
-            new_stores.append( models.Store(name=store_name, field_representative=field_rep) )
+            new_stores.append(models.Store(name=store_name, field_representative=field_rep))
     for store_name, store_info in all_stores.items():
-        new_stores.append( models.Store(name=store_name) )
+        new_stores.append(models.Store(name=store_name))
         manager_names = store_info.get('manager_names')
         if manager_names and all(manager_names):
             stores_with_contacts[store_name] = manager_names
     bulk_create_in_batches(models.Store, iter(new_stores), batch_size=100, ignore_conflicts=True)
-    
+
     stores = models.Store.objects.filter(name__in=stores_with_contacts.keys())
     new_contacts = (
         models.PersonnelContact(
-            first_name=stores_with_contacts[store.name][0], 
-            last_name=stores_with_contacts[store.name][1], 
+            first_name=stores_with_contacts[store.name][0],
+            last_name=stores_with_contacts[store.name][1],
             store=store
         )
         for store in stores
@@ -61,16 +81,16 @@ def import_territories(territory_info: dict):
     bulk_create_in_batches(models.PersonnelContact, new_contacts, batch_size=100)
 
 
-def import_products(products_info: dict):
+def import_products(products_info: dict, images_zip_path=None, brand_logos_zip=None):
     # new_products = []
     for client_brand, products_dict in products_info.items():
-        print_status(f'Importing products for: {client_brand}')
-        parent_company = models.BrandParentCompany.objects.create(short_name=client_brand)
+        logger.info(f'Importing products for: {client_brand}')
+        parent_company = models.BrandParentCompany.objects.get_or_create(short_name=client_brand)[0]
 
         new_products = (
             models.Product(
-                upc=upc, 
-                name=product_info['fs_name'], 
+                upc=upc,
+                name=product_info['fs_name'],
                 parent_company=parent_company
             )
             for upc, product_info in products_dict.items()
@@ -78,13 +98,35 @@ def import_products(products_info: dict):
         )
         bulk_create_in_batches(models.Product, new_products, batch_size=100, ignore_conflicts=True)
 
+    if brand_logos_zip is not None:
+        logger.info('Importing brand logos')
+        brands = models.BrandParentCompany.objects.distinct('short_name').in_bulk(field_name='short_name')
+        with zipfile.ZipFile(BytesIO(brand_logos_zip)) as zf:
+            for filename in zf.namelist():
+                short_name = Path(filename).stem
+                if short_name in brands and not brands[short_name].third_party_logo:
+                    with zf.open(filename, "r") as f:
+                        file_obj = File(f)
+                        brands[short_name].third_party_logo.save(filename, file_obj, save=True)
+
+    if images_zip_path is not None:
+        logger.info('Importing product images')
+        products = models.Product.objects.distinct('upc').in_bulk(field_name='upc')
+        with zipfile.ZipFile(images_zip_path) as zf:
+            for filename in zf.namelist():
+                upc = Path(filename).stem
+                if upc in products and not products[upc].item_image:
+                    with zf.open(filename, "r") as f:
+                        file_obj = File(f)
+                        products[upc].item_image.save(filename, file_obj, save=True)
+
 
 def import_distribution_data(stores_distribution_data: dict):
     for idx, (store_name, store_distribution_data) in enumerate(stores_distribution_data.items()):
         len1 = len(stores_distribution_data)
         store = models.Store.objects.get_or_create(name=store_name)[0]
-        print_status(f'{idx + 1}/{len1} - Store: {store_name}')
-        
+        logger.info(f'{idx + 1}/{len1} - Store: {store_name}')
+
         ####
         new_products = (
             models.Product(upc=upc)
@@ -93,17 +135,18 @@ def import_distribution_data(stores_distribution_data: dict):
         )
 
         bulk_create_in_batches(models.Product, new_products, batch_size=100, ignore_conflicts=True)
-        products = models.Product.objects.filter(upc__in=store_distribution_data.keys())
-        
-        upcs_added = set()
+        # products = models.Product.objects.filter(upc__in=store_distribution_data.keys())
+        products = models.Product.objects.in_bulk(store_distribution_data.keys(), field_name='upc')
+
         new_product_additions = (
             models.ProductAddition(
-                product = get_product_from_queryset(products, upc), 
-                # product = products.filter(upc=upc).first(), 
-                store = store, 
-                date_added = datetime.fromtimestamp( product_distribution_data.get('time_added', 0), timezone.utc ), 
-                date_last_scanned = get_utc_datetime( product_distribution_data.get('date_scanned') ), 
-                is_carried = product_distribution_data.get('instock', False)
+                # product=get_product_from_queryset(products, upc),
+                product=products.get(upc),
+                # product = products.filter(upc=upc).first(),
+                store=store,
+                date_added=datetime.fromtimestamp(product_distribution_data.get('time_added', 0), timezone.utc),
+                date_last_scanned=get_utc_datetime(product_distribution_data.get('date_scanned')),
+                is_carried=product_distribution_data.get('instock', False)
             )
             for upc, product_distribution_data in store_distribution_data.items()
             if models.Product(upc=upc).is_valid_upc()
@@ -112,18 +155,10 @@ def import_distribution_data(stores_distribution_data: dict):
 
 
 def get_product_from_queryset(products, upc) -> models.Product:
-    result = list(filter( lambda p: p.upc == upc, products))
+    result = list(filter(lambda p: p.upc == upc, products))
     if not result:
         return None
     return result[0]
-
-
-def bulk_create_in_batches(TargetModelClass, objs: iter, batch_size=50, ignore_conflicts=False):
-    while True:
-        batch = list(islice(objs, batch_size))
-        if not batch:
-            break
-        TargetModelClass.objects.bulk_create(batch, batch_size, ignore_conflicts=ignore_conflicts)
 
 
 def get_missing_products(upcs_batch: list, products: list) -> list:
@@ -145,7 +180,7 @@ def get_missing_products(upcs_batch: list, products: list) -> list:
             except ValidationError:
                 continue
     return missing_upcs
-    
+
 
 def get_utc_datetime(datetime_str: str) -> datetime:
     if datetime_str is None:
@@ -160,14 +195,13 @@ def get_utc_datetime(datetime_str: str) -> datetime:
     return utc_time
 
 
-
 def get_store_count(territory_info: dict) -> int:
-    store_names_set = set( territory_info['All Stores'].keys() )
+    store_names_set = set(territory_info['All Stores'].keys())
 
     for rep_name, store_names_list in territory_info.items():
         if rep_name == 'All Stores':
             continue
-        
+
         for store_name in store_names_list:
             store_names_set.add(store_name)
 
@@ -180,11 +214,11 @@ def get_stores_managers_dict(territory_info: dict) -> dict:
         manager_names = store_info.get('manager_names')
         if manager_names and all(manager_names):
             stores_info[store_name] = {
-                'first_name': manager_names[0], 
+                'first_name': manager_names[0],
                 'last_name': manager_names[1]
             }
     return stores_info
-    
+
 
 def get_product_count(products_info: dict, stores_distribution_data: dict) -> int:
     upcs = set()
@@ -205,7 +239,7 @@ def get_product_count(products_info: dict, stores_distribution_data: dict) -> in
                 upcs.add(upc)
             except ValidationError:
                 continue
-    
+
     return len(upcs)
 
 
@@ -216,10 +250,10 @@ def get_product_additions_count(stores_distribution_data) -> int:
             try:
                 product = models.Product(upc=upc)
                 product.clean()
-                product_addition_set.add( (store_name, upc, ) )
+                product_addition_set.add((store_name, upc, ))
             except ValidationError:
                 continue
-    return len(product_addition_set)                
+    return len(product_addition_set)
 
 
 def get_current_work_cycle():

@@ -10,8 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
-import os
+import sys
 from pathlib import Path
+# retrieve django settings that are included as environmental variables
+from .env_setup import *
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,17 +21,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-$bj!##^hl#_!g1i&e8-4g_xvd4*%)1v%hdd+%0%af-8wsajs#g'
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
-
 # Application definition
-
 INSTALLED_APPS = [
+    'whitenoise.runserver_nostatic',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -44,10 +38,12 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    'django_cleanup.apps.CleanupConfig',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -77,30 +73,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'inventory_manager.wsgi.application'
 
-# Database
-# https://docs.djangoproject.com/en/4.1/ref/settings/#databases
-
-_RUN_APP_AS_TYPE = os.environ['RUN_APP_AS_TYPE']
-_DATABASE_SETTINGS = {
-    'dev': {
-        'ENGINE': 'django.db.backends.postgresql',
-        "NAME": os.environ.get('psql_dev_db_name'),
-        "USER": os.environ.get('psql_dev_username'),
-        "PASSWORD": os.environ.get('psql_dev_password'),
-        "HOST": os.environ.get('psql_dev_host'),
-        "PORT": os.environ.get('psql_dev_port'),
-    },
-    'deploy': {
-        'ENGINE': 'django.db.backends.postgresql',
-        "NAME": os.environ.get('psql_db_name'),
-        "USER": os.environ.get('psql_username'),
-        "PASSWORD": os.environ.get('psql_password'),
-        "HOST": os.environ.get('psql_host'),
-        "PORT": os.environ.get('psql_port'),
-    }
-}
-DATABASES = {'default': _DATABASE_SETTINGS[_RUN_APP_AS_TYPE]}
-
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
 
@@ -128,8 +100,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = os.environ['TZ']
-
 USE_I18N = True
 
 USE_TZ = True
@@ -138,6 +108,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
@@ -156,42 +127,32 @@ REST_FRAMEWORK = {
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-# LOGGING = {
-#     'version': 1,
-#     'filters': {
-#         'require_debug_true': {
-#             '()': 'django.utils.log.RequireDebugTrue',
-#         }
-#     },
-#     'handlers': {
-#         'console': {
-#             'level': 'DEBUG',
-#             'filters': ['require_debug_true'],
-#             'class': 'logging.StreamHandler',
-#         }
-#     },
-#     'loggers': {
-#         'django.db.backends': {
-#             'level': 'DEBUG',
-#             'handlers': ['console'],
-#         }
-#     }
-# }
-
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "simple": {
-            "format": "{levelname} {asctime:s} {funcName:<30s} {filename:<15} {lineno:<4} {message}",
-            "datefmt": "%Y-%m-%d %I:%M:%S %p", 
+            "format": "{levelname} {asctime:s} {filename:s} {funcName:s} {lineno} -- {message}",
+            "datefmt": "%Y-%m-%d %I:%M:%S %p",
             "style": "{",
         },
     },
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        }
+    },
     "handlers": {
-        "console_handler": {
+        "console": {
+            "level": "INFO",
             "class": "logging.StreamHandler",
             "formatter": "simple",
+            # 'stream': sys.stdout,
+        },
+        'console_debug': {
+            'level': 'DEBUG',
+            'filters': ['require_debug_true'],
+            'class': 'logging.StreamHandler',
         },
         "main_handler": {
             "class": "logging.handlers.RotatingFileHandler",
@@ -210,9 +171,13 @@ LOGGING = {
             "propagate": False,
         },
         "main_logger": {
-            "handlers": ["console_handler", "main_handler"],
+            "handlers": ["main_handler", "console"],
             "level": "INFO",
             "propagate": False,
         },
+        # 'django.db.backends': {
+        #     'level': 'DEBUG',
+        #     'handlers': ['console_debug'],
+        # }
     },
 }

@@ -1,0 +1,69 @@
+{% extends "logger/layout.html" %}
+{% load static %}
+
+{% block title %}
+{% endblock %}
+
+{% block extra_head_elements %}
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      document.documentElement.removeAttribute("data-bs-theme");
+      document.querySelector("header").setAttribute("data-bs-theme", "dark");
+      document.querySelector("main").classList.remove("mx-auto");
+      document.querySelector("main").classList.add("mx-2");
+    })
+  </script>
+  <style>
+    main {
+      max-width: initial !important;
+    }
+
+    #company-logo-container {
+      height: 8rem;
+    }
+    
+    #company-logo-container img {
+      max-height: 100%;
+      max-width: 100%;
+      object-fit: contain;
+    }
+    
+    #products-container {
+      list-style-type: none;
+      padding-left: 0;
+      max-width: 100%;
+    }
+  </style>
+{% endblock %}
+
+{% block body_header %}
+  {% include "logger/includes/navbar.html" %}
+  <div id="company-logo-container" class="p-3 text-center">
+    <img class="img" src="{{ parent_company.third_party_logo.url }}" alt="" />
+  </div>
+{% endblock %}
+
+{% block body_main %}
+  <ul id="products-container" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 g-4">
+    {% for product_addition in product_additions %}
+      <li class="col">
+        <div class="product-container card text-center border-0">
+          <div class="d-flex" style="max-height: 120px;">
+            <div class="barcode-container" style="max-width: 60%;">
+              <img src="data:image/png;base64,{{ product_addition.product.barcode_b64 }}" class="" alt="..." style="object-fit: contain; max-width: 100%; max-height: 100%;">
+              <div class="upc-number d-flex justify-content-evenly" style="font-weight: 500;">
+                {{ product_addition.product.upc }}
+              </div>
+            </div>
+            <div class="product-image-container" style="max-width: 40%;">
+              <img src="{{ product_addition.product.item_image_url }}" class="" alt="..." style="object-fit: contain; max-width: 100%; max-height: 100%;">
+            </div>
+          </div>
+          <div class="card-body">
+            <label class="card-text">{{ product_addition.product.name }}</label>
+          </div>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock %}

@@ -1,14 +1,22 @@
 import json
+import logging
 
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
-from django.shortcuts import render, HttpResponse, redirect
+from django.shortcuts import render, redirect
+from django.urls import reverse_lazy
+from django.templatetags.static import static
 
-from . import forms
+from . import forms, serializers
 from products import models
-import products.util
+from products.util import import_new_stores, get_current_work_cycle
 
-# Create your views here.
+logger = logging.getLogger("main_logger")
+
+
+@login_required(login_url=reverse_lazy('logger:login_view'))
 def index(request):
     territory_info = get_territory_info()
     return render(request, 'logger/index.html', {
@@ -26,10 +34,10 @@ def log_product_scan(request):
         product, _is_new_product = models.Product.objects.get_or_create(upc=body['upc'])
     except ValidationError as ex:
         return JsonResponse(
-            { 'message': 'Bad request', 'errors': [f for f in dict(ex)['__all__']] },
+            {'message': 'Bad request', 'errors': [f for f in dict(ex)['__all__']]},
             status=400
         )
-    
+
     store = models.Store.objects.get(pk=body['store_id'])
     if body['is_remove']:
         product_addition = set_not_carried(product, store)
@@ -38,22 +46,22 @@ def log_product_scan(request):
 
     resp_json = {
         'product_info': {
-            'upc': product_addition.product.upc, 
-            'name': product_addition.product.name or '', 
-            'store_name': product_addition.store.name, 
+            'upc': product_addition.product.upc,
+            'name': product_addition.product.name or '',
+            'store_name': product_addition.store.name,
             'is_carried': product_addition.is_carried
         }
     }
-    
+
     return JsonResponse(resp_json)
 
 
 def record_product_addition(product, store, is_product_scanned=False):
     product_addition, _is_new_product_addition = models.ProductAddition.objects.get_or_create(
-        product=product, 
+        product=product,
         store=store
     )
-    
+
     if is_product_scanned and not product_addition.is_carried:
         product_addition.is_carried = True
         product_addition.save(update_fields=['is_carried'])
@@ -66,7 +74,7 @@ def record_product_addition(product, store, is_product_scanned=False):
 
 def set_not_carried(product, store):
     product_addition = models.ProductAddition.objects.get(
-        product=product, 
+        product=product,
         store=store
     )
 
@@ -82,23 +90,24 @@ def get_territory_info():
         'territory_list': []
     }
     territory_list = territory_info['territory_list']
-    
+
     field_reps = models.FieldRepresentative.objects.all()
     for field_rep in field_reps:
         territory_list.append(
             {
-                'field_rep_name': field_rep.name, 
-                'field_rep_id': field_rep.pk, 
+                'field_rep_name': field_rep.name,
+                'field_rep_id': field_rep.pk,
                 # add list of dictionaries to 'stores' key
                 'stores': [
                     {'store_name': store.name, 'store_id': store.pk} for store in field_rep.stores.all()
                 ]
             }
         )
-    
+
     return territory_info
 
 
+@login_required(login_url=reverse_lazy('logger:login_view'))
 def add_new_stores(request):
     if request.method == 'GET':
         return render(request, 'logger/add_new_stores.html', {
@@ -110,25 +119,22 @@ def add_new_stores(request):
         error_messages = []
         for field, errors in received_form.errors.items():
             for error in errors:
-                error_messages.append( f'{field}: {error}' )
+                error_messages.append(f'{field}: {error}')
 
         return render(request, 'logger/add_new_stores.html', {
-            'form': received_form, 
+            'form': received_form,
             'error_messages': error_messages
         })
 
-    new_stores = (
-        store_name for store_name 
-        in (line.strip() for line in received_form.cleaned_data['stores_text'].split('\n')) 
-        if store_name
-    )
-
-    for store_name in new_stores:
-        models.Store.objects.get_or_create(name=store_name)
+    new_stores = []
+    logger.info('Json Decode error: falling back to parsing from raw text')
+    new_stores = [s for s in (f.strip() for f in received_form.cleaned_data['stores_text'].split('\n')) if s]
+    import_new_stores(new_stores)
 
     return redirect('logger:add_new_stores')
-    
 
+
+@login_required(login_url=reverse_lazy('logger:login_view'))
 def scan_history(request):
     if not request.GET:
         territory_info = get_territory_info()
@@ -138,16 +144,18 @@ def scan_history(request):
 
     store_id = request.GET.get('store-id')[0]
     store = models.Store.objects.get(pk=store_id)
-    product_additions = models.ProductAddition.objects.filter(store=store, is_carried=True).order_by('-date_last_scanned')[:100]
+    product_additions = models.ProductAddition.objects.filter(
+        store=store, is_carried=True).order_by('-date_last_scanned')[:100]
     for product_addition in product_additions:
         product_addition.product.name = product_addition.product.name or 'Unknown product name'
-    
+
     return render(request, 'logger/scan_history.html', {
-        'product_additions': product_additions, 
+        'product_additions': product_additions,
         'store_name': store.name
     })
-    
 
+
+@login_required(login_url=reverse_lazy('logger:login_view'))
 def uncarry_product_addition(request, product_addition_pk):
     product_addition = models.ProductAddition.objects.get(pk=product_addition_pk)
     product_addition.is_carried = False
@@ -156,6 +164,7 @@ def uncarry_product_addition(request, product_addition_pk):
     return JsonResponse({'message': 'success'})
 
 
+@login_required(login_url=reverse_lazy('logger:login_view'))
 def import_json_data_files(request):
     from products import util
 
@@ -170,11 +179,64 @@ def import_json_data_files(request):
         territory_info = json.load(request.FILES['territory_info_json'])
         products_info = json.load(request.FILES['product_names_json'])
         stores_distribution_data = json.load(request.FILES['store_distribution_data_json'])
+        product_images_zip = request.FILES['product_images_zip']
+        brand_logos_zip = request.FILES['brand_logos_zip']
 
         util.import_field_reps(field_reps_info)
         util.import_territories(territory_info)
-        util.import_products(products_info)
+        util.import_products(products_info,
+                             images_zip_path=product_images_zip.temporary_file_path(),
+                             brand_logos_zip=brand_logos_zip.read())
         util.import_distribution_data(stores_distribution_data)
-    
+
     return redirect('logger:import_json_data_files')
-    
+
+
+def barcode_sheet(request):
+    store = models.Store.objects.get(name=request.GET.get('store-name'))
+    parent_company = models.BrandParentCompany.objects.get(short_name=request.GET.get('client-name'))
+    product_additions = models.ProductAddition.objects.filter(
+        id__in=request.GET.getlist('pa-id')).select_related('store', 'product')
+
+    current_work_cycle = get_current_work_cycle()
+
+    return render(request, "logger/barcode_sheet.html", {
+        'store': store,
+        'parent_company': parent_company,
+        'product_additions': serializers.ProductAdditionSerializer(
+            product_additions,
+            many=True,
+            context={
+                'current_work_cycle': current_work_cycle
+            }
+        ).data
+    })
+
+
+def login_view(request):
+    logger.info(static("logger/scan_sound.ogg"))
+    if request.user.is_authenticated:
+        logger.info(f"User {request.user.get_username()} is already logged in. Redirecting to logger index")
+        return redirect("logger:index")
+
+    if request.method == 'GET':
+        return render(request, 'logger/login.html')
+    else:
+        # Attempt to sign user in
+        username = request.POST["username"]
+        password = request.POST["password"]
+        user = authenticate(request, username=username, password=password)
+
+        # Check if authentication successful
+        if user is not None:
+            login(request, user)
+            return redirect("logger:index")
+        else:
+            return render(request, "logger/login.html", {
+                "message": "Invalid username and/or password."
+            })
+
+
+def logout_view(request):
+    logout(request)
+    return redirect("logger:login_view")

@@ -7,17 +7,17 @@ class FieldRepresentativeAdmin(admin.ModelAdmin):
 
 
 class BrandParentCompanyAdmin(admin.ModelAdmin):
-    list_display = ['short_name', 'expanded_name']
+    list_display = ['short_name', 'expanded_name', 'third_party_logo']
 
 
 class ProductAdmin(admin.ModelAdmin):
     search_fields = ['upc', 'name']
-    list_display = ['upc', 'name', 'parent_company']
+    list_display = ['upc', 'name', 'parent_company', 'item_image']
     list_filter = ['parent_company']
 
 
 class ProductAdditionAdmin(admin.ModelAdmin):
-    search_fields = ['store__name', 'product__upc', 'product__name', 'date_added',]
+    search_fields = ['store__name', 'product__upc', 'product__name', 'date_added']
     list_display = ['store', 'product', 'date_added', 'date_last_scanned', 'is_carried']
 
 

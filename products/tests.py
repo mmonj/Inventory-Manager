@@ -4,19 +4,21 @@ from django.test import TestCase
 
 from . import util, models
 
+
 def printdebug(*items):
     print('')
     for item in items:
         print(f'    > Type: {type(item)} -> {item._strd()}')
 
+
 # Create your tests here.
 class FieldRepresentativeTest(TestCase):
     def setUp(self) -> None:
-        rep1 = models.FieldRepresentative.objects.create(name='jon1', work_email='jondoe1@gmail.com')
+        models.FieldRepresentative.objects.create(name='jon1', work_email='jondoe1@gmail.com')
 
         rep2 = models.FieldRepresentative(name='jon2', work_email='jondoe2')
         self.assertRaises(ValidationError, rep2.save)
-    
+
     def test_create(self):
         rep1 = models.FieldRepresentative.objects.get(name='jon1')
         printdebug(rep1)
@@ -24,7 +26,7 @@ class FieldRepresentativeTest(TestCase):
 
 class BrandParentCompanyTest(TestCase):
     def setUp(self) -> None:
-        company1 = models.BrandParentCompany.objects.create(short_name='CLRX', expanded_name='Clorox')
+        models.BrandParentCompany.objects.create(short_name='CLRX', expanded_name='Clorox')
 
     def test_create(self):
         company1 = models.BrandParentCompany.objects.get(short_name='CLRX')
@@ -33,7 +35,7 @@ class BrandParentCompanyTest(TestCase):
 
 class ProductTest(TestCase):
     def setUp(self) -> None:
-        product1 = models.Product.objects.create(upc='190198131553')    # valid upc
+        models.Product.objects.create(upc='190198131553')    # valid upc
 
     def test_attributes(self):
         product1 = models.Product.objects.get(upc='190198131553')
@@ -68,7 +70,7 @@ class ProductTest(TestCase):
 
 class PersonnelContactTest(TestCase):
     def setUp(self) -> None:
-        contact1 = models.PersonnelContact.objects.create(first_name='first1')
+        models.PersonnelContact.objects.create(first_name='first1')
 
     def test_attributes(self):
         contact1 = models.PersonnelContact.objects.get(first_name='first1')
@@ -80,10 +82,7 @@ class ProductAdditionTest(TestCase):
         store1 = models.Store.objects.create(name='store11-name')
         product1 = models.Product.objects.create(upc='044600320649')
 
-        product_addition = models.ProductAddition.objects.create(
-            store=store1, 
-            product=product1
-        )
+        models.ProductAddition.objects.create(store=store1, product=product1)
 
     def test_attributes(self):
         import datetime
@@ -110,7 +109,7 @@ class ImportTest(TestCase):
                 "test1_store",
                 "test2_store",
                 "test3_store"
-            ], 
+            ],
             "All Stores": {
                 "test1_store": {
                     "manager_names": [
@@ -123,7 +122,7 @@ class ImportTest(TestCase):
                         "jon",
                         "doe"
                     ]
-                }, 
+                },
                 "test3_store": {
                     "manager_names": [
                         "first_3",
@@ -143,11 +142,11 @@ class ImportTest(TestCase):
                 "851035003227": {
                     "instock": True,
                     "date_scanned": "2022-08-09 at 03:32:33 PM"
-                }, 
+                },
                 "851035003562": {
                     "instock": False
                 }
-            }, 
+            },
             "test2_store": {
                 "044600016283": {
                     "instock": True,
@@ -162,7 +161,7 @@ class ImportTest(TestCase):
                     "instock": False,
                     "date_scanned": "2022-08-17 at 03:38:57 AM"
                 }
-            }, 
+            },
             "test3_store": {
                 "078041189886": {
                     "instock": True,
@@ -199,7 +198,7 @@ class ImportTest(TestCase):
                 "041953075066": {
                     "fs_name": "BRAND2-item-description2"
                 }
-            }, 
+            },
             "BRAND3": {
                 "036000514711": {
                     "fs_name": "BRAND3-item-description1"
@@ -215,7 +214,7 @@ class ImportTest(TestCase):
 
     def test_bulk_import(self):
         from .import_testfiles import testfiles_handler
-        
+
         field_reps_info = testfiles_handler.get_field_reps_info()
         territory_info = testfiles_handler.get_territory_info()
         products_info = testfiles_handler.get_products_info()
@@ -233,13 +232,12 @@ class ImportTest(TestCase):
         self.assertEqual(models.PersonnelContact.objects.count(), len(stores_managers_dict))
 
         self.assertEqual(
-            models.Product.objects.count(), 
+            models.Product.objects.count(),
             util.get_product_count(products_info, stores_distribution_data)
         )
-        
+
         product_additions_count = util.get_product_additions_count(stores_distribution_data)
         self.assertEqual(models.ProductAddition.objects.count(), product_additions_count)
-
 
     def test_import_territories(self):
         models.Store.objects.create(name='test1_store')
@@ -247,7 +245,7 @@ class ImportTest(TestCase):
         field_rep = models.FieldRepresentative.objects.create(name='Mauri', work_email='mauri@testmail.com')
         store1 = models.Store.objects.create(name='test2_store', field_representative=field_rep)
 
-        personnel_contact = models.PersonnelContact.objects.create(first_name='randomfirst', last_name='randomlast', store=store1)
+        models.PersonnelContact.objects.create(first_name='randomfirst', last_name='randomlast', store=store1)
         models.Store.objects.create(name='test3_store')
 
         util.import_territories(self.territory_info)
@@ -262,7 +260,6 @@ class ImportTest(TestCase):
                 is_product_exist = models.Product.objects.filter(upc=upc).exists()
                 self.assertTrue(is_product_exist)
 
-
     def test_import_distribution_data(self):
         util.import_distribution_data(self.store_distribution_data)
 
@@ -273,4 +270,3 @@ class ImportTest(TestCase):
                 product = models.Product.objects.get(upc=upc)
                 is_product_addition_exist = models.ProductAddition.objects.filter(product=product, store=store).exists()
                 self.assertTrue(is_product_addition_exist)
-            
