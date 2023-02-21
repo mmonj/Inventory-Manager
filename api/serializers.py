@@ -14,7 +14,7 @@ class ProductAdditionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.ProductAddition
-        fields = ['product', 'is_carried', 'is_new']
+        fields = ['id', 'product', 'is_carried', 'is_new']
 
     def get_is_new(self, obj) -> bool:
         return (self.context['current_work_cycle'].start_date <= obj.date_added
@@ -32,4 +32,4 @@ class StoreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Store
-        fields = ['name', 'contacts']
+        fields = ['id', 'name', 'contacts']
