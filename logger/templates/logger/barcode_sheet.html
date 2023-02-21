@@ -28,6 +28,11 @@
     {% for product_addition in product_additions %}
       <li class="col">
         <div class="product-container card text-center border-0">
+          <div class="new-item-indicator-container mb-1" style="width: 100%;">
+            {% if product_addition.is_new %}
+              <img src="{% static 'products/images/new_item_icon.png' %}" alt="" style="max-width: 50%; object-fit: contain;">
+            {% endif %}
+          </div>
           <div class="d-flex" style="max-height: 120px;">
             <div class="barcode-container">
               <img src="data:image/png;base64,{{ product_addition.product.barcode_b64 }}" class="barcode-image" alt="Product Barcode">
