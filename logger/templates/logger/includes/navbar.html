@@ -23,11 +23,13 @@
         {% endif %}
 
       </ul>
-      {% if not user.is_authenticated %}
-        <a class="nav-link" href="{% url 'logger:login_view' %}">Log In</a>
-      {% else %}
-        <a class="nav-link" href="{% url 'logger:logout_view' %}">Log Out</a>
-      {% endif %}
+        <div class="text-body">
+          {% if not user.is_authenticated %}
+            <a class="nav-link" href="{% url 'logger:login_view' %}">Log In</a>
+          {% else %}
+            <a class="nav-link" href="{% url 'logger:logout_view' %}">Log Out</a>
+          {% endif %}
+        </div>
     </div>
   </div>
 </nav>
