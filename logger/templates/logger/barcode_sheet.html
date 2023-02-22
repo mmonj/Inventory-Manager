@@ -30,14 +30,13 @@
 {% block body_main %}
   <ul id="products-container" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 g-4">
     {% for product_addition in product_additions %}
-      <li class="col">
-        <div class="product-container card text-center border-0">
+      <li class="col product-container card text-center border-0">
           <div class="new-item-indicator-container mb-1">
             {% if product_addition.is_new %}
               <img src="{% static 'products/images/new_item_icon.png' %}" alt="">
             {% endif %}
           </div>
-          <div class="d-flex product-images-container">
+          <div class="product-images-container d-flex justify-content-center">
             <div class="barcode-container">
               <img src="data:image/png;base64,{{ product_addition.product.barcode_b64 }}" class="barcode-image" alt="Product Barcode">
               <div class="upc-number d-flex justify-content-evenly">
@@ -53,7 +52,6 @@
           <div class="card-body">
             <label class="card-text">{{ product_addition.product.name }}</label>
           </div>
-        </div>
       </li>
     {% endfor %}
   </ul>
