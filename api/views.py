@@ -1,7 +1,7 @@
 import logging
 from products import models
 from products.util import get_current_work_cycle
-from .serializers import ProductAdditionSerializer, StoreSerializer
+from .serializers import BarcodeSheetSerializer
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -30,17 +30,21 @@ def get_store_product_additions(request):
 
     store, _ = models.Store.objects.get_or_create(name=request.data['store_name'])
     product_additions = update_product_additions(store, request.data)
-    current_work_cycle = get_current_work_cycle()
 
-    # set up response
-    resp_json = {
-        'store': StoreSerializer(store).data,
-        'product_additions': ProductAdditionSerializer(
-            product_additions,
-            many=True,
-            context={'current_work_cycle': current_work_cycle}
-        ).data
-    }
+    current_work_cycle = get_current_work_cycle()
+    barcode_sheet, __ = models.BarcodeSheet.objects.get_or_create(
+        store=store,
+        parent_company=product_additions.first().product.parent_company,
+        work_cycle=current_work_cycle)
+    barcode_sheet.product_additions.add(*product_additions)
+
+    resp_json = BarcodeSheetSerializer(
+        barcode_sheet,
+        context={
+            'work_cycle': current_work_cycle
+        }
+    ).data
+
     return Response(resp_json)
 
 
@@ -106,4 +110,4 @@ def update_product_additions(store: models.Store, request_json: dict) -> list:
     logger.info(f'Bulk creating {len(new_product_additions)} product additions')
     models.ProductAddition.objects.bulk_create(new_product_additions, ignore_conflicts=True)
 
-    return models.ProductAddition.objects.filter(store=store, product__upc__in=upcs)
+    return models.ProductAddition.objects.filter(store=store, product__upc__in=upcs).select_related("store", "product")

@@ -189,13 +189,15 @@ class ProductAddition(models.Model):
 
 class BarcodeSheet(models.Model):
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="barcode_sheets")
+    parent_company = models.ForeignKey(BrandParentCompany, on_delete=models.SET_NULL,
+                                       null=True, related_name="barcode_sheets")
     product_additions = models.ManyToManyField(ProductAddition, related_name="barcode_sheets")
-    date_created = models.DateTimeField(default=timezone.now)
+    datetime_created = models.DateTimeField(default=timezone.now)
     work_cycle = models.ForeignKey(WorkCycle, null=True, on_delete=models.SET_NULL, related_name="barcode_sheets")
 
     class Meta:
         db_table = "barcode_sheets"
-        unique_together = ["store", "work_cycle"]
+        unique_together = ["store", "parent_company", "work_cycle"]
 
     def __str__(self):
         return f'Barcode Sheet: {self.work_cycle}: {self.store.name}'

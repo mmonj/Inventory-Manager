@@ -11,7 +11,7 @@ from django.templatetags.static import static
 
 from . import forms, serializers
 from products import models
-from products.util import import_new_stores, get_current_work_cycle
+from products.util import import_new_stores
 
 logger = logging.getLogger("main_logger")
 
@@ -193,23 +193,17 @@ def import_json_data_files(request):
 
 
 def barcode_sheet(request):
-    store = models.Store.objects.get(name=request.GET.get('store-name'))
-    parent_company = models.BrandParentCompany.objects.get(short_name=request.GET.get('client-name'))
-    product_additions = models.ProductAddition.objects.filter(
-        id__in=request.GET.getlist('pa-id')).select_related('store', 'product')
-
-    current_work_cycle = get_current_work_cycle()
+    barcode_sheet = models.BarcodeSheet.objects.prefetch_related(
+        "store", "parent_company", "product_additions").get(id=request.GET.get("barcode-sheet-id"))
+    barcode_sheet_data = serializers.BarcodeSheetSerializer(
+        barcode_sheet,
+        context={
+            'work_cycle': barcode_sheet.work_cycle
+        }
+    ).data
 
     return render(request, "logger/barcode_sheet.html", {
-        'store': store,
-        'parent_company': parent_company,
-        'product_additions': serializers.ProductAdditionSerializer(
-            product_additions,
-            many=True,
-            context={
-                'current_work_cycle': current_work_cycle
-            }
-        ).data
+        **barcode_sheet_data
     })
 
 
