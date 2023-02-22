@@ -14,11 +14,11 @@ class ProductAdditionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.ProductAddition
-        fields = ['id', 'product', 'is_carried', 'is_new']
+        fields = ['product', 'is_carried', 'is_new']
 
-    def get_is_new(self, obj) -> bool:
-        return (self.context['current_work_cycle'].start_date <= obj.date_added
-                and obj.date_added <= self.context['current_work_cycle'].end_date)
+    def get_is_new(self, product_addition) -> bool:
+        return (self.context['work_cycle'].start_date <= product_addition.date_added
+                and product_addition.date_added <= self.context['work_cycle'].end_date)
 
 
 class PersonnelContactSerializer(serializers.ModelSerializer):
@@ -33,3 +33,24 @@ class StoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Store
         fields = ['id', 'name', 'contacts']
+
+
+class BarcodeSheetSerializer(serializers.ModelSerializer):
+    store_name = serializers.SerializerMethodField()
+    product_additions = ProductAdditionSerializer(many=True)
+    barcode_sheet_id = serializers.SerializerMethodField()
+    date_created = serializers.SerializerMethodField()
+
+    class Meta:
+        model = models.BarcodeSheet
+        fields = ["barcode_sheet_id", "store_name", "parent_company", "product_additions", "date_created"]
+        read_only_fields = ["barcode_sheet_id", "store_name", "parent_company", "product_additions", "date_created"]
+
+    def get_barcode_sheet_id(self, barcode_sheet: models.BarcodeSheet):
+        return barcode_sheet.id
+
+    def get_store_name(self, barcode_sheet: models.BarcodeSheet):
+        return barcode_sheet.store.name
+
+    def get_date_created(self, barcode_sheet: models.BarcodeSheet):
+        return barcode_sheet.datetime_created.date()

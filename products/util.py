@@ -262,17 +262,19 @@ def get_current_work_cycle():
     Returns:
         products.models.WorkCycle: latest products.models.WorkCycle instance
     """
-    work_cycle = models.WorkCycle.objects.all().first()
+    work_cycle = models.WorkCycle.objects.latest("end_date")
 
     if date.today() > work_cycle.end_date:
         work_cycle_time_span = timedelta(weeks=2)
+        num_cycles_offset = (date.today() - work_cycle.new_work_cycle) // work_cycle_time_span
+        num_cycles_offset = num_cycles_offset + 1
 
-        num_cycles_offset = (date.today() - work_cycle.end_date) / work_cycle_time_span
-        num_cycles_offset = int(num_cycles_offset) + 1
+        new_work_cycle = models.WorkCycle(
+            start_date=work_cycle.start_date + (num_cycles_offset * work_cycle_time_span),
+            end_date=work_cycle.end_date + (num_cycles_offset * work_cycle_time_span)
+        )
 
-        work_cycle.end_date += work_cycle_time_span * num_cycles_offset
-        work_cycle.start_date += work_cycle_time_span * num_cycles_offset
-
-        work_cycle.save(update_fields=['start_date', 'end_date'])
+        new_work_cycle.save()
+        return new_work_cycle
 
     return work_cycle

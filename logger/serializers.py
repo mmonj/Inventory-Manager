@@ -8,6 +8,18 @@ from django.templatetags.static import static
 from products import models
 
 
+class BrandParentCompanySerializer(serializers.ModelSerializer):
+    third_party_logo_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = models.BrandParentCompany
+        fields = ["short_name", "third_party_logo_url"]
+        read_only_fields = ["short_name", "third_party_logo_url"]
+
+    def get_third_party_logo_url(self, parent_company: models.BrandParentCompany) -> str:
+        return parent_company.third_party_logo.url
+
+
 class ProductSerializer(serializers.ModelSerializer):
     barcode_b64 = serializers.SerializerMethodField()
     item_image_url = serializers.SerializerMethodField()
@@ -61,5 +73,27 @@ class ProductAdditionSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'product', 'is_carried', 'is_new']
 
     def get_is_new(self, product_addition) -> bool:
-        return (self.context['current_work_cycle'].start_date <= product_addition.date_added
-                and product_addition.date_added <= self.context['current_work_cycle'].end_date)
+        return (self.context['work_cycle'].start_date <= product_addition.date_added
+                and product_addition.date_added <= self.context['work_cycle'].end_date)
+
+
+class BarcodeSheetSerializer(serializers.ModelSerializer):
+    store_name = serializers.SerializerMethodField()
+    product_additions = ProductAdditionSerializer(many=True)
+    parent_company = BrandParentCompanySerializer()
+    barcode_sheet_id = serializers.SerializerMethodField()
+    date_created = serializers.SerializerMethodField()
+
+    class Meta:
+        model = models.BarcodeSheet
+        fields = ["barcode_sheet_id", "store_name", "parent_company", "product_additions", "date_created"]
+        read_only_fields = ["barcode_sheet_id", "store_name", "parent_company", "product_additions", "date_created"]
+
+    def get_barcode_sheet_id(self, barcode_sheet: models.BarcodeSheet):
+        return barcode_sheet.id
+
+    def get_store_name(self, barcode_sheet: models.BarcodeSheet):
+        return barcode_sheet.store.name
+
+    def get_date_created(self, barcode_sheet: models.BarcodeSheet):
+        return barcode_sheet.datetime_created.date()
