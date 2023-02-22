@@ -16,6 +16,35 @@ from products.util import import_new_stores
 logger = logging.getLogger("main_logger")
 
 
+def login_view(request):
+    logger.info(static("logger/scan_sound.ogg"))
+    if request.user.is_authenticated:
+        logger.info(f"User {request.user.get_username()} is already logged in. Redirecting to logger index")
+        return redirect("logger:index")
+
+    if request.method == 'GET':
+        return render(request, 'logger/login.html')
+    else:
+        # Attempt to sign user in
+        username = request.POST["username"]
+        password = request.POST["password"]
+        user = authenticate(request, username=username, password=password)
+
+        # Check if authentication successful
+        if user is not None:
+            login(request, user)
+            return redirect("logger:index")
+        else:
+            return render(request, "logger/login.html", {
+                "message": "Invalid username and/or password."
+            })
+
+
+def logout_view(request):
+    logout(request)
+    return redirect("logger:login_view")
+
+
 @login_required(login_url=reverse_lazy('logger:login_view'))
 def index(request):
     territory_info = get_territory_info()
@@ -192,10 +221,14 @@ def import_json_data_files(request):
     return redirect('logger:import_json_data_files')
 
 
-def barcode_sheet(request):
+def pick_barcode_sheet(request):
+    return render(request, "logger/pick_barcode_sheet.html")
+
+
+def get_barcode_sheet(request, barcode_sheet_id):
     barcode_sheet = get_object_or_404(
         models.BarcodeSheet.objects.prefetch_related("store", "parent_company", "product_additions"),
-        id=request.GET.get("barcode-sheet-id"))
+        id=barcode_sheet_id)
     barcode_sheet_data = serializers.BarcodeSheetSerializer(
         barcode_sheet,
         context={
@@ -206,32 +239,3 @@ def barcode_sheet(request):
     return render(request, "logger/barcode_sheet.html", {
         **barcode_sheet_data
     })
-
-
-def login_view(request):
-    logger.info(static("logger/scan_sound.ogg"))
-    if request.user.is_authenticated:
-        logger.info(f"User {request.user.get_username()} is already logged in. Redirecting to logger index")
-        return redirect("logger:index")
-
-    if request.method == 'GET':
-        return render(request, 'logger/login.html')
-    else:
-        # Attempt to sign user in
-        username = request.POST["username"]
-        password = request.POST["password"]
-        user = authenticate(request, username=username, password=password)
-
-        # Check if authentication successful
-        if user is not None:
-            login(request, user)
-            return redirect("logger:index")
-        else:
-            return render(request, "logger/login.html", {
-                "message": "Invalid username and/or password."
-            })
-
-
-def logout_view(request):
-    logout(request)
-    return redirect("logger:login_view")
