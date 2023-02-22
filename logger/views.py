@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.templatetags.static import static
 
@@ -193,8 +193,9 @@ def import_json_data_files(request):
 
 
 def barcode_sheet(request):
-    barcode_sheet = models.BarcodeSheet.objects.prefetch_related(
-        "store", "parent_company", "product_additions").get(id=request.GET.get("barcode-sheet-id"))
+    barcode_sheet = get_object_or_404(
+        models.BarcodeSheet.objects.prefetch_related("store", "parent_company", "product_additions"),
+        id=request.GET.get("barcode-sheet-id"))
     barcode_sheet_data = serializers.BarcodeSheetSerializer(
         barcode_sheet,
         context={
