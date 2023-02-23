@@ -21,11 +21,13 @@ main {
 }
 
 .new-item-indicator-container {
+  height: 1.5rem;
   width: 100%;
 }
 
 .new-item-indicator-container img {
   max-width: 50%;
+  max-height: 100%;
   object-fit: contain;
 }
 
