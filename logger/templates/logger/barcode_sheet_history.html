@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block title %}
+  Barcode Sheet History
 {% endblock %}
 
 {% block extra_head_elements %}
@@ -12,4 +13,19 @@
 {% endblock %}
 
 {% block body_main %}
+<section>
+  <h3 class="m-3 text-center title-color">Barcode Sheet History</h1>
+  <ol class="p-0">
+      {% for barcode_sheet in recent_barcode_sheets %}
+        <li class="card collapse show my-2 text-center">
+            <h5 class="card-header">{{ barcode_sheet.parent_company.short_name }} - Cycle: {{ barcode_sheet.work_cycle.start_date }}</h5>
+            <div class="card-body">
+              <h5 class="card-title">{{ barcode_sheet.store.name }}</h5>
+              <p class="card-text">{{ barcode_sheet.product_additions.count }} items in this document</p>
+              <a href="{% url 'logger:get_barcode_sheet' barcode_sheet.id %}?store-name={{barcode_sheet.store.name}}&sheet-type=all-products" class="btn btn-primary">View Barcode Sheet</a>
+            </div>
+        </li>
+      {% endfor %}
+  </ol>
+</section>
 {% endblock %}
