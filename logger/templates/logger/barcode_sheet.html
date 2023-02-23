@@ -28,9 +28,10 @@
 {% endblock %}
 
 {% block body_main %}
-  <ul id="products-container" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 g-4 mx-auto">
+  <ul id="products-container" 
+      class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 g-4 mx-auto my-2">
     {% for product_addition in product_additions %}
-      <li class="col product-container card text-center border-0">
+      <li class="col product-container card text-center border-0 my-1">
           <div class="new-item-indicator-container mb-1">
             {% if product_addition.is_new %}
               <img src="{% static 'products/images/new_item_icon.png' %}" alt="">
