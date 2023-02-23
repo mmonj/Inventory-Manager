@@ -221,12 +221,21 @@ def import_json_data_files(request):
     return redirect('logger:import_json_data_files')
 
 
-def barcode_sheet_history(request):
-    recent_barcode_sheets = models.BarcodeSheet.objects.all()\
-        .order_by("-id").prefetch_related("store", "parent_company", "product_additions", "work_cycle")[:50]
+def barcode_sheet_history(request, field_representative_id=None):
+    fields_to_prefetch = ["store", "parent_company", "product_additions", "work_cycle"]
+
+    field_representatives = models.FieldRepresentative.objects.all()
+    if field_representative_id is None:
+        recent_barcode_sheets = models.BarcodeSheet.objects.all()\
+            .order_by("-id").prefetch_related(*fields_to_prefetch)[:20]
+    else:
+        recent_barcode_sheets = models.BarcodeSheet.objects.filter(store__field_representative=field_representative_id)\
+            .order_by("-id").prefetch_related(*fields_to_prefetch)[:20]
 
     return render(request, "logger/barcode_sheet_history.html", {
-        "recent_barcode_sheets": recent_barcode_sheets
+        "field_representatives": field_representatives,
+        "recent_barcode_sheets": recent_barcode_sheets,
+        "field_representative_id": field_representative_id
     })
 
 

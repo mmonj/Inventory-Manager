@@ -22,7 +22,7 @@
     </button>
     <ul class="dropdown-menu">
       <li>
-        <button class="pb-2 dropdown-item sheet-type-change" 
+        <button class="py-2 dropdown-item sheet-type-change" 
                 type="button" 
                 data-sheet_type="all-products"
                 data-sheet_type_verbose="All Products">
@@ -39,7 +39,7 @@
         </button>
       </li>
       <li>
-        <button class="pt-2 dropdown-item sheet-type-change in-dist" 
+        <button class="py-2 dropdown-item sheet-type-change in-dist" 
                 type="button" 
                 data-sheet_type="in-dist"
                 data-sheet_type_verbose="In distribution"
@@ -56,7 +56,7 @@
       class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 g-4 mx-auto my-2">
     {% for product_addition in product_additions %}
       <!-- .product-container receives a 'hidden' attribute by default. This will be overridden by the client-side javascript -->
-      <li class="col product-container card text-center border-0 my-1" data-is_carried="{{ product_addition.is_carried|yesno:'true,false' }}" hidden> 
+      <li class="col product-container card text-center border-0 my-1" data-is_carried="{{ product_addition.is_carried|yesno:'true,false' }}" hidden>
         <div class="new-item-indicator-container mb-1">
           {% if product_addition.is_new %}
             <img src="{% static 'products/images/new_item_icon.png' %}" alt="">
