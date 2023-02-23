@@ -15,14 +15,37 @@
     <img src="{{ parent_company.third_party_logo_url }}" alt="" />
   </div>
 
-  <div class="sheet-type dropdown mb-3 text-center">
-    <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-      Out of distribution
+  <div id="sheet-type-container" class="dropdown mb-3 text-center">
+    <button id="sheet-type-main-button" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+      %%sheet-type-verbose%%
     </button>
     <ul class="dropdown-menu">
-      <li><button class="pb-2 dropdown-item .all-products" type="button" data-type-name="All Products">All products</button></li>
-      <li><button class="py-2 dropdown-item .out-of-dist" type="button" data-type-name="Out of distribution">Out of distribution</button></li>
-      <li><button class="pt-2 dropdown-item .in-dist" type="button" data-type-name="In distribution">In distribution</button></li>
+      <li>
+        <button class="pb-2 dropdown-item sheet-type-change" 
+                type="button" 
+                data-sheet_type="all-products"
+                data-sheet_type_verbose="All Products">
+          All products
+        </button>
+      </li>
+      <li>
+        <button class="py-2 dropdown-item sheet-type-change out-of-dist" 
+                type="button" 
+                data-sheet_type="out-of-dist"
+                data-sheet_type_verbose="Out of distribution"
+                data-is_carried="false">
+          Out of distribution
+        </button>
+      </li>
+      <li>
+        <button class="pt-2 dropdown-item sheet-type-change in-dist" 
+                type="button" 
+                data-sheet_type="in-dist"
+                data-sheet_type_verbose="In distribution"
+                data-is_carried="true">
+          In distribution
+        </button>
+      </li>
     </ul>
   </div>
 {% endblock %}
@@ -31,28 +54,29 @@
   <ul id="products-container" 
       class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 g-4 mx-auto my-2">
     {% for product_addition in product_additions %}
-      <li class="col product-container card text-center border-0 my-1">
-          <div class="new-item-indicator-container mb-1">
-            {% if product_addition.is_new %}
-              <img src="{% static 'products/images/new_item_icon.png' %}" alt="">
-            {% endif %}
-          </div>
-          <div class="product-images-container d-flex justify-content-center">
-            <div class="barcode-container">
-              <img src="data:image/png;base64,{{ product_addition.product.barcode_b64 }}" class="barcode-image" alt="Product Barcode">
-              <div class="upc-number d-flex justify-content-evenly">
-                {% for upc_section in product_addition.product.upc_sections %}
-                  <span class="upc-section">{{upc_section}}</span>
-                {% endfor %}
-              </div>
-            </div>
-            <div class="product-image-container">
-              <img src="{{ product_addition.product.item_image_url }}" class="product-image" alt="Product Image">
+      <!-- .product-container receives a 'hidden' attribute by default. This will be overridden by the client-side javascript -->
+      <li class="col product-container card text-center border-0 my-1" data-is_carried="{{ product_addition.is_carried|yesno:'true,false' }}" hidden> 
+        <div class="new-item-indicator-container mb-1">
+          {% if product_addition.is_new %}
+            <img src="{% static 'products/images/new_item_icon.png' %}" alt="">
+          {% endif %}
+        </div>
+        <div class="product-images-container d-flex justify-content-center">
+          <div class="barcode-container">
+            <img src="data:image/png;base64,{{ product_addition.product.barcode_b64 }}" class="barcode-image" alt="Product Barcode">
+            <div class="upc-number d-flex justify-content-evenly">
+              {% for upc_section in product_addition.product.upc_sections %}
+                <span class="upc-section">{{upc_section}}</span>
+              {% endfor %}
             </div>
           </div>
-          <div class="card-body">
-            <label class="card-text">{{ product_addition.product.name }}</label>
+          <div class="product-image-container">
+            <img src="{{ product_addition.product.item_image_url }}" class="product-image" alt="Product Image">
           </div>
+        </div>
+        <div class="card-body">
+          <label class="card-text">{{ product_addition.product.name }}</label>
+        </div>
       </li>
     {% endfor %}
   </ul>
