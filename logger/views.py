@@ -221,8 +221,13 @@ def import_json_data_files(request):
     return redirect('logger:import_json_data_files')
 
 
-def pick_barcode_sheet(request):
-    return render(request, "logger/pick_barcode_sheet.html")
+def barcode_sheet_history(request):
+    recent_barcode_sheets = models.BarcodeSheet.objects.all()\
+        .order_by("-id").prefetch_related("store", "parent_company", "product_additions", "work_cycle")[:50]
+
+    return render(request, "logger/barcode_sheet_history.html", {
+        "recent_barcode_sheets": recent_barcode_sheets
+    })
 
 
 def get_barcode_sheet(request, barcode_sheet_id):
