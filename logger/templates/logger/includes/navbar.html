@@ -13,6 +13,10 @@
           </li>
         {% endif %}
 
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'logger:barcode_sheet_history' %}">Barcode Sheets</a>
+        </li>
+
         {% if user.is_superuser %}
           <li class="nav-item">
             <a class="nav-link" href="{% url 'logger:add_new_stores' %}">Add New Stores</a>

@@ -32,11 +32,13 @@ def get_store_product_additions(request):
     product_additions = update_product_additions(store, request.data)
 
     current_work_cycle = get_current_work_cycle()
-    barcode_sheet, __ = models.BarcodeSheet.objects.get_or_create(
+    barcode_sheet, is_new_barcode_sheet = models.BarcodeSheet.objects.get_or_create(
         store=store,
         parent_company=product_additions.first().product.parent_company,
         work_cycle=current_work_cycle)
-    barcode_sheet.product_additions.add(*product_additions)
+
+    if is_new_barcode_sheet:
+        barcode_sheet.product_additions.add(*product_additions)
 
     resp_json = BarcodeSheetSerializer(
         barcode_sheet,
