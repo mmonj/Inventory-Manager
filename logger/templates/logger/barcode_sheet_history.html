@@ -41,12 +41,11 @@
               <a href="{% url 'logger:get_barcode_sheet' barcode_sheet.id %}?store-name={{barcode_sheet.store.name}}&sheet-type=all-products" class="btn btn-primary">View Barcode Sheet</a>
             </div>
         </li>
+      {% empty %}
+        <h5 class="text-body text-center my-5">There is no document history for this user</h5>
       {% endfor %}
   </ol>
 
-  {% if not recent_barcode_sheets %}
-    <h5 class="text-body text-center my-5">There is no document history for this user</h5>
-  {% endif %}
 </section>
 
 <script>
