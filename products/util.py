@@ -91,7 +91,8 @@ def import_products(products_info: dict, images_zip_path=None, brand_logos_zip=N
             models.Product(
                 upc=upc,
                 name=product_info['fs_name'],
-                parent_company=parent_company
+                parent_company=parent_company,
+                date_added=datetime.fromtimestamp(0)
             )
             for upc, product_info in products_dict.items()
             if models.Product(upc=upc).is_valid_upc()
@@ -129,7 +130,7 @@ def import_distribution_data(stores_distribution_data: dict):
 
         ####
         new_products = (
-            models.Product(upc=upc)
+            models.Product(upc=upc, date_added=datetime.fromtimestamp(0))
             for upc, product_distribution_data in store_distribution_data.items()
             if models.Product(upc=upc).is_valid_upc()
         )
