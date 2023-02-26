@@ -46,9 +46,9 @@ def logout_view(request):
 
 
 @login_required(login_url=reverse_lazy('logger:login_view'))
-def index(request):
+def scanner(request):
     territory_info = get_territory_info()
-    return render(request, 'logger/index.html', {
+    return render(request, 'logger/scanner.html', {
         'territory_info': json.dumps(territory_info)
     })
 
