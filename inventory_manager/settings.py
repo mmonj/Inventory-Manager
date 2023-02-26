@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
-import sys
 from pathlib import Path
 # retrieve django settings that are included as environmental variables
 from .env_setup import *
@@ -39,6 +38,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'django_cleanup.apps.CleanupConfig',
+    "django_rq"
 ]
 
 MIDDLEWARE = [
@@ -132,7 +132,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "simple": {
-            "format": "{levelname} {asctime:s} {filename:s} {funcName:s} {lineno} -- {message}",
+            "format": "{levelname} {asctime:s} {filename:s} {funcName:<30s} {lineno} -- {message}",
             "datefmt": "%Y-%m-%d %I:%M:%S %p",
             "style": "{",
         },
