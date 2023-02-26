@@ -1,5 +1,5 @@
 const LOGGER_SCAN_HISTORY = (function() {
-  document.addEventListener("DOMContentLoaded", () => {
+  (function() {
     window.__SCAN_HISTORY__ = {};
     if (document.getElementById("territory-info")) {
       window.__SCAN_HISTORY__.territory_info = JSON.parse(
@@ -7,7 +7,7 @@ const LOGGER_SCAN_HISTORY = (function() {
       );
   
       $("#store-select").select2();
-      populate_initial_dropdown_values(window.__SCAN_HISTORY__.territory_info);
+      LOGGER_UTILS.handle_populate_initial_dropdown_values(window.__SCAN_HISTORY__.territory_info);
       document.getElementById("field-representative-select").addEventListener("change", (event) => {
         LOGGER_UTILS.handle_field_rep_change(event, window.__LOGGER_INFO__.territory_info);
       });
@@ -19,7 +19,7 @@ const LOGGER_SCAN_HISTORY = (function() {
         handle_unsubmit_product(event.target.action, event.target.method, event.target.parentElement);
       });
     });
-  });
+  })();
   
   function handle_unsubmit_product(action_url, method, product_list_item) {
     let submit_removal_button = product_list_item.querySelector(".button-remove-product");

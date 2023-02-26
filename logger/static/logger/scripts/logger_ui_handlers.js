@@ -225,5 +225,6 @@ const LOGGER_UI_HANDLERS = (function() {
     handle_store_select_submission: handle_store_select_submission,
     handle_manual_upc_submission: handle_manual_upc_submission,
     handle_submit_upc: handle_manual_upc_submission,
+    handle_list_item_removal_transition: handle_list_item_removal_transition
   };
 })();
