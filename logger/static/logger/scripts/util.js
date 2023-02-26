@@ -1,12 +1,13 @@
 const LOGGER_UTILS = (function() {
   "use strict";
 
-  function get_node_from_html(html) {
+  // create element node from string
+  function _element(html_str) {
     var template = document.createElement("template");
-    template.innerHTML = html.trim();
+    template.innerHTML = html_str.trim();
     return template.content.childNodes[0];
   }
-
+  
   function handle_field_rep_change(event, territory_info) {
     let new_field_rep_id = event.target.value;
     let store_select_node = document.getElementById("store-select");
@@ -17,11 +18,9 @@ const LOGGER_UTILS = (function() {
   function handle_populate_initial_dropdown_values(territory_info) {
     let field_rep_select_node = document.getElementById("field-representative-select");
     for (let territory of territory_info.territory_list) {
-      let new_option_node = document.createElement("option");
-      new_option_node.setAttribute("value", territory.field_rep_id);
-      new_option_node.innerText = territory.field_rep_name;
-
-      field_rep_select_node.appendChild(new_option_node);
+      field_rep_select_node.appendChild(_element(/*html*/`
+        <option value="${territory.field_rep_id}">${territory.field_rep_name}</option>
+      `));
     }
     update_store_select_options(
       field_rep_select_node.options[field_rep_select_node.selectedIndex].value,
@@ -31,20 +30,15 @@ const LOGGER_UTILS = (function() {
   }
 
   function update_store_select_options(new_field_rep_id, store_select_node, territory_info) {
-    let disabled_placeholder_option = document.createElement("option");
-    disabled_placeholder_option.disabled = true;
-    disabled_placeholder_option.selected = true;
-    disabled_placeholder_option.value = "";
-    disabled_placeholder_option.innerText = "Search Stores";
-    store_select_node.appendChild(disabled_placeholder_option);
+    store_select_node.appendChild(_element(/*html*/`
+      <option disabled selected value="">Search Stores</option>
+    `));
 
     for (let territory of territory_info.territory_list) {
       if (territory.field_rep_id == new_field_rep_id) {
         for (let store_info of territory.stores) {
-          let new_option_node = document.createElement("option");
-          new_option_node.setAttribute("value", store_info.store_id);
+          let new_option_node = _element(`<option value="${store_info.store_id}"></option>`);
           new_option_node.innerText = store_info.store_name;
-
           store_select_node.appendChild(new_option_node);
         }
         return;
@@ -53,7 +47,7 @@ const LOGGER_UTILS = (function() {
   }
 
   return {
-    get_node_from_html: get_node_from_html,
+    get_node_from_html: _element,
     handle_field_rep_change: handle_field_rep_change, 
     handle_populate_initial_dropdown_values: handle_populate_initial_dropdown_values,
   };
