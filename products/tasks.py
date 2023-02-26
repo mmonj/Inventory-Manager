@@ -1,11 +1,13 @@
 import logging
 import re
+import redis
 import requests
 import time
 from datetime import datetime, timedelta
 from io import BytesIO
 from PIL import Image, ImageChops, ImageOps
 from django_rq import job
+from django.conf import settings
 from django.core.files import File
 
 from . import models
@@ -20,6 +22,14 @@ PRODUCT_IMAGE_DIMENSIONS_TARGET = (600, 600)
 
 logger = logging.getLogger("main_logger")
 
+# add UPCs to Redis memory store after processing to avoid wasting precious API hits upon future worker calls
+upcs_to_fetch_key = "upcs_to_fetch"
+redis_instance = redis.Redis(
+    host=settings.RQ_QUEUES["default"]["HOST"],
+    port=settings.RQ_QUEUES["default"]["PORT"],
+    db=settings.RQ_QUEUES["default"]["DB"]
+)
+
 
 @job
 def get_external_product_images():
@@ -27,20 +37,20 @@ def get_external_product_images():
     yesterday_date = datetime.now().date() - timedelta(days=1)
     latest_products = models.Product.objects.filter(date_added__gt=yesterday_date)
 
-    products_without_image = []
+    products_to_fetch_image = []
     for product in latest_products:
-        if not product.item_image:
-            products_without_image.append(product)
+        if not product.item_image and not redis_instance.sismember(upcs_to_fetch_key, product.upc):
+            products_to_fetch_image.append(product)
 
-    logger.info(f"{len(products_without_image)} recent products without images")
-    fetch_product_data(products_without_image)
+    logger.info(f"Fetching data from API for {len(products_to_fetch_image)} products")
+    fetch_product_data(products_to_fetch_image)
 
 
-def fetch_product_data(products_without_image: list):
+def fetch_product_data(products_to_fetch_image: list):
     split_size = 2
 
-    for idx in range(0, len(products_without_image), split_size):
-        products = products_without_image[idx:idx + split_size]
+    for idx in range(0, len(products_to_fetch_image), split_size):
+        products = products_to_fetch_image[idx:idx + split_size]
         upc_pair = [p.upc for p in products]
 
         logger.info(f'Fetching data from API for UPC pair {upc_pair} product info...')
@@ -59,6 +69,7 @@ def fetch_product_data(products_without_image: list):
 
         items_data = resp.json().get('items', [])
         if not items_data:
+            redis_instance.sadd(upcs_to_fetch_key, *upc_pair)
             logger.info(f'Response json did not have "items" info in response {upc_pair}')
             continue
 
@@ -85,7 +96,7 @@ def handle_product_data_response(products: list, items_data: list):
             if success:
                 logger.info("Download Successful!")
                 break
-        # add upc to redis cache
+        redis_instance.sadd(upcs_to_fetch_key, product.upc)
 
 
 def download_image(product: models.Product, product_image_url: list) -> bool:
