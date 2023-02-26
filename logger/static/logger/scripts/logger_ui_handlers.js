@@ -1,4 +1,6 @@
 const LOGGER_UI_HANDLERS = (function() {
+  "use strict";
+
   async function handle_list_item_removal_transition(_promise, list_item, options = {}) {
     options.submit_button && (options.submit_button.hidden = true);
     options.loading_indicator_element && (options.loading_indicator_element.hidden = false);
@@ -43,7 +45,7 @@ const LOGGER_UI_HANDLERS = (function() {
     document.getElementById("error-manual-upc").hidden = true;
   
     let upc_number_node = document.getElementById("text-input-upc");
-    handle_submit_upc(upc_number_node.value, (is_scan_sound_play = false))
+    handle_submit_upc(upc_number_node.value, {is_scan_sound_play: false})
       .then(() => {
         upc_number_node.value = "";
       })
@@ -57,8 +59,8 @@ const LOGGER_UI_HANDLERS = (function() {
       });
   }
   
-  function handle_submit_upc(upc_number, is_scan_sound_play = true) {
-    if (is_scan_sound_play) {
+  function handle_submit_upc(upc_number, options={is_scan_sound_play: true}) {
+    if (options.is_scan_sound_play) {
       window.__LOGGER_INFO__.scan_sound.play();
     }
   
@@ -155,7 +157,7 @@ const LOGGER_UI_HANDLERS = (function() {
     let submit_removal_button = list_item.querySelector(".button-remove-product");
   
     // send_post_product_addition returns Promise for JSON
-    let _promise_send_post = LOGGER_SCANNER_HANDLERS.send_post_product_addition(upc_number, (is_remove = true));
+    let _promise_send_post = LOGGER_SCANNER_HANDLERS.send_post_product_addition(upc_number, {is_remove: true});
   
     handle_list_item_removal_transition(_promise_send_post, list_item, {
       loading_indicator_element: loading_indicator_element,

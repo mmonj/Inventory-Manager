@@ -36,12 +36,12 @@ LOGGER_SCANNER_HANDLERS = (function () {
     );
   }
 
-  async function send_post_product_addition(upc, is_remove = false) {
+  async function send_post_product_addition(upc, options={is_remove: false}) {
     let payload_data = {
       upc: upc,
       store_id: document.getElementById("scanner-store-indicator").dataset.store_id,
       store_name: document.getElementById("scanner-store-indicator").dataset.store_name,
-      is_remove: is_remove,
+      is_remove: options.is_remove,
     };
 
     let resp = await fetch(window.__LOGGER_INFO__.upc_submit_action_url, {
