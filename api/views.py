@@ -1,6 +1,7 @@
 import logging
 from products import models
 from products.util import get_current_work_cycle
+from products.tasks import get_external_product_images
 from .serializers import BarcodeSheetSerializer
 
 from rest_framework.decorators import api_view, permission_classes
@@ -27,6 +28,8 @@ def validate_api_token(request):
 @permission_classes([IsAuthenticated])
 def get_store_product_additions(request):
     update_product_names(request.data)
+    # initiate worker
+    get_external_product_images.delay()
 
     store, _ = models.Store.objects.get_or_create(name=request.data['store_name'])
     product_additions = update_product_additions(store, request.data)
