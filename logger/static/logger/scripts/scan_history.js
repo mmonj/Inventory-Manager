@@ -9,7 +9,7 @@ const LOGGER_SCAN_HISTORY = (function() {
       $("#store-select").select2();
       LOGGER_UTILS.handle_populate_initial_dropdown_values(window.__SCAN_HISTORY__.territory_info);
       document.getElementById("field-representative-select").addEventListener("change", (event) => {
-        LOGGER_UTILS.handle_field_rep_change(event, window.__LOGGER_INFO__.territory_info);
+        LOGGER_UTILS.handle_field_rep_change(event, window.__SCAN_HISTORY__.territory_info);
       });
     }
   

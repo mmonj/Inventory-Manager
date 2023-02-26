@@ -1,17 +1,17 @@
 const LOGGER_UTILS = (function() {
   "use strict";
 
-  function get_nodes_from_html(html) {
+  function get_node_from_html(html) {
     var template = document.createElement("template");
     template.innerHTML = html.trim();
-    return template.content.childNodes;
+    return template.content.childNodes[0];
   }
 
   function handle_field_rep_change(event, territory_info) {
-    let new_field_rep_name = event.target.value;
+    let new_field_rep_id = event.target.value;
     let store_select_node = document.getElementById("store-select");
     store_select_node.innerHTML = "";
-    update_store_select_options(new_field_rep_name, store_select_node, territory_info);
+    update_store_select_options(new_field_rep_id, store_select_node, territory_info);
   }
 
   function handle_populate_initial_dropdown_values(territory_info) {
@@ -24,13 +24,13 @@ const LOGGER_UTILS = (function() {
       field_rep_select_node.appendChild(new_option_node);
     }
     update_store_select_options(
-      field_rep_select_node.options[field_rep_select_node.selectedIndex].innerText,
+      field_rep_select_node.options[field_rep_select_node.selectedIndex].value,
       document.getElementById("store-select"),
       territory_info
     );
   }
 
-  function update_store_select_options(new_field_rep_name, store_select_node, territory_info) {
+  function update_store_select_options(new_field_rep_id, store_select_node, territory_info) {
     let disabled_placeholder_option = document.createElement("option");
     disabled_placeholder_option.disabled = true;
     disabled_placeholder_option.selected = true;
@@ -39,7 +39,7 @@ const LOGGER_UTILS = (function() {
     store_select_node.appendChild(disabled_placeholder_option);
 
     for (let territory of territory_info.territory_list) {
-      if (territory.field_rep_name === new_field_rep_name) {
+      if (territory.field_rep_id == new_field_rep_id) {
         for (let store_info of territory.stores) {
           let new_option_node = document.createElement("option");
           new_option_node.setAttribute("value", store_info.store_id);
@@ -53,7 +53,7 @@ const LOGGER_UTILS = (function() {
   }
 
   return {
-    get_nodes_from_html: get_nodes_from_html,
+    get_node_from_html: get_node_from_html,
     handle_field_rep_change: handle_field_rep_change, 
     handle_populate_initial_dropdown_values: handle_populate_initial_dropdown_values,
   };
