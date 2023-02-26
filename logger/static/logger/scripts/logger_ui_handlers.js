@@ -99,25 +99,20 @@ const LOGGER_UI_HANDLERS = (function() {
   
   function get_new_result_li_node(upc_number) {
     let scan_results = document.getElementById("scanner-results");
-    let new_li = document.createElement("li");
-  
-    new_li.dataset.upc_number = upc_number;
-    new_li.setAttribute(
-      "class",
-      "list-group-item d-flex justify-content-between align-items-start collapse show"
-    );
-    new_li.innerHTML = `
-      <div class="ms-2 me-auto product-container">
-        <div class="fw-bold upc-container">${upc_number}</div>
-        <div class="product-name"></div>
-      </div>
-      <div class="spinner-remove-product my-auto" hidden>
-        <div class="spinner-border text-primary" role="status">
-          <span class="visually-hidden">Loading...</span>
+    let new_li = LOGGER_UTILS._element(/*html*/`
+      <li class="list-group-item d-flex justify-content-between align-items-start collapse show" data-upc_number="${upc_number}">
+        <div class="ms-2 me-auto product-container">
+          <div class="fw-bold upc-container">${upc_number}</div>
+          <div class="product-name"></div>
         </div>
-      </div>
-      <button class="button-remove-product btn badge bg-primary rounded-pill my-auto ms-2 py-2">Delete</button>
-    `;
+        <div class="spinner-remove-product my-auto" hidden>
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+        <button class="button-remove-product btn badge bg-primary rounded-pill my-auto ms-2 py-2">Delete</button>
+      </li>
+    `);
   
     return [scan_results, new_li];
   }

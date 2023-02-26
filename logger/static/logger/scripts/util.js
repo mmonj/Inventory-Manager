@@ -47,7 +47,7 @@ const LOGGER_UTILS = (function() {
   }
 
   return {
-    get_node_from_html: _element,
+    _element: _element,
     handle_field_rep_change: handle_field_rep_change, 
     handle_populate_initial_dropdown_values: handle_populate_initial_dropdown_values,
   };
