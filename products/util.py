@@ -91,7 +91,8 @@ def import_products(products_info: dict, images_zip_path=None, brand_logos_zip=N
             models.Product(
                 upc=upc,
                 name=product_info['fs_name'],
-                parent_company=parent_company
+                parent_company=parent_company,
+                date_added=datetime.fromtimestamp(0)
             )
             for upc, product_info in products_dict.items()
             if models.Product(upc=upc).is_valid_upc()
@@ -105,9 +106,8 @@ def import_products(products_info: dict, images_zip_path=None, brand_logos_zip=N
             for filename in zf.namelist():
                 short_name = Path(filename).stem
                 if short_name in brands and not brands[short_name].third_party_logo:
-                    with zf.open(filename, "r") as f:
-                        file_obj = File(f)
-                        brands[short_name].third_party_logo.save(filename, file_obj, save=True)
+                    with zf.open(filename, "r") as fd:
+                        brands[short_name].third_party_logo.save(filename, File(fd), save=True)
 
     if images_zip_path is not None:
         logger.info('Importing product images')
@@ -116,9 +116,8 @@ def import_products(products_info: dict, images_zip_path=None, brand_logos_zip=N
             for filename in zf.namelist():
                 upc = Path(filename).stem
                 if upc in products and not products[upc].item_image:
-                    with zf.open(filename, "r") as f:
-                        file_obj = File(f)
-                        products[upc].item_image.save(filename, file_obj, save=True)
+                    with zf.open(filename, "r") as fd:
+                        products[upc].item_image.save(filename, File(fd), save=True)
 
 
 def import_distribution_data(stores_distribution_data: dict):
@@ -129,7 +128,7 @@ def import_distribution_data(stores_distribution_data: dict):
 
         ####
         new_products = (
-            models.Product(upc=upc)
+            models.Product(upc=upc, date_added=datetime.fromtimestamp(0))
             for upc, product_distribution_data in store_distribution_data.items()
             if models.Product(upc=upc).is_valid_upc()
         )
@@ -266,7 +265,7 @@ def get_current_work_cycle():
 
     if date.today() > work_cycle.end_date:
         work_cycle_time_span = timedelta(weeks=2)
-        num_cycles_offset = (date.today() - work_cycle.new_work_cycle) // work_cycle_time_span
+        num_cycles_offset = (date.today() - work_cycle.end_date) // work_cycle_time_span
         num_cycles_offset = num_cycles_offset + 1
 
         new_work_cycle = models.WorkCycle(

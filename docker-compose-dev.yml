@@ -1,6 +1,6 @@
 version: '3'
 services:
-  app:
+  django_app:
     build:
       context: .
       args:
@@ -14,3 +14,26 @@ services:
       - ./:/app
     env_file:
       - dev.env
+
+  rq_worker:
+    image: inventory-manager-django-dev
+    container_name: inventory-manager-rq-worker
+    command: python manage.py rqworker default
+    user: "${UID}:${GID}"
+    volumes:
+      - ./:/app
+    env_file:
+      - dev.env
+
+  # redis-overcommit-on-host
+  redis-overcommit:
+    build: https://github.com/bkuhl/redis-overcommit-on-host.git
+    restart: 'no'
+    privileged: true
+    volumes:
+      - /proc/sys/vm:/mnt/vm
+
+  redis:
+    image: redis
+    container_name: redis-inventory-manager
+    restart: unless-stopped

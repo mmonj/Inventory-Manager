@@ -80,6 +80,7 @@ class Product(models.Model):
         related_name='upcs'
     )
     item_image = models.ImageField(null=True, blank=True, upload_to=product_image_upload_location)
+    date_added = models.DateField(default=timezone.now)
 
     def __str__(self):
         return f'{self.upc} - {self.parent_company} - {self.name}'

@@ -33,3 +33,12 @@ DATABASES = {
 }
 
 TIME_ZONE = os.environ['TZ']
+
+RQ_QUEUES = {
+    'default': {
+        'HOST': os.environ['REDIS_HOST'],
+        'PORT': 6379,
+        'DB': 0,
+        'DEFAULT_TIMEOUT': 360,
+    },
+}
