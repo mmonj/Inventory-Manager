@@ -55,7 +55,7 @@ const LOGGER_UI_HANDLERS = (function() {
         document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
         console.log(resp_json);
         if (!resp_json.errors) {
-          show_alert_toast("Error", "An unexpected server error occurred.\nYou may try again.");
+          LOGGER_UTIL.show_alert_toast("Error", "An unexpected server error occurred.\nYou may try again.");
         }
 
         return Promise.reject(resp_json);
@@ -107,15 +107,6 @@ const LOGGER_UI_HANDLERS = (function() {
         SCANNED_UPCS.delete(upc_number);
       },
     });
-  }
-  
-  function show_alert_toast(title, message) {
-    const toast_node = document.getElementById("alert-toast");
-    toast_node.querySelector("._toast-title").innerText = title;
-    toast_node.querySelector(".toast-body").innerText = message;
-  
-    const _toast = new bootstrap.Toast(toast_node);
-    _toast.show();
   }
   
   function show_manual_upc_errors(errors) {
