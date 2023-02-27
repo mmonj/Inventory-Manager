@@ -1,4 +1,6 @@
 (function () {
+  "use strict";
+  
   function main() {
     prepare_document_theme();
     handle_landing_page_sheet_type();

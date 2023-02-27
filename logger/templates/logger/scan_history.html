@@ -1,18 +1,17 @@
 {% extends "logger/layout.html" %}
 {% load static %}
 
-{% block title %}UPC Scanner{% endblock %}
+{% block title %}Scan History{% endblock %}
 
 {% block extra_head_elements %}
   <meta name="csrf_token" content="{{ csrf_token }}" />
   
-  <script src="{% static 'logger/scripts/jquery-3.6.3.slim.min.js' %}"></script>
-  <link href="{% static 'logger/styles/select2@4.1.0-rc.min.css' %}" rel="stylesheet" />
-  <script src="{% static 'logger/scripts/select2@4.1.0-rc.min.js' %}"></script>
+  <script src="https://code.jquery.com/jquery-3.6.3.slim.min.js" integrity="sha256-ZwqZIVdD3iXNyGHbSYdsmWP//UBokj2FHAxKuSBKDSo=" crossorigin="anonymous"></script>
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-  <script src="{% static 'logger/scripts/logger_ui_handlers.js' %}"></script>
-  <script src="{% static 'logger/scripts/store_picker.js' %}"></script>
-  <script src="{% static 'logger/scripts/scan_history.js' %}"></script>
+  <script defer src="{% static 'logger/scripts/util.js' %}"></script>
+  <script defer src="{% static 'logger/scripts/scan_history.js' %}"></script>
 {% endblock %}
 
 {% block body_header %}
