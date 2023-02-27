@@ -6,10 +6,10 @@ LOGGER_SCANNER = (function () {
 
   (function () {
     $("#store-select").select2();
-    LOGGER_UTILS.handle_populate_initial_dropdown_values(TERRITORY_INFO);
+    LOGGER_UTIL.handle_populate_initial_dropdown_values(TERRITORY_INFO);
 
     document.getElementById("field-representative-select").addEventListener("change", (event) => {
-      LOGGER_UTILS.handle_field_rep_change(event, TERRITORY_INFO);
+      LOGGER_UTIL.handle_field_rep_change(event, TERRITORY_INFO);
     });
     document
       .getElementById("store-selector-form")

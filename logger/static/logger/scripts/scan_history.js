@@ -8,9 +8,9 @@ const LOGGER_SCAN_HISTORY = (function () {
       TERRITORY_INFO = JSON.parse(document.getElementById("territory-info").textContent);
 
       $("#store-select").select2();
-      LOGGER_UTILS.handle_populate_initial_dropdown_values(TERRITORY_INFO);
+      LOGGER_UTIL.handle_populate_initial_dropdown_values(TERRITORY_INFO);
       document.getElementById("field-representative-select").addEventListener("change", (event) => {
-        LOGGER_UTILS.handle_field_rep_change(event, TERRITORY_INFO);
+        LOGGER_UTIL.handle_field_rep_change(event, TERRITORY_INFO);
       });
     }
 
@@ -32,7 +32,7 @@ const LOGGER_SCAN_HISTORY = (function () {
 
     let _promise_send_post_uncarry = send_post_uncarry(action_url, method);
 
-    LOGGER_UTILS.handle_list_item_removal_transition(
+    LOGGER_UTIL.handle_list_item_removal_transition(
       _promise_send_post_uncarry,
       product_list_item,
       {

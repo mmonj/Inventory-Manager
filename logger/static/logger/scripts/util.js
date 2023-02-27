@@ -1,4 +1,4 @@
-const LOGGER_UTILS = (function() {
+const LOGGER_UTIL = (function() {
   "use strict";
 
   // create element node from string

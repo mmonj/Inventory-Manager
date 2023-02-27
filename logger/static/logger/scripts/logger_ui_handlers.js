@@ -64,7 +64,7 @@ const LOGGER_UI_HANDLERS = (function() {
 
   function get_new_result_li_node(upc_number) {
     let scan_results = document.getElementById("scanner-results");
-    let new_li = LOGGER_UTILS._element(/*html*/`
+    let new_li = LOGGER_UTIL._element(/*html*/`
       <li class="list-group-item d-flex justify-content-between align-items-start collapse show" data-upc_number="${upc_number}">
         <div class="ms-2 me-auto product-container">
           <div class="fw-bold upc-container">${upc_number}</div>
@@ -119,7 +119,7 @@ const LOGGER_UI_HANDLERS = (function() {
     // send_post_product_addition returns Promise for JSON
     let _promise_send_post = LOGGER_SCANNER.send_post_product_addition(upc_number, {is_remove: true});
   
-    LOGGER_UTILS.handle_list_item_removal_transition(_promise_send_post, list_item, {
+    LOGGER_UTIL.handle_list_item_removal_transition(_promise_send_post, list_item, {
       loading_indicator_element: loading_indicator_element,
       submit_button: submit_removal_button,
       action_on_removal: () => {
