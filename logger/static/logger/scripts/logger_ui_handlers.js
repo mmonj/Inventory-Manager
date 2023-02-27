@@ -83,25 +83,6 @@ const LOGGER_UI_HANDLERS = (function() {
   }
 
   function add_result_li_to_dom(scan_results, new_li, upc_number, resp_json) {
-    // event listener for opacity fade-to-zero animation-end
-    new_li.addEventListener("animationend", (event) => {
-      if (event.target.classList.contains("flash-item")) {
-        event.target.classList.remove("flash-item");
-      }
-      if (!event.target.classList.contains("remove-queued")) {
-        return;
-      }
-  
-      event.target.classList.remove("d-flex");
-      event.target.classList.remove("list-group-item");
-      new bootstrap.Collapse(event.target);
-    });
-  
-    new_li.addEventListener("hidden.bs.collapse", () => {
-      new_li.remove();
-      SCANNED_UPCS.delete(upc_number);
-    });
-  
     SCANNED_UPCS.add(upc_number);
     scan_results.prepend(new_li);
     new_li.querySelector("button").addEventListener("click", handle_remove_upc);
