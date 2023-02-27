@@ -21,7 +21,7 @@
     </div>
     <div class="tab-pane fade mx-2" id="keyboard-tab-pane" role="tabpanel" aria-labelledby="keyboard-tab" tabindex="0">
       <form id="form-manual-upc" action="{% url 'logger:log_product_scan' %}" method="POST">
-        <label for="text-input-upc" class="d-block mb-2">UPC Number</label>
+        <label for="text-input-upc" class="d-block my-2">UPC Number</label>
         <input id="text-input-upc" type="text" autocomplete="off" class="form-control mb-3" placeholder="Type a UPC number" minlength="12" maxlength="12" required>
         <div id="error-manual-upc" class="alert alert-warning" role="alert" hidden></div>
         <button type="submit" class="btn btn-primary form-control mb-2">Submit</button>
