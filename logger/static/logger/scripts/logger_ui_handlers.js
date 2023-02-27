@@ -1,45 +1,37 @@
 const LOGGER_UI_HANDLERS = (function() {
   "use strict";
 
-  async function handle_list_item_removal_transition(_promise, list_item, options = {}) {
-    options.submit_button && (options.submit_button.hidden = true);
-    options.loading_indicator_element && (options.loading_indicator_element.hidden = false);
+  const SCANNED_UPCS = new Set();
+  const SCAN_SOUND = new Audio(window.__LOGGER_INFO__.scan_sound_path);
   
-    try {
-      let resp_json = await _promise;
+  function add_result_li_to_dom(scan_results, new_li, upc_number, resp_json) {
+    // event listener for opacity fade-to-zero animation-end
+    new_li.addEventListener("animationend", (event) => {
+      if (event.target.classList.contains("flash-item")) {
+        event.target.classList.remove("flash-item");
+      }
+      if (!event.target.classList.contains("remove-queued")) {
+        return;
+      }
   
-      list_item.addEventListener("animationend", handle_collapse);
-      list_item.addEventListener("hidden.bs.collapse", (event) => {
-        if (event.target.classList.contains("remove-queued")) {
-          list_item.remove();
-          options.action_on_removal && options.action_on_removal();
-        }
-      });
+      event.target.classList.remove("d-flex");
+      event.target.classList.remove("list-group-item");
+      new bootstrap.Collapse(event.target);
+    });
   
-      list_item.classList.add("remove-queued");
-      list_item.classList.add("fade-zero");
-    } catch (error_json) {
-      console.log(error_json);
-      show_alert_toast("Error", "An unexpected server error occurred.\nYou may try again.");
-      options.submit_button && (options.submit_button.hidden = false);
-      options.loading_indicator_element && (options.loading_indicator_element.hidden = true);
-      list_item.classList.remove("remove-queued");
-    }
+    new_li.addEventListener("hidden.bs.collapse", () => {
+      new_li.remove();
+      SCANNED_UPCS.delete(upc_number);
+    });
+  
+    SCANNED_UPCS.add(upc_number);
+    scan_results.prepend(new_li);
+    new_li.querySelector("button").addEventListener("click", handle_remove_upc);
+    new_li.querySelector(".product-name").innerText = resp_json.product_info.name;
+    document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
+    document.getElementById("text-input-upc").value = "";
   }
-  
-  function handle_collapse(event) {
-    if (event.target.classList.contains("flash-item")) {
-      event.target.classList.remove("flash-item");
-    }
-    if (!event.target.classList.contains("remove-queued")) {
-      return;
-    }
-  
-    event.target.classList.remove("d-flex");
-    event.target.classList.remove("list-group-item");
-    new bootstrap.Collapse(event.target);
-  }
-  
+
   function handle_manual_upc_submission(event) {
     event.preventDefault();
     document.getElementById("error-manual-upc").hidden = true;
@@ -58,29 +50,30 @@ const LOGGER_UI_HANDLERS = (function() {
         show_manual_upc_errors(resp_json.errors);
       });
   }
-  
-  function handle_submit_upc(upc_number, options={is_scan_sound_play: true}) {
+
+  function handle_submit_upc(upc_number, options = { is_scan_sound_play: true }) {
     if (options.is_scan_sound_play) {
-      window.__LOGGER_INFO__.scan_sound.play();
+      SCAN_SOUND.play();
     }
-  
+
     let ret = { errors: [] };
-  
-    if (window.__LOGGER_INFO__.scanned_upcs.has(upc_number)) {
+
+    // if UPC already scanned, move list-item to top of list and give it flash animation
+    if (SCANNED_UPCS.has(upc_number)) {
       let existing_li_item = document.querySelector(
         `#scanner-results > li[data-upc_number='${upc_number}']`
       );
       existing_li_item.classList.add("flash-item");
       document.getElementById("scanner-results").prepend(existing_li_item);
-  
+
       ret.is_upc_already_scanned = true;
       // ret.errors.push("This UPC has already been scanned in this session");
       return Promise.reject(ret);
     }
-  
+
     document.getElementById("spinner-loading-scan").classList.remove("visually-hidden");
     let [scan_results, new_li] = get_new_result_li_node(upc_number);
-  
+
     return LOGGER_SCANNER_HANDLERS.send_post_product_addition(upc_number)
       .then((resp_json) => {
         add_result_li_to_dom(scan_results, new_li, upc_number, resp_json);
@@ -92,11 +85,11 @@ const LOGGER_UI_HANDLERS = (function() {
         if (!resp_json.errors) {
           show_alert_toast("Error", "An unexpected server error occurred.\nYou may try again.");
         }
-  
+
         return Promise.reject(resp_json);
       });
   }
-  
+
   function get_new_result_li_node(upc_number) {
     let scan_results = document.getElementById("scanner-results");
     let new_li = LOGGER_UTILS._element(/*html*/`
@@ -117,34 +110,6 @@ const LOGGER_UI_HANDLERS = (function() {
     return [scan_results, new_li];
   }
   
-  function add_result_li_to_dom(scan_results, new_li, upc_number, resp_json) {
-    // event listener for opacity fade-to-zero animation-end
-    new_li.addEventListener("animationend", (event) => {
-      if (event.target.classList.contains("flash-item")) {
-        event.target.classList.remove("flash-item");
-      }
-      if (!event.target.classList.contains("remove-queued")) {
-        return;
-      }
-  
-      event.target.classList.remove("d-flex");
-      event.target.classList.remove("list-group-item");
-      new bootstrap.Collapse(event.target);
-    });
-  
-    new_li.addEventListener("hidden.bs.collapse", () => {
-      new_li.remove();
-      window.__LOGGER_INFO__.scanned_upcs.delete(upc_number);
-    });
-  
-    window.__LOGGER_INFO__.scanned_upcs.add(upc_number);
-    scan_results.prepend(new_li);
-    new_li.querySelector("button").addEventListener("click", handle_remove_upc);
-    new_li.querySelector(".product-name").innerText = resp_json.product_info.name;
-    document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
-    document.getElementById("text-input-upc").value = "";
-  }
-  
   function handle_remove_upc(event) {
     let upc_number = event.target.parentElement.querySelector(".upc-container").innerText;
     let list_item = event.target.parentElement;
@@ -154,11 +119,11 @@ const LOGGER_UI_HANDLERS = (function() {
     // send_post_product_addition returns Promise for JSON
     let _promise_send_post = LOGGER_SCANNER_HANDLERS.send_post_product_addition(upc_number, {is_remove: true});
   
-    handle_list_item_removal_transition(_promise_send_post, list_item, {
+    LOGGER_UTILS.handle_list_item_removal_transition(_promise_send_post, list_item, {
       loading_indicator_element: loading_indicator_element,
       submit_button: submit_removal_button,
       action_on_removal: () => {
-        window.__LOGGER_INFO__.scanned_upcs.delete(upc_number);
+        SCANNED_UPCS.delete(upc_number);
       },
     });
   }
@@ -199,27 +164,10 @@ const LOGGER_UI_HANDLERS = (function() {
   
       LOGGER_SCANNER_HANDLERS.init_scanner();
   }
-  
-  function pause_scanner() {
-    if (window.__LOGGER_INFO__.scanner.getState() == Html5QrcodeScannerState.SCANNING) {
-      console.log("Pausing scanner");
-      window.__LOGGER_INFO__.scanner.pause();
-    }
-  }
-  
-  function resume_scanner() {
-    if (window.__LOGGER_INFO__.scanner.getState() == Html5QrcodeScannerState.PAUSED) {
-      console.log("Resuming scanner");
-      window.__LOGGER_INFO__.scanner.resume();
-    }
-  }
 
   return {
-    pause_scanner: pause_scanner,
-    resume_scanner: resume_scanner,
     handle_store_select_submission: handle_store_select_submission,
     handle_manual_upc_submission: handle_manual_upc_submission,
-    handle_submit_upc: handle_manual_upc_submission,
-    handle_list_item_removal_transition: handle_list_item_removal_transition
+    handle_submit_upc: handle_submit_upc
   };
 })();

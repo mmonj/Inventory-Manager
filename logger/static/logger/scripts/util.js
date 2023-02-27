@@ -46,9 +46,66 @@ const LOGGER_UTILS = (function() {
     }
   }
 
+  async function handle_list_item_removal_transition(_promise, list_item, options = {}) {
+    if (options.submit_button) {
+      options.submit_button.hidden = true;
+    }
+    // options.submit_button && (options.submit_button.hidden = true);
+    if (options.loading_indicator_element) {
+      options.loading_indicator_element.hidden = false;
+    }
+    // options.loading_indicator_element && (options.loading_indicator_element.hidden = false);
+  
+    try {
+      let resp_json = await _promise;
+  
+      list_item.addEventListener("animationend", handle_collapse);
+      list_item.addEventListener("hidden.bs.collapse", (event) => {
+        if (event.target.classList.contains("remove-queued")) {
+          list_item.remove();
+          if (options.action_on_removal) {
+            options.action_on_removal();
+          }
+          // options.action_on_removal && options.action_on_removal();
+        }
+      });
+  
+      list_item.classList.add("remove-queued");
+      list_item.classList.add("fade-zero");
+    } catch (error_json) {
+      console.log(error_json);
+      show_alert_toast("Error", "An unexpected server error occurred.\nYou may try again.");
+
+      if (options.submit_button) {
+        options.submit_button.hidden = false;
+      }
+      // options.submit_button && (options.submit_button.hidden = false);
+      if (options.loading_indicator_element) {
+        options.loading_indicator_element.hidden = true;
+      }
+      // options.loading_indicator_element && (options.loading_indicator_element.hidden = true);
+      list_item.classList.remove("remove-queued");
+    }
+  }
+  
+  function handle_collapse(event) {
+    if (event.target.classList.contains("flash-item")) {
+      event.target.classList.remove("flash-item");
+    }
+    if (!event.target.classList.contains("remove-queued")) {
+      return;
+    }
+  
+    event.target.classList.remove("d-flex");
+    event.target.classList.remove("list-group-item");
+    new bootstrap.Collapse(event.target);
+  }
+
   return {
     _element: _element,
     handle_field_rep_change: handle_field_rep_change, 
     handle_populate_initial_dropdown_values: handle_populate_initial_dropdown_values,
+    handle_collapse: handle_collapse,
+    handle_list_item_removal_transition: handle_list_item_removal_transition
   };
 })();

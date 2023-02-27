@@ -1,19 +1,15 @@
 LOGGER_SCANNER_HANDLERS = (function () {
   "use strict";
 
-  (function() {
-    window.__LOGGER_INFO__.scanner = new Html5Qrcode("reader");
-    window.__LOGGER_INFO__.scanned_upcs = new Set();
-    window.__LOGGER_INFO__.scan_sound = new Audio(window.__LOGGER_INFO__.scan_sound_path);
-    window.__LOGGER_INFO__.territory_info = JSON.parse(
-      document.getElementById("territory-info").textContent
-    );
+  const TERRITORY_INFO = JSON.parse(document.getElementById("territory-info").textContent);
+  const SCANNER = new Html5Qrcode("reader");
 
+  (function () {
     $("#store-select").select2();
-    LOGGER_UTILS.handle_populate_initial_dropdown_values(window.__LOGGER_INFO__.territory_info);
+    LOGGER_UTILS.handle_populate_initial_dropdown_values(TERRITORY_INFO);
 
     document.getElementById("field-representative-select").addEventListener("change", (event) => {
-      LOGGER_UTILS.handle_field_rep_change(event, window.__LOGGER_INFO__.territory_info);
+      LOGGER_UTILS.handle_field_rep_change(event, TERRITORY_INFO);
     });
     document
       .getElementById("store-selector-form")
@@ -23,20 +19,7 @@ LOGGER_SCANNER_HANDLERS = (function () {
       .addEventListener("submit", LOGGER_UI_HANDLERS.handle_manual_upc_submission);
   })();
 
-  function init_scanner() {
-    const config = {
-      fps: 0.5,
-      qrbox: qrboxFunction,
-      formatsToSupport: [Html5QrcodeSupportedFormats.UPC_A],
-    };
-    window.__LOGGER_INFO__.scanner.start(
-      { facingMode: "environment" },
-      config,
-      LOGGER_UI_HANDLERS.handle_submit_upc
-    );
-  }
-
-  async function send_post_product_addition(upc, options={is_remove: false}) {
+  async function send_post_product_addition(upc, options = { is_remove: false }) {
     let payload_data = {
       upc: upc,
       store_id: document.getElementById("scanner-store-indicator").dataset.store_id,
@@ -57,6 +40,15 @@ LOGGER_SCANNER_HANDLERS = (function () {
     return resp.json();
   }
 
+  function init_scanner() {
+    const config = {
+      fps: 0.5,
+      qrbox: qrboxFunction,
+      formatsToSupport: [Html5QrcodeSupportedFormats.UPC_A],
+    };
+    SCANNER.start({ facingMode: "environment" }, config, LOGGER_UI_HANDLERS.handle_submit_upc);
+  }
+
   function qrboxFunction(viewfinderWidth, viewfinderHeight) {
     let minEdgePercentage = 0.6;
     let minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
@@ -67,8 +59,24 @@ LOGGER_SCANNER_HANDLERS = (function () {
     };
   }
 
+  function pause_scanner() {
+    if (SCANNER.getState() == Html5QrcodeScannerState.SCANNING) {
+      console.log("Pausing scanner");
+      SCANNER.pause();
+    }
+  }
+  
+  function resume_scanner() {
+    if (SCANNER.getState() == Html5QrcodeScannerState.PAUSED) {
+      console.log("Resuming scanner");
+      SCANNER.resume();
+    }
+  }
+
   return {
     init_scanner: init_scanner,
+    resume_scanner: resume_scanner,
+    pause_scanner: pause_scanner,
     send_post_product_addition: send_post_product_addition,
   };
 })();
