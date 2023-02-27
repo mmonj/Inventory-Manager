@@ -1,4 +1,4 @@
-LOGGER_SCANNER_HANDLERS = (function () {
+LOGGER_SCANNER = (function () {
   "use strict";
 
   const TERRITORY_INFO = JSON.parse(document.getElementById("territory-info").textContent);
