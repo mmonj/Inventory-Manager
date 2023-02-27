@@ -3,34 +3,6 @@ const LOGGER_UI_HANDLERS = (function() {
 
   const SCANNED_UPCS = new Set();
   const SCAN_SOUND = new Audio(window.__LOGGER_INFO__.scan_sound_path);
-  
-  function add_result_li_to_dom(scan_results, new_li, upc_number, resp_json) {
-    // event listener for opacity fade-to-zero animation-end
-    new_li.addEventListener("animationend", (event) => {
-      if (event.target.classList.contains("flash-item")) {
-        event.target.classList.remove("flash-item");
-      }
-      if (!event.target.classList.contains("remove-queued")) {
-        return;
-      }
-  
-      event.target.classList.remove("d-flex");
-      event.target.classList.remove("list-group-item");
-      new bootstrap.Collapse(event.target);
-    });
-  
-    new_li.addEventListener("hidden.bs.collapse", () => {
-      new_li.remove();
-      SCANNED_UPCS.delete(upc_number);
-    });
-  
-    SCANNED_UPCS.add(upc_number);
-    scan_results.prepend(new_li);
-    new_li.querySelector("button").addEventListener("click", handle_remove_upc);
-    new_li.querySelector(".product-name").innerText = resp_json.product_info.name;
-    document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
-    document.getElementById("text-input-upc").value = "";
-  }
 
   function handle_manual_upc_submission(event) {
     event.preventDefault();
@@ -74,7 +46,7 @@ const LOGGER_UI_HANDLERS = (function() {
     document.getElementById("spinner-loading-scan").classList.remove("visually-hidden");
     let [scan_results, new_li] = get_new_result_li_node(upc_number);
 
-    return LOGGER_SCANNER_HANDLERS.send_post_product_addition(upc_number)
+    return LOGGER_SCANNER.send_post_product_addition(upc_number)
       .then((resp_json) => {
         add_result_li_to_dom(scan_results, new_li, upc_number, resp_json);
         return resp_json;
@@ -92,7 +64,7 @@ const LOGGER_UI_HANDLERS = (function() {
 
   function get_new_result_li_node(upc_number) {
     let scan_results = document.getElementById("scanner-results");
-    let new_li = LOGGER_UTILS._element(/*html*/`
+    let new_li = LOGGER_UTIL._element(/*html*/`
       <li class="list-group-item d-flex justify-content-between align-items-start collapse show" data-upc_number="${upc_number}">
         <div class="ms-2 me-auto product-container">
           <div class="fw-bold upc-container">${upc_number}</div>
@@ -109,6 +81,15 @@ const LOGGER_UI_HANDLERS = (function() {
   
     return [scan_results, new_li];
   }
+
+  function add_result_li_to_dom(scan_results, new_li, upc_number, resp_json) {
+    SCANNED_UPCS.add(upc_number);
+    scan_results.prepend(new_li);
+    new_li.querySelector("button").addEventListener("click", handle_remove_upc);
+    new_li.querySelector(".product-name").innerText = resp_json.product_info.name;
+    document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
+    document.getElementById("text-input-upc").value = "";
+  }
   
   function handle_remove_upc(event) {
     let upc_number = event.target.parentElement.querySelector(".upc-container").innerText;
@@ -117,9 +98,9 @@ const LOGGER_UI_HANDLERS = (function() {
     let submit_removal_button = list_item.querySelector(".button-remove-product");
   
     // send_post_product_addition returns Promise for JSON
-    let _promise_send_post = LOGGER_SCANNER_HANDLERS.send_post_product_addition(upc_number, {is_remove: true});
+    let _promise_send_post = LOGGER_SCANNER.send_post_product_addition(upc_number, {is_remove: true});
   
-    LOGGER_UTILS.handle_list_item_removal_transition(_promise_send_post, list_item, {
+    LOGGER_UTIL.handle_list_item_removal_transition(_promise_send_post, list_item, {
       loading_indicator_element: loading_indicator_element,
       submit_button: submit_removal_button,
       action_on_removal: () => {
@@ -162,7 +143,7 @@ const LOGGER_UI_HANDLERS = (function() {
     scanner_store_indicator_node.querySelector(".card-title").innerText =
       store_select_node.options[store_select_node.selectedIndex].innerText;
   
-      LOGGER_SCANNER_HANDLERS.init_scanner();
+      LOGGER_SCANNER.init_scanner();
   }
 
   return {
