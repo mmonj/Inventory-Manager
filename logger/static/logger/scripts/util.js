@@ -57,16 +57,19 @@ const LOGGER_UTIL = (function() {
     try {
       let resp_json = await _promise;
   
-      // animationend animation in this case is the fade-out opacity animation
-      list_item.addEventListener("animationend", handle_collapse);
-      list_item.addEventListener("hidden.bs.collapse", (event) => {
-        if (event.target.classList.contains("remove-queued")) {
-          list_item.remove();
-          if (options.action_on_removal) {
-            options.action_on_removal();
+      if (!list_item.dataset.has_collapse_listeners) {
+        list_item.dataset.has_collapse_listeners = true;
+        // event listener for opacity fade-to-zero animation-end
+        list_item.addEventListener("animationend", handle_collapse);
+        list_item.addEventListener("hidden.bs.collapse", (event) => {
+          if (event.target.classList.contains("remove-queued")) {
+            list_item.remove();
+            if (options.action_on_removal) {
+              options.action_on_removal();
+            }
           }
-        }
-      });
+        });
+      }
   
       list_item.classList.add("remove-queued");
       list_item.classList.add("fade-zero");
@@ -101,7 +104,6 @@ const LOGGER_UTIL = (function() {
     _element: _element,
     handle_field_rep_change: handle_field_rep_change, 
     handle_populate_initial_dropdown_values: handle_populate_initial_dropdown_values,
-    handle_collapse: handle_collapse,
     handle_list_item_removal_transition: handle_list_item_removal_transition
   };
 })();
