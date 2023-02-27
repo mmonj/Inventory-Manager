@@ -1,4 +1,6 @@
 const LOGGER_SCAN_HISTORY = (function() {
+  "use strict";
+
   (function() {
     window.__SCAN_HISTORY__ = {};
     if (document.getElementById("territory-info")) {
