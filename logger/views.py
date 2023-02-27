@@ -20,7 +20,7 @@ def login_view(request):
     logger.info(static("logger/scan_sound.ogg"))
     if request.user.is_authenticated:
         logger.info(f"User {request.user.get_username()} is already logged in. Redirecting to logger index")
-        return redirect("logger:index")
+        return redirect("logger:scanner")
 
     if request.method == 'GET':
         return render(request, 'logger/login.html')
@@ -33,7 +33,7 @@ def login_view(request):
         # Check if authentication successful
         if user is not None:
             login(request, user)
-            return redirect("logger:index")
+            return redirect("logger:scanner")
         else:
             return render(request, "logger/login.html", {
                 "message": "Invalid username and/or password."
