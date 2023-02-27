@@ -50,15 +50,14 @@ const LOGGER_UTIL = (function() {
     if (options.submit_button) {
       options.submit_button.hidden = true;
     }
-    // options.submit_button && (options.submit_button.hidden = true);
     if (options.loading_indicator_element) {
       options.loading_indicator_element.hidden = false;
     }
-    // options.loading_indicator_element && (options.loading_indicator_element.hidden = false);
   
     try {
       let resp_json = await _promise;
   
+      // animationend animation in this case is the fade-out opacity animation
       list_item.addEventListener("animationend", handle_collapse);
       list_item.addEventListener("hidden.bs.collapse", (event) => {
         if (event.target.classList.contains("remove-queued")) {
@@ -66,7 +65,6 @@ const LOGGER_UTIL = (function() {
           if (options.action_on_removal) {
             options.action_on_removal();
           }
-          // options.action_on_removal && options.action_on_removal();
         }
       });
   
@@ -79,11 +77,9 @@ const LOGGER_UTIL = (function() {
       if (options.submit_button) {
         options.submit_button.hidden = false;
       }
-      // options.submit_button && (options.submit_button.hidden = false);
       if (options.loading_indicator_element) {
         options.loading_indicator_element.hidden = true;
       }
-      // options.loading_indicator_element && (options.loading_indicator_element.hidden = true);
       list_item.classList.remove("remove-queued");
     }
   }
