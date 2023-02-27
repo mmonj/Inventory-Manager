@@ -10,7 +10,8 @@ body {
 }
 
 #reader video {
-  margin-top: -6vh;
+  max-height: 100%;
+  object-fit: cover;
 }
 
 .product-container {
