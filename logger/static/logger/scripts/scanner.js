@@ -1,4 +1,4 @@
-LOGGER_SCANNER = (function () {
+const LOGGER_SCANNER = (function () {
   "use strict";
 
   const TERRITORY_INFO = JSON.parse(document.getElementById("territory-info").textContent);
@@ -42,11 +42,13 @@ LOGGER_SCANNER = (function () {
 
   function init_scanner() {
     const config = {
-      fps: 0.5,
+      fps: 1,
       qrbox: qrboxFunction,
       formatsToSupport: [Html5QrcodeSupportedFormats.UPC_A],
     };
-    SCANNER.start({ facingMode: "environment" }, config, LOGGER_UI_HANDLERS.handle_submit_upc);
+    SCANNER.start({ facingMode: "environment" }, config, (decoded_text, decode_data) => {
+      LOGGER_UI_HANDLERS.handle_submit_upc(decoded_text);
+    });
   }
 
   function qrboxFunction(viewfinderWidth, viewfinderHeight) {
