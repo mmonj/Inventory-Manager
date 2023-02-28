@@ -3,32 +3,48 @@ const LOGGER_UI_HANDLERS = (function() {
 
   const SCANNED_UPCS = new Set();
   const SCAN_SOUND = new Audio(window.__LOGGER_INFO__.scan_sound_path);
+  // keeps track of previously scanned UPC to avoid ringing the scan tone too frequently
+  const DUPLICATE_DELAY_MS = 2 * 1000
+  const PREVIOUS_SCAN = {
+    upc: "",
+    time_scanned: 0  //unix time
+  };
 
   function handle_manual_upc_submission(event) {
     event.preventDefault();
     document.getElementById("error-manual-upc").hidden = true;
   
-    let upc_number_node = document.getElementById("text-input-upc");
-    handle_submit_upc(upc_number_node.value, {is_scan_sound_play: false})
+    let manual_upc_input_node = document.getElementById("text-input-upc");
+    handle_submit_upc(manual_upc_input_node.value, {is_scan_sound_play: false})
       .then(() => {
-        upc_number_node.value = "";
+        manual_upc_input_node.value = "";
       })
       .catch((resp_json) => {
         if (resp_json.is_upc_already_scanned) {
-          upc_number_node.value = "";
-          console.log("already scanned");
+          console.log("already scanned", manual_upc_input_node.value);
+          manual_upc_input_node.value = "";
         }
   
         show_manual_upc_errors(resp_json.errors);
       });
   }
 
-  function handle_submit_upc(upc_number, options = { is_scan_sound_play: true }) {
+  async function handle_submit_upc(upc_number, options = { is_scan_sound_play: true, is_manual_submission: false }) {
+    let ret = { errors: [] };
+    const time_now = Date.now();
+    
+    if (upc_number === PREVIOUS_SCAN.upc && 
+        time_now - PREVIOUS_SCAN.time_scanned < DUPLICATE_DELAY_MS && 
+        !options.is_manual_submission ) {
+      const error_msg = `Duplicate UPC ${upc_number} was submitted within a ${DUPLICATE_DELAY_MS/1000} second time window`;
+      console.log(error_msg);
+      ret.errors.push(error_msg)
+      return Promise.reject(ret);
+    }
+
     if (options.is_scan_sound_play) {
       SCAN_SOUND.play();
     }
-
-    let ret = { errors: [] };
 
     // if UPC already scanned, move list-item to top of list and give it flash animation
     if (SCANNED_UPCS.has(upc_number)) {
@@ -48,6 +64,8 @@ const LOGGER_UI_HANDLERS = (function() {
 
     return LOGGER_SCANNER.send_post_product_addition(upc_number)
       .then((resp_json) => {
+        PREVIOUS_SCAN.upc = upc_number;
+        PREVIOUS_SCAN.time_scanned = time_now;
         add_result_li_to_dom(scan_results, new_li, upc_number, resp_json);
         return resp_json;
       })
@@ -55,7 +73,7 @@ const LOGGER_UI_HANDLERS = (function() {
         document.getElementById("spinner-loading-scan").classList.add("visually-hidden");
         console.log(resp_json);
         if (!resp_json.errors) {
-          show_alert_toast("Error", "An unexpected server error occurred.\nYou may try again.");
+          LOGGER_UTIL.show_alert_toast("Error", "An unexpected server error occurred.\nYou may try again.");
         }
 
         return Promise.reject(resp_json);
@@ -107,15 +125,6 @@ const LOGGER_UI_HANDLERS = (function() {
         SCANNED_UPCS.delete(upc_number);
       },
     });
-  }
-  
-  function show_alert_toast(title, message) {
-    const toast_node = document.getElementById("alert-toast");
-    toast_node.querySelector("._toast-title").innerText = title;
-    toast_node.querySelector(".toast-body").innerText = message;
-  
-    const _toast = new bootstrap.Toast(toast_node);
-    _toast.show();
   }
   
   function show_manual_upc_errors(errors) {

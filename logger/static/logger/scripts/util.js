@@ -100,10 +100,20 @@ const LOGGER_UTIL = (function() {
     new bootstrap.Collapse(event.target);
   }
 
+  function show_alert_toast(title, message) {
+    const toast_node = document.getElementById("alert-toast");
+    toast_node.querySelector("._toast-title").innerText = title;
+    toast_node.querySelector(".toast-body").innerText = message;
+  
+    const _toast = new bootstrap.Toast(toast_node);
+    _toast.show();
+  }
+
   return {
     _element: _element,
     handle_field_rep_change: handle_field_rep_change, 
     handle_populate_initial_dropdown_values: handle_populate_initial_dropdown_values,
-    handle_list_item_removal_transition: handle_list_item_removal_transition
+    handle_list_item_removal_transition: handle_list_item_removal_transition,
+    show_alert_toast: show_alert_toast
   };
 })();
