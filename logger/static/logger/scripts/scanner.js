@@ -42,10 +42,18 @@ const LOGGER_SCANNER = (function () {
 
   function init_scanner() {
     const config = {
-      fps: 1,
+      fps: 2,
       qrbox: qrboxFunction,
-      formatsToSupport: [Html5QrcodeSupportedFormats.UPC_A],
+      videoConstraints: {
+        facingMode: "environment",
+        zoom: 2,
+        advanced: [
+          { focusMode: { exact: "continuous" } },
+          { supportedFormats: ["upc_a"] }
+        ],
+      },
     };
+
     SCANNER.start({ facingMode: "environment" }, config, (decoded_text, decode_data) => {
       LOGGER_UI_HANDLERS.handle_submit_upc(decoded_text);
     });
@@ -67,7 +75,7 @@ const LOGGER_SCANNER = (function () {
       SCANNER.pause();
     }
   }
-  
+
   function resume_scanner() {
     if (SCANNER.getState() == Html5QrcodeScannerState.PAUSED) {
       console.log("Resuming scanner");
