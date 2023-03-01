@@ -3,14 +3,12 @@ body {
 }
 
 #reader {
-  z-index: -1;
-  position: relative;
   height: 30vh;
-  overflow: hidden;
 }
 
 #reader video {
   max-height: 100%;
+  max-width: 100%;
   object-fit: cover;
 }
 
