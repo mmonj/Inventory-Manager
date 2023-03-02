@@ -14,6 +14,7 @@ services:
       - ./:/app
     env_file:
       - dev.env
+    restart: unless-stopped
 
   rq_worker:
     image: inventory-manager-django-dev
@@ -24,6 +25,9 @@ services:
       - ./:/app
     env_file:
       - dev.env
+    restart: unless-stopped
+    depends_on:
+      - django_app
 
   # redis-overcommit-on-host
   redis-overcommit:
@@ -37,3 +41,5 @@ services:
     image: redis
     container_name: redis-inventory-manager
     restart: unless-stopped
+    depends_on:
+      - django_app
