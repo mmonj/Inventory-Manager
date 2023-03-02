@@ -1,0 +1,23 @@
+$font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans",
+"Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+"Noto Color Emoji";
+
+$bg-dark-purple-5: rgb(19, 17, 28);
+$bg-dark-purple-4: rgb(41, 47, 68);
+$bg-dark-purple-3: rgba(73, 128, 188, 0.05);
+$bg-dark-purple-1: rgba(73, 128, 188, 0.1);
+
+$text-color-3: #8e8c97;
+$text-color-1: #ffffff;
+$text-hover-color-1: darken($text-color-1, 15%);
+$text-active-color-1: darken($text-color-1, 30%);
+$text-disabled-color-1: darken($text-color-1, 30%);
+
+$btn-background-primary: linear-gradient(135deg, rgb(54, 35, 165), rgb(64, 39, 122));
+$btn-bg-1: rgb(54, 35, 165);
+$btn-hover-bg-1: darken($btn-bg-1, 15%);
+$btn-active-bg-1: darken($btn-bg-1, 30%);
+$btn-disabled-bg-1: darken($btn-bg-1, 30%);
+
+$card-border-color-1: rgba(255, 255, 255, 0.123);
+$max-width-rem-values: 50, 55, 60, 65, 70;

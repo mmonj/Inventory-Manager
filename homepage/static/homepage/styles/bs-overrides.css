@@ -1,0 +1,32 @@
+:root {
+  --bs-body-font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Noto Sans, Liberation Sans, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+}
+
+.btn {
+  background: linear-gradient(135deg, rgb(54, 35, 165), rgb(64, 39, 122));
+}
+
+.btn-primary {
+  --bs-btn-color: #ffffff;
+  --bs-btn-border-color: rgb(54, 35, 165);
+  --bs-btn-hover-color: #d9d9d9;
+  --bs-btn-hover-bg: #211666;
+  --bs-btn-hover-border-color: #211666;
+  --bs-btn-focus-shadow-rgb: 49,132,253;
+  --bs-btn-active-color: #b3b3b3;
+  --bs-btn-active-bg: #0d0827;
+  --bs-btn-active-border-color: rgb(54, 35, 165);
+  --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+  --bs-btn-disabled-color: #b3b3b3;
+  --bs-btn-disabled-bg: #0d0827;
+  --bs-btn-disabled-border-color: #0d0827;
+}
+
+.navbar {
+  --bs-navbar-color: rgba(0, 0, 0, 0.55);
+  --bs-navbar-hover-color: #d9d9d9;
+  --bs-navbar-disabled-color: #b3b3b3;
+  --bs-navbar-active-color: #b3b3b3;
+  --bs-navbar-brand-color: #ffffff;
+  --bs-navbar-brand-hover-color: #d9d9d9;
+}/*# sourceMappingURL=bs-overrides.css.map */

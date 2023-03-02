@@ -3,7 +3,6 @@ html {
 }
 
 body {
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   color: #8e8c97;
   background: radial-gradient(ellipse at top, rgb(41, 47, 68), rgb(19, 17, 28));
 }
@@ -12,25 +11,9 @@ h1, h2, h3, h4, h5, h6 {
   color: #ffffff;
 }
 
-.navbar-brand, .navbar-brand:focus, .navbar-brand:active, .navbar-brand:hover {
-  color: #ffffff;
-}
-
-.navbar-brand:hover {
-  filter: brightness(90%);
-}
-
 .navbar-brand:active {
   filter: brightness(90%);
   transform: scale(98%);
-}
-
-.navbar {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.123);
-}
-
-.navbar-brand:focus {
-  filter: brightness(90%);
 }
 
 .mw-rem-50 {
@@ -56,11 +39,6 @@ h1, h2, h3, h4, h5, h6 {
 .card {
   background-color: rgba(73, 128, 188, 0.05);
   border-color: rgba(255, 255, 255, 0.123);
-}
-
-.btn {
-  color: #ffffff;
-  background: linear-gradient(135deg, rgb(54, 35, 165), rgb(64, 39, 122));
 }
 
 #product-logger-logo {

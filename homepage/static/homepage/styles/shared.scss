@@ -1,23 +1,10 @@
-$bg-dark-purple-5: rgb(19, 17, 28);
-$bg-dark-purple-4: rgb(41, 47, 68);
-$bg-dark-purple-3: rgba(73, 128, 188, 0.05);
-$bg-dark-purple-1: rgba(73, 128, 188, 0.1);
-
-$text-color-3: #8e8c97;
-$text-color-1: #ffffff;
-
-$card-border-color-1: rgba(255, 255, 255, 0.123);
-
-$max-width-rem-values: 50, 55, 60, 65, 70;
+@import "variables";
 
 html {
   height: 100%;
 }
 
 body {
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans",
-  "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-  "Noto Color Emoji";
   color: $text-color-3;
   // background: linear-gradient(135deg, $bg-dark-purple-5 40%, $bg-dark-purple-4);
   background: radial-gradient(ellipse at top, $bg-dark-purple-4, $bg-dark-purple-5);
@@ -27,28 +14,9 @@ h1,h2,h3,h4,h5,h6 {
   color: $text-color-1;
 }
 
-.navbar-brand {
-  color: $text-color-1;
-}
-
-.navbar-brand:hover {
-  @extend .navbar-brand;
-  filter: brightness(90%);
-}
-
 .navbar-brand:active {
-  @extend .navbar-brand;
   filter: brightness(90%);
   transform: scale(98%);
-}
-
-.navbar {
-  border-bottom: 1px solid $card-border-color-1;
-}
-
-.navbar-brand:focus {
-  @extend .navbar-brand;
-  filter: brightness(90%);
 }
 
 @each $i in $max-width-rem-values {
@@ -60,11 +28,6 @@ h1,h2,h3,h4,h5,h6 {
 .card {
   background-color: $bg-dark-purple-3;
   border-color: $card-border-color-1;
-}
-
-.btn {
-  color: $text-color-1;
-  background: linear-gradient(135deg, rgb(54, 35, 165), rgb(64, 39, 122));
 }
 
 #product-logger-logo {
