@@ -33,23 +33,23 @@ h1, h2, h3, h4, h5, h6 {
   filter: brightness(90%);
 }
 
-.max-width-50 {
+.mw-rem-50 {
   max-width: 50rem;
 }
 
-.max-width-55 {
+.mw-rem-55 {
   max-width: 55rem;
 }
 
-.max-width-60 {
+.mw-rem-60 {
   max-width: 60rem;
 }
 
-.max-width-65 {
+.mw-rem-65 {
   max-width: 65rem;
 }
 
-.max-width-70 {
+.mw-rem-70 {
   max-width: 70rem;
 }
 
