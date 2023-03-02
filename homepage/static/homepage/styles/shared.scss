@@ -8,6 +8,8 @@ $text-color-1: #ffffff;
 
 $card-border-color-1: rgba(255, 255, 255, 0.123);
 
+$max-width-values: 50, 55, 60, 65, 70;
+
 html {
   height: 100%;
 }
@@ -17,7 +19,6 @@ body {
   "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
   "Noto Color Emoji";
   color: $text-color-3;
-  max-width: 60rem;
   // background: linear-gradient(135deg, $bg-dark-purple-5 40%, $bg-dark-purple-4);
   background: radial-gradient(ellipse at top, $bg-dark-purple-4, $bg-dark-purple-5);
 }
@@ -48,6 +49,12 @@ h1,h2,h3,h4,h5,h6 {
 .navbar-brand:focus {
   @extend .navbar-brand;
   filter: brightness(90%);
+}
+
+@each $i in $max-width-values {
+  .max-width-#{$i}{
+    max-width: #{$i}rem;
+  }
 }
 
 .card {

@@ -5,7 +5,6 @@ html {
 body {
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   color: #8e8c97;
-  max-width: 60rem;
   background: radial-gradient(ellipse at top, rgb(41, 47, 68), rgb(19, 17, 28));
 }
 
@@ -32,6 +31,26 @@ h1, h2, h3, h4, h5, h6 {
 
 .navbar-brand:focus {
   filter: brightness(90%);
+}
+
+.max-width-50 {
+  max-width: 50rem;
+}
+
+.max-width-55 {
+  max-width: 55rem;
+}
+
+.max-width-60 {
+  max-width: 60rem;
+}
+
+.max-width-65 {
+  max-width: 65rem;
+}
+
+.max-width-70 {
+  max-width: 70rem;
 }
 
 .card {
