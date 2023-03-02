@@ -12,4 +12,4 @@ services:
     volumes:
       - ./:/app
     env_file:
-      - prod.env
+      - deploy.env

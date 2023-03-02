@@ -14,9 +14,10 @@ MEDIA_ROOT = BASE_DIR / "media/"
 SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ['DEBUG'] == "1"
+DEBUG = os.environ['DJANGO_DEBUG'] == "1"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ["DJANGO_ALLOWED_HOSTS"].split()
+CSRF_TRUSTED_ORIGINS = os.environ["DJANGO_CSRF_TRUSTED_ORIGINS"].split()
 
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
