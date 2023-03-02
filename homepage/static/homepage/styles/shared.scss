@@ -8,7 +8,7 @@ $text-color-1: #ffffff;
 
 $card-border-color-1: rgba(255, 255, 255, 0.123);
 
-$max-width-values: 50, 55, 60, 65, 70;
+$max-width-rem-values: 50, 55, 60, 65, 70;
 
 html {
   height: 100%;
@@ -51,7 +51,7 @@ h1,h2,h3,h4,h5,h6 {
   filter: brightness(90%);
 }
 
-@each $i in $max-width-values {
+@each $i in $max-width-rem-values {
   .mw-rem-#{$i}{
     max-width: #{$i}rem;
   }
