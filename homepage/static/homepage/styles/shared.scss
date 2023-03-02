@@ -1,13 +1,9 @@
 @import "variables";
 
-html {
-  height: 100%;
-}
-
 body {
-  color: $text-color-3;
   // background: linear-gradient(135deg, $bg-dark-purple-5 40%, $bg-dark-purple-4);
   background: radial-gradient(ellipse at top, $bg-dark-purple-4, $bg-dark-purple-5);
+  min-height: 100vh;
 }
 
 h1,h2,h3,h4,h5,h6 {
