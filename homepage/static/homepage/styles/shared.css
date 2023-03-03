@@ -1,5 +1,5 @@
 body {
-  background: radial-gradient(ellipse at top, rgb(35, 45, 59), rgb(17, 24, 39));
+  background: linear-gradient(to bottom, rgb(35, 45, 59), rgb(17, 24, 39));
   min-height: 100vh;
 }
 

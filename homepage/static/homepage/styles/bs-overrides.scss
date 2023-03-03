@@ -3,6 +3,7 @@
 :root {
   --bs-body-font-family: #{$font-family};
   --bs-body-color: #{$text-color-3};
+  --bs-body-color-rgb: #{red($text-color-3)}, #{green($text-color-3)}, #{blue($text-color-3)};
   --bs-border-color: #{$card-border-color-1};
   --bs-border-color-translucent: #{$card-border-color-1}; // Used for card border
 }
@@ -20,7 +21,7 @@
   --bs-card-bg: #{$card-bg-1};
 }
 
-.btn {
+.btn.btn-primary {
   background: $btn-background-primary;
 }
 
