@@ -93,7 +93,7 @@ const LOGGER_UI_HANDLERS = (function() {
             <span class="visually-hidden">Loading...</span>
           </div>
         </div>
-        <button class="button-remove-product btn badge bg-primary rounded-pill my-auto ms-2 py-2">Delete</button>
+        <button class="button-remove-product btn btn-primary badge rounded-pill my-auto ms-2 py-2">Delete</button>
       </li>
     `);
   
