@@ -19,6 +19,12 @@
   background: linear-gradient(to bottom, rgb(35, 45, 59), rgb(17, 24, 39));
 }
 
+.form-select {
+  background: rgb(17, 24, 39);
+  color: rgb(255, 255, 255);
+  border-color: rgba(229, 231, 235, 0.274);
+}
+
 .btn.btn-primary {
   background: linear-gradient(to bottom right, rgb(79, 70, 229), rgb(120, 51, 234));
 }

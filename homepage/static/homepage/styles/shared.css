@@ -1,17 +1,3 @@
-h1, h2, h3, h4, h5, h6 {
-  color: rgb(255, 255, 255);
-}
-
-body {
-  background: linear-gradient(to bottom, rgb(35, 45, 59), rgb(17, 24, 39));
-  min-height: 100vh;
-}
-
-.navbar-brand:active {
-  filter: brightness(90%);
-  transform: scale(98%);
-}
-
 .mw-rem-50 {
   max-width: 50rem;
 }
@@ -30,4 +16,60 @@ body {
 
 .mw-rem-70 {
   max-width: 70rem;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: rgb(255, 255, 255);
+}
+
+body {
+  background: linear-gradient(to bottom, rgb(35, 45, 59), rgb(17, 24, 39));
+  min-height: 100vh;
+}
+
+.navbar-brand:active {
+  filter: brightness(90%);
+  transform: scale(98%);
+}
+
+.select2 {
+  /* main selection */
+  /* search input field */
+  /* search input border */
+  /* currently selected option */
+  /* non-selected options */
+}
+.select2-container {
+  width: 100% !important;
+}
+.select2-selection {
+  min-height: 2rem;
+}
+.select2-selection__rendered {
+  margin: 0.25rem;
+}
+.select2-selection__arrow {
+  margin: 0.2rem 0;
+}
+.select2-selection__rendered {
+  color: rgb(156, 163, 175) !important;
+  background-color: rgb(17, 24, 39);
+}
+.select2-search__field {
+  color: rgb(156, 163, 175) !important;
+  background-color: rgb(17, 24, 39);
+}
+.select2-search {
+  background-color: rgb(17, 24, 39) !important;
+}
+.select2-results__option--selected {
+  background-color: #3a3a3a !important;
+}
+.select2-results {
+  background-color: rgb(17, 24, 39);
+}
+.select2-selection--single {
+  background-color: rgb(17, 24, 39) !important;
+  border-color: rgba(229, 231, 235, 0.274) !important;
+  height: initial !important;
 }/*# sourceMappingURL=shared.css.map */

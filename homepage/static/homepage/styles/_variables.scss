@@ -19,8 +19,9 @@ $btn-active-bg-1: darken($btn-bg-1, 30%);
 $btn-disabled-bg-1: darken($btn-bg-1, 40%);
 $btn-background-primary: linear-gradient(to bottom right, $btn-bg-1, $btn-bg-2);
 
-$border-color: rgba(229, 231, 235, 0.164);
-$card-border-color-1: $border-color;
+$border-color-1: rgba(229, 231, 235, 0.164);
+$border-color-2: rgba(229, 231, 235, 0.274);
+$card-border-color-1: $border-color-1;
 $card-bg-1: $bg-dark-3;
 $max-width-rem-values: 50, 55, 60, 65, 70;
 
