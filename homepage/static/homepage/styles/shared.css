@@ -1,10 +1,10 @@
+h1, h2, h3, h4, h5, h6 {
+  color: rgb(255, 255, 255);
+}
+
 body {
   background: linear-gradient(to bottom, rgb(35, 45, 59), rgb(17, 24, 39));
   min-height: 100vh;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  color: rgb(255, 255, 255);
 }
 
 .navbar-brand:active {
@@ -30,8 +30,4 @@ h1, h2, h3, h4, h5, h6 {
 
 .mw-rem-70 {
   max-width: 70rem;
-}
-
-#product-logger-logo {
-  height: 100%;
 }/*# sourceMappingURL=shared.css.map */

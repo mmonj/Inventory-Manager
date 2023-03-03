@@ -1,12 +1,12 @@
 @import "variables";
 
+h1, h2, h3, h4, h5, h6 {
+  color: $text-color-1;
+}
+
 body {
   background: $background-primary;
   min-height: 100vh;
-}
-
-h1,h2,h3,h4,h5,h6 {
-  color: $text-color-1;
 }
 
 .navbar-brand:active {
@@ -18,8 +18,4 @@ h1,h2,h3,h4,h5,h6 {
   .mw-rem-#{$i}{
     max-width: #{$i}rem;
   }
-}
-
-#product-logger-logo {
-  height: 100%;
 }
