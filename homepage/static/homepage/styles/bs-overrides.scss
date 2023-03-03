@@ -18,7 +18,8 @@
 }
 
 .card {
-  --bs-card-bg: #{$card-bg-1};
+  // --bs-card-bg: #{$card-bg-1};
+  background: $background-primary;
 }
 
 .btn.btn-primary {
