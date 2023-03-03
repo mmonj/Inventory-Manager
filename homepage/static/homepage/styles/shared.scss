@@ -1,8 +1,7 @@
 @import "variables";
 
 body {
-  // background: linear-gradient(135deg, $bg-dark-purple-5 40%, $bg-dark-purple-4);
-  background: radial-gradient(ellipse at top, $bg-dark-purple-4, $bg-dark-purple-5);
+  background: $background-primary;
   min-height: 100vh;
 }
 
@@ -19,11 +18,6 @@ h1,h2,h3,h4,h5,h6 {
   .mw-rem-#{$i}{
     max-width: #{$i}rem;
   }
-}
-
-.card {
-  background-color: $bg-dark-purple-3;
-  border-color: $card-border-color-1;
 }
 
 #product-logger-logo {

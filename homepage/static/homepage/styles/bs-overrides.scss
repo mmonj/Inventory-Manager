@@ -2,7 +2,22 @@
 
 :root {
   --bs-body-font-family: #{$font-family};
+  --bs-body-color: #{$text-color-3};
   --bs-border-color: #{$card-border-color-1};
+  --bs-border-color-translucent: #{$card-border-color-1}; // Used for card border
+}
+
+.navbar {
+  --bs-navbar-color: #{$text-color-3};
+  --bs-navbar-hover-color: #{$text-hover-color-1};
+  --bs-navbar-disabled-color: #{$text-disabled-color-1};
+  --bs-navbar-active-color: #{$text-active-color-1};
+  --bs-navbar-brand-color: #{$text-color-1};
+  --bs-navbar-brand-hover-color: #{$text-hover-color-1};
+}
+
+.card {
+  --bs-card-bg: #{$card-bg-1};
 }
 
 .btn {
@@ -23,13 +38,4 @@
   --bs-btn-disabled-color: #{$text-disabled-color-1};
   --bs-btn-disabled-bg: #{$btn-disabled-bg-1};
   --bs-btn-disabled-border-color: #{$btn-disabled-bg-1};
-}
-
-.navbar {
-  --bs-navbar-color: rgba(0, 0, 0, 0.55);
-  --bs-navbar-hover-color: #{$text-hover-color-1};
-  --bs-navbar-disabled-color: #{$text-disabled-color-1};
-  --bs-navbar-active-color: #{$text-active-color-1};
-  --bs-navbar-brand-color: #{$text-color-1};
-  --bs-navbar-brand-hover-color: #{$text-hover-color-1};
 }

@@ -1,33 +1,39 @@
 :root {
   --bs-body-font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Noto Sans, Liberation Sans, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
-  --bs-border-color: rgba(255, 255, 255, 0.123);
-}
-
-.btn {
-  background: linear-gradient(135deg, rgb(54, 35, 165), rgb(64, 39, 122));
-}
-
-.btn-primary {
-  --bs-btn-color: #ffffff;
-  --bs-btn-border-color: rgb(54, 35, 165);
-  --bs-btn-hover-color: #d9d9d9;
-  --bs-btn-hover-bg: #211666;
-  --bs-btn-hover-border-color: #211666;
-  --bs-btn-focus-shadow-rgb: 49,132,253;
-  --bs-btn-active-color: #b3b3b3;
-  --bs-btn-active-bg: #0d0827;
-  --bs-btn-active-border-color: rgb(54, 35, 165);
-  --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
-  --bs-btn-disabled-color: #b3b3b3;
-  --bs-btn-disabled-bg: #0d0827;
-  --bs-btn-disabled-border-color: #0d0827;
+  --bs-body-color: rgb(156, 163, 175);
+  --bs-border-color: rgba(229, 231, 235, 0.164);
+  --bs-border-color-translucent: rgba(229, 231, 235, 0.164);
 }
 
 .navbar {
-  --bs-navbar-color: rgba(0, 0, 0, 0.55);
+  --bs-navbar-color: rgb(156, 163, 175);
   --bs-navbar-hover-color: #d9d9d9;
-  --bs-navbar-disabled-color: #b3b3b3;
+  --bs-navbar-disabled-color: #999999;
   --bs-navbar-active-color: #b3b3b3;
-  --bs-navbar-brand-color: #ffffff;
+  --bs-navbar-brand-color: rgb(255, 255, 255);
   --bs-navbar-brand-hover-color: #d9d9d9;
+}
+
+.card {
+  --bs-card-bg: rgb(35, 45, 59);
+}
+
+.btn {
+  background: linear-gradient(135deg, rgba(64, 74, 207, 0.8), rgba(75, 50, 216, 0.8));
+}
+
+.btn-primary {
+  --bs-btn-color: rgb(255, 255, 255);
+  --bs-btn-border-color: rgba(64, 74, 207, 0.8);
+  --bs-btn-hover-color: #d9d9d9;
+  --bs-btn-hover-bg: rgba(39, 47, 155, 0.8);
+  --bs-btn-hover-border-color: rgba(39, 47, 155, 0.8);
+  --bs-btn-focus-shadow-rgb: 49,132,253;
+  --bs-btn-active-color: #b3b3b3;
+  --bs-btn-active-bg: rgba(24, 29, 94, 0.8);
+  --bs-btn-active-border-color: rgba(64, 74, 207, 0.8);
+  --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+  --bs-btn-disabled-color: #999999;
+  --bs-btn-disabled-bg: rgba(13, 16, 54, 0.8);
+  --bs-btn-disabled-border-color: rgba(13, 16, 54, 0.8);
 }/*# sourceMappingURL=bs-overrides.css.map */
