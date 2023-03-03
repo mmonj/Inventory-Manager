@@ -6,18 +6,21 @@
   }
 }
 
-h1, h2, h3, h4, h5, h6 {
-  color: $text-color-1;
-}
-
 body {
   background: $background-primary;
   min-height: 100vh;
 }
 
+h1, h2, h3, h4, h5, h6 {
+  color: $text-color-1;
+}
+
+a:active {
+  transform: scale(97%);
+}
+
 .navbar-brand:active {
   filter: brightness(90%);
-  transform: scale(98%);
 }
 
 // select2 dropdown styles

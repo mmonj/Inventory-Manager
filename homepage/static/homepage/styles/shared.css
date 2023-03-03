@@ -18,18 +18,21 @@
   max-width: 70rem;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  color: rgb(255, 255, 255);
-}
-
 body {
   background: linear-gradient(to bottom, rgb(35, 45, 59), rgb(17, 24, 39));
   min-height: 100vh;
 }
 
+h1, h2, h3, h4, h5, h6 {
+  color: rgb(255, 255, 255);
+}
+
+a:active {
+  transform: scale(97%);
+}
+
 .navbar-brand:active {
   filter: brightness(90%);
-  transform: scale(98%);
 }
 
 .select2 {
