@@ -24,6 +24,12 @@
   color: rgb(255, 255, 255);
   border-color: rgba(229, 231, 235, 0.274);
 }
+.list-group-item {
+  color: rgb(156, 163, 175);
+  background: linear-gradient(to bottom, rgb(35, 45, 59), rgb(17, 24, 39));
+  border-color: rgba(229, 231, 235, 0.164);
+}
+
 .btn.btn-primary {
   background: linear-gradient(to bottom right, rgb(79, 70, 229), rgb(120, 51, 234));
 }

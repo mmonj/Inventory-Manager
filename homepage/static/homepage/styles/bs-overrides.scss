@@ -32,6 +32,12 @@
   }
 }
 
+.list-group-item {
+  color: $text-color-3;
+  background: $background-primary;
+  border-color: $card-border-color-1;
+}
+
 .btn.btn-primary {
   background: $btn-background-primary;
 }
