@@ -52,7 +52,7 @@ body {
   margin: 0.2rem 0;
 }
 .select2-selection__rendered {
-  color: rgb(156, 163, 175) !important;
+  color: rgb(255, 255, 255) !important;
   background-color: rgb(17, 24, 39);
 }
 .select2-search__field {
