@@ -15,6 +15,10 @@ h1, h2, h3, h4, h5, h6 {
   color: $text-color-1;
 }
 
+.title-color {
+  color: rgb(247, 223, 186);
+}
+
 .navbar-brand:active {
   filter: brightness(90%);
 }
@@ -69,4 +73,20 @@ h1, h2, h3, h4, h5, h6 {
     border-color: $border-color-2 !important;
     height: initial !important;
   }
+}
+
+@keyframes _fade_zero {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.fade-zero {
+  animation-name: _fade_zero;
+  animation-duration: 0.2s;
+  animation-fill-mode: forwards;
+  animation-play-state: running;
 }
