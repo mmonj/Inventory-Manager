@@ -50,13 +50,13 @@ input.form-control {
   color: rgb(255, 255, 255);
   border-color: rgba(229, 231, 235, 0.274);
 }
-
-.form-select {
+input.form-control:focus {
   background: rgb(17, 24, 39);
   color: rgb(255, 255, 255);
   border-color: rgba(229, 231, 235, 0.274);
 }
-.form-select:focus {
+
+.form-select {
   background: rgb(17, 24, 39);
   color: rgb(255, 255, 255);
   border-color: rgba(229, 231, 235, 0.274);
