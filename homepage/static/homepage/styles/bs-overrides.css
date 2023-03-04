@@ -56,6 +56,17 @@ input.form-control:focus {
   border-color: rgba(229, 231, 235, 0.274);
 }
 
+textarea.form-control {
+  background: rgb(17, 24, 39);
+  color: rgb(255, 255, 255);
+  border-color: rgba(229, 231, 235, 0.274);
+}
+textarea.form-control:focus {
+  background: rgb(17, 24, 39);
+  color: rgb(255, 255, 255);
+  border-color: rgba(229, 231, 235, 0.274);
+}
+
 .form-select {
   background: rgb(17, 24, 39);
   color: rgb(255, 255, 255);

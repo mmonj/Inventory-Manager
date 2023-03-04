@@ -64,6 +64,14 @@ input.form-control {
   }
 }
 
+textarea.form-control {
+  @include common-form-styles-1;
+
+  &:focus {
+    @include common-form-styles-1;
+  }
+}
+
 .form-select {
   @include common-form-styles-1;
 }
