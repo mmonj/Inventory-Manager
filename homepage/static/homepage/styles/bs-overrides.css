@@ -45,11 +45,23 @@
   --bs-card-cap-color: rgb(255, 255, 255);
 }
 
-.form-select, .form-control, .form-select:focus, .form-control:focus {
+input.form-control {
   background: rgb(17, 24, 39);
   color: rgb(255, 255, 255);
   border-color: rgba(229, 231, 235, 0.274);
 }
+
+.form-select {
+  background: rgb(17, 24, 39);
+  color: rgb(255, 255, 255);
+  border-color: rgba(229, 231, 235, 0.274);
+}
+.form-select:focus {
+  background: rgb(17, 24, 39);
+  color: rgb(255, 255, 255);
+  border-color: rgba(229, 231, 235, 0.274);
+}
+
 .list-group-item {
   color: rgb(156, 163, 175);
   background: linear-gradient(to bottom, rgb(35, 45, 59), rgb(17, 24, 39));

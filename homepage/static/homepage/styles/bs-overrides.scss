@@ -50,13 +50,21 @@
   --bs-card-cap-color: #{$text-color-1};
 }
 
-.form-select, .form-control {
+@mixin common-form-styles-1 {
   background: $bg-dark-5;
   color: $text-color-1;
   border-color: $border-color-2;
+}
 
+input.form-control {
+  @include common-form-styles-1;
+}
+
+.form-select {
+  @include common-form-styles-1;
+  
   &:focus {
-    @extend .form-control;
+    @include common-form-styles-1;
   }
 }
 
