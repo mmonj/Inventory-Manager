@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block body_main %}
-  <section class="m-3">
+  <section class="m-3 mw-rem-60 mx-auto">
     <form action="{% url 'logger:import_json_data_files' %}" method="POST" enctype="multipart/form-data">
       {% csrf_token %}
       
