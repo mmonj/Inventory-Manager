@@ -6,13 +6,8 @@
   }
 }
 
-body {
-  background: $background-primary;
-  min-height: 100vh;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  color: $text-color-1;
+.bg-blue-theme {
+  background-color: $bg-dark-3;
 }
 
 .title-color {

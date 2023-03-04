@@ -1,0 +1,32 @@
+.nav {
+  --bs-nav-link-color: rgb(255, 255, 255);
+  --bs-nav-link-hover-color: rgb(156, 163, 175);
+  --bs-nav-link-disabled-color: #6c757d;
+}
+
+.navbar {
+  --bs-navbar-color: rgb(156, 163, 175);
+  --bs-navbar-hover-color: #d9d9d9;
+  --bs-navbar-disabled-color: #a6a6a6;
+  --bs-navbar-active-color: #bfbfbf;
+  --bs-navbar-brand-color: rgb(255, 255, 255);
+  --bs-navbar-brand-hover-color: #d9d9d9;
+}
+
+.nav-tabs {
+  --bs-nav-tabs-border-color: rgba(229, 231, 235, 0.164);
+  --bs-nav-tabs-link-hover-border-color: rgba(229, 231, 235, 0.274);
+  --bs-nav-tabs-link-active-color: rgb(255, 255, 255);
+  --bs-nav-tabs-link-active-bg: linear-gradient(to bottom, rgb(35, 45, 59), rgb(17, 24, 39));
+  --bs-nav-tabs-link-active-border-color: rgba(229, 231, 235, 0.274);
+}
+
+.nav-link {
+  color: rgb(156, 163, 175);
+}
+.nav-link:hover {
+  color: rgb(255, 255, 255);
+}
+.nav-link:active {
+  color: #cccccc;
+}/*# sourceMappingURL=bs-navbar-overrides.css.map */

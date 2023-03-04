@@ -9,39 +9,13 @@
   --bs-link-color: #{$text-color-1};
 }
 
-.nav {
-  --bs-nav-link-color: var(--bs-link-color);
-  --bs-nav-link-hover-color: #{$text-color-3};
-  --bs-nav-link-disabled-color: #6c757d;
+body {
+  background: $background-primary;
+  min-height: 100vh;
 }
 
-.navbar {
-  --bs-navbar-color: #{$text-color-3};
-  --bs-navbar-hover-color: #{$text-hover-color-1};
-  --bs-navbar-disabled-color: #{$text-disabled-color-1};
-  --bs-navbar-active-color: #{$text-active-color-1};
-  --bs-navbar-brand-color: #{$text-color-1};
-  --bs-navbar-brand-hover-color: #{$text-hover-color-1};
-}
-
-.nav-tabs {
-  --bs-nav-tabs-border-color: #{$border-color-1};
-  --bs-nav-tabs-link-hover-border-color: #{$border-color-2};
-  --bs-nav-tabs-link-active-color: #{$text-color-1};
-  --bs-nav-tabs-link-active-bg: #{$background-primary};
-  --bs-nav-tabs-link-active-border-color: #{$border-color-2};
-}
-
-.nav-link {
-  color: $text-color-3;
-
-  &:hover {
-    color: $text-color-1;
-  }
-
-  &:active {
-    color: darken($text-color-1, 20%);
-  }
+h1, h2, h3, h4, h5, h6 {
+  color: $text-color-1;
 }
 
 .card {
