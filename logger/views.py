@@ -36,7 +36,7 @@ def login_view(request):
             return redirect("logger:scanner")
         else:
             return render(request, "logger/login.html", {
-                "message": "Invalid username and/or password."
+                "is_invalid_credentials": True
             })
 
 

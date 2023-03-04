@@ -11,6 +11,13 @@
   <section class="m-2 p-2 rounded mw-rem-60 mx-auto">
     <form action="{% url 'logger:login_view' %}" method="POST">
       {% csrf_token %}
+
+      {% if is_invalid_credentials %}
+        <div class="alert alert-danger" role="alert">
+          Invalid username or password.
+        </div>
+      {% endif %}
+
       <fieldset>
         <legend>Log In</legend>
         <p>
