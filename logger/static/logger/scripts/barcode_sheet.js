@@ -2,7 +2,6 @@
   "use strict";
   
   function main() {
-    prepare_document_theme();
     handle_landing_page_sheet_type();
     document.addEventListener("copy", modify_clipboard_text);
 
@@ -16,6 +15,8 @@
     document.querySelectorAll(".upc-section").forEach((upc_section_node) => {
       upc_section_node.addEventListener("click", select_text);
     });
+    
+    update_items_shown_counter();
   }
 
   function select_text(event) {
@@ -69,15 +70,22 @@
     event.preventDefault();
   }
 
-  function isnumeric(text) {
-    return text.length > 0 && !isNaN(text);
+  function update_items_shown_counter() {
+    const items_shown_node = document.getElementById("item-count-indicator");
+    let counter = 0;
+    let result_indicator_text = '';
+    document.querySelectorAll(".product-container").forEach((elm, idx) => {
+      if (!elm.hidden) {
+        counter += 1;
+      }
+      result_indicator_text = `${counter} items shown / ${idx + 1} total`;
+    });
+
+    items_shown_node.innerText = result_indicator_text;
   }
 
-  function prepare_document_theme() {
-    document.documentElement.removeAttribute("data-bs-theme");
-    document.querySelector("header").setAttribute("data-bs-theme", "dark");
-    document.querySelector("main").classList.remove("mx-auto");
-    document.querySelector("main").classList.add("mx-2");
+  function isnumeric(text) {
+    return text.length > 0 && !isNaN(text);
   }
 
   main();
