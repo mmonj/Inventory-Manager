@@ -21,7 +21,7 @@
       integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
       crossorigin="anonymous"></script>
       
-    {% if request.resolver_match.namespace == 'logger' and not request.resolver_match.url_name == 'get_barcode_sheet' %}
+    {% if exclude_bs_overrides != True %}
       <link href="{% static 'homepage/styles/bs-overrides.css' %}" rel="stylesheet">
     {% endif %}
     <link href="{% static 'homepage/styles/bs-navbar-overrides.css' %}" rel="stylesheet">

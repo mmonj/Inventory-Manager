@@ -252,5 +252,6 @@ def get_barcode_sheet(request, barcode_sheet_id):
     ).data
 
     return render(request, "logger/barcode_sheet.html", {
-        **barcode_sheet_data
+        **barcode_sheet_data,
+        "exclude_bs_overrides": True
     })
