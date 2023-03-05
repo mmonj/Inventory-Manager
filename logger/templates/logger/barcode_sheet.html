@@ -57,7 +57,7 @@
 {% block body_main %}
   <section class="mx-auto my-2">
     <ul id="products-container"
-        class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 g-4">
+        class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 gx-4">
       {% for product_addition in product_additions %}
         <!-- .product-container receives a 'hidden' attribute by default. This will be overridden by the client-side javascript -->
         <li class="col product-container card text-center border-0 my-1" data-is_carried="{{ product_addition.is_carried|yesno:'true,false' }}" hidden>
