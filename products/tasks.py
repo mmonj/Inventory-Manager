@@ -102,7 +102,7 @@ def handle_product_data_response(products: list, items_data: list):
         for product_image_url in product_image_urls:
             success = download_image(product, product_image_url)
             if success:
-                logger.info("Download Successful!")
+                logger.info(f"Download image successfully for {product.upc}. Image URL: {product_image_url}!")
                 break
         redis_instance.sadd(upcs_to_fetch_key, product.upc)
 
