@@ -1,53 +1,45 @@
+{% extends "logger/layout.html" %}
 {% load static %}
 
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Inventory Manager</title>
+{% block title %}Inventory Manager{% endblock %}
 
-  <link rel="icon" type="image/x-icon" href="{% static 'homepage/phone-barcode-image.png' %}">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
-  <link href="{% static 'homepage/styles/shared.css' %}" rel="stylesheet">
+{% block extra_head_elements %}
+  <style>
+    #product-logger-logo {
+      height: 100%;
+    }
+  </style>
+{% endblock %}
 
-</head>
-<body class="mx-auto">
-  <header>
-    <nav class="navbar">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="{% url 'homepage:index' %}">
-            <img src="{% static 'homepage/phone-barcode-image.png' %}" alt="Logo" width="30" height="50" id="nav-logo" class="d-inline-block">
-            <span class="mx-2">Inventory Manager</span>
-        </a>
-      </div>
-    </nav>
-  </header>
-  
-  <main>
-    <section class="my-4 mx-2">
-      <div class="card mb-3 rounded-4">
-        <div class="row g-0">
-          <div id="product-logger-logo-container" class="col-md-4 text-center">
-            <img id="product-logger-logo" src="{% static 'homepage/product-logger-logo.png' %}" class="img-fluid rounded-start" alt="product-logger-logo">
+{% block body_header %}
+  <nav class="navbar mw-rem-60 mx-auto border-bottom">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="{% url 'homepage:index' %}">
+        <img src="{% static 'homepage/phone-barcode-image.png' %}" alt="Logo" width="30" height="50" id="nav-logo" class="d-inline-block">
+        <span class="mx-2">Inventory Manager</span>
+      </a>
+    </div>
+  </nav>
+{% endblock %}
+
+{% block body_main %}
+  <section class="my-4 mw-rem-60 mx-auto px-2">
+    <div class="card mb-3 rounded-4 overflow-hidden">
+      <div class="row g-0">
+        <div id="product-logger-logo-container" class="col-md-4 text-center">
+          <img id="product-logger-logo" src="{% static 'homepage/product-logger-logo.png' %}" class="img-fluid rounded-start" alt="product-logger-logo">
+        </div>
+        <div class="card-body col-md-8 d-flex flex-column justify-content-between">
+          <div>
+            <h5 class="card-title">Inventory Logger</h5>
+            <p class="card-text">Adjust and monitor inventory for individual stores</p>
+            <p class="card-text">Features a built-in barcode scanner</p>
           </div>
-          <div class="card-body col-md-8 d-flex flex-column justify-content-between">
-            <div>
-              <h5 class="card-title">Product Logger</h5>
-              <p class="card-text">Manage Inventory on a per-store basis</p>
-            </div>
-            <div class="text-end">
-              <a href="{% url 'logger:scanner' %}" class="btn">Go to Product Logger</a>
-            </div>
+          <div class="text-end mt-3">
+            <a href="{% url 'logger:scanner' %}" class="btn btn-primary">Go to Inventory Logger</a>
           </div>
         </div>
       </div>
-    </section>
-  </main>
-</body>
-</html>
+    </div>
+  </section>
+{% endblock %}

@@ -12,73 +12,80 @@
 
 {% block body_header %}
   {% include "logger/includes/navbar.html" %}
-  <div id="company-logo-container" class="p-3 text-center">
-    <img src="{{ parent_company.third_party_logo_url }}" alt="" />
-  </div>
-
-  <div id="sheet-type-container" class="dropdown mb-3 text-center">
-    <button id="sheet-type-main-button" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-      %%sheet-type-verbose%%
-    </button>
-    <ul class="dropdown-menu">
-      <li>
-        <button class="py-2 dropdown-item sheet-type-change" 
-                type="button" 
-                data-sheet_type="all-products"
-                data-sheet_type_verbose="All Products">
-          All products
-        </button>
-      </li>
-      <li>
-        <button class="py-2 dropdown-item sheet-type-change out-of-dist" 
-                type="button" 
-                data-sheet_type="out-of-dist"
-                data-sheet_type_verbose="Out of distribution"
-                data-is_carried="false">
-          Out of distribution
-        </button>
-      </li>
-      <li>
-        <button class="py-2 dropdown-item sheet-type-change in-dist" 
-                type="button" 
-                data-sheet_type="in-dist"
-                data-sheet_type_verbose="In distribution"
-                data-is_carried="true">
-          In distribution
-        </button>
-      </li>
-    </ul>
-  </div>
+  <section>
+    <div id="company-logo-container" class="p-3 text-center">
+      <img src="{{ parent_company.third_party_logo_url }}" alt="" />
+    </div>
+    <h5 id="store-name-title" class="text-center">{{ store_name }}</h5>
+    <h6 id="item-count-indicator" class="text-center mb-3">x items shown</h6>
+    <div id="sheet-type-container" class="dropdown mb-3 text-center">
+      <button id="sheet-type-main-button" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        %%sheet-type-verbose%%
+      </button>
+      <ul class="dropdown-menu">
+        <li>
+          <button class="py-2 dropdown-item sheet-type-change"
+                  type="button"
+                  data-sheet_type="all-products"
+                  data-sheet_type_verbose="All Products">
+            All products
+          </button>
+        </li>
+        <li>
+          <button class="py-2 dropdown-item sheet-type-change out-of-dist"
+                  type="button"
+                  data-sheet_type="out-of-dist"
+                  data-sheet_type_verbose="Out of distribution"
+                  data-is_carried="false">
+            Out of distribution
+          </button>
+        </li>
+        <li>
+          <button class="py-2 dropdown-item sheet-type-change in-dist"
+                  type="button"
+                  data-sheet_type="in-dist"
+                  data-sheet_type_verbose="In distribution"
+                  data-is_carried="true">
+            In distribution
+          </button>
+        </li>
+      </ul>
+    </div>
+  </section>
 {% endblock %}
 
 {% block body_main %}
-  <ul id="products-container" 
-      class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 g-4 mx-auto my-2">
-    {% for product_addition in product_additions %}
-      <!-- .product-container receives a 'hidden' attribute by default. This will be overridden by the client-side javascript -->
-      <li class="col product-container card text-center border-0 my-1" data-is_carried="{{ product_addition.is_carried|yesno:'true,false' }}" hidden>
-        <div class="new-item-indicator-container mb-1">
-          {% if product_addition.is_new %}
-            <img src="{% static 'products/images/new_item_icon.png' %}" alt="">
-          {% endif %}
-        </div>
-        <div class="product-images-container d-flex justify-content-center">
-          <div class="barcode-container">
-            <img src="data:image/png;base64,{{ product_addition.product.barcode_b64 }}" class="barcode-image" alt="Product Barcode">
-            <div class="upc-number d-flex justify-content-evenly">
-              {% for upc_section in product_addition.product.upc_sections %}
-                <span class="upc-section">{{upc_section}}</span>
-              {% endfor %}
+  <section class="mx-auto my-2">
+    <ul id="products-container"
+        class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 gx-4">
+      {% for product_addition in product_additions %}
+        <!-- .product-container receives a 'hidden' attribute by default. This will be overridden by the client-side javascript -->
+        <li class="col product-container card text-center border-0 my-1" data-is_carried="{{ product_addition.is_carried|yesno:'true,false' }}" hidden>
+          <div class="new-item-indicator-container mb-1">
+            {% if product_addition.is_new %}
+              <img src="{% static 'products/images/new_item_icon.png' %}" alt="New Product Indicator">
+            {% endif %}
+          </div>
+          <div class="product-images-container d-flex justify-content-center">
+            <div class="barcode-container">
+              <img src="data:image/png;base64,{{ product_addition.product.barcode_b64 }}" class="barcode-image" alt="Product Barcode">
+              <div class="upc-number">
+                {% spaceless %}
+                  {% for upc_section in product_addition.product.upc_sections %}
+                    <span class="upc-section mx-1">{{upc_section}}</span>
+                  {% endfor %}
+                {% endspaceless %}
+              </div>
+            </div>
+            <div class="product-image-container">
+              <img src="{{ product_addition.product.item_image_url }}" class="product-image" alt="Product Image">
             </div>
           </div>
-          <div class="product-image-container">
-            <img src="{{ product_addition.product.item_image_url }}" class="product-image" alt="Product Image">
+          <div class="card-body">
+            <label class="card-text">{{ product_addition.product.name }}</label>
           </div>
-        </div>
-        <div class="card-body">
-          <label class="card-text">{{ product_addition.product.name }}</label>
-        </div>
-      </li>
-    {% endfor %}
-  </ul>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
 {% endblock %}

@@ -1,65 +1,87 @@
-$bg-dark-purple-5: rgb(19, 17, 28);
-$bg-dark-purple-4: rgb(41, 47, 68);
-$bg-dark-purple-3: rgba(73, 128, 188, 0.05);
-$bg-dark-purple-1: rgba(73, 128, 188, 0.1);
+@import "variables";
 
-$text-color-3: #8e8c97;
-$text-color-1: #ffffff;
-
-$card-border-color-1: rgba(255, 255, 255, 0.123);
-
-html {
-  height: 100%;
+@each $i in $max-width-rem-values {
+  .mw-rem-#{$i}{
+    max-width: #{$i}rem;
+  }
 }
 
-body {
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans",
-  "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-  "Noto Color Emoji";
-  color: $text-color-3;
-  max-width: 60rem;
-  // background: linear-gradient(135deg, $bg-dark-purple-5 40%, $bg-dark-purple-4);
-  background: radial-gradient(ellipse at top, $bg-dark-purple-4, $bg-dark-purple-5);
+.bg-blue-theme {
+  background-color: $bg-dark-3;
 }
 
-h1,h2,h3,h4,h5,h6 {
-  color: $text-color-1;
-}
-
-.navbar-brand {
-  color: $text-color-1;
-}
-
-.navbar-brand:hover {
-  @extend .navbar-brand;
-  filter: brightness(90%);
+.title-color {
+  color: rgb(247, 223, 186);
 }
 
 .navbar-brand:active {
-  @extend .navbar-brand;
-  filter: brightness(90%);
-  transform: scale(98%);
-}
-
-.navbar {
-  border-bottom: 1px solid $card-border-color-1;
-}
-
-.navbar-brand:focus {
-  @extend .navbar-brand;
   filter: brightness(90%);
 }
 
-.card {
-  background-color: $bg-dark-purple-3;
-  border-color: $card-border-color-1;
+// select2 dropdown styles
+.select2 {
+  &-container {
+    width: 100% !important;
+  }
+
+  &-selection {
+    min-height: 2rem;
+  }
+
+  &-selection__rendered {
+    margin: 0.25rem;
+  }
+
+  &-selection__arrow {
+    margin: 0.2rem 0;
+  }
+
+  /* main selection */
+  &-selection__rendered {
+    color: $text-color-1 !important;
+    background-color: $bg-dark-5;
+  }
+
+  /* search input field */
+  &-search__field {
+    color: $text-color-3 !important;
+    background-color: $bg-dark-5;
+  }
+
+  /* search input border */
+  &-search {
+    background-color: $bg-dark-5 !important;
+  }
+
+  /* currently selected option */
+  &-results__option--selected {
+    background-color: #3a3a3a!important;
+  }
+
+  /* non-selected options */
+  &-results {
+    background-color: $bg-dark-5;
+  }
+
+  &-selection--single {
+    background-color: $bg-dark-5 !important;
+    border-color: $border-color-2 !important;
+    height: initial !important;
+  }
 }
 
-.btn {
-  color: $text-color-1;
-  background: linear-gradient(135deg, rgb(54, 35, 165), rgb(64, 39, 122));
+@keyframes _fade_zero {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
-#product-logger-logo {
-  height: 100%;
+.fade-zero {
+  animation-name: _fade_zero;
+  animation-duration: 0.2s;
+  animation-fill-mode: forwards;
+  animation-play-state: running;
 }

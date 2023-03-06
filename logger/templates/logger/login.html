@@ -8,18 +8,25 @@
 {% endblock %}
 
 {% block body_main %}
-  <section class="m-2 p-2 rounded">
+  <section class="m-2 p-2 rounded mw-rem-60 mx-auto">
     <form action="{% url 'logger:login_view' %}" method="POST">
       {% csrf_token %}
+
+      {% if is_invalid_credentials %}
+        <div class="alert alert-danger" role="alert">
+          Invalid username or password.
+        </div>
+      {% endif %}
+
       <fieldset>
         <legend>Log In</legend>
         <p>
           <label for="logger-username" class="form-label">Username</label>
-          <input id="logger-username" name="username" type="text" class="form-control">
+          <input id="logger-username" name="username" type="text" class="form-control" required>
         </p>
         <p>
           <label for="logger-password" class="form-label">Password</label>
-          <input id="logger-password" name="password" type="password" class="form-control">
+          <input id="logger-password" name="password" type="password" class="form-control" required>
         </p>
         <p>
           <button type="submit" class="btn btn-primary col-12">Submit</button>

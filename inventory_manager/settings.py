@@ -164,6 +164,15 @@ LOGGING = {
             "backupCount": 5,
             "maxBytes": 5 * 1024**2,  # 5 MiB
         },
+        "worker_handler": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": BASE_DIR / "log_files/rq_worker.log",
+            "mode": "a",
+            "encoding": "utf-8",
+            "formatter": "simple",
+            "backupCount": 5,
+            "maxBytes": 5 * 1024**2,  # 5 MiB
+        },
     },
     "loggers": {
         "django.request": {
@@ -173,6 +182,11 @@ LOGGING = {
         },
         "main_logger": {
             "handlers": ["main_handler", "console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "worker_logger": {
+            "handlers": ["worker_handler", "console"],
             "level": "INFO",
             "propagate": False,
         },

@@ -36,7 +36,7 @@ def login_view(request):
             return redirect("logger:scanner")
         else:
             return render(request, "logger/login.html", {
-                "message": "Invalid username and/or password."
+                "is_invalid_credentials": True
             })
 
 
@@ -243,6 +243,7 @@ def get_barcode_sheet(request, barcode_sheet_id):
     barcode_sheet = get_object_or_404(
         models.BarcodeSheet.objects.prefetch_related("store", "parent_company", "product_additions"),
         id=barcode_sheet_id)
+
     barcode_sheet_data = serializers.BarcodeSheetSerializer(
         barcode_sheet,
         context={
@@ -251,5 +252,6 @@ def get_barcode_sheet(request, barcode_sheet_id):
     ).data
 
     return render(request, "logger/barcode_sheet.html", {
-        **barcode_sheet_data
+        **barcode_sheet_data,
+        "exclude_bs_overrides": True
     })

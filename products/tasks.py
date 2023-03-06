@@ -14,13 +14,13 @@ from . import models
 
 PRODUCT_LOOKUP_ENDPOINT = 'https://api.upcitemdb.com/prod/trial/lookup?upc={upc_lookup_str}'
 IMAGE_URL_PREFERENCES = [
-    'target.scene7.com', 'i5.walmartimages.com', 'i.walmartimages.com', "pics.drugstore.com",
+    'target.scene7.com', 'pics.drugstore.com', 'i5.walmartimages.com', 'i.walmartimages.com',
     'quill.com', 'site.unbeatablesale.com', 'media.officedepot.com', 'c1.neweggimages.com'
 ]
 DOMAIN_HOSTNAME_RE = re.compile(r'^((?:http[s]?|ftp)://?)?(?:www\.)?([^:/\s]+)')
 PRODUCT_IMAGE_DIMENSIONS_TARGET = (600, 600)
 
-logger = logging.getLogger("main_logger")
+logger = logging.getLogger("worker_logger")
 
 # add UPCs to Redis memory store after processing to avoid wasting precious API hits upon future worker calls
 upcs_to_fetch_key = "upcs_to_fetch"
@@ -29,6 +29,10 @@ redis_instance = redis.Redis(
     port=settings.RQ_QUEUES["default"]["PORT"],
     db=settings.RQ_QUEUES["default"]["DB"]
 )
+
+logger.info("Setting expiry to key")
+redis_instance.sadd(upcs_to_fetch_key, '<dummy-value>')
+redis_instance.expire(upcs_to_fetch_key, timedelta(days=1))
 
 
 @job
@@ -42,7 +46,7 @@ def get_external_product_images():
         if not product.item_image and not redis_instance.sismember(upcs_to_fetch_key, product.upc):
             products_to_fetch_image.append(product)
 
-    logger.info(f"Fetching data from API for {len(products_to_fetch_image)} products")
+    logger.info(f"Fetching data from API for {len(products_to_fetch_image)} products\n")
     fetch_product_data(products_to_fetch_image)
 
 
@@ -53,10 +57,9 @@ def fetch_product_data(products_to_fetch_image: list):
         products = products_to_fetch_image[idx:idx + split_size]
         upc_pair = [p.upc for p in products]
 
-        logger.info(f'Fetching data from API for UPC pair {upc_pair} product info...')
-        resp = requests.get(PRODUCT_LOOKUP_ENDPOINT.format(
-            upc_lookup_str=','.join(upc_pair))
-        )
+        endpoint_url = PRODUCT_LOOKUP_ENDPOINT.format(upc_lookup_str=','.join(upc_pair))
+        logger.info(f'Fetching data from API for UPC pair {upc_pair} at endpoint: {endpoint_url}')
+        resp = requests.get(endpoint_url)
 
         if resp.status_code == 429:
             logger.info("Rate limit has been hit. Waiting 60 seconds")
@@ -75,7 +78,12 @@ def fetch_product_data(products_to_fetch_image: list):
 
         logger.info(f"Handling product data response for UPC pair: {upc_pair}")
         handle_product_data_response(products, items_data)
-        time.sleep(15)
+
+        # API is limited to 6 requests per minute
+        if (idx + 1) % 6 == 0:
+            logger.info("Rate limit has been hit. Waiting 60 seconds")
+            time.sleep(61)
+    logger.info("Finished searching for products")
 
 
 def handle_product_data_response(products: list, items_data: list):

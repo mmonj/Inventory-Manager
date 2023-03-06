@@ -1,49 +1,88 @@
-html {
-  height: 100%;
+.mw-rem-50 {
+  max-width: 50rem;
 }
 
-body {
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  color: #8e8c97;
+.mw-rem-55 {
+  max-width: 55rem;
+}
+
+.mw-rem-60 {
   max-width: 60rem;
-  background: radial-gradient(ellipse at top, rgb(41, 47, 68), rgb(19, 17, 28));
 }
 
-h1, h2, h3, h4, h5, h6 {
-  color: #ffffff;
+.mw-rem-65 {
+  max-width: 65rem;
 }
 
-.navbar-brand, .navbar-brand:focus, .navbar-brand:active, .navbar-brand:hover {
-  color: #ffffff;
+.mw-rem-70 {
+  max-width: 70rem;
 }
 
-.navbar-brand:hover {
-  filter: brightness(90%);
+.bg-blue-theme {
+  background-color: rgb(35, 45, 59);
+}
+
+.title-color {
+  color: rgb(247, 223, 186);
 }
 
 .navbar-brand:active {
   filter: brightness(90%);
-  transform: scale(98%);
 }
 
-.navbar {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.123);
+.select2 {
+  /* main selection */
+  /* search input field */
+  /* search input border */
+  /* currently selected option */
+  /* non-selected options */
+}
+.select2-container {
+  width: 100% !important;
+}
+.select2-selection {
+  min-height: 2rem;
+}
+.select2-selection__rendered {
+  margin: 0.25rem;
+}
+.select2-selection__arrow {
+  margin: 0.2rem 0;
+}
+.select2-selection__rendered {
+  color: rgb(255, 255, 255) !important;
+  background-color: rgb(17, 24, 39);
+}
+.select2-search__field {
+  color: rgb(156, 163, 175) !important;
+  background-color: rgb(17, 24, 39);
+}
+.select2-search {
+  background-color: rgb(17, 24, 39) !important;
+}
+.select2-results__option--selected {
+  background-color: #3a3a3a !important;
+}
+.select2-results {
+  background-color: rgb(17, 24, 39);
+}
+.select2-selection--single {
+  background-color: rgb(17, 24, 39) !important;
+  border-color: rgba(229, 231, 235, 0.274) !important;
+  height: initial !important;
 }
 
-.navbar-brand:focus {
-  filter: brightness(90%);
+@keyframes _fade_zero {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
-
-.card {
-  background-color: rgba(73, 128, 188, 0.05);
-  border-color: rgba(255, 255, 255, 0.123);
-}
-
-.btn {
-  color: #ffffff;
-  background: linear-gradient(135deg, rgb(54, 35, 165), rgb(64, 39, 122));
-}
-
-#product-logger-logo {
-  height: 100%;
+.fade-zero {
+  animation-name: _fade_zero;
+  animation-duration: 0.2s;
+  animation-fill-mode: forwards;
+  animation-play-state: running;
 }/*# sourceMappingURL=shared.css.map */
