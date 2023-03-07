@@ -26,7 +26,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @mixin common-form-styles-1 {
-  background: $bg-dark-5;
+  background-color: $bg-dark-5;
   color: $text-color-1;
   border-color: $border-color-2;
 }
@@ -49,6 +49,7 @@ textarea.form-control {
 
 .form-select {
   @include common-form-styles-1;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
 }
 
 .list-group-item {

@@ -23,31 +23,32 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 input.form-control {
-  background: rgb(17, 24, 39);
+  background-color: rgb(17, 24, 39);
   color: rgb(255, 255, 255);
   border-color: rgba(229, 231, 235, 0.274);
 }
 input.form-control:focus {
-  background: rgb(17, 24, 39);
+  background-color: rgb(17, 24, 39);
   color: rgb(255, 255, 255);
   border-color: rgba(229, 231, 235, 0.274);
 }
 
 textarea.form-control {
-  background: rgb(17, 24, 39);
+  background-color: rgb(17, 24, 39);
   color: rgb(255, 255, 255);
   border-color: rgba(229, 231, 235, 0.274);
 }
 textarea.form-control:focus {
-  background: rgb(17, 24, 39);
+  background-color: rgb(17, 24, 39);
   color: rgb(255, 255, 255);
   border-color: rgba(229, 231, 235, 0.274);
 }
 
 .form-select {
-  background: rgb(17, 24, 39);
+  background-color: rgb(17, 24, 39);
   color: rgb(255, 255, 255);
   border-color: rgba(229, 231, 235, 0.274);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
 }
 
 .list-group-item {
