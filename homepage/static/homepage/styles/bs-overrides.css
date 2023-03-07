@@ -10,6 +10,7 @@
 body {
   background: linear-gradient(to bottom, rgb(35, 45, 59), rgb(17, 24, 39));
   min-height: 100vh;
+  background-attachment: fixed;
 }
 
 h1, h2, h3, h4, h5, h6 {

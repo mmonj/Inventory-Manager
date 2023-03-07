@@ -12,6 +12,7 @@
 body {
   background: $background-primary;
   min-height: 100vh;
+  background-attachment: fixed;
 }
 
 h1, h2, h3, h4, h5, h6 {
