@@ -17,6 +17,11 @@ const LOGGER_SCANNER = (function () {
     document
       .getElementById("form-manual-upc")
       .addEventListener("submit", LOGGER_UI_HANDLERS.handle_manual_upc_submission);
+
+    // prevent leaving page without confirmation
+    window.onbeforeunload = function () {
+      return true;
+    };
   })();
 
   async function send_post_product_addition(upc, options = { is_remove: false }) {
