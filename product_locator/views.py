@@ -1,8 +1,9 @@
 import json
 import logging
 
-from django.shortcuts import render
-from rest_framework.decorators import api_view, permission_classes
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from . import models, serializers
 
@@ -17,6 +18,23 @@ def index(request):
     return render(request, "product_locator/index.html", {
         "stores": stores_json,
     })
+
+
+def add_new_products(request):
+    if request.method == "GET":
+        planograms = models.Planogram.objects.all().select_related("store")
+        planograms = list(planograms)
+        planograms.sort(key=lambda store: store.name)
+
+        return render(request, "product_locator/add_new_products.html", {
+            "planograms": planograms
+        })
+    elif request.method == "POST":
+        # planogram_id = request.POST.get("planogram-id")
+        # planogram_text_dump = request.POST.get("planogram-text-dump")
+
+        messages.success(request, "Submitted successfully")
+        return redirect("product_locator:add_new_products")
 
 
 @api_view(["GET"])

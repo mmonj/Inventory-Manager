@@ -1,0 +1,48 @@
+{% extends "logger/layout.html" %}
+{% load static %}
+
+{% block title %}Product Locator{% endblock %}
+
+{% block extra_head_elements %}
+{% endblock %}
+
+{% block body_header %}
+  {% include "product_locator/includes/navbar.html" %}
+{% endblock %}
+
+{% block body_main %}
+  <section class="mw-rem-60 mx-auto p-2">
+    {% if messages %}
+      <ul class="list-group" style="list-style: none;">
+        {% for message in messages %}
+          <li class="alert alert-success">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    
+    <h1 id="page-title" class="m-3 text-center title-color ">Add New Products</h1>
+    
+    <form id="store-plano-selector-form" action="{% url 'product_locator:add_new_products' %}" method="POST">
+      {% csrf_token %}
+      <fieldset>
+        <legend class="mb-3">Planogram Data</legend>
+        <div id="planogram-select-container" class="mb-3">
+          <label for="planogram-select" class="form-label">Planogram</label>
+          <select id="planogram-select" class="d-block col-12 form-select" name="planogram-id" required>
+            <option disabled selected value="">Select a planogram</option>
+            {% for planogram in planograms %}
+              <option value="{{planogram.id}}">{{ planogram }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <textarea name="planogram-text-dump" class="form-control" cols="30" rows="20" required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary col-12 my-2">Submit</button>
+      </fieldset>
+    </form>
+  </section>
+
+{% endblock %}
