@@ -4,5 +4,5 @@ from . import views
 app_name = "product_locator"
 urlpatterns = [
     path("", views.index, name="index"),
-    path("add_product_location/", views.add_product_location, name="add_product_location"),
+    path("get_product_location/", views.get_product_location, name="get_product_location"),
 ]
