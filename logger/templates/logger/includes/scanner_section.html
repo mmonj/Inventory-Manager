@@ -1,16 +1,16 @@
 <section id="scanner-container" class="mw-rem-60 mx-auto" hidden>
   <div id="scanner-store-indicator" class="p-2">
-    <h5 class="card-title text-center">Special title treatment</h5>
+    <h5 class="card-title text-center title-color">Special title treatment</h5>
   </div>
 
   <ul class="nav nav-tabs justify-content-center mt-1" role="tablist">
     <li class="nav-item" role="presentation">
-      <button onclick="LOGGER_SCANNER.resume_scanner();" class="nav-link active" id="scanner-tab" data-bs-toggle="tab" data-bs-target="#scanner-tab-pane" type="button" role="tab" aria-controls="scanner-tab-pane" aria-selected="true">
+      <button class="nav-link active" id="scanner-tab" data-bs-toggle="tab" data-bs-target="#scanner-tab-pane" type="button" role="tab" aria-controls="scanner-tab-pane" aria-selected="true">
         Scanner
       </button>
     </li>
     <li class="nav-item" role="presentation">
-      <button onclick="LOGGER_SCANNER.pause_scanner();" class="nav-link" id="keyboard-tab" data-bs-toggle="tab" data-bs-target="#keyboard-tab-pane" type="button" role="tab" aria-controls="keyboard-tab-pane" aria-selected="false">
+      <button class="nav-link" id="keyboard-tab" data-bs-toggle="tab" data-bs-target="#keyboard-tab-pane" type="button" role="tab" aria-controls="keyboard-tab-pane" aria-selected="false">
         Keyboard
       </button>
     </li>
@@ -49,5 +49,5 @@
       <span class="visually-hidden">Loading...</span>
     </div>
   </div>
-  <ol id="scanner-results" class="list-group list-group-numbered"></ol>
+  <ol id="scanner-results" class="list-group list-group-numbered px-2"></ol>
 </section>

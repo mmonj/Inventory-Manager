@@ -2,13 +2,13 @@
   <form id="store-selector-form">
     <fieldset>
       <legend class="mb-3">Store Selector</legend>
-      <div class="mb-3">
+      <div id="field-representative-container" class="mb-3">
         <label for="field-representative-select" class="form-label">Field Representative</label>
         <select id="field-representative-select" class="form-select" name="field-rep-id" required></select>
       </div>
-      <div class="mb-3">
+      <div id="store-select-container" class="mb-3">
         <label for="store-select" class="form-label">Store</label>
-        <select id="store-select" class="d-block col-12" name="store-id" required></select>
+        <select id="store-select" class="d-block col-12 form-select" name="store-id" required></select>
       </div>
       <button type="submit" class="btn btn-primary col-12 my-2">Submit</button>
     </fieldset>

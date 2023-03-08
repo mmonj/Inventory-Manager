@@ -4,11 +4,6 @@
 {% block title %}Inventory Manager{% endblock %}
 
 {% block extra_head_elements %}
-  <style>
-    #product-logger-logo {
-      height: 100%;
-    }
-  </style>
 {% endblock %}
 
 {% block body_header %}
@@ -26,8 +21,8 @@
   <section class="my-4 mw-rem-60 mx-auto px-2">
     <div class="card mb-3 rounded-4 overflow-hidden">
       <div class="row g-0">
-        <div id="product-logger-logo-container" class="col-md-4 text-center">
-          <img id="product-logger-logo" src="{% static 'homepage/product-logger-logo.png' %}" class="img-fluid rounded-start" alt="product-logger-logo">
+        <div class="col-md-4 text-center">
+          <img src="{% static 'homepage/product-logger-logo.png' %}" class="img-fluid rounded-start card-img" alt="product-logger-logo">
         </div>
         <div class="card-body col-md-8 d-flex flex-column justify-content-between">
           <div>
@@ -37,6 +32,24 @@
           </div>
           <div class="text-end mt-3">
             <a href="{% url 'logger:scanner' %}" class="btn btn-primary">Go to Inventory Logger</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3 rounded-4 overflow-hidden">
+      <div class="row g-0">
+        <div class="col-md-4 text-center">
+          <img src="{% static 'homepage/product-locator-logo.jpg' %}" class="img-fluid rounded-start card-img" alt="product-logger-logo">
+        </div>
+        <div class="card-body col-md-8 d-flex flex-column justify-content-between">
+          <div>
+            <h5 class="card-title">Product Locator</h5>
+            <p class="card-text">Scan to find a product's home location. Useful when stocking large displays</p>
+            <p class="card-text">Features a built-in barcode scanner</p>
+          </div>
+          <div class="text-end mt-3">
+            <a href="{% url 'product_locator:index' %}" class="btn btn-primary">Go to Product Locator</a>
           </div>
         </div>
       </div>
