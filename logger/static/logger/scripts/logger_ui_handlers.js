@@ -138,6 +138,11 @@ const LOGGER_UI_HANDLERS = (function() {
   
   function handle_store_select_submission(event) {
     event.preventDefault();
+
+    // prevent leaving page without confirmation
+    window.onbeforeunload = function () {
+      return true;
+    };
   
     let store_select_node = document.getElementById("store-select");
   

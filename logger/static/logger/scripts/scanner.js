@@ -18,10 +18,8 @@ const LOGGER_SCANNER = (function () {
       .getElementById("form-manual-upc")
       .addEventListener("submit", LOGGER_UI_HANDLERS.handle_manual_upc_submission);
 
-    // prevent leaving page without confirmation
-    window.onbeforeunload = function () {
-      return true;
-    };
+    document.getElementById("scanner-tab").addEventListener("click", resume_scanner);
+    document.getElementById("keyboard-tab").addEventListener("click", pause_scanner);
   })();
 
   async function send_post_product_addition(upc, options = { is_remove: false }) {
