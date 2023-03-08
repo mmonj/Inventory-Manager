@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'api',
     'products',
     'logger',
+    'product_locator',
     'widget_tweaks',
     'rest_framework',
     'rest_framework.authtoken',

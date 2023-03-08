@@ -1,0 +1,39 @@
+{% extends "logger/layout.html" %}
+{% load static %}
+
+{% block title %}Product Locator{% endblock %}
+
+{% block extra_head_elements %}
+  <meta name="csrf_token" content="{{ csrf_token }}" />
+
+  <script>
+    (function() {
+      window.__PRODUCT_LOCATOR__ = {};
+      window.__PRODUCT_LOCATOR__.new_location_action_url = "{% url 'product_locator:add_product_location' %}";
+    })();
+  </script>
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.7/html5-qrcode.min.js"></script>
+  <link rel="stylesheet" href="{% static 'logger/styles/scanner.css' %}" />
+
+  <script defer src="{% static 'logger/scripts/util.js' %}"></script>
+  <script defer src="{% static 'product_locator/scripts/index.js' %}"></script>
+{% endblock %}
+
+{% block body_header %}
+  <nav class="navbar mw-rem-60 mx-auto border-bottom">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="{% url 'product_locator:index' %}">
+        <span class="mx-2">Product Locator</span>
+      </a>
+    </div>
+  </nav>
+{% endblock %}
+
+{% block body_main %}
+  <h1 id="page-title" class="m-3 text-center title-color">Product Locator</h1>
+  {% include "logger/includes/store_picker.html" %}
+  {% include "logger/includes/scanner_section.html" %}
+
+  <script id="stores-list" type="application/json">{{ stores | safe }}</script>
+{% endblock %}
