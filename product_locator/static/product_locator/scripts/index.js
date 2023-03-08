@@ -8,11 +8,91 @@ const PRODUCT_LOCATOR = (function () {
     document.getElementById("field-representative-container").hidden = true;
     document.getElementById("field-representative-select").disabled = true;
 
+    document.getElementById("scanner-tab").addEventListener("click", resume_scanner);
+    document.getElementById("keyboard-tab").addEventListener("click", pause_scanner);
+
+    document.getElementById("form-manual-upc").action = __PRODUCT_LOCATOR__.new_location_action_url;
+    document.getElementById("form-manual-upc").addEventListener("submit", (event) => {
+      event.preventDefault();
+      handle_get_product_location(document.getElementById("text-input-upc").value);
+    })
+
+    populate_stores_select();
+
     document
       .getElementById("store-selector-form")
       .addEventListener("submit", handle_store_select_submission);
+  }
 
-    populate_stores_select();
+  const ESCAPE_NODE = document.createElement('textarea');
+  function escape_html(html) {
+      ESCAPE_NODE.textContent = html;
+      return ESCAPE_NODE.innerHTML;
+  }
+
+  async function handle_get_product_location(upc) {
+    const loading_spinner_node = document.getElementById("spinner-loading-scan");
+    const scan_results = document.getElementById("scanner-results");
+    scan_results.innerHTML = "";
+
+    let locations = [];
+    try {
+      loading_spinner_node.classList.remove("visually-hidden");
+      locations = await fetch_get_product_location(upc);
+    } catch(resp) {
+      loading_spinner_node.classList.add("visually-hidden");
+
+      if(resp.status === 404) {
+        scan_results.appendChild(
+          LOGGER_UTIL._element(/*html*/`<p class="text-center alert alert-warning opacity-75">The UPC ${upc} was not found</p>`)
+        );
+      }
+      else {
+        scan_results.appendChild(
+          LOGGER_UTIL._element(/*html*/`<p class="text-center alert alert-warning opacity-75">Server returned a ${resp.status} error</p>`)
+        );
+      }
+      
+      return;
+    }
+    
+    loading_spinner_node.classList.add("visually-hidden");
+    if (locations.length === 0) {
+      scan_results.appendChild(
+        LOGGER_UTIL._element(/*html*/`<p class="text-center">No location found</p>`)
+      );
+    }
+
+    locations.forEach((location) => {
+      const new_li = LOGGER_UTIL._element(/*html*/ `
+        <li class="list-group-item d-flex justify-content-between align-items-start">
+          <div class="ms-2 me-auto location-container">
+            <div class="fw-bold location-name">${escape_html(location.name)}</div>
+            <div class="planogram-name">${escape_html(location.planogram)}</div>
+          </div>
+        </li>
+      `);
+
+      scan_results.appendChild(new_li);
+    });
+  }
+
+  async function fetch_get_product_location(upc) {
+    const params = new URLSearchParams();
+    params.append("upc", upc);
+    params.append("store_id", document.getElementById("scanner-store-indicator").dataset.store_id);
+
+    const action_url = window.__PRODUCT_LOCATOR__.new_location_action_url + "?" + params.toString();
+
+    let resp = await fetch(action_url, {
+      method: "GET",
+    });
+
+    if (!resp.ok) {
+      throw await resp;
+    }
+
+    return resp.json();
   }
 
   function populate_stores_select() {
@@ -63,7 +143,7 @@ const PRODUCT_LOCATOR = (function () {
     };
 
     SCANNER.start({ facingMode: "environment" }, config, (decoded_text, decode_data) => {
-      LOGGER_UI_HANDLERS.handle_submit_upc(decoded_text);
+      handle_get_product_location(decoded_text);
     });
   }
 
@@ -96,6 +176,7 @@ const PRODUCT_LOCATOR = (function () {
     init_scanner: init_scanner,
     pause_scanner: pause_scanner,
     resume_scanner: resume_scanner,
+    fetch_get_product_location: fetch_get_product_location,
   };
 })();
 
