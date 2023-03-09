@@ -2,6 +2,7 @@ const PRODUCT_LOCATOR = (function () {
   "use strict";
 
   const SCANNER = new Html5Qrcode("reader");
+  const SCAN_SOUND = new Audio(__PRODUCT_LOCATOR__.scan_sound_path);
   const STORES = JSON.parse(document.getElementById("stores-list").textContent);
 
   function main() {
@@ -14,7 +15,7 @@ const PRODUCT_LOCATOR = (function () {
     document.getElementById("form-manual-upc").action = __PRODUCT_LOCATOR__.new_location_action_url;
     document.getElementById("form-manual-upc").addEventListener("submit", (event) => {
       event.preventDefault();
-      handle_get_product_location(document.getElementById("text-input-upc").value);
+      handle_get_product_location(document.getElementById("text-input-upc").value, false);
     })
 
     populate_stores_select();
@@ -30,15 +31,19 @@ const PRODUCT_LOCATOR = (function () {
       return ESCAPE_NODE.innerHTML;
   }
 
-  async function handle_get_product_location(upc) {
+  async function handle_get_product_location(upc, is_scan_sound_play = false) {
+    if (is_scan_sound_play) {
+      SCAN_SOUND.play();
+    }
+
     const loading_spinner_node = document.getElementById("spinner-loading-scan");
     const scan_results = document.getElementById("scanner-results");
     scan_results.innerHTML = "";
 
-    let locations = [];
+    let product_data = [];
     try {
       loading_spinner_node.classList.remove("visually-hidden");
-      locations = await fetch_get_product_location(upc);
+      product_data = await fetch_get_product_location(upc);
     } catch(resp) {
       loading_spinner_node.classList.add("visually-hidden");
 
@@ -57,18 +62,19 @@ const PRODUCT_LOCATOR = (function () {
     }
     
     loading_spinner_node.classList.add("visually-hidden");
-    if (locations.length === 0) {
+    if (Object.keys(product_data).length === 0) {
       scan_results.appendChild(
         LOGGER_UTIL._element(/*html*/`<p class="text-center">No location found</p>`)
       );
     }
 
-    locations.forEach((location) => {
+    product_data.home_locations.forEach((location) => {
       const new_li = LOGGER_UTIL._element(/*html*/ `
         <li class="list-group-item d-flex justify-content-between align-items-start">
           <div class="ms-2 me-auto location-container">
             <div class="fw-bold location-name">${escape_html(location.name)}</div>
-            <div class="planogram-name">${escape_html(location.planogram)}</div>
+            <div class="fw-bold planogram-name">${escape_html(location.planogram)}</div>
+            <div class="product-name">${escape_html(product_data.name)}</div>
           </div>
         </li>
       `);
@@ -133,7 +139,7 @@ const PRODUCT_LOCATOR = (function () {
 
   function init_scanner() {
     const config = {
-      fps: 2,
+      fps: 1,
       qrbox: qrboxFunction,
       videoConstraints: {
         facingMode: "environment",
@@ -143,7 +149,7 @@ const PRODUCT_LOCATOR = (function () {
     };
 
     SCANNER.start({ facingMode: "environment" }, config, (decoded_text, decode_data) => {
-      handle_get_product_location(decoded_text);
+      handle_get_product_location(decoded_text, true);
     });
   }
 

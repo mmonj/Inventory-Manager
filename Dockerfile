@@ -3,6 +3,7 @@ WORKDIR /app
 
 ARG BUILD_MODE
 RUN if [ "$BUILD_MODE" = "dev" ] ; then pip install pipreqs \
+	&& python -m pip install autopep8 \
 	&& apt-get update -y \
 	&& apt-get upgrade -y \
 	&& apt-get install git -y \

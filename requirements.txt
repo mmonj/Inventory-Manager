@@ -12,3 +12,4 @@ requests
 django-cleanup
 django-rq
 redis
+natsort

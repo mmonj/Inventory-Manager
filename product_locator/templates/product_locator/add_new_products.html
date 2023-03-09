@@ -1,0 +1,69 @@
+{% extends "logger/layout.html" %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Add New Products{% endblock %}
+
+{% block extra_head_elements %}
+{% endblock %}
+
+{% block body_header %}
+  {% include "product_locator/includes/navbar.html" %}
+{% endblock %}
+
+{% block body_main %}
+  <section class="mw-rem-60 mx-auto p-2">
+    {% if messages %}
+      <ul class="list-group" style="list-style: none;">
+        {% for message in messages %}
+          <li class="alert alert-{{message.tags}}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if planogram_form.errors %}
+      <ul class="list-group" style="list-style: none;">
+        {% for field, errors in planogram_form.errors.items %}
+          <li class="alert alert-error">
+            <p class="m-0">Error with field {{ field }}:</p>
+            {% for error in errors %}
+              <p class="m-0 ps-3">• {{ error }}</p>
+            {% endfor %}
+          </li>
+      {% endfor %}
+      </ul>
+    {% endif %}
+    
+    <h1 id="page-title" class="m-3 text-center title-color ">Add New Products</h1>
+
+    {% if not messages and not planogram_form.errors %}
+      <div class="alert alert-info opacity-75">
+        <p class="m-0">Instructions:</p>
+        <p class="m-0 ps-2">Download Planogram PDF</p>
+        <p class="m-0 ps-2">Convert to image (due to no text-encoding metadata being present in PDF)</p>
+        <p class="m-0 ps-2">Combine relevant images to a single image</p>
+        <p class="m-0 ps-2">Run through OCR processor</p>
+        <p class="m-0 ps-2">Paste output here for OCR correction and parsing. DB entries will be created from input.</p>
+      </div>
+    {% endif %}
+    
+    <form id="store-plano-selector-form" action="{% url 'product_locator:add_new_products' %}" method="POST">
+      {% csrf_token %}
+      <fieldset>
+        <legend class="mb-3">Planogram Data</legend>
+        <div id="planogram-select-container" class="mb-3">
+          <label for="{{planogram_form.planogram_id.auto_id}}" class="form-label">Planogram</label>
+          {% render_field planogram_form.planogram_id class="d-block col-12 form-select" %}
+        </div>
+
+        <div class="mb-3">
+          <label for="{{planogram_form.planogram_text_dump.auto_id}}" class="form-label">Planogram data dump</label>
+          {% render_field planogram_form.planogram_text_dump class="form-control" rows="20" %}
+        </div>
+
+        <button type="submit" class="btn btn-primary col-12 my-2">Submit</button>
+      </fieldset>
+    </form>
+  </section>
+
+{% endblock %}

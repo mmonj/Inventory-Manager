@@ -9,6 +9,7 @@
   <script>
     (function() {
       window.__PRODUCT_LOCATOR__ = {};
+      window.__PRODUCT_LOCATOR__.scan_sound_path = "{% static 'logger/scan_sound.ogg' %}";
       window.__PRODUCT_LOCATOR__.new_location_action_url = "{% url 'product_locator:get_product_location' %}";
     })();
   </script>
@@ -21,13 +22,7 @@
 {% endblock %}
 
 {% block body_header %}
-  <nav class="navbar mw-rem-60 mx-auto border-bottom">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="{% url 'product_locator:index' %}">
-        <span class="mx-2">Product Locator</span>
-      </a>
-    </div>
-  </nav>
+  {% include "product_locator/includes/navbar.html" %}
 {% endblock %}
 
 {% block body_main %}
