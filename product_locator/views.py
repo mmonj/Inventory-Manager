@@ -36,24 +36,30 @@ def add_new_products(request):
             "planogram_form": PlanogramModelForm()
         })
     elif request.method == "POST":
-        planogram_id = request.POST.get("planogram_id")
-        planogram_text_dump = request.POST.get("planogram_text_dump")
-        planogram: dict = planogram_parser.parse_data(planogram_text_dump)
-
         received_form = PlanogramModelForm(request.POST)
         if not received_form.is_valid():
             return render(request, "product_locator/add_new_products.html", {
                 "planogram_form": received_form
             })
 
-        if not planogram:
+        planogram: models.Planogram = received_form.cleaned_data["planogram_id"]
+        planogram_text_dump = received_form.cleaned_data["planogram_text_dump"]
+        planogram_data: dict = planogram_parser.parse_data(planogram_text_dump)
+
+        if not planogram_data:
             messages.error(request, "You have submitted data that resulted in 0 items being parsed.")
             return render(request, "product_locator/add_new_products.html", {
                 "planogram_form": PlanogramModelForm(request.POST)
             })
 
-        messages.success(request, f"Submitted {len(planogram)} items successfully")
+        add_location_records(planogram_data, planogram)
+
+        messages.success(request, f"Submitted {len(planogram_data)} items successfully")
         return redirect("product_locator:add_new_products")
+
+
+def add_location_records(planogram_data: dict, planogram: models.Planogram):
+    pass
 
 
 @api_view(["GET"])
