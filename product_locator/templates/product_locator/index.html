@@ -9,6 +9,7 @@
   <script>
     (function() {
       window.__PRODUCT_LOCATOR__ = {};
+      window.__PRODUCT_LOCATOR__.scan_sound_path = "{% static 'logger/scan_sound.ogg' %}";
       window.__PRODUCT_LOCATOR__.new_location_action_url = "{% url 'product_locator:get_product_location' %}";
     })();
   </script>
