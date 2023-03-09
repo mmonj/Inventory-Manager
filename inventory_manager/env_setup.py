@@ -7,8 +7,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles/"
 
-MEDIA_URL = "/media/"
+MEDIA_URL = os.environ["DJANGO_MEDIA_URL"]
 MEDIA_ROOT = BASE_DIR / "media/"
+MEDIA_ROOT.mkdir(exist_ok=True)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
