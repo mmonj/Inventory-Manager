@@ -2,12 +2,22 @@ import json
 import logging
 
 from django.contrib import messages
+from django import forms
 from django.shortcuts import render, redirect
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from . import models, serializers
+
+from . import models, serializers, planogram_parser
 
 logger = logging.getLogger("main_logger")
+
+
+class PlanogramModelForm(forms.Form):
+    planogram_text_dump = forms.CharField(max_length=100000, widget=forms.Textarea)
+    planogram_id = forms.ModelChoiceField(
+        queryset=models.Planogram.objects.all().order_by("store__name").select_related("store"),
+        empty_label="Select a store"
+        )
 
 
 def index(request):
@@ -22,18 +32,21 @@ def index(request):
 
 def add_new_products(request):
     if request.method == "GET":
-        planograms = models.Planogram.objects.all().select_related("store")
-        planograms = list(planograms)
-        planograms.sort(key=lambda store: store.name)
-
         return render(request, "product_locator/add_new_products.html", {
-            "planograms": planograms
+            "planogram_form": PlanogramModelForm()
         })
     elif request.method == "POST":
-        # planogram_id = request.POST.get("planogram-id")
-        # planogram_text_dump = request.POST.get("planogram-text-dump")
+        # planogram_id = request.POST.get("planogram_id")
+        planogram_text_dump = request.POST.get("planogram_text_dump")
+        planogram: dict = planogram_parser.parse_data(planogram_text_dump)
 
-        messages.success(request, "Submitted successfully")
+        if not planogram:
+            messages.error(request, "You have submitted data that resulted in 0 items being parsed.")
+            return render(request, "product_locator/add_new_products.html", {
+                "planogram_form": PlanogramModelForm(request.POST)
+            })
+
+        messages.success(request, f"Submitted {len(planogram)} items successfully")
         return redirect("product_locator:add_new_products")
 
 
