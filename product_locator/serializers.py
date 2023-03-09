@@ -16,12 +16,11 @@ class HomeLocationSerializer(serializers.ModelSerializer):
         fields = ["name", "planogram"]
 
     def get_planogram(self, home_location):
-        return home_location.planogram.name
+        # return home_location.planogram.name
+        return str(home_location.planogram)
 
 
 class ProductSerializer(serializers.ModelSerializer):
-    home_locations = HomeLocationSerializer(many=True)
-
     class Meta:
         model = models.Product
-        fields = ["upc", "name", "home_locations"]
+        fields = ["upc", "name"]

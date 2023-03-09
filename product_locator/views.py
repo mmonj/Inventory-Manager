@@ -47,6 +47,7 @@ def add_new_products(request):
         planogram: models.Planogram = received_form.cleaned_data["planogram_id"]
         planogram_text_dump = received_form.cleaned_data["planogram_text_dump"]
         product_list: list = planogram_parser.parse_data(planogram_text_dump)
+        logger.info(f"{len(product_list)} parsed from user input")
 
         if not product_list:
             messages.error(request, "You have submitted data that resulted in 0 items being parsed.")
@@ -93,12 +94,19 @@ def bulk_create_in_batches(TargetModelClass, objs: iter, batch_size=100, ignore_
 def get_product_location(request):
     if request.method == "GET":
         upc = request.GET.get("upc")
+        store_id = request.GET.get("store_id")
 
         try:
             product = models.Product.objects.prefetch_related("home_locations").get(upc=upc)
         except models.Product.DoesNotExist:
             return Response([], status=404)
 
-        resp_json = serializers.ProductSerializer(product).data
+        store = models.Store.objects.get(pk=store_id)
+        home_locations = models.HomeLocation.objects.filter(planogram__store=store).filter(products__in=[product])
+
+        resp_json = {
+            "product": serializers.ProductSerializer(product).data,
+            "home_locations": serializers.HomeLocationSerializer(home_locations, many=True).data
+        }
 
         return Response(resp_json)
