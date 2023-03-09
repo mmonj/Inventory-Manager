@@ -1,4 +1,8 @@
+import logging
 import re
+from natsort import natsorted
+
+logger = logging.getLogger("main_logger")
 
 # ITEM_ATTRIBUTES_RE = r"(.+?)[ \t]+(\d{12})(?:[ \t]+\d)?[ \t]+([a-z]\d+)"
 ITEM_ATTRIBUTES_RE = re.compile(
@@ -19,21 +23,41 @@ COMMON_OCR_CHAR_ERRORS = {
 }
 
 
-def parse_data(planogram_text_dump: str):
+def parse_data(planogram_text_dump: str) -> list:
     matches = re.finditer(ITEM_ATTRIBUTES_RE, planogram_text_dump)
-    items = {}
+    product_list = []
 
     for match in matches:
-        name: str = match.group(1).strip()
+        name: str = match.group(1)
         upc: str = match.group(2)
         location: str = match.group(3)
 
-        items[upc] = {
-            "name": name.strip(),
-            "location": fix_location_ocr_inaccuracies(location.strip())
-        }
+        product_list.append(
+            {
+                "upc": upc.strip(),
+                "name": name.strip(),
+                "location": fix_location_ocr_inaccuracies(location.strip())
+            }
+        )
 
-    return items
+    assert_unique(product_list, "upc", key=lambda e: e["upc"])
+    assert_unique(product_list, "location", key=lambda e: e["location"])
+
+    return natsorted(product_list, key=lambda p: p["location"], reverse=True)
+
+
+def assert_unique(product_list, unique_type, key=None):
+    if key is None:
+        return
+
+    uniques = set()
+    for product in product_list:
+        value = key(product)
+
+        assert value not in uniques, f"{unique_type} duplicate found: {value} --> {product}"
+        uniques.add(value)
+
+    logger.info(f"Validated as unique all {unique_type} values")
 
 
 def fix_location_ocr_inaccuracies(location: str) -> str:
