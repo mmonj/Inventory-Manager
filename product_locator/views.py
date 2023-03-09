@@ -36,9 +36,15 @@ def add_new_products(request):
             "planogram_form": PlanogramModelForm()
         })
     elif request.method == "POST":
-        # planogram_id = request.POST.get("planogram_id")
+        planogram_id = request.POST.get("planogram_id")
         planogram_text_dump = request.POST.get("planogram_text_dump")
         planogram: dict = planogram_parser.parse_data(planogram_text_dump)
+
+        received_form = PlanogramModelForm(request.POST)
+        if not received_form.is_valid():
+            return render(request, "product_locator/add_new_products.html", {
+                "planogram_form": received_form
+            })
 
         if not planogram:
             messages.error(request, "You have submitted data that resulted in 0 items being parsed.")
