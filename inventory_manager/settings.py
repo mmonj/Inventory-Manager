@@ -17,6 +17,10 @@ from .env_setup import *
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+LOGS_DIR = BASE_DIR / "log_files"
+LOGS_DIR.mkdir(exist_ok=True)
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
@@ -158,7 +162,7 @@ LOGGING = {
         },
         "main_handler": {
             "class": "logging.handlers.RotatingFileHandler",
-            "filename": BASE_DIR / "log_files/inventory_manager.log",
+            "filename": LOGS_DIR / "inventory_manager.log",
             "mode": "a",
             "encoding": "utf-8",
             "formatter": "simple",
@@ -167,7 +171,7 @@ LOGGING = {
         },
         "worker_handler": {
             "class": "logging.handlers.RotatingFileHandler",
-            "filename": BASE_DIR / "log_files/rq_worker.log",
+            "filename": LOGS_DIR / "rq_worker.log",
             "mode": "a",
             "encoding": "utf-8",
             "formatter": "simple",
