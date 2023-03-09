@@ -35,6 +35,17 @@
     {% endif %}
     
     <h1 id="page-title" class="m-3 text-center title-color ">Add New Products</h1>
+
+    {% if not messages and not planogram_form.errors %}
+      <div class="alert alert-info opacity-75">
+        <p class="m-0">Instructions:</p>
+        <p class="m-0 ps-2">Download Planogram PDF</p>
+        <p class="m-0 ps-2">Convert to image (due to no text-encoding metadata being present in PDF)</p>
+        <p class="m-0 ps-2">Combine relevant images to a single image</p>
+        <p class="m-0 ps-2">Run through OCR processor</p>
+        <p class="m-0 ps-2">Paste output here for OCR correction and parsing. DB entries will be created from input.</p>
+      </div>
+    {% endif %}
     
     <form id="store-plano-selector-form" action="{% url 'product_locator:add_new_products' %}" method="POST">
       {% csrf_token %}
