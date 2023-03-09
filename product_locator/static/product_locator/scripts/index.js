@@ -74,7 +74,7 @@ const PRODUCT_LOCATOR = (function () {
           <div class="ms-2 me-auto location-container">
             <div class="fw-bold location-name">${escape_html(location.name)}</div>
             <div class="fw-bold planogram-name">${escape_html(location.planogram)}</div>
-            <div class="product-name">${escape_html(product_data.name)}</div>
+            <div class="product-name">${escape_html(product_data.product.name)}</div>
           </div>
         </li>
       `);
