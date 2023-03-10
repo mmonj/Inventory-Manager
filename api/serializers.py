@@ -36,21 +36,18 @@ class StoreSerializer(serializers.ModelSerializer):
 
 
 class BarcodeSheetSerializer(serializers.ModelSerializer):
-    store_name = serializers.SerializerMethodField()
+    store = StoreSerializer()
     product_additions = ProductAdditionSerializer(many=True)
     barcode_sheet_id = serializers.SerializerMethodField()
     date_created = serializers.SerializerMethodField()
 
     class Meta:
         model = models.BarcodeSheet
-        fields = ["barcode_sheet_id", "store_name", "parent_company", "product_additions", "date_created"]
-        read_only_fields = ["barcode_sheet_id", "store_name", "parent_company", "product_additions", "date_created"]
+        fields = ["barcode_sheet_id", "store", "parent_company", "product_additions", "date_created"]
+        read_only_fields = ["barcode_sheet_id", "store", "parent_company", "product_additions", "date_created"]
 
     def get_barcode_sheet_id(self, barcode_sheet: models.BarcodeSheet):
         return barcode_sheet.id
-
-    def get_store_name(self, barcode_sheet: models.BarcodeSheet):
-        return barcode_sheet.store.name
 
     def get_date_created(self, barcode_sheet: models.BarcodeSheet):
         return barcode_sheet.datetime_created.date()

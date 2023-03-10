@@ -64,7 +64,7 @@ const PRODUCT_LOCATOR = (function () {
     loading_spinner_node.classList.add("visually-hidden");
     if (product_data.home_locations.length === 0) {
       scan_results.appendChild(
-        LOGGER_UTIL._element(/*html*/`<p class="text-center">No location found</p>`)
+        LOGGER_UTIL._element(/*html*/`<h5 class="text-center mt-3 text-white-50">No location found</h5>`)
       );
     }
 
