@@ -27,7 +27,9 @@ def validate_api_token(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def get_store_product_additions(request):
-    update_product_names(request.data)
+    sorted_upc_tuple: list = update_product_names(request.data)
+    upc_tuple_hash = hash(sorted_upc_tuple)
+
     # initiate worker
     get_external_product_images.delay()
 
@@ -38,6 +40,7 @@ def get_store_product_additions(request):
     barcode_sheet, is_new_barcode_sheet = models.BarcodeSheet.objects.get_or_create(
         store=store,
         parent_company=product_additions.first().product.parent_company,
+        upcs_hash=upc_tuple_hash,
         work_cycle=current_work_cycle)
 
     if is_new_barcode_sheet:
@@ -53,12 +56,15 @@ def get_store_product_additions(request):
     return Response(resp_json)
 
 
-def update_product_names(request_json: dict):
+def update_product_names(request_json: dict) -> tuple:
     """Bulk create products if they don't already exist.
     Bulk update existing products with product name if they don't contain it
 
     Args:
         request_json (dict): request json payload received from client
+
+    Returns:
+        tuple: tuple<str> of sorted UPC numbers
     """
     def get_product_name(upc: str, products: list):
         for product_info in products:
@@ -92,6 +98,8 @@ def update_product_names(request_json: dict):
         product.name = get_product_name(product.upc, request_json.get('products'))
 
     products.bulk_update(products, ['parent_company', 'name'])
+
+    return tuple(sorted(upcs))
 
 
 def update_product_additions(store: models.Store, request_json: dict) -> list:
