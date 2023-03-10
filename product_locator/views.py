@@ -2,9 +2,9 @@ import json
 import logging
 from itertools import islice
 
+from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib import messages
-from django import forms
 from django.shortcuts import render, redirect
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
