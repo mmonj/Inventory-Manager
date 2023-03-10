@@ -41,6 +41,15 @@ class PersonnelContactAdmin(admin.ModelAdmin):
     list_filter = ['store__field_representative__name']
 
 
+class BarcodeSheetAdmin(admin.ModelAdmin):
+    search_fields = ["store__name", "parent_company__short_name"]
+    list_display = ["store", "parent_company", "work_cycle", "num_product_additions"]
+    list_filter = ['parent_company__short_name', "work_cycle"]
+
+    def num_product_additions(self, barcode_sheet):
+        return barcode_sheet.product_additions.count()
+
+
 # Register your models here.
 admin.site.register(models.WorkCycle)
 admin.site.register(models.FieldRepresentative, FieldRepresentativeAdmin)
@@ -49,3 +58,4 @@ admin.site.register(models.Product, ProductAdmin)
 admin.site.register(models.Store, StoreAdmin)
 admin.site.register(models.ProductAddition, ProductAdditionAdmin)
 admin.site.register(models.PersonnelContact, PersonnelContactAdmin)
+admin.site.register(models.BarcodeSheet, BarcodeSheetAdmin)
