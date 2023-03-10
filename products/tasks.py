@@ -23,31 +23,40 @@ PRODUCT_IMAGE_DIMENSIONS_TARGET = (600, 600)
 logger = logging.getLogger("worker_logger")
 
 # add UPCs to Redis memory store after processing to avoid wasting precious API hits upon future worker calls
-upcs_to_fetch_key = "upcs_to_fetch"
-redis_instance = redis.Redis(
+upc_to_fetch_key_template = "upc_to_fetch_{upc}"
+
+redis_client = redis.Redis(
     host=settings.RQ_QUEUES["default"]["HOST"],
     port=settings.RQ_QUEUES["default"]["PORT"],
     db=settings.RQ_QUEUES["default"]["DB"]
 )
-
-logger.info("Setting expiry to key")
-redis_instance.sadd(upcs_to_fetch_key, '<dummy-value>')
-redis_instance.expire(upcs_to_fetch_key, timedelta(days=1))
 
 
 @job
 def get_external_product_images():
     logger.info("Received job to fetch product images from API")
     yesterday_date = datetime.now().date() - timedelta(days=1)
-    latest_products = models.Product.objects.filter(date_added__gt=yesterday_date)
+    latest_products_with_no_image = models.Product.objects.filter(
+        date_added__gt=yesterday_date, item_image="")
 
-    products_to_fetch_image = []
-    for product in latest_products:
-        if not product.item_image and not redis_instance.sismember(upcs_to_fetch_key, product.upc):
-            products_to_fetch_image.append(product)
+    logger.info(f"Found {latest_products_with_no_image.count()} recent products with no image set")
 
-    logger.info(f"Fetching data from API for {len(products_to_fetch_image)} products\n")
+    products_to_fetch_image = [
+        product for product in latest_products_with_no_image
+        if not redis_client.exists(upc_to_fetch_key_template.format(upc=product.upc))
+    ]
+
+    logger.info(f"Fetching data from API for {len(products_to_fetch_image)} products")
     fetch_product_data(products_to_fetch_image)
+    logger.info("Finished searching for products\n")
+
+
+def add_upcs_to_redis_store(*upcs):
+    for upc in upcs:
+        logger.info(f"Adding {upc} to redis store")
+        upc_to_fetch_key = upc_to_fetch_key_template.format(upc=upc)
+        redis_client.set(upc_to_fetch_key, 1)
+        redis_client.expire(upc_to_fetch_key, timedelta(days=1))
 
 
 def fetch_product_data(products_to_fetch_image: list):
@@ -72,7 +81,7 @@ def fetch_product_data(products_to_fetch_image: list):
 
         items_data = resp.json().get('items', [])
         if not items_data:
-            redis_instance.sadd(upcs_to_fetch_key, *upc_pair)
+            add_upcs_to_redis_store(*upc_pair)
             logger.info(f'Response json did not have "items" info in response {upc_pair}')
             continue
 
@@ -83,7 +92,6 @@ def fetch_product_data(products_to_fetch_image: list):
         if (idx + 1) % 6 == 0:
             logger.info("Rate limit has been hit. Waiting 60 seconds")
             time.sleep(61)
-    logger.info("Finished searching for products")
 
 
 def handle_product_data_response(products: list, items_data: list):
@@ -98,13 +106,14 @@ def handle_product_data_response(products: list, items_data: list):
             logger.info(f'No images available for {product} in lookup data')
             continue
 
+        logger.info(f"Processing UPC {product.upc} image URL list: {product_image_urls}")
         product_image_urls = reorder_images_based_on_preferences(product_image_urls)
         for product_image_url in product_image_urls:
             success = download_image(product, product_image_url)
             if success:
                 logger.info(f"Download image successfully for {product.upc}. Image URL: {product_image_url}!")
                 break
-        redis_instance.sadd(upcs_to_fetch_key, product.upc)
+        add_upcs_to_redis_store(product.upc)
 
 
 def download_image(product: models.Product, product_image_url: list) -> bool:
