@@ -19,7 +19,7 @@ class PlanogramModelForm(forms.Form):
     planogram_text_dump = forms.CharField(max_length=100000, widget=forms.Textarea)
     planogram_id = forms.ModelChoiceField(
         queryset=models.Planogram.objects.all().order_by("store__name").select_related("store"),
-        empty_label="Select a store"
+        empty_label="Select a planogram"
     )
 
 
