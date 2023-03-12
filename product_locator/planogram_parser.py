@@ -24,10 +24,15 @@ COMMON_OCR_CHAR_ERRORS = {
 
 
 def parse_data(planogram_text_dump: str) -> list:
-    matches = re.finditer(ITEM_ATTRIBUTES_RE, planogram_text_dump)
     product_list = []
+    lines_not_matched = []
 
-    for match in matches:
+    for line in planogram_text_dump.strip().split("\n"):
+        match = ITEM_ATTRIBUTES_RE.search(line)
+        if not match:
+            lines_not_matched.append(line)
+            continue
+
         name: str = match.group(1)
         upc: str = match.group(2)
         location: str = match.group(3)
@@ -39,6 +44,9 @@ def parse_data(planogram_text_dump: str) -> list:
                 "location": fix_location_ocr_inaccuracies(location.strip())
             }
         )
+
+    for line in lines_not_matched:
+        logger.info(f"Regex was not matched on line: '{line}'")
 
     assert_unique(product_list, "upc", key=lambda e: e["upc"])
     assert_unique(product_list, "location", key=lambda e: e["location"])

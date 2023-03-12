@@ -53,7 +53,7 @@ def add_new_products(request):
             messages.error(request, "You have submitted data that resulted in 0 items being parsed.")
             return render(request, "product_locator/add_new_products.html", {
                 "planogram_form": PlanogramModelForm(request.POST)
-            })
+            }, status=500)
 
         add_location_records(product_list, planogram)
 
