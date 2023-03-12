@@ -82,7 +82,7 @@ def fetch_product_data(products_to_fetch_image: list):
         items_data = resp.json().get('items', [])
         if not items_data:
             add_upcs_to_redis_store(*upc_pair)
-            logger.info(f'Response json did not have "items" info in response {upc_pair}')
+            logger.info(f'Response json did not have "items" info in response for UPC pair {upc_pair}')
             continue
 
         logger.info(f"Handling product data response for UPC pair: {upc_pair}")
