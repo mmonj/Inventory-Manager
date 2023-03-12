@@ -7,6 +7,8 @@ from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.encoding import iri_to_uri
 from django.templatetags.static import static
 
 from . import forms, serializers
@@ -17,10 +19,9 @@ logger = logging.getLogger("main_logger")
 
 
 def login_view(request):
-    logger.info(static("logger/scan_sound.ogg"))
     if request.user.is_authenticated:
-        logger.info(f"User {request.user.get_username()} is already logged in. Redirecting to logger index")
-        return redirect("logger:scanner")
+        logger.info(f"User {request.user.get_username()} is already logged in. Redirecting to homepage index")
+        return redirect("homepage:index")
 
     if request.method == 'GET':
         return render(request, 'logger/login.html')
@@ -33,7 +34,12 @@ def login_view(request):
         # Check if authentication successful
         if user is not None:
             login(request, user)
-            return redirect("logger:scanner")
+
+            next_url = iri_to_uri(request.POST.get('next', '/'))
+            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts=None):
+                return redirect(next_url)
+
+            return redirect("homepage:index")
         else:
             return render(request, "logger/login.html", {
                 "is_invalid_credentials": True
