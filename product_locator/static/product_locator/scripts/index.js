@@ -24,11 +24,28 @@ const PRODUCT_LOCATOR = (function () {
       handle_get_product_location(document.getElementById("text-input-upc").value, false);
     });
 
-    populate_stores_select();
+    populate_stores_select_dropdown();
 
     document
       .getElementById("store-selector-form")
       .addEventListener("submit", handle_store_select_submission);
+
+    document
+      .getElementById("upc-location-update-form")
+      .addEventListener("submit", handle_upc_location_submit);
+
+    document.getElementById("location-name-update").addEventListener("keypress", (event) => {
+      // if key is whitespace
+      if (event.key === " ") {
+        event.preventDefault();
+      }
+    });
+    document.getElementById("location-name-update").addEventListener("input", (event) => {
+      let p = event.target.selectionStart;
+      event.target.value = event.target.value.toUpperCase();
+      // prevent cursor from jumping to the end unexpectedly after uppercasing the value
+      event.target.setSelectionRange(p, p);
+    });
   }
 
   const ESCAPE_NODE = document.createElement("textarea");
@@ -59,6 +76,7 @@ const PRODUCT_LOCATOR = (function () {
             /*html*/ `<p class="text-center alert alert-warning opacity-75">The UPC ${upc} was not found</p>`
           )
         );
+        append_add_location_button(scan_results);
       } else {
         scan_results.appendChild(
           LOGGER_UTIL._element(
@@ -92,6 +110,80 @@ const PRODUCT_LOCATOR = (function () {
 
       scan_results.appendChild(new_li);
     });
+    append_add_location_button(scan_results, product_data.product.name);
+  }
+
+  function append_add_location_button(scan_results, product_name) {
+    const add_new_location_button_node = LOGGER_UTIL._element(/*html*/ `
+      <div class="my-2 text-center">
+        <button class="btn btn-secondary rounded-4" data-bs-toggle="modal" data-bs-target="#modal-add-location">
+          Add location for this UPC
+        </button>
+      </div>
+    `);
+    scan_results.appendChild(add_new_location_button_node);
+    document.getElementById("upc-number-location-update").value =
+      PREVIOUS_SCAN_INFO.upc || document.getElementById("text-input-upc").value;
+  }
+
+  async function handle_upc_location_submit(event) {
+    event.preventDefault();
+
+    const loading_spinner = event.target.querySelector(".loading-spinner");
+    loading_spinner.classList.remove("visually-hidden");
+    const hidden_message_box = event.target.querySelector(".hidden-message-box");
+    hidden_message_box.classList.add("visually-hidden");
+
+    const upc_number_input_node = document.getElementById("upc-number-location-update");
+    const planogram_update_node = document.getElementById("planogram-name-update");
+    const location_input_node = document.getElementById("location-name-update");
+
+    try {
+      const resp_json = await fetch_post_product_location_update(
+        upc_number_input_node.value,
+        planogram_update_node.value,
+        location_input_node.value
+      );
+      
+      loading_spinner.classList.add("visually-hidden");
+
+      hidden_message_box.innerText = "Submission successful";
+      hidden_message_box.classList.remove("visually-hidden");
+      hidden_message_box.classList.remove("alert-danger");
+      hidden_message_box.classList.add("alert-success");
+    } catch (error_resp) {
+      console.log("error occured", error_resp);
+      loading_spinner.classList.add("visually-hidden");
+
+      hidden_message_box.innerText = "An unexpected error occurred";
+      hidden_message_box.classList.remove("visually-hidden");
+      hidden_message_box.classList.remove("alert-success");
+      hidden_message_box.classList.add("alert-danger");
+    }
+  }
+
+  async function fetch_post_product_location_update(upc, planogram_id, location) {
+    const form = document.getElementById("upc-location-update-form");
+    const payload = {
+      upc: upc,
+      planogram_id: planogram_id,
+      location: location,
+    };
+
+    let resp = await fetch(form.action, {
+      method: form.method,
+      headers: {
+        "content-type": "application/json",
+        "X-CSRFToken": document.querySelector("meta[name=csrf_token]").content,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+      throw resp;
+    }
+
+    return resp.json();
   }
 
   async function fetch_get_product_location(upc) {
@@ -112,7 +204,7 @@ const PRODUCT_LOCATOR = (function () {
     return resp.json();
   }
 
-  function populate_stores_select() {
+  function populate_stores_select_dropdown() {
     const store_select_node = document.getElementById("store-select");
 
     const temp_option_node = LOGGER_UTIL._element(/*html*/ `
