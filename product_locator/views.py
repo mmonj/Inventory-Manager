@@ -6,8 +6,9 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib import messages
 from django.shortcuts import render, redirect
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 from . import models, serializers, planogram_parser
 
@@ -19,16 +20,19 @@ class PlanogramModelForm(forms.Form):
     planogram_id = forms.ModelChoiceField(
         queryset=models.Planogram.objects.all().order_by("store__name").select_related("store"),
         empty_label="Select a store"
-        )
+    )
 
 
 def index(request):
     stores = models.Store.objects.all()
-    stores_json = serializers.StoreSerializer(stores, many=True).data
-    stores_json = json.dumps(stores_json)
+    stores_ordered_dict = serializers.StoreSerializer(stores, many=True).data
+
+    planograms = models.Planogram.objects.all().select_related("store")
+    planograms = sorted(list(planograms), key=lambda p: p.store.name)
 
     return render(request, "product_locator/index.html", {
-        "stores": stores_json,
+        "stores": json.dumps(stores_ordered_dict),
+        "planograms": planograms
     })
 
 
@@ -110,3 +114,22 @@ def get_product_location(request):
         }
 
         return Response(resp_json)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def add_new_product_location(request):
+    try:
+        product, _ = models.Product.objects.get_or_create(upc=request.data["upc"])
+    except ValidationError:
+        return Response({"message": "Invalid UPC"}, status=500)
+
+    planogram = models.Planogram.objects.get(id=request.data["planogram_id"])
+    location, is_new_location = models.HomeLocation.objects.select_related(
+        "planogram").get_or_create(name=request.data["location"], planogram=planogram)
+
+    if location not in product.home_locations.select_related("planogram", "planogram__store").all():
+        logger.info(f"Adding location '{location}' to product '{product}'")
+        product.home_locations.add(location)
+
+    return Response(serializers.HomeLocationSerializer(location).data)
