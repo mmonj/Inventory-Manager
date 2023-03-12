@@ -9,7 +9,6 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.encoding import iri_to_uri
-from django.templatetags.static import static
 
 from . import forms, serializers
 from products import models
