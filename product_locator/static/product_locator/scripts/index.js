@@ -5,6 +5,12 @@ const PRODUCT_LOCATOR = (function () {
   const SCAN_SOUND = new Audio(__PRODUCT_LOCATOR__.scan_sound_path);
   const STORES = JSON.parse(document.getElementById("stores-list").textContent);
 
+  const duplicate_scan_time_buffer_ms = 2000;
+  const PREVIOUS_SCAN_INFO = {
+    upc: null,
+    time_scanned: 0,
+  };
+
   function main() {
     document.getElementById("field-representative-container").hidden = true;
     document.getElementById("field-representative-select").disabled = true;
@@ -16,7 +22,7 @@ const PRODUCT_LOCATOR = (function () {
     document.getElementById("form-manual-upc").addEventListener("submit", (event) => {
       event.preventDefault();
       handle_get_product_location(document.getElementById("text-input-upc").value, false);
-    })
+    });
 
     populate_stores_select();
 
@@ -25,10 +31,10 @@ const PRODUCT_LOCATOR = (function () {
       .addEventListener("submit", handle_store_select_submission);
   }
 
-  const ESCAPE_NODE = document.createElement('textarea');
+  const ESCAPE_NODE = document.createElement("textarea");
   function escape_html(html) {
-      ESCAPE_NODE.textContent = html;
-      return ESCAPE_NODE.innerHTML;
+    ESCAPE_NODE.textContent = html;
+    return ESCAPE_NODE.innerHTML;
   }
 
   async function handle_get_product_location(upc, is_scan_sound_play = false) {
@@ -44,27 +50,32 @@ const PRODUCT_LOCATOR = (function () {
     try {
       loading_spinner_node.classList.remove("visually-hidden");
       product_data = await fetch_get_product_location(upc);
-    } catch(resp) {
+    } catch (resp) {
       loading_spinner_node.classList.add("visually-hidden");
 
-      if(resp.status === 404) {
+      if (resp.status === 404) {
         scan_results.appendChild(
-          LOGGER_UTIL._element(/*html*/`<p class="text-center alert alert-warning opacity-75">The UPC ${upc} was not found</p>`)
+          LOGGER_UTIL._element(
+            /*html*/ `<p class="text-center alert alert-warning opacity-75">The UPC ${upc} was not found</p>`
+          )
+        );
+      } else {
+        scan_results.appendChild(
+          LOGGER_UTIL._element(
+            /*html*/ `<p class="text-center alert alert-warning opacity-75">Server returned a ${resp.status} error</p>`
+          )
         );
       }
-      else {
-        scan_results.appendChild(
-          LOGGER_UTIL._element(/*html*/`<p class="text-center alert alert-warning opacity-75">Server returned a ${resp.status} error</p>`)
-        );
-      }
-      
+
       return;
     }
-    
+
     loading_spinner_node.classList.add("visually-hidden");
     if (product_data.home_locations.length === 0) {
       scan_results.appendChild(
-        LOGGER_UTIL._element(/*html*/`<h5 class="text-center mt-3 text-white-50">No location found</h5>`)
+        LOGGER_UTIL._element(
+          /*html*/ `<h5 class="text-center mt-3 text-white-50">No location found</h5>`
+        )
       );
     }
 
@@ -139,7 +150,7 @@ const PRODUCT_LOCATOR = (function () {
 
   function init_scanner() {
     const config = {
-      fps: 1,
+      fps: 2,
       qrbox: qrboxFunction,
       videoConstraints: {
         facingMode: "environment",
@@ -149,6 +160,16 @@ const PRODUCT_LOCATOR = (function () {
     };
 
     SCANNER.start({ facingMode: "environment" }, config, (decoded_text, decode_data) => {
+      const unix_now_time_ms = Date.now();
+      if (
+        decoded_text === PREVIOUS_SCAN_INFO.upc &&
+        unix_now_time_ms - PREVIOUS_SCAN_INFO.time_scanned < duplicate_scan_time_buffer_ms
+      ) {
+        return;
+      }
+
+      PREVIOUS_SCAN_INFO.upc = decoded_text;
+      PREVIOUS_SCAN_INFO.time_scanned = unix_now_time_ms;
       handle_get_product_location(decoded_text, true);
     });
   }
