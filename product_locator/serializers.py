@@ -11,13 +11,13 @@ class StoreSerializer(serializers.ModelSerializer):
 class HomeLocationSerializer(serializers.ModelSerializer):
     planogram = serializers.SerializerMethodField()
 
-    class Meta:
-        model = models.HomeLocation
-        fields = ["name", "planogram"]
-
     def get_planogram(self, home_location):
         # return home_location.planogram.name
         return str(home_location.planogram)
+
+    class Meta:
+        model = models.HomeLocation
+        fields = ["name", "planogram"]
 
 
 class ProductSerializer(serializers.ModelSerializer):

@@ -11,6 +11,7 @@ class PlanogramAdmin(admin.ModelAdmin):
 class HomeLocationAdmin(admin.ModelAdmin):
     search_fields = ['name', 'planogram']
     list_display = ['name', 'planogram']
+    list_filter = ['planogram', "planogram__store"]
 
 
 class ProductAdmin(admin.ModelAdmin):
