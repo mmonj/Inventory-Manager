@@ -1,16 +1,16 @@
 const LOGGER_SCAN_HISTORY = (function () {
   "use strict";
 
-  let TERRITORY_INFO = null;
+  let TERRITORY_LIST = null;
 
   (function () {
-    if (document.getElementById("territory-info")) {
-      TERRITORY_INFO = JSON.parse(document.getElementById("territory-info").textContent);
+    if (document.getElementById("territory_list")) {
+      TERRITORY_LIST = JSON.parse(document.getElementById("territory_list").textContent);
 
       $("#store-select").select2();
-      LOGGER_UTIL.handle_populate_initial_dropdown_values(TERRITORY_INFO);
+      LOGGER_UTIL.handle_populate_initial_dropdown_values(TERRITORY_LIST);
       document.getElementById("field-representative-select").addEventListener("change", (event) => {
-        LOGGER_UTIL.handle_field_rep_change(event, TERRITORY_INFO);
+        LOGGER_UTIL.handle_field_rep_change(event, TERRITORY_LIST);
       });
     }
 

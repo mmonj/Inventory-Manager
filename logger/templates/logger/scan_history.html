@@ -30,10 +30,10 @@
 {% endblock %}
 
 {% block body_main %}
-  {% if territory_info %}
+  {% if territory_list %}
     <h1 class="m-3 text-center title-color">Scan History</h1>
     {% include "logger/includes/store_picker.html" %}
-    <script id="territory-info" type="application/json">{{ territory_info | safe }}</script>
+    <script id="territory_list" type="application/json">{{ territory_list | safe }}</script>
   {% endif %}
 
   <section class="mw-rem-60 mx-auto">

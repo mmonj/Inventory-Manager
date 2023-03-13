@@ -20,6 +20,20 @@ class BrandParentCompanySerializer(serializers.ModelSerializer):
         return parent_company.third_party_logo.url
 
 
+class StoreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Store
+        fields = ["id", "name"]
+
+
+class FieldRepresentativeSerializer(serializers.ModelSerializer):
+    stores = StoreSerializer(many=True)
+
+    class Meta:
+        model = models.FieldRepresentative
+        fields = ["id", "name", "stores"]
+
+
 class ProductSerializer(serializers.ModelSerializer):
     barcode_b64 = serializers.SerializerMethodField()
     item_image_url = serializers.SerializerMethodField()

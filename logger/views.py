@@ -1,5 +1,6 @@
 import json
 import logging
+import shortuuid
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -52,9 +53,10 @@ def logout_view(request):
 
 @login_required(login_url=reverse_lazy('logger:login_view'))
 def scanner(request):
-    territory_info = get_territory_info()
+    territory_list = get_territory_list()
+
     return render(request, 'logger/scanner.html', {
-        'territory_info': json.dumps(territory_info)
+        'territory_list': json.dumps(territory_list)
     })
 
 
@@ -119,26 +121,18 @@ def set_not_carried(product, store):
     return product_addition
 
 
-def get_territory_info():
-    territory_info = {
-        'territory_list': []
-    }
-    territory_list = territory_info['territory_list']
+def get_territory_list():
+    field_reps = models.FieldRepresentative.objects.prefetch_related("stores").all()
+    territory_list = serializers.FieldRepresentativeSerializer(field_reps, many=True).data
 
-    field_reps = models.FieldRepresentative.objects.all()
-    for field_rep in field_reps:
-        territory_list.append(
-            {
-                'field_rep_name': field_rep.name,
-                'field_rep_id': field_rep.pk,
-                # add list of dictionaries to 'stores' key
-                'stores': [
-                    {'store_name': store.name, 'store_id': store.pk} for store in field_rep.stores.all()
-                ]
-            }
-        )
+    stores_data = serializers.StoreSerializer(models.Store.objects.all(), many=True).data
+    territory_list.append({
+        "id": shortuuid.uuid(),
+        "name": "All Stores",
+        "stores": stores_data
+    })
 
-    return territory_info
+    return territory_list
 
 
 @login_required(login_url=reverse_lazy('logger:login_view'))
@@ -171,9 +165,10 @@ def add_new_stores(request):
 @login_required(login_url=reverse_lazy('logger:login_view'))
 def scan_history(request):
     if not request.GET:
-        territory_info = get_territory_info()
+        territory_list = get_territory_list()
+
         return render(request, 'logger/scan_history.html', {
-            'territory_info': json.dumps(territory_info)
+            'territory_list': json.dumps(territory_list)
         })
 
     store_id = request.GET.get('store-id')

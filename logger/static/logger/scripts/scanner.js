@@ -1,15 +1,15 @@
 const LOGGER_SCANNER = (function () {
   "use strict";
 
-  const TERRITORY_INFO = JSON.parse(document.getElementById("territory-info").textContent);
+  const TERRITORY_LIST = JSON.parse(document.getElementById("territory_list").textContent);
   const SCANNER = new Html5Qrcode("reader");
 
   (function () {
     $("#store-select").select2();
-    LOGGER_UTIL.handle_populate_initial_dropdown_values(TERRITORY_INFO);
+    LOGGER_UTIL.handle_populate_initial_dropdown_values(TERRITORY_LIST);
 
     document.getElementById("field-representative-select").addEventListener("change", (event) => {
-      LOGGER_UTIL.handle_field_rep_change(event, TERRITORY_INFO);
+      LOGGER_UTIL.handle_field_rep_change(event, TERRITORY_LIST);
     });
     document
       .getElementById("store-selector-form")
