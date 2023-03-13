@@ -1,3 +1,4 @@
+import hashlib
 import logging
 from products import models
 from products.util import get_current_work_cycle
@@ -27,8 +28,10 @@ def validate_api_token(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def get_store_product_additions(request):
-    sorted_upc_tuple: list = update_product_names(request.data)
-    upc_tuple_hash = hash(sorted_upc_tuple)
+    sorted_upcs: list = update_product_names(request.data)
+    hash_object = hashlib.sha256()
+    hash_object.update(",".join(sorted_upcs).encode())
+    upcs_hash = hash_object.hexdigest()
 
     # initiate worker
     get_external_product_images.delay()
@@ -40,7 +43,7 @@ def get_store_product_additions(request):
     barcode_sheet, is_new_barcode_sheet = models.BarcodeSheet.objects.get_or_create(
         store=store,
         parent_company=product_additions.first().product.parent_company,
-        upcs_hash=upc_tuple_hash,
+        upcs_hash=upcs_hash,
         work_cycle=current_work_cycle)
 
     if is_new_barcode_sheet:
@@ -99,7 +102,7 @@ def update_product_names(request_json: dict) -> tuple:
 
     products.bulk_update(products, ['parent_company', 'name'])
 
-    return tuple(sorted(upcs))
+    return sorted(upcs)
 
 
 def update_product_additions(store: models.Store, request_json: dict) -> list:
