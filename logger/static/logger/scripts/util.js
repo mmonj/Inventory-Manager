@@ -1,6 +1,8 @@
 const LOGGER_UTIL = (function() {
   "use strict";
 
+  let TOAST = null;
+
   // create element node from string
   function _element(html_str) {
     var template = document.createElement("template");
@@ -8,37 +10,38 @@ const LOGGER_UTIL = (function() {
     return template.content.childNodes[0];
   }
   
-  function handle_field_rep_change(event, territory_info) {
+  function handle_field_rep_change(event, territory_list) {
     let new_field_rep_id = event.target.value;
     let store_select_node = document.getElementById("store-select");
     store_select_node.innerHTML = "";
-    update_store_select_options(new_field_rep_id, store_select_node, territory_info);
+    update_store_select_options(new_field_rep_id, store_select_node, territory_list);
   }
 
-  function handle_populate_initial_dropdown_values(territory_info) {
+  function handle_populate_initial_dropdown_values(territory_list) {
     let field_rep_select_node = document.getElementById("field-representative-select");
-    for (let territory of territory_info.territory_list) {
+    for (let territory of territory_list) {
       field_rep_select_node.appendChild(_element(/*html*/`
-        <option value="${territory.field_rep_id}">${territory.field_rep_name}</option>
+        <option value="${territory.id}">${territory.name}</option>
       `));
     }
+    
     update_store_select_options(
       field_rep_select_node.options[field_rep_select_node.selectedIndex].value,
       document.getElementById("store-select"),
-      territory_info
+      territory_list
     );
   }
 
-  function update_store_select_options(new_field_rep_id, store_select_node, territory_info) {
+  function update_store_select_options(new_field_rep_id, store_select_node, territory_list) {
     store_select_node.appendChild(_element(/*html*/`
       <option disabled selected value="">Search Stores</option>
     `));
 
-    for (let territory of territory_info.territory_list) {
-      if (territory.field_rep_id == new_field_rep_id) {
-        for (let store_info of territory.stores) {
-          let new_option_node = _element(`<option value="${store_info.store_id}"></option>`);
-          new_option_node.innerText = store_info.store_name;
+    for (let territory of territory_list) {
+      if (territory.id == new_field_rep_id) {
+        for (let store of territory.stores) {
+          let new_option_node = _element(`<option value="${store.id}"></option>`);
+          new_option_node.innerText = store.name;
           store_select_node.appendChild(new_option_node);
         }
         return;
@@ -104,9 +107,12 @@ const LOGGER_UTIL = (function() {
     const toast_node = document.getElementById("alert-toast");
     toast_node.querySelector("._toast-title").innerText = title;
     toast_node.querySelector(".toast-body").innerText = message;
-  
-    const _toast = new bootstrap.Toast(toast_node);
-    _toast.show();
+
+    if (TOAST === null) {
+      TOAST = new bootstrap.Toast(toast_node);
+    }
+
+    TOAST.show();
   }
 
   return {
