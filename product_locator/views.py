@@ -5,7 +5,9 @@ from itertools import islice
 from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
+from django.urls import reverse_lazy
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -23,6 +25,7 @@ class PlanogramModelForm(forms.Form):
     )
 
 
+@login_required(login_url=reverse_lazy('logger:login_view'))
 def index(request):
     stores = models.Store.objects.all()
     stores_ordered_dict = serializers.StoreSerializer(stores, many=True).data
@@ -36,6 +39,7 @@ def index(request):
     })
 
 
+@login_required(login_url=reverse_lazy('logger:login_view'))
 def add_new_products(request):
     if request.method == "GET":
         return render(request, "product_locator/add_new_products.html", {
@@ -95,6 +99,7 @@ def bulk_create_in_batches(TargetModelClass, objs: iter, batch_size=100, ignore_
 
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def get_product_location(request):
     if request.method == "GET":
         upc = request.GET.get("upc")
