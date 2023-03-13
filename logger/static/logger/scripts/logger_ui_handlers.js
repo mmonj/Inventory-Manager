@@ -4,11 +4,6 @@ const LOGGER_UI_HANDLERS = (function() {
   const SCANNED_UPCS = new Set();
   const SCAN_SOUND = new Audio(window.__LOGGER_INFO__.scan_sound_path);
   // keeps track of previously scanned UPC to avoid ringing the scan tone too frequently
-  const DUPLICATE_DELAY_MS = 2 * 1000
-  const PREVIOUS_SCAN = {
-    upc: "",
-    time_scanned: 0  //unix time
-  };
 
   function handle_manual_upc_submission(event) {
     event.preventDefault();
@@ -31,16 +26,6 @@ const LOGGER_UI_HANDLERS = (function() {
 
   async function handle_submit_upc(upc_number, options = { is_scan_sound_play: true, is_manual_submission: false }) {
     let ret = { errors: [] };
-    const time_now = Date.now();
-    
-    if (upc_number === PREVIOUS_SCAN.upc && 
-        time_now - PREVIOUS_SCAN.time_scanned < DUPLICATE_DELAY_MS && 
-        !options.is_manual_submission ) {
-      const error_msg = `Duplicate UPC ${upc_number} was submitted within a ${DUPLICATE_DELAY_MS/1000} second time window`;
-      console.log(error_msg);
-      ret.errors.push(error_msg)
-      return Promise.reject(ret);
-    }
 
     if (options.is_scan_sound_play) {
       SCAN_SOUND.play();
@@ -64,8 +49,6 @@ const LOGGER_UI_HANDLERS = (function() {
 
     return LOGGER_SCANNER.send_post_product_addition(upc_number)
       .then((resp_json) => {
-        PREVIOUS_SCAN.upc = upc_number;
-        PREVIOUS_SCAN.time_scanned = time_now;
         add_result_li_to_dom(scan_results, new_li, upc_number, resp_json);
         return resp_json;
       })
