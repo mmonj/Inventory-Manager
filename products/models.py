@@ -199,7 +199,7 @@ class BarcodeSheet(models.Model):
     parent_company = models.ForeignKey(BrandParentCompany, on_delete=models.SET_NULL,
                                        null=True, related_name="barcode_sheets")
     product_additions = models.ManyToManyField(ProductAddition, related_name="barcode_sheets")
-    upcs_hash = models.BigIntegerField(null=True)
+    upcs_hash = models.TextField(null=True)
     datetime_created = models.DateTimeField(default=timezone.now)
     work_cycle = models.ForeignKey(WorkCycle, null=True, on_delete=models.SET_NULL, related_name="barcode_sheets")
 
