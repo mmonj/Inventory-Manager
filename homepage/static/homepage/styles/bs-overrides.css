@@ -72,6 +72,7 @@ textarea.form-control:focus {
   --bs-toast-header-bg: rgb(35, 45, 59);
   --bs-toast-header-color: rgb(255, 255, 255);
   --bs-toast-box-shadow: 0 0.5rem 1rem rgb(255 255 255 / 15%);
+  --bs-toast-header-border-color: rgb(255 255 255 / 12%);
 }
 
 .btn-close {
