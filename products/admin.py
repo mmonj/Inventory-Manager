@@ -43,7 +43,7 @@ class PersonnelContactAdmin(admin.ModelAdmin):
 
 class BarcodeSheetAdmin(admin.ModelAdmin):
     search_fields = ["store__name", "parent_company__short_name"]
-    list_display = ["store", "parent_company", "work_cycle", "num_product_additions"]
+    list_display = ["store", "parent_company", "work_cycle", "num_product_additions", "upcs_hash"]
     list_filter = ['parent_company__short_name', "work_cycle"]
 
     def num_product_additions(self, barcode_sheet):
