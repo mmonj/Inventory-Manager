@@ -30,7 +30,7 @@ def validate_api_token(request):
 def get_store_product_additions(request):
     sorted_upcs: list = update_product_names(request.data)
     hash_object = hashlib.sha256()
-    hash_object.update(",".join(sorted_upcs).encode())
+    hash_object.update(str(sorted_upcs).encode())
     upcs_hash = hash_object.hexdigest()
 
     # initiate worker
