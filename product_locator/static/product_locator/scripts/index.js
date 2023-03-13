@@ -5,7 +5,7 @@ const PRODUCT_LOCATOR = (function () {
   const SCAN_SOUND = new Audio(__PRODUCT_LOCATOR__.scan_sound_path);
   const STORES = JSON.parse(document.getElementById("stores-list").textContent);
 
-  const duplicate_scan_delay_ms = 2000;
+  const DUPLICATE_SCAN_DELAY_MS = 2000;
   const PREVIOUS_SCAN_INFO = {
     upc: null,
     time_scanned: 0,
@@ -261,7 +261,7 @@ const PRODUCT_LOCATOR = (function () {
       const unix_now_time_ms = Date.now();
       if (
         decoded_text === PREVIOUS_SCAN_INFO.upc &&
-        unix_now_time_ms - PREVIOUS_SCAN_INFO.time_scanned < duplicate_scan_delay_ms
+        unix_now_time_ms - PREVIOUS_SCAN_INFO.time_scanned < DUPLICATE_SCAN_DELAY_MS
       ) {
         return;
       }
