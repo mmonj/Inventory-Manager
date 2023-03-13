@@ -13,27 +13,8 @@
 
 {% block body_main %}
   <section class="mw-rem-60 mx-auto p-2">
-    {% if messages %}
-      <ul class="list-group" style="list-style: none;">
-        {% for message in messages %}
-          <li class="alert alert-{{message.tags}}">{{ message }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
+    {% include "product_locator/includes/messages.html" %}
 
-    {% if planogram_form.errors %}
-      <ul class="list-group" style="list-style: none;">
-        {% for field, errors in planogram_form.errors.items %}
-          <li class="alert alert-error">
-            <p class="m-0">Error with field {{ field }}:</p>
-            {% for error in errors %}
-              <p class="m-0 ps-3">• {{ error }}</p>
-            {% endfor %}
-          </li>
-      {% endfor %}
-      </ul>
-    {% endif %}
-    
     <h1 id="page-title" class="m-3 text-center title-color ">Add New Products</h1>
 
     {% if not messages and not planogram_form.errors %}
