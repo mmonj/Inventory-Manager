@@ -176,7 +176,7 @@ def scan_history(request):
             'territory_info': json.dumps(territory_info)
         })
 
-    store_id = request.GET.get('store-id')[0]
+    store_id = request.GET.get('store-id')
     store = models.Store.objects.get(pk=store_id)
     product_additions = models.ProductAddition.objects.filter(
         store=store, is_carried=True).order_by('-date_last_scanned')[:100]
