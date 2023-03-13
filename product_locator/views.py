@@ -139,3 +139,14 @@ def add_new_product_location(request):
         product.home_locations.add(location)
 
     return Response(serializers.HomeLocationSerializer(location).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_planogram_locations(request):
+    planogram_id = request.GET.get("planogram-id")
+    home_locations = models.HomeLocation.objects.filter(planogram__id=planogram_id).all()
+
+    home_locations_json = serializers.HomeLocationSerializer(home_locations, many=True).data
+
+    return Response(home_locations_json)
