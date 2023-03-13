@@ -6,11 +6,11 @@
 </ul>
 {% endif %}
 
-{% if planogram_form.errors %}
+{% if form_errors %}
 <ul class="list-group" style="list-style: none;">
-  {% for field, errors in planogram_form.errors.items %}
+  {% for field, errors in form_errors.items %}
     <li class="alert alert-error">
-      <p class="m-0">Error with field {{ field }}:</p>
+      <p class="m-0">Error with field <span class="fw-bold">{{ field }}</span>:</p>
       {% for error in errors %}
         <p class="m-0 ps-3">• {{ error }}</p>
       {% endfor %}
