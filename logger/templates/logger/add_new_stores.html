@@ -9,14 +9,8 @@
 
 {% block body_main %}
   <section class="m-3 mw-rem-60 mx-auto">
-    {% if error_messages %}
-      <div class="alert alert-warning my-3" role="alert">
-        <h4 class="alert-heading">You have some errors to fix</h4>
-          {% for error in error_messages %}
-            <p>{{ error }}</p>
-          {% endfor %}
-      </div>
-    {% endif %}
+    {% include "product_locator/includes/messages.html" %}
+    
     <form action="{% url 'logger:add_new_stores' %}" method="POST">
       {% csrf_token %}
     

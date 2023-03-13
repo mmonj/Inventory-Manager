@@ -49,7 +49,8 @@ def add_new_products(request):
         received_form = PlanogramModelForm(request.POST)
         if not received_form.is_valid():
             return render(request, "product_locator/add_new_products.html", {
-                "planogram_form": received_form
+                "planogram_form": received_form,
+                "form_errors": received_form.errors
             })
 
         planogram: models.Planogram = received_form.cleaned_data["planogram_id"]

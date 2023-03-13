@@ -1,0 +1,20 @@
+{% if messages %}
+<ul class="list-group" style="list-style: none;">
+  {% for message in messages %}
+    <li class="alert alert-{{message.tags}}">{{ message }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if form_errors %}
+<ul class="list-group" style="list-style: none;">
+  {% for field, errors in form_errors.items %}
+    <li class="alert alert-error">
+      <p class="m-0">Error with field <span class="fw-bold">{{ field }}</span>:</p>
+      {% for error in errors %}
+        <p class="m-0 ps-3">• {{ error }}</p>
+      {% endfor %}
+    </li>
+{% endfor %}
+</ul>
+{% endif %}
