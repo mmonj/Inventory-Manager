@@ -2,6 +2,7 @@ import json
 import logging
 import shortuuid
 
+from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
@@ -144,21 +145,16 @@ def add_new_stores(request):
 
     received_form = forms.NewStoresForm(request.POST)
     if not received_form.is_valid():
-        error_messages = []
-        for field, errors in received_form.errors.items():
-            for error in errors:
-                error_messages.append(f'{field}: {error}')
-
         return render(request, 'logger/add_new_stores.html', {
             'form': received_form,
-            'error_messages': error_messages
+            'form_errors': received_form.errors
         })
 
-    new_stores = []
-    logger.info('Json Decode error: falling back to parsing from raw text')
     new_stores = [s for s in (f.strip() for f in received_form.cleaned_data['stores_text'].split('\n')) if s]
+    logger.info(f'Adding new stores from user input. {len(new_stores)} possible new stores submitted.')
     import_new_stores(new_stores)
 
+    messages.success(request, "Your submission was successful")
     return redirect('logger:add_new_stores')
 
 
@@ -202,22 +198,28 @@ def import_json_data_files(request):
             'form': forms.ImportJsonDataFiles()
         })
 
-    form = forms.ImportJsonDataFiles(request.POST, request.FILES)
-    if form.is_valid:
-        field_reps_info = json.load(request.FILES['field_reps_json'])
-        territory_info = json.load(request.FILES['territory_info_json'])
-        products_info = json.load(request.FILES['product_names_json'])
-        stores_distribution_data = json.load(request.FILES['store_distribution_data_json'])
-        product_images_zip = request.FILES['product_images_zip']
-        brand_logos_zip = request.FILES['brand_logos_zip']
+    received_form = forms.ImportJsonDataFiles(request.POST, request.FILES)
+    if not received_form.is_valid():
+        return render(request, 'logger/import_json_data_files.html', {
+            'form': received_form,
+            'form_errors': received_form.errors
+        })
 
-        util.import_field_reps(field_reps_info)
-        util.import_territories(territory_info)
-        util.import_products(products_info,
-                             images_zip_path=product_images_zip.temporary_file_path(),
-                             brand_logos_zip=brand_logos_zip.read())
-        util.import_distribution_data(stores_distribution_data)
+    field_reps_info = json.load(request.FILES['field_reps_json'])
+    territory_info = json.load(request.FILES['territory_info_json'])
+    products_info = json.load(request.FILES['product_names_json'])
+    stores_distribution_data = json.load(request.FILES['store_distribution_data_json'])
+    product_images_zip = request.FILES['product_images_zip']
+    brand_logos_zip = request.FILES['brand_logos_zip']
 
+    util.import_field_reps(field_reps_info)
+    util.import_territories(territory_info)
+    util.import_products(products_info,
+                         images_zip_path=product_images_zip.temporary_file_path(),
+                         brand_logos_zip=brand_logos_zip.read())
+    util.import_distribution_data(stores_distribution_data)
+
+    messages.success(request, "Your submission was successful")
     return redirect('logger:import_json_data_files')
 
 
