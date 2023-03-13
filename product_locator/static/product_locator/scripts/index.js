@@ -72,16 +72,22 @@ const PRODUCT_LOCATOR = (function () {
 
       if (resp.status === 404) {
         scan_results.appendChild(
-          LOGGER_UTIL._element(
-            /*html*/ `<p class="text-center alert alert-warning opacity-75">The UPC ${upc} was not found</p>`
-          )
+          LOGGER_UTIL._element(/*html*/ `
+            <p class="text-center alert alert-warning opacity-75">
+              UPC not found:
+              <span class="me-1">${upc[0]}</span>
+              <span class="mx-1">${upc.slice(1, 6)}</span>
+              <span class="mx-1">${upc.slice(6, 11)}</span>
+              <span class="ms-1">${upc[11]}</span>
+            </p>
+          `)
         );
         append_add_location_button(scan_results);
       } else {
         scan_results.appendChild(
-          LOGGER_UTIL._element(
-            /*html*/ `<p class="text-center alert alert-warning opacity-75">Server returned a ${resp.status} error</p>`
-          )
+          LOGGER_UTIL._element(/*html*/ `
+            <p class="text-center alert alert-warning opacity-75">Server returned a ${resp.status} error</p>
+          `)
         );
       }
 
@@ -91,9 +97,9 @@ const PRODUCT_LOCATOR = (function () {
     loading_spinner_node.classList.add("visually-hidden");
     if (product_data.home_locations.length === 0) {
       scan_results.appendChild(
-        LOGGER_UTIL._element(
-          /*html*/ `<h5 class="text-center mt-3 text-white-50">No location found</h5>`
-        )
+        LOGGER_UTIL._element(/*html*/ `
+          <h5 class="text-center mt-3 text-white-50">No location found</h5>
+        `)
       );
     }
 
@@ -144,7 +150,7 @@ const PRODUCT_LOCATOR = (function () {
         planogram_update_node.value,
         location_input_node.value
       );
-      
+
       loading_spinner.classList.add("visually-hidden");
 
       hidden_message_box.innerText = "Submission successful";
