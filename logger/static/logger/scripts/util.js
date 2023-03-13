@@ -1,6 +1,8 @@
 const LOGGER_UTIL = (function() {
   "use strict";
 
+  let TOAST = null;
+
   // create element node from string
   function _element(html_str) {
     var template = document.createElement("template");
@@ -105,9 +107,12 @@ const LOGGER_UTIL = (function() {
     const toast_node = document.getElementById("alert-toast");
     toast_node.querySelector("._toast-title").innerText = title;
     toast_node.querySelector(".toast-body").innerText = message;
-  
-    const _toast = new bootstrap.Toast(toast_node);
-    _toast.show();
+
+    if (TOAST === null) {
+      TOAST = new bootstrap.Toast(toast_node);
+    }
+
+    TOAST.show();
   }
 
   return {
