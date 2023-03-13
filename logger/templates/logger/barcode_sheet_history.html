@@ -38,7 +38,7 @@
               <h5 class="card-title mb-3">{{ barcode_sheet.store.name }}</h5>
               <p class="card-text mb-0">Created on {{ barcode_sheet.datetime_created }} </p>
               <p class="card-text">{{ barcode_sheet.product_additions.count }} items in this document</p>
-              <a href="{% url 'logger:get_barcode_sheet' barcode_sheet.id %}?store-name={{barcode_sheet.store.name}}&sheet-type=all-products" class="btn btn-primary">View Barcode Sheet</a>
+              <a href="{% url 'logger:get_barcode_sheet' barcode_sheet.id %}?store-name={{barcode_sheet.store.name}}&sheet-type=out-of-dist" class="btn btn-primary">View Barcode Sheet</a>
             </div>
         </li>
       {% empty %}
