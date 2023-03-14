@@ -24,3 +24,11 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Product
         fields = ["upc", "name"]
+
+
+class HomeLocation_Products_Serializer(serializers.ModelSerializer):
+    products = ProductSerializer(many=True)
+
+    class Meta:
+        model = models.HomeLocation
+        fields = ["name", "products"]

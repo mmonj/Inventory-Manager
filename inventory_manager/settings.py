@@ -130,7 +130,7 @@ REST_FRAMEWORK = {
     ],
 }
 
-CORS_URLS_REGEX = r"^/api/.*$"
+CORS_URLS_REGEX = r"^/(api|product_locator/api)/.*$"
 CORS_ALLOW_ALL_ORIGINS = True
 
 LOGGING = {
