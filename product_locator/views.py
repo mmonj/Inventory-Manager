@@ -144,8 +144,10 @@ def add_new_product_location(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_planogram_locations(request):
-    planogram_id = request.GET.get("planogram-id")
-    home_locations = models.HomeLocation.objects.prefetch_related("products").filter(planogram__id=planogram_id).all()
+    planogram_name = request.GET.get("planogram-name")
+    store_name = request.GET.get("store-name")
+    home_locations = models.HomeLocation.objects.prefetch_related("products").filter(
+        planogram__name=planogram_name, planogram__store__name=store_name).all()
 
     home_locations_json = serializers.HomeLocation_Products_Serializer(home_locations, many=True).data
 
