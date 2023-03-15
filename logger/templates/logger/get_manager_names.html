@@ -1,0 +1,49 @@
+{% extends "logger/layout.html" %}
+{% load static %}
+
+{% block title%}Manager Update Form{% endblock %}
+
+{% block extra_head_elements%}
+  <script defer src="{% static 'logger/scripts/get_manager_names.js' %}"></script>
+  <style>
+    .empty-required-field {
+      border-color: #ff000036 !important;
+      background-color: #ff000012 !important;
+    }
+    .empty-required-field:focus {
+      box-shadow: 0 0 0 0.25rem rgb(253 13 13 / 9%) !important;
+    }
+  </style>
+{% endblock %}
+
+{% block body_header %}
+  {% include "logger/includes/navbar.html" %}
+{% endblock %}
+
+{% block body_main %}
+  <section class="mw-rem-50 mx-auto p-3">
+    {% include "product_locator/includes/messages.html" %}
+
+    <form action="{% url 'logger:get_manager_names' %}" method="POST">
+      {% csrf_token %}
+
+      <fieldset>
+        <legend class="text-center title-color">Manager Names</legend>
+        
+        <p>
+          <label class="form-label">Field Reps</label>
+          <select id="field-rep-selection" class="form-select"></select>
+        </p>
+
+        <div id="store-fields"></div>
+      </fieldset>
+
+      <div class="text-center">
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </div>
+    </form>
+
+  </section>
+
+  <script id="territory_list" type="application/json">{{ territory_list | safe }}</script>
+{% endblock %}

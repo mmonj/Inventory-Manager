@@ -11,11 +11,13 @@
           <li class="nav-item">
             <a class="nav-link" href="{% url 'logger:scan_history' %}">Scan History</a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'logger:barcode_sheet_history' %}">Barcode Sheets</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'logger:get_manager_names' %}">Manager Update Form</a>
+          </li>
         {% endif %}
-
-        <li class="nav-item">
-          <a class="nav-link" href="{% url 'logger:barcode_sheet_history' %}">Barcode Sheets</a>
-        </li>
 
         {% if user.is_superuser %}
           <li class="nav-item">
