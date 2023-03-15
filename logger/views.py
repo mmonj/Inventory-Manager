@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
@@ -260,3 +261,53 @@ def get_barcode_sheet(request, barcode_sheet_id):
         **barcode_sheet_data,
         "exclude_bs_overrides": True
     })
+
+
+def get_manager_names(request):
+    if request.method == "GET":
+        field_reps = models.FieldRepresentative.objects.prefetch_related("stores").all()
+        field_reps_data = serializers.FieldRepresentativeStoresManagersSerializer(field_reps, many=True).data
+
+        return render(request, "logger/get_manager_names.html", {
+            "territory_list": json.dumps(field_reps_data)
+        })
+    elif request.method == "POST":
+        # if user has chosen to update existing contact names
+        if "contact-id" in request.POST:
+            with transaction.atomic():
+                personnel_contacts = models.PersonnelContact.objects.select_for_update().in_bulk(
+                    request.POST.getlist("contact-id"))
+
+                updated_contacts = []
+                for contact_id, first_name, last_name in zip(
+                        request.POST.getlist("contact-id"),
+                        request.POST.getlist("contact-first-name"),
+                        request.POST.getlist("contact-last-name")
+                ):
+                    existing_contact = personnel_contacts[int(contact_id)]
+                    if (first_name, last_name) != (existing_contact.first_name, existing_contact.last_name):
+                        existing_contact.first_name = first_name
+                        existing_contact.last_name = last_name
+                        updated_contacts.append(existing_contact)
+
+                models.PersonnelContact.objects.bulk_update(updated_contacts, ["first_name", "last_name"])
+
+        # indicates if user has chosen to add a new contact to a store that previously had none
+        if "store-id" in request.POST:
+            with transaction.atomic():
+                new_contacts = []
+                stores = models.Store.objects.select_for_update().in_bulk(request.POST.getlist("store-id"))
+
+                for store_id, first_name, last_name in zip(
+                    request.POST.getlist("store-id"),
+                    request.POST.getlist("new-contact-first-name"),
+                    request.POST.getlist("new-contact-last-name")
+                ):
+                    personnel_contact = models.PersonnelContact(
+                        first_name=first_name, last_name=last_name, store=stores[int(store_id)])
+                    new_contacts.append(personnel_contact)
+
+                models.PersonnelContact.objects.bulk_create(new_contacts)
+
+        messages.success(request, "Submitted contact names successfully")
+        return redirect("logger:get_manager_names")

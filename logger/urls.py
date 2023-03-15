@@ -17,4 +17,5 @@ urlpatterns = [
     path("barcode_sheet_history/<int:field_representative_id>/",
          views.barcode_sheet_history, name="barcode_sheet_history"),
     path("barcode_sheet/<int:barcode_sheet_id>/", views.get_barcode_sheet, name="get_barcode_sheet"),
+    path("get_manager_names/", views.get_manager_names, name="get_manager_names"),
 ]
