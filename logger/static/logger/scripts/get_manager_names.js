@@ -23,17 +23,17 @@
   function populate_store_list(event) {
     const stores_card_container = document.getElementById("store-fields");
     stores_card_container.innerHTML = "";
-    
+
     for (let territory of TERRITORY_LIST) {
       if (territory.id === parseInt(FIELD_REP_SELECTION_NODE.value)) {
         for (let store of territory.stores) {
           stores_card_container.append(...create_elements(/*html*/`
-            <div class="card my-3">
+            <li class="card my-3">
               <fieldset class="card-body">
                 <h5 class="card-title text-center">${escape_html(store.name)}</h5>
                 ${get_managers_input_fields(store)}
               </fieldset>
-            </div>
+            </li>
           `));
         }
         break;
@@ -45,7 +45,7 @@
     if (store.contacts.length === 0) {
       return "";
     }
-    
+
     let ret_html = "";
     for (let contact of store.contacts) {
       ret_html += /*html*/`
