@@ -7,6 +7,7 @@
     FIELD_REP_SELECTION_NODE.addEventListener("change", (event) => {
       populate_store_list();
       listen_for_empty_required_inputs();
+      listen_for_new_contact_button();
     });
 
     FIELD_REP_SELECTION_NODE.dispatchEvent(new Event("change"));
@@ -43,7 +44,16 @@
 
   function get_managers_input_fields(store) {
     if (store.contacts.length === 0) {
-      return "";
+      return /*html*/`
+        <div class="add-contact-container text-center mt-3">
+          <button type="button" class="btn btn-secondary add-contact-btn" data-store_id="${store.id}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-plus-circle-fill" viewBox="0 0 16 16" style="vertical-align: text-bottom;">
+              <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"></path>
+            </svg>
+            Add New Contact
+          </button>
+        </div>
+      `;
     }
 
     let ret_html = "";
@@ -73,6 +83,28 @@
         else {
           event.target.classList.remove("empty-required-field");
         }
+      });
+    });
+  }
+
+  function listen_for_new_contact_button() {
+    document.querySelectorAll(".add-contact-btn").forEach((elm) => {
+      elm.addEventListener("click", (event) => {
+        const store_fieldset_node = event.target.closest(".card-body");
+        const store_id = event.target.dataset.store_id;
+        event.target.closest(".add-contact-container").remove();
+
+        store_fieldset_node.append(...create_elements(/*html*/`
+          <input type="hidden" name="store-id" value="${store_id}">
+            <p>
+              <label class="form-label">First Name</label>
+              <input type="text" name="new-contact-first-name" value="" class="form-control" required>
+            </p>
+            <p>
+              <label class="form-label">Last Name</label>
+              <input type="text" name="new-contact-last-name" value="" class="form-control" required>
+          </p>
+        `));
       });
     });
   }
