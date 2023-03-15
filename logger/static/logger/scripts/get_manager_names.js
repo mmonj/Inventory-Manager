@@ -6,8 +6,11 @@
     populate_field_rep_dropdown();
     FIELD_REP_SELECTION_NODE.addEventListener("change", (event) => {
       populate_store_list();
-      listen_for_empty_required_inputs();
       listen_for_new_contact_button();
+
+      document.querySelectorAll("input[name][required]").forEach((input_field) => {
+        input_field.addEventListener("input", listen_for_empty_required_input);
+      });
     });
 
     FIELD_REP_SELECTION_NODE.dispatchEvent(new Event("change"));
@@ -74,22 +77,18 @@
     return ret_html;
   }
 
-  function listen_for_empty_required_inputs() {
-    document.querySelectorAll("input[name][required]").forEach((elm) => {
-      elm.addEventListener("input", (event) => {
-        if (event.target.value === "") {
-          event.target.classList.add("empty-required-field");
-        }
-        else {
-          event.target.classList.remove("empty-required-field");
-        }
-      });
-    });
+  function listen_for_empty_required_input(event) {
+    if (event.target.value === "") {
+      event.target.classList.add("empty-required-field");
+    }
+    else {
+      event.target.classList.remove("empty-required-field");
+    }
   }
 
   function listen_for_new_contact_button() {
-    document.querySelectorAll(".add-contact-btn").forEach((elm) => {
-      elm.addEventListener("click", (event) => {
+    document.querySelectorAll(".add-contact-btn").forEach((add_contact_btn) => {
+      add_contact_btn.addEventListener("click", (event) => {
         const store_fieldset_node = event.target.closest(".card-body");
         const store_id = event.target.dataset.store_id;
         event.target.closest(".add-contact-container").remove();
@@ -105,6 +104,11 @@
               <input type="text" name="new-contact-last-name" value="" class="form-control" required>
           </p>
         `));
+
+        store_fieldset_node.querySelectorAll("input[name][required]").forEach((input_field) => {
+          input_field.addEventListener("input", listen_for_empty_required_input);
+        });
+
       });
     });
   }
