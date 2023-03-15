@@ -34,6 +34,28 @@ class FieldRepresentativeSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "stores"]
 
 
+class ContactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.PersonnelContact
+        fields = ["id", "first_name", "last_name"]
+
+
+class StoresManagersSerializer(serializers.ModelSerializer):
+    contacts = ContactSerializer(many=True)
+
+    class Meta:
+        model = models.Store
+        fields = ["id", "name", "contacts"]
+
+
+class FieldRepresentativeStoresManagersSerializer(serializers.ModelSerializer):
+    stores = StoresManagersSerializer(many=True)
+
+    class Meta:
+        model = models.FieldRepresentative
+        fields = ["id", "name", "stores"]
+
+
 class ProductSerializer(serializers.ModelSerializer):
     barcode_b64 = serializers.SerializerMethodField()
     item_image_url = serializers.SerializerMethodField()
