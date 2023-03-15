@@ -13,6 +13,8 @@
       });
     });
 
+    document.getElementById("manager-names-form").addEventListener("submit", handle_form_submission);
+
     FIELD_REP_SELECTION_NODE.dispatchEvent(new Event("change"));
   }
 
@@ -111,6 +113,14 @@
 
       });
     });
+  }
+
+  function handle_form_submission(event) {
+    const submission_button = event.submitter;
+    if (event.target.checkValidity()) {
+      submission_button.disabled = true;
+      submission_button.querySelector(".spinner-border").classList.remove("visually-hidden");
+    }
   }
 
   function escape_html(html) {
