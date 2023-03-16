@@ -56,6 +56,7 @@ def get_store_product_additions(request):
         }
     ).data
 
+    logger.info(f"Returning JSON response with {len(resp_json['product_additions'])} product additions to client.")
     return Response(resp_json)
 
 
@@ -76,8 +77,9 @@ def update_product_names(request_json: dict) -> tuple:
         return None
 
     client_name = request_json.get('client_name')
-    parent_company, _ = models.BrandParentCompany.objects.get_or_create(short_name=client_name)
     logger.info(f'Received client name "{client_name}" for store "{request_json.get("store_name")}"')
+
+    parent_company, _ = models.BrandParentCompany.objects.get_or_create(short_name=client_name)
 
     upcs = [p['upc'] for p in request_json.get('products')]
 
