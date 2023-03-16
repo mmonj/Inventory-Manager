@@ -79,8 +79,10 @@ def log_product_scan(request):
     store = models.Store.objects.get(pk=body['store_id'])
     if body['is_remove']:
         product_addition = set_not_carried(product, store)
+        logger.info(f"Set product addition record (un-carry) for '{product.upc}' for store '{store.name}'")
     else:
         product_addition = record_product_addition(product, store, is_product_scanned=True)
+        logger.info(f"Set product addition record (carry) for '{product.upc}' for store '{store.name}'")
 
     resp_json = {
         'product_info': {
