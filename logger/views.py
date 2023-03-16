@@ -257,7 +257,8 @@ def get_barcode_sheet(request, barcode_sheet_id):
     ).data
 
     logger.info(
-        f"Serving Barcode Sheet. Client: {barcode_sheet.parent_company.short_name} - Store: {barcode_sheet.store.name}")
+        f"Serving Barcode Sheet. Client: '{barcode_sheet.parent_company.short_name}' - "
+        f"Store: '{barcode_sheet.store.name}'")
 
     return render(request, "logger/barcode_sheet.html", {
         **barcode_sheet_data,
