@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
+from django.views.decorators.http import require_http_methods
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -26,6 +27,7 @@ class PlanogramModelForm(forms.Form):
 
 
 @login_required(login_url=reverse_lazy('logger:login_view'))
+@require_http_methods(["GET"])
 def index(request):
     stores = models.Store.objects.all()
     stores_ordered_dict = serializers.StoreSerializer(stores, many=True).data
@@ -40,6 +42,7 @@ def index(request):
 
 
 @login_required(login_url=reverse_lazy('logger:login_view'))
+@require_http_methods(["GET", "POST"])
 def add_new_products(request):
     if request.method == "GET":
         return render(request, "product_locator/add_new_products.html", {

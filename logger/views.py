@@ -13,6 +13,7 @@ from django.shortcuts import render, redirect, get_object_or_404, HttpResponseRe
 from django.urls import reverse_lazy, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.encoding import iri_to_uri
+from django.views.decorators.http import require_http_methods
 
 from . import forms, serializers
 from products import models
@@ -21,6 +22,7 @@ from products.util import import_new_stores
 logger = logging.getLogger("main_logger")
 
 
+@require_http_methods(["GET", "POST"])
 def login_view(request):
     if request.user.is_authenticated:
         logger.info(f"User {request.user.get_username()} is already logged in. Redirecting to homepage index")
@@ -49,12 +51,14 @@ def login_view(request):
             })
 
 
+@require_http_methods(["GET"])
 def logout_view(request):
     logout(request)
     return redirect("logger:login_view")
 
 
 @login_required(login_url=reverse_lazy('logger:login_view'))
+@require_http_methods(["GET"])
 def scanner(request):
     territory_list = get_territory_list()
 
@@ -63,10 +67,8 @@ def scanner(request):
     })
 
 
+@require_http_methods(["POST"])
 def log_product_scan(request):
-    if request.method != 'POST':
-        return JsonResponse({'message': 'Method type forbidden'}, status=405)
-
     body = json.loads(request.body)
 
     try:
@@ -127,6 +129,7 @@ def get_territory_list():
 
 
 @login_required(login_url=reverse_lazy('logger:login_view'))
+@require_http_methods(["GET", "POST"])
 def add_new_stores(request):
     if request.method == 'GET':
         return render(request, 'logger/add_new_stores.html', {
@@ -149,6 +152,7 @@ def add_new_stores(request):
 
 
 @login_required(login_url=reverse_lazy('logger:login_view'))
+@require_http_methods(["GET"])
 def scan_history(request):
     if not request.GET:
         territory_list = get_territory_list()
@@ -171,6 +175,7 @@ def scan_history(request):
 
 
 @login_required(login_url=reverse_lazy('logger:login_view'))
+@require_http_methods(["POST"])
 def uncarry_product_addition(request, product_addition_pk):
     product_addition = models.ProductAddition.objects.get(pk=product_addition_pk)
     product_addition.is_carried = False
@@ -180,6 +185,7 @@ def uncarry_product_addition(request, product_addition_pk):
 
 
 @login_required(login_url=reverse_lazy('logger:login_view'))
+@require_http_methods(["GET", "POST"])
 def import_json_data_files(request):
     from products import util
 
@@ -213,6 +219,7 @@ def import_json_data_files(request):
     return redirect('logger:import_json_data_files')
 
 
+@require_http_methods(["GET"])
 def barcode_sheet_history(request, field_representative_id=None):
     fields_to_prefetch = ["store", "parent_company", "product_additions", "work_cycle"]
 
@@ -231,6 +238,7 @@ def barcode_sheet_history(request, field_representative_id=None):
     })
 
 
+@require_http_methods(["GET"])
 def get_barcode_sheet(request, barcode_sheet_id):
     barcode_sheet = get_object_or_404(
         models.BarcodeSheet.objects.prefetch_related("store", "parent_company", "product_additions"),
@@ -254,6 +262,7 @@ def get_barcode_sheet(request, barcode_sheet_id):
     })
 
 
+@require_http_methods(["GET", "POST"])
 def get_manager_names(request):
     if request.method == "GET":
         field_reps = models.FieldRepresentative.objects.prefetch_related("stores").all()
@@ -304,6 +313,7 @@ def get_manager_names(request):
         return redirect("logger:get_manager_names")
 
 
+@require_http_methods(["POST"])
 def set_carried_product_additions(request):
     product_additions = models.ProductAddition.objects.filter(id__in=request.POST.getlist("product-addition-id"))
     for product_addition in product_additions:
