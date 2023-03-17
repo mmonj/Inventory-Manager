@@ -1,17 +1,16 @@
 (function () {
   "use strict";
-  
+
   function main() {
     handle_landing_page_sheet_type();
     document.addEventListener("copy", modify_clipboard_text);
 
-    document.querySelectorAll(".sheet-type-change").forEach((sheet_type_change_node) => {
-      sheet_type_change_node.addEventListener("click", (event) => {
-        const new_url = (new URL(window.location));
-        new_url.searchParams.set("sheet-type", event.target.dataset.sheet_type);
-        window.location.href = new_url.href;
-      })
-    })
+    listen_for_sheet_type_change();
+    if (document.getElementById("edit-item-stock")) {
+      listen_for_click_mark_items_carried();
+      listen_for_stock_update_form_submit();
+    }
+    
     document.querySelectorAll(".upc-section").forEach((upc_section_node) => {
       upc_section_node.addEventListener("click", select_text);
     });
@@ -82,6 +81,33 @@
     });
 
     items_shown_node.innerText = result_indicator_text;
+  }
+
+  function listen_for_sheet_type_change() {
+    document.querySelectorAll(".sheet-type-change").forEach((sheet_type_change_node) => {
+        sheet_type_change_node.addEventListener("click", (event) => {
+        const new_url = new URL(window.location);
+        new_url.searchParams.set("sheet-type", event.target.dataset.sheet_type);
+        window.location.href = new_url.href;
+      })
+    })
+  }
+
+  function listen_for_click_mark_items_carried() {
+    document.getElementById("edit-item-stock").addEventListener("click", (event) => {
+      document.querySelectorAll(".checkbox-stock-update").forEach(checkbox => checkbox.classList.toggle("visually-hidden"));
+      document.getElementById("btn-stock-update").classList.toggle("visually-hidden");
+    });
+  }
+
+  function listen_for_stock_update_form_submit() {
+    document.getElementById("stock-update-form").addEventListener("submit", (event) => {
+      const checkbox_nodes = Array.from(document.querySelectorAll(".checkbox-stock-update"));
+      if (!checkbox_nodes.some(checkbox => checkbox.checked)) {
+        event.preventDefault();
+        alert("Please select at least one product to update");
+      }
+    });
   }
 
   function isnumeric(text) {
