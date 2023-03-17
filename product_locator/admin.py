@@ -9,7 +9,7 @@ class PlanogramAdmin(admin.ModelAdmin):
 
 
 class HomeLocationAdmin(admin.ModelAdmin):
-    search_fields = ['name', 'planogram']
+    search_fields = ['name', 'planogram__name']
     list_display = ['name', 'planogram']
     list_filter = ['planogram', "planogram__store"]
 
