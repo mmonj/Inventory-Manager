@@ -11,6 +11,10 @@ const LOGGER_SCANNER = (function () {
 
   (function () {
     $("#store-select").select2();
+    $(document).on('select2:open', () => {
+      document.querySelector('.select2-search__field').focus();
+    });
+
     LOGGER_UTIL.handle_populate_initial_dropdown_values(TERRITORY_LIST);
 
     document.getElementById("field-representative-select").addEventListener("change", (event) => {

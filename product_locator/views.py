@@ -1,6 +1,5 @@
 import json
 import logging
-from itertools import islice
 
 from django import forms
 from django.core.exceptions import ValidationError
@@ -8,11 +7,12 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
+from django.views.decorators.http import require_http_methods
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from . import models, serializers, planogram_parser
+from . import models, serializers, planogram_parser, util
 
 logger = logging.getLogger("main_logger")
 
@@ -26,6 +26,7 @@ class PlanogramModelForm(forms.Form):
 
 
 @login_required(login_url=reverse_lazy('logger:login_view'))
+@require_http_methods(["GET"])
 def index(request):
     stores = models.Store.objects.all()
     stores_ordered_dict = serializers.StoreSerializer(stores, many=True).data
@@ -40,6 +41,7 @@ def index(request):
 
 
 @login_required(login_url=reverse_lazy('logger:login_view'))
+@require_http_methods(["GET", "POST"])
 def add_new_products(request):
     if request.method == "GET":
         return render(request, "product_locator/add_new_products.html", {
@@ -64,39 +66,10 @@ def add_new_products(request):
                 "planogram_form": PlanogramModelForm(request.POST)
             }, status=500)
 
-        add_location_records(product_list, planogram)
+        util.add_location_records(product_list, planogram)
 
         messages.success(request, f"Submitted {len(product_list)} items successfully")
         return redirect("product_locator:add_new_products")
-
-
-def add_location_records(product_list: dict, planogram: models.Planogram):
-    new_locations = []
-
-    for product_data in product_list:
-        new_locations.append(models.HomeLocation(name=product_data["location"], planogram=planogram))
-
-    logger.info(f"Bulk creating {len(new_locations)} new locations")
-    bulk_create_in_batches(models.HomeLocation, iter(new_locations), ignore_conflicts=True)
-    home_locations = models.HomeLocation.objects.filter(planogram=planogram)
-    home_locations = {loc.name: loc for loc in home_locations}
-
-    for product_data in product_list:
-        try:
-            product, _ = models.Product.objects.get_or_create(upc=product_data["upc"], name=product_data["name"])
-            home_location = home_locations.get(product_data["location"])
-            product.home_locations.add(home_location)
-        except ValidationError as e:
-            logger.error(f"Validation error for UPC: {[product_data['upc']]} - {product_data['name']} - {e}")
-            continue
-
-
-def bulk_create_in_batches(TargetModelClass, objs: iter, batch_size=100, ignore_conflicts=False):
-    while True:
-        batch = list(islice(objs, batch_size))
-        if not batch:
-            break
-        TargetModelClass.objects.bulk_create(batch, batch_size, ignore_conflicts=ignore_conflicts)
 
 
 @api_view(["GET"])

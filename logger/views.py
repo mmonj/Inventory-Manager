@@ -1,6 +1,6 @@
 import json
 import logging
-import shortuuid
+import urllib.parse
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
@@ -8,18 +8,20 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import JsonResponse
-from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse_lazy
+from django.shortcuts import render, redirect, get_object_or_404, HttpResponseRedirect
+from django.urls import reverse_lazy, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.encoding import iri_to_uri
+from django.views.decorators.http import require_http_methods
 
-from . import forms, serializers
+from . import forms, serializers, util
 from products import models
 from products.util import import_new_stores
 
 logger = logging.getLogger("main_logger")
 
 
+@require_http_methods(["GET", "POST"])
 def login_view(request):
     if request.user.is_authenticated:
         logger.info(f"User {request.user.get_username()} is already logged in. Redirecting to homepage index")
@@ -48,24 +50,24 @@ def login_view(request):
             })
 
 
+@require_http_methods(["GET"])
 def logout_view(request):
     logout(request)
     return redirect("logger:login_view")
 
 
 @login_required(login_url=reverse_lazy('logger:login_view'))
+@require_http_methods(["GET"])
 def scanner(request):
-    territory_list = get_territory_list()
+    territory_list = util.get_territory_list()
 
     return render(request, 'logger/scanner.html', {
         'territory_list': json.dumps(territory_list)
     })
 
 
+@require_http_methods(["POST"])
 def log_product_scan(request):
-    if request.method != 'POST':
-        return JsonResponse({'message': 'Method type forbidden'}, status=405)
-
     body = json.loads(request.body)
 
     try:
@@ -77,10 +79,13 @@ def log_product_scan(request):
         )
 
     store = models.Store.objects.get(pk=body['store_id'])
+    product_addition, _ = models.ProductAddition.objects.get_or_create(product=product, store=store)
     if body['is_remove']:
-        product_addition = set_not_carried(product, store)
+        util.set_not_carried(product_addition)
+        logger.info(f"Set product addition record (un-carry) for '{product.upc}' for store '{store.name}'")
     else:
-        product_addition = record_product_addition(product, store, is_product_scanned=True)
+        util.record_product_addition(product_addition, is_product_scanned=True)
+        logger.info(f"Set product addition record (carry) for '{product.upc}' for store '{store.name}'")
 
     resp_json = {
         'product_info': {
@@ -94,50 +99,8 @@ def log_product_scan(request):
     return JsonResponse(resp_json)
 
 
-def record_product_addition(product, store, is_product_scanned=False):
-    product_addition, _is_new_product_addition = models.ProductAddition.objects.get_or_create(
-        product=product,
-        store=store
-    )
-
-    if is_product_scanned and not product_addition.is_carried:
-        product_addition.is_carried = True
-        product_addition.save(update_fields=['is_carried'])
-
-    product_addition.update_date_scanned()
-    product_addition.save(update_fields=['date_last_scanned'])
-
-    return product_addition
-
-
-def set_not_carried(product, store):
-    product_addition = models.ProductAddition.objects.get(
-        product=product,
-        store=store
-    )
-
-    if product_addition.is_carried:
-        product_addition.is_carried = False
-        product_addition.save(update_fields=['is_carried'])
-
-    return product_addition
-
-
-def get_territory_list():
-    field_reps = models.FieldRepresentative.objects.prefetch_related("stores").all()
-    territory_list = serializers.FieldRepresentativeSerializer(field_reps, many=True).data
-
-    stores_data = serializers.StoreSerializer(models.Store.objects.all(), many=True).data
-    territory_list.append({
-        "id": shortuuid.uuid(),
-        "name": "All Stores",
-        "stores": stores_data
-    })
-
-    return territory_list
-
-
 @login_required(login_url=reverse_lazy('logger:login_view'))
+@require_http_methods(["GET", "POST"])
 def add_new_stores(request):
     if request.method == 'GET':
         return render(request, 'logger/add_new_stores.html', {
@@ -160,9 +123,10 @@ def add_new_stores(request):
 
 
 @login_required(login_url=reverse_lazy('logger:login_view'))
+@require_http_methods(["GET"])
 def scan_history(request):
     if not request.GET:
-        territory_list = get_territory_list()
+        territory_list = util.get_territory_list()
 
         return render(request, 'logger/scan_history.html', {
             'territory_list': json.dumps(territory_list)
@@ -182,6 +146,7 @@ def scan_history(request):
 
 
 @login_required(login_url=reverse_lazy('logger:login_view'))
+@require_http_methods(["POST"])
 def uncarry_product_addition(request, product_addition_pk):
     product_addition = models.ProductAddition.objects.get(pk=product_addition_pk)
     product_addition.is_carried = False
@@ -191,6 +156,7 @@ def uncarry_product_addition(request, product_addition_pk):
 
 
 @login_required(login_url=reverse_lazy('logger:login_view'))
+@require_http_methods(["GET", "POST"])
 def import_json_data_files(request):
     from products import util
 
@@ -224,6 +190,7 @@ def import_json_data_files(request):
     return redirect('logger:import_json_data_files')
 
 
+@require_http_methods(["GET"])
 def barcode_sheet_history(request, field_representative_id=None):
     fields_to_prefetch = ["store", "parent_company", "product_additions", "work_cycle"]
 
@@ -242,6 +209,7 @@ def barcode_sheet_history(request, field_representative_id=None):
     })
 
 
+@require_http_methods(["GET"])
 def get_barcode_sheet(request, barcode_sheet_id):
     barcode_sheet = get_object_or_404(
         models.BarcodeSheet.objects.prefetch_related("store", "parent_company", "product_additions"),
@@ -255,14 +223,17 @@ def get_barcode_sheet(request, barcode_sheet_id):
     ).data
 
     logger.info(
-        f"Serving Barcode Sheet. Client: {barcode_sheet.parent_company.short_name} - Store: {barcode_sheet.store.name}")
+        f"Serving Barcode Sheet. Client: '{barcode_sheet.parent_company.short_name}' - "
+        f"Store: '{barcode_sheet.store.name}'")
 
     return render(request, "logger/barcode_sheet.html", {
         **barcode_sheet_data,
+        "sheet_type": request.GET.get("sheet-type"),
         "exclude_bs_overrides": True
     })
 
 
+@require_http_methods(["GET", "POST"])
 def get_manager_names(request):
     if request.method == "GET":
         field_reps = models.FieldRepresentative.objects.prefetch_related("stores").all()
@@ -311,3 +282,23 @@ def get_manager_names(request):
 
         messages.success(request, "Submitted contact names successfully")
         return redirect("logger:get_manager_names")
+
+
+@require_http_methods(["POST"])
+def set_carried_product_additions(request):
+    product_additions = models.ProductAddition.objects.filter(id__in=request.POST.getlist("product-addition-id"))
+    for product_addition in product_additions:
+        logger.info("Recording product addition from barcode sheet for client '{}' for store: '{}'".format(
+            request.POST.get("parent-company"),
+            request.POST.get("store-name")
+        ))
+        util.record_product_addition(product_addition, is_product_scanned=True)
+
+    redirect_route = reverse("logger:get_barcode_sheet", args=[request.POST.get("barcode-sheet-id")]) \
+        + "?" + urllib.parse.urlencode({
+            "store-name": request.POST.get("store-name"),
+            "sheet-type": "out-of-dist"
+        })
+
+    messages.success(request, "Submitted Successfully")
+    return HttpResponseRedirect(redirect_route)
