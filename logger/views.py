@@ -1,5 +1,6 @@
 import json
 import logging
+import urllib.parse
 import shortuuid
 
 from django.contrib import messages
@@ -8,8 +9,8 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import JsonResponse
-from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse_lazy
+from django.shortcuts import render, redirect, get_object_or_404, HttpResponseRedirect
+from django.urls import reverse_lazy, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.encoding import iri_to_uri
 
@@ -77,11 +78,12 @@ def log_product_scan(request):
         )
 
     store = models.Store.objects.get(pk=body['store_id'])
+    product_addition, _ = models.ProductAddition.objects.get_or_create(product=product, store=store)
     if body['is_remove']:
-        product_addition = set_not_carried(product, store)
+        set_not_carried(product_addition)
         logger.info(f"Set product addition record (un-carry) for '{product.upc}' for store '{store.name}'")
     else:
-        product_addition = record_product_addition(product, store, is_product_scanned=True)
+        record_product_addition(product_addition, is_product_scanned=True)
         logger.info(f"Set product addition record (carry) for '{product.upc}' for store '{store.name}'")
 
     resp_json = {
@@ -96,33 +98,18 @@ def log_product_scan(request):
     return JsonResponse(resp_json)
 
 
-def record_product_addition(product, store, is_product_scanned=False):
-    product_addition, _is_new_product_addition = models.ProductAddition.objects.get_or_create(
-        product=product,
-        store=store
-    )
-
+def record_product_addition(product_addition, is_product_scanned=False):
     if is_product_scanned and not product_addition.is_carried:
         product_addition.is_carried = True
-        product_addition.save(update_fields=['is_carried'])
 
     product_addition.update_date_scanned()
-    product_addition.save(update_fields=['date_last_scanned'])
-
-    return product_addition
+    product_addition.save(update_fields=['date_last_scanned', 'is_carried'])
 
 
-def set_not_carried(product, store):
-    product_addition = models.ProductAddition.objects.get(
-        product=product,
-        store=store
-    )
-
+def set_not_carried(product_addition):
     if product_addition.is_carried:
         product_addition.is_carried = False
         product_addition.save(update_fields=['is_carried'])
-
-    return product_addition
 
 
 def get_territory_list():
@@ -262,6 +249,7 @@ def get_barcode_sheet(request, barcode_sheet_id):
 
     return render(request, "logger/barcode_sheet.html", {
         **barcode_sheet_data,
+        "sheet_type": request.GET.get("sheet-type"),
         "exclude_bs_overrides": True
     })
 
@@ -314,3 +302,22 @@ def get_manager_names(request):
 
         messages.success(request, "Submitted contact names successfully")
         return redirect("logger:get_manager_names")
+
+
+def set_carried_product_additions(request):
+    product_additions = models.ProductAddition.objects.filter(id__in=request.POST.getlist("product-addition-id"))
+    for product_addition in product_additions:
+        logger.info("Recording product addition from barcode sheet for client '{}' for store: '{}'".format(
+            request.POST.get("parent-company"),
+            request.POST.get("store-name")
+        ))
+        record_product_addition(product_addition, is_product_scanned=True)
+
+    redirect_route = reverse("logger:get_barcode_sheet", args=[request.POST.get("barcode-sheet-id")]) \
+        + "?" + urllib.parse.urlencode({
+            "store-name": request.POST.get("store-name"),
+            "sheet-type": "out-of-dist"
+        })
+
+    messages.success(request, "Submitted Successfully")
+    return HttpResponseRedirect(redirect_route)
