@@ -27,12 +27,19 @@ class PersonnelContactSerializer(serializers.ModelSerializer):
         fields = ['first_name', 'last_name']
 
 
+class FieldRepresentativeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.FieldRepresentative
+        fields = ["name", "work_email"]
+
+
 class StoreSerializer(serializers.ModelSerializer):
     contacts = PersonnelContactSerializer(many=True)
+    field_representative = FieldRepresentativeSerializer()
 
     class Meta:
         model = models.Store
-        fields = ['id', 'name', 'contacts']
+        fields = ['id', 'name', 'contacts', 'field_representative']
 
 
 class BarcodeSheetSerializer(serializers.ModelSerializer):
