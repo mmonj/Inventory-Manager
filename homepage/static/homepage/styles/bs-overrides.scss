@@ -9,6 +9,10 @@
   --bs-link-color: #{$text-color-1};
 }
 
+html {
+  background-color: $bg-dark-5;
+}
+
 body {
   background: $background-primary;
   min-height: 100vh;
