@@ -15,7 +15,7 @@ class HomeLocationAdmin(admin.ModelAdmin):
 
 
 class ProductAdmin(admin.ModelAdmin):
-    search_fields = ['upc', 'name']
+    search_fields = ['upc', 'name', 'home_locations__name']
     list_display = ['upc', 'name']
     list_filter = ['home_locations__planogram', 'home_locations__planogram__store']
 

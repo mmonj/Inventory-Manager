@@ -7,6 +7,10 @@
   --bs-link-color: rgb(255, 255, 255);
 }
 
+html {
+  background-color: rgb(17, 24, 39);
+}
+
 body {
   background: linear-gradient(to bottom, rgb(35, 45, 59), rgb(17, 24, 39));
   min-height: 100vh;
