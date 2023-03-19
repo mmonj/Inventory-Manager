@@ -287,11 +287,13 @@ def get_manager_names(request):
 @require_http_methods(["POST"])
 def set_carried_product_additions(request):
     product_additions = models.ProductAddition.objects.filter(id__in=request.POST.getlist("product-addition-id"))
+    logger.info("Updating {} product additions from barcode sheet form for client '{}' for store: '{}'".format(
+        len(product_additions),
+        request.POST.get("parent-company"),
+        request.POST.get("store-name")
+    ))
+
     for product_addition in product_additions:
-        logger.info("Recording product addition from barcode sheet for client '{}' for store: '{}'".format(
-            request.POST.get("parent-company"),
-            request.POST.get("store-name")
-        ))
         util.record_product_addition(product_addition, is_product_scanned=True)
 
     redirect_route = reverse("logger:get_barcode_sheet", args=[request.POST.get("barcode-sheet-id")]) \
