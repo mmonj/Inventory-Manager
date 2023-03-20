@@ -3,7 +3,7 @@ import logging
 from products import models
 from products.util import get_current_work_cycle
 from products.tasks import get_external_product_images
-from .serializers import BarcodeSheetSerializer
+from .serializers import BarcodeSheetSerializer, StoreSerializer
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -28,6 +28,13 @@ def validate_api_token(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def get_store_product_additions(request):
+    if not request.data["products"]:
+        store, _ = models.Store.objects.select_related("field_representative").get_or_create(
+            name=request.data["store_name"])
+        return Response({
+            "store": StoreSerializer(store).data
+        })
+
     sorted_upcs: list = update_product_names(request.data)
     hash_object = hashlib.sha256()
     hash_object.update(str(sorted_upcs).encode())
