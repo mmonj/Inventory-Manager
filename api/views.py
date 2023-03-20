@@ -28,7 +28,12 @@ def validate_api_token(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def get_store_product_additions(request):
-    if not request.data["products"]:
+    logger.info(
+        f'Received client name "{request.data.get("client_name")}" for store "{request.data.get("store_name")}"')
+
+    if not request.data.get("products"):
+        logger.info("Received 0 products from request payload. Returning with default JSON response.")
+
         store, _ = models.Store.objects.select_related("field_representative").get_or_create(
             name=request.data["store_name"])
         return Response({
@@ -86,7 +91,6 @@ def update_product_names(request_json: dict) -> tuple:
         return None
 
     client_name = request_json.get('client_name')
-    logger.info(f'Received client name "{client_name}" for store "{request_json.get("store_name")}"')
 
     parent_company, _ = models.BrandParentCompany.objects.get_or_create(short_name=client_name)
 
