@@ -96,12 +96,12 @@ def fetch_product_data(products_to_fetch_image: list):
 
 def handle_product_data_response(products: list, items_data: list):
     for product in products:
-        data = [d for d in items_data if d["upc"] == product.upc]
+        data = next((d for d in items_data if d.get("upc") == product.upc), None)
         if not data:
             logger.info(f"No product data was returned by API for UPC: {product.upc}")
             continue
 
-        product_image_urls = data[0]["images"]
+        product_image_urls = data["images"]
         if not product_image_urls:
             logger.info(f'No images available for {product} in lookup data')
             continue
@@ -111,7 +111,7 @@ def handle_product_data_response(products: list, items_data: list):
         for product_image_url in product_image_urls:
             success = download_image(product, product_image_url)
             if success:
-                logger.info(f"Download image successfully for {product.upc}. Image URL: {product_image_url}!")
+                logger.info(f"Download image successfully for {product.upc}. Image URL: {product_image_url}")
                 break
         add_upcs_to_redis_store(product.upc)
 
