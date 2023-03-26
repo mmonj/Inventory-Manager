@@ -5,6 +5,7 @@ from products.util import get_current_work_cycle
 from products.tasks import get_external_product_images
 from .serializers import BarcodeSheetSerializer, StoreSerializer
 
+from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -40,7 +41,9 @@ def get_store_product_additions(request):
             "store": StoreSerializer(store).data
         })
 
-    sorted_upcs: list = update_product_names(request.data)
+    parent_company = get_object_or_404(models.BrandParentCompany, short_name=request.data.get('client_name'))
+
+    sorted_upcs: list = update_product_names(request.data, parent_company)
     hash_object = hashlib.sha256()
     hash_object.update(str(sorted_upcs).encode())
     upcs_hash = hash_object.hexdigest()
@@ -55,7 +58,7 @@ def get_store_product_additions(request):
     barcode_sheet, is_new_barcode_sheet = models.BarcodeSheet.objects.prefetch_related(
         "store", "store__field_representative", "parent_company", "product_additions").get_or_create(
             store=store,
-            parent_company=product_additions.first().product.parent_company,
+            parent_company=parent_company,
             upcs_hash=upcs_hash,
             work_cycle=current_work_cycle
         )
@@ -74,7 +77,7 @@ def get_store_product_additions(request):
     return Response(resp_json)
 
 
-def update_product_names(request_json: dict) -> tuple:
+def update_product_names(request_json: dict, parent_company: models.BrandParentCompany) -> tuple:
     """Bulk create products if they don't already exist.
     Bulk update existing products with product name if they don't contain it
 
@@ -89,10 +92,6 @@ def update_product_names(request_json: dict) -> tuple:
             if product_info['upc'] == upc:
                 return product_info['name']
         return None
-
-    client_name = request_json.get('client_name')
-
-    parent_company, _ = models.BrandParentCompany.objects.get_or_create(short_name=client_name)
 
     upcs = [p['upc'] for p in request_json.get('products')]
 
