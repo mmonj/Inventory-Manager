@@ -90,7 +90,7 @@ def fetch_product_data(products_to_fetch_image: list):
 
         # API is limited to 6 requests per minute
         if (idx + 1) % 6 == 0:
-            logger.info("Rate limit has been hit. Waiting 60 seconds")
+            logger.info("Waiting 60 seconds in advance to avoid hitting rate limit")
             time.sleep(61)
 
 
