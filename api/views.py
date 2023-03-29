@@ -3,7 +3,7 @@ import logging
 from products import models
 from products.util import get_current_work_cycle
 from products.tasks import get_external_product_images
-from .serializers import BarcodeSheetSerializer, StoreSerializer
+from .serializers import BarcodeSheetSerializer, StoreSerializer, FieldRepresentativeSerializer
 
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
@@ -24,6 +24,17 @@ def validate_api_token(request):
         a status code of 200 or 403 in the response
     """
     return Response({'message': 'Validated'})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_field_rep_info(request):
+    store_name = request.GET.get("store_name")
+    store = get_object_or_404(models.Store.objects.select_related("field_representative"), name=store_name)
+    field_rep = store.field_representative
+
+    resp_json = FieldRepresentativeSerializer(field_rep).data
+    return Response(resp_json)
 
 
 @api_view(['POST'])
