@@ -30,7 +30,7 @@ class PersonnelContactSerializer(serializers.ModelSerializer):
 class FieldRepresentativeSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.FieldRepresentative
-        fields = ["name", "work_email"]
+        fields = ["id", "name", "work_email"]
 
 
 class StoreSerializer(serializers.ModelSerializer):
