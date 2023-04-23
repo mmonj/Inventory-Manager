@@ -111,7 +111,7 @@ def handle_product_data_response(products: list, items_data: list):
         for product_image_url in product_image_urls:
             success = download_image(product, product_image_url)
             if success:
-                logger.info(f"Download image successfully for {product.upc}. Image URL: {product_image_url}")
+                logger.info(f"Downloaded image successfully for {product.upc}. Image URL: {product_image_url}")
                 break
         add_upcs_to_redis_store(product.upc)
 

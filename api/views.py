@@ -31,10 +31,35 @@ def validate_api_token(request):
 def get_field_rep_info(request):
     store_name = request.GET.get("store_name")
     store = get_object_or_404(models.Store.objects.select_related("field_representative"), name=store_name)
-    field_rep = store.field_representative
+    # field_rep = store.field_representative
 
-    resp_json = FieldRepresentativeSerializer(field_rep).data
+    # resp_json = FieldRepresentativeSerializer(field_rep).data
+    resp_json = StoreSerializer(store).data
     return Response(resp_json)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_field_reps(request):
+    field_reps = models.FieldRepresentative.objects.all()
+    resp_json = FieldRepresentativeSerializer(field_reps, many=True).data
+
+    return Response(resp_json)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_store_field_rep(request):
+    store_id = request.data.get("store_id")
+    new_field_rep_id = request.data.get("new_field_rep_id")
+
+    store = models.Store.objects.get(id=store_id)
+    new_field_rep = models.FieldRepresentative.objects.get(id=new_field_rep_id)
+    store.field_representative = new_field_rep
+    store.save(update_fields=["field_representative"])
+
+    resp_data = StoreSerializer(store).data
+    return Response(resp_data)
 
 
 @api_view(['POST'])
