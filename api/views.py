@@ -30,10 +30,8 @@ def validate_api_token(request):
 @permission_classes([IsAuthenticated])
 def get_field_rep_info(request):
     store_name = request.GET.get("store_name")
-    store = get_object_or_404(models.Store.objects.select_related("field_representative"), name=store_name)
-    # field_rep = store.field_representative
+    store, _ = models.Store.objects.select_related("field_representative").get_or_create(name=store_name)
 
-    # resp_json = FieldRepresentativeSerializer(field_rep).data
     resp_json = StoreSerializer(store).data
     return Response(resp_json)
 
