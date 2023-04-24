@@ -8,7 +8,7 @@ Private-Use application to help assist in real-world retail workloads. Log store
 
 
 ## Built-In UPC Barcode Scanner
-* Scan & Log products on a per-store basis
+* Scan product barcodes to manage inventory on a store-by-store basis
 
 https://user-images.githubusercontent.com/68614941/233906544-523a971b-0acb-46fc-b894-ec1e102b36b0.mp4
 
@@ -21,14 +21,14 @@ https://user-images.githubusercontent.com/68614941/233906643-0bbe6be9-e76c-42f1-
 
 ## Manage Store Inventory
 * Easily mark products as carried
-* Provide product barcodes to allow store management to easily order product
+* Provide barcode sheet to allow store management to easily order missing product
 
 https://user-images.githubusercontent.com/68614941/233906811-8208e055-3829-40bb-8bfb-ed26ae5f4579.mp4
 
 
 ## Manage Your Scans
-* Keep a history of scans on a per-store basis
-* Allows employee to undo scans at will
+* Keep a history of scans on a store-by-store basis
+* Allow employees to undo scans at will
 
 https://user-images.githubusercontent.com/68614941/233907078-277a97fb-3901-4b4b-bb16-c287e01d3c0f.mp4
 
