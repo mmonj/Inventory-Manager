@@ -8,38 +8,38 @@ Private-Use application to help assist in real-world retail workloads. Log store
 
 
 ## Built-In UPC Barcode Scanner
-Scan & Log products on a per-store basis
+* Scan & Log products on a per-store basis
 
 https://user-images.githubusercontent.com/68614941/233906544-523a971b-0acb-46fc-b894-ec1e102b36b0.mp4
 
 
 ## Speed Up Stocking Speed
-Scan to check products' home location
+* Scan to check products' home location
 
 https://user-images.githubusercontent.com/68614941/233906643-0bbe6be9-e76c-42f1-b3e1-414443fedb8b.mp4
 
 
 ## Manage Store Inventory
-Easily mark products as carried
-Provide product barcodes to allow store management to easily order product
+* Easily mark products as carried
+* Provide product barcodes to allow store management to easily order product
 
 https://user-images.githubusercontent.com/68614941/233906811-8208e055-3829-40bb-8bfb-ed26ae5f4579.mp4
 
 
 ## Manage Your Scans
-Keep a history of scans on a per-store basis
-Allows employee to undo scans at will
+* Keep a history of scans on a per-store basis
+* Allows employee to undo scans at will
 
 https://user-images.githubusercontent.com/68614941/233907078-277a97fb-3901-4b4b-bb16-c287e01d3c0f.mp4
 
 
 ## Manage Store Personnel Information
-Keep track of store contacts
+* Keep track of store contacts
 
 https://user-images.githubusercontent.com/68614941/233907266-0e4b75fd-3afa-4a0b-b15c-755c6cd719ac.mp4
 
 
 ## Responsive Web Design
-Implements a mobile-friendly interface for mobile devices
+* Implements a mobile-friendly interface for mobile devices
 
 https://user-images.githubusercontent.com/68614941/233907426-0fbb966b-ab82-4a7a-ab34-4b50512e7958.mp4
