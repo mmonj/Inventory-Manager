@@ -40,6 +40,6 @@ https://user-images.githubusercontent.com/68614941/233907266-0e4b75fd-3afa-4a0b-
 
 
 ## Responsive Web Design
-* Implements a mobile-friendly interface for mobile devices
+* Implements a mobile-friendly interface
 
 https://user-images.githubusercontent.com/68614941/233907426-0fbb966b-ab82-4a7a-ab34-4b50512e7958.mp4
