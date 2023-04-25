@@ -1,5 +1,5 @@
 # Inventory-Manager
-Private-Use application to help assist in real-world retail workloads. Log store inventory with built-in barcode scanner. Track inventory levels by generating table of products that are in-stock and yet-to-be-ordered.
+Private-Use application to help assist in real-world retail workloads. Log store inventory with built-in barcode scanner. Track inventory levels by generating table of products. Generated barcode sheet allows store management to easily order missing product.
 
 ## Tech Stacks Used
 | <p><a href="https://www.djangoproject.com/">Django Web Framework</a></p> | <p><a href="https://www.django-rest-framework.org/">Django REST Framework</a></p> | <p><a href="https://redis.io/">Redis</a> + <a href="https://python-rq.org/">Django RQ</a></p> | <p><a href="https://www.docker.com/">Docker</a></p> |
