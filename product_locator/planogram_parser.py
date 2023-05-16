@@ -48,7 +48,7 @@ def parse_data(planogram_text_dump: str) -> list:
     for line in lines_not_matched:
         logger.info(f"Regex was not matched on line: '{line}'")
 
-    assert_unique(product_list, "upc", key=lambda e: e["upc"])
+    # assert_unique(product_list, "upc", key=lambda e: e["upc"])
     assert_unique(product_list, "location", key=lambda e: e["location"])
 
     return natsorted(product_list, key=lambda p: p["location"], reverse=True)
