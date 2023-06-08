@@ -24,7 +24,8 @@ logger = logging.getLogger("main_logger")
 @require_http_methods(["GET", "POST"])
 def login_view(request):
     if request.user.is_authenticated:
-        logger.info(f"User {request.user.get_username()} is already logged in. Redirecting to homepage index")
+        logger.info(
+            f"User {request.user.get_username()} is already logged in. Redirecting to homepage index")
         return redirect("homepage:index")
 
     if request.method == 'GET':
@@ -82,10 +83,12 @@ def log_product_scan(request):
     product_addition, _ = models.ProductAddition.objects.get_or_create(product=product, store=store)
     if body['is_remove']:
         util.set_not_carried(product_addition)
-        logger.info(f"Set product addition record (un-carry) for '{product.upc}' for store '{store.name}'")
+        logger.info(
+            f"Set product addition record (un-carry) for '{product.upc}' for store '{store.name}'")
     else:
         util.record_product_addition(product_addition, is_product_scanned=True)
-        logger.info(f"Set product addition record (carry) for '{product.upc}' for store '{store.name}'")
+        logger.info(
+            f"Set product addition record (carry) for '{product.upc}' for store '{store.name}'")
 
     resp_json = {
         'product_info': {
@@ -114,8 +117,10 @@ def add_new_stores(request):
             'form_errors': received_form.errors
         })
 
-    new_stores = [s for s in (f.strip() for f in received_form.cleaned_data['stores_text'].split('\n')) if s]
-    logger.info(f'Adding new stores from user input. {len(new_stores)} possible new stores submitted.')
+    new_stores = [s for s in (f.strip()
+                              for f in received_form.cleaned_data['stores_text'].split('\n')) if s]
+    logger.info(
+        f'Adding new stores from user input. {len(new_stores)} possible new stores submitted.')
     import_new_stores(new_stores)
 
     messages.success(request, "Your submission was successful")
@@ -209,10 +214,12 @@ def barcode_sheet_history(request, field_representative_id=None):
     })
 
 
+@login_required(login_url=reverse_lazy('logger:login_view'))
 @require_http_methods(["GET"])
 def get_barcode_sheet(request, barcode_sheet_id):
     barcode_sheet = get_object_or_404(
-        models.BarcodeSheet.objects.prefetch_related("store", "parent_company", "product_additions"),
+        models.BarcodeSheet.objects.prefetch_related(
+            "store", "parent_company", "product_additions"),
         id=barcode_sheet_id)
 
     barcode_sheet_data = serializers.BarcodeSheetSerializer(
@@ -237,7 +244,8 @@ def get_barcode_sheet(request, barcode_sheet_id):
 def get_manager_names(request):
     if request.method == "GET":
         field_reps = models.FieldRepresentative.objects.prefetch_related("stores").all()
-        field_reps_data = serializers.FieldRepresentativeStoresManagersSerializer(field_reps, many=True).data
+        field_reps_data = serializers.FieldRepresentativeStoresManagersSerializer(
+            field_reps, many=True).data
 
         return render(request, "logger/get_manager_names.html", {
             "territory_list": json.dumps(field_reps_data)
@@ -261,7 +269,8 @@ def get_manager_names(request):
                         existing_contact.last_name = last_name
                         updated_contacts.append(existing_contact)
 
-                models.PersonnelContact.objects.bulk_update(updated_contacts, ["first_name", "last_name"])
+                models.PersonnelContact.objects.bulk_update(
+                    updated_contacts, ["first_name", "last_name"])
 
         # indicates if user has chosen to add a new contact to a store that previously had none
         if "store-id" in request.POST:
@@ -286,7 +295,8 @@ def get_manager_names(request):
 
 @require_http_methods(["POST"])
 def set_carried_product_additions(request):
-    product_additions = models.ProductAddition.objects.filter(id__in=request.POST.getlist("product-addition-id"))
+    product_additions = models.ProductAddition.objects.filter(
+        id__in=request.POST.getlist("product-addition-id"))
     logger.info("Updating {} product additions from barcode sheet form for client '{}' for store: '{}'".format(
         len(product_additions),
         request.POST.get("parent-company"),

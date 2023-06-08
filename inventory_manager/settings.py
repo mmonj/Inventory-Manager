@@ -20,6 +20,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 LOGS_DIR = BASE_DIR / "log_files"
 LOGS_DIR.mkdir(exist_ok=True)
 
+DAY_IN_SECONDS = 3600 * 24
+SESSION_COOKIE_AGE = DAY_IN_SECONDS * 7 * 4
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
