@@ -4,21 +4,30 @@ services:
     build:
       context: .
       args:
-        BUILD_MODE: prod
-    image: mmonj.inventory_manager_django
-    container_name: inventory_manager
-    command: >
-      bash -c "python manage.py migrate
-      && python manage.py collectstatic --clear --noinput
-      && uvicorn inventory_manager.asgi:application --host 0.0.0.0 --port 8080"
+        BUILD_MODE: dev
+    image: inventory-manager-django-dev
+    container_name: inventory-manager-dev
+    user: "${UID}:${GID}"
+    ports:
+      - 8001:8000
+    volumes:
+      - ./:/app
+    env_file:
+      - dev.env
+    restart: unless-stopped
+
+  rq_worker:
+    image: inventory-manager-django-dev
+    container_name: inventory-manager-rq-worker
+    command: python manage.py rqworker default
     user: "${UID}:${GID}"
     volumes:
       - ./:/app
     env_file:
-      - deploy.env
-    restart: always
-    networks:
-      - caddy_net
+      - dev.env
+    restart: unless-stopped
+    depends_on:
+      - django_app
 
   # redis-overcommit-on-host
   redis-overcommit:
@@ -32,27 +41,5 @@ services:
     image: redis
     container_name: redis-inventory-manager
     restart: unless-stopped
-    networks:
-      - caddy_net
     depends_on:
       - django_app
-
-  rq_worker:
-    image: mmonj.inventory_manager_django
-    container_name: inventory-manager-rq-worker
-    command: python manage.py rqworker default
-    user: "${UID}:${GID}"
-    volumes:
-      - ./:/app
-    env_file:
-      - deploy.env
-    restart: unless-stopped
-    networks:
-      - caddy_net
-    depends_on:
-      - django_app
-      - redis
-
-networks:
-  caddy_net:
-    external: true
