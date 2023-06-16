@@ -1,23 +1,19 @@
-FROM python:3.8.16-slim
-WORKDIR /app
+FROM nikolaik/python-nodejs:python3.9-nodejs16-slim
 
-ARG BUILD_MODE
-RUN if [ "$BUILD_MODE" = "dev" ] ; then pip install pipreqs \
-	&& python -m pip install autopep8 \
-	&& apt-get update -y \
-	&& apt-get upgrade -y \
+WORKDIR /app
+ARG ENV_TYPE
+
+RUN if [ "$ENV_TYPE" = "dev" ] ; then \
+	apt-get update -y \
 	&& apt-get install git -y \
 	; fi
 
-COPY requirements.txt /app
-RUN pip install -r requirements.txt
+COPY pyproject.toml poetry.lock ./
 
-# Turns off buffering for easier container logging
-ENV PYTHONUNBUFFERED=1
+RUN python -m pip install poetry
+# enable installing dependencies into the system's python environment
+RUN poetry config virtualenvs.create false
+RUN poetry install --no-root
 
-EXPOSE 8000
-
-RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /app
-USER appuser
-
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# user 'pn' was created during nikolaik/python-nodejs's build step
+USER pn
