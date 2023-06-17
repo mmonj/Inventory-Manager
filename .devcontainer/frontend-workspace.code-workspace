@@ -9,7 +9,7 @@
     "files.exclude": {
       "api": true,
       "homepage": true,
-      "inventory_manager": true,
+      "server": true,
       "log_files": true,
       "logger": true,
       "product_locator": true,
