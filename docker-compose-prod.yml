@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   django_app:
     build:
@@ -10,7 +10,7 @@ services:
     command: >
       bash -c "python manage.py migrate
       && python manage.py collectstatic --clear --noinput
-      && uvicorn inventory_manager.asgi:application --host 0.0.0.0 --port 8080"
+      && uvicorn server.asgi:application --host 0.0.0.0 --port 8080"
     user: "${UID}:${GID}"
     volumes:
       - ./:/app
@@ -23,7 +23,7 @@ services:
   # redis-overcommit-on-host
   redis-overcommit:
     build: https://github.com/bkuhl/redis-overcommit-on-host.git
-    restart: 'no'
+    restart: "no"
     privileged: true
     volumes:
       - /proc/sys/vm:/mnt/vm
