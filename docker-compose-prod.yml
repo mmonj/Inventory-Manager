@@ -4,18 +4,19 @@ services:
     build:
       context: .
       args:
-        BUILD_MODE: prod
+        ENV_TYPE: prod
+        UID: 1000
     image: mmonj.inventory_manager_django
     container_name: inventory_manager
     command: >
       bash -c "python manage.py migrate
       && python manage.py collectstatic --clear --noinput
       && uvicorn server.asgi:application --host 0.0.0.0 --port 8080"
-    user: "${UID}:${GID}"
+    user: "${UID}"
     volumes:
       - ./:/app
     env_file:
-      - deploy.env
+      - prod.env
     restart: always
     networks:
       - caddy_net
@@ -41,11 +42,11 @@ services:
     image: mmonj.inventory_manager_django
     container_name: inventory-manager-rq-worker
     command: python manage.py rqworker default
-    user: "${UID}:${GID}"
+    user: "${UID}"
     volumes:
       - ./:/app
     env_file:
-      - deploy.env
+      - prod.env
     restart: unless-stopped
     networks:
       - caddy_net
