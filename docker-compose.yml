@@ -5,6 +5,7 @@ services:
       context: .
       args:
         ENV_TYPE: dev
+        UID: 1000
     image: inventory-manager-django-dev
     container_name: inventory-manager-dev
     command: bash

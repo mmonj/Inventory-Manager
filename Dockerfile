@@ -24,14 +24,14 @@ COPY pyproject.toml poetry.lock ./
 
 # install dependencies
 ARG ENV_TYPE
-RUN if [ "$ENV_TYPE" = "dev" ]; then \
+RUN if [ "$ENV_TYPE" = "dev" ]; then\
     apt-get install git -y \
     && poetry install --no-root \
     && npm i \
-elif [ "$ENV_TYPE" = "prod" ]; then \
+;elif [ "$ENV_TYPE" = "prod" ]; then\
     poetry install --without dev --no-root --sync \
     && npm ci --omit=dev \
-;fi
+; fi
 
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
