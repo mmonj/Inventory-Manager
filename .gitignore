@@ -9,3 +9,4 @@ products/import_testfiles/images/**
 node_modules/
 static/dist/index.js
 static/dist/index.js.map
+collected/
