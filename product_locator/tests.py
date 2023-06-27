@@ -6,13 +6,13 @@ from . import models
 
 
 class ImportTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         file = Path(__file__).parent / "testfiles" / "ocr_data_dump.txt"
 
         with open(file, "r", encoding="utf8") as fd:
             self.data_dump = fd.read()
 
-    def test_import(self):
+    def test_import(self) -> None:
         store = models.Store.objects.create(name="T3277")
         planogram = models.Planogram.objects.create(name="plano1 - 3277", store=store)
 
@@ -20,7 +20,7 @@ class ImportTest(TestCase):
         response = self.client.post(route, {'planogram_id': planogram.id, 'planogram_text_dump': self.data_dump})
         self.assertEqual(302, response.status_code)
 
-    def test_invalid_import(self):
+    def test_invalid_import(self) -> None:
         store = models.Store.objects.create(name="T3277v2")
         planogram = models.Planogram.objects.create(name="plano1 - 3277v2", store=store)
 

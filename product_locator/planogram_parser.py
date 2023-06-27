@@ -1,31 +1,33 @@
 import logging
 import re
+from typing import Callable
 from natsort import natsorted
 
 logger = logging.getLogger("main_logger")
 
 # ITEM_ATTRIBUTES_RE = r"(.+?)[ \t]+(\d{12})(?:[ \t]+\d)?[ \t]+([a-z]\d+)"
 ITEM_ATTRIBUTES_RE = re.compile(
-    r"(.+?)[ \t]+(\d{12})(?:[ \t]+\w)?[ \t]+(\w{2,3})[ \t]*", flags=re.MULTILINE | re.IGNORECASE)
+    r"(.+?)[ \t]+(\d{12})(?:[ \t]+\w)?[ \t]+(\w{2,3})[ \t]*", flags=re.MULTILINE | re.IGNORECASE
+)
 LOCATION_RE = re.compile(r"\b[a-z][0-9][0-9]?\b", flags=re.IGNORECASE)
 
 COMMON_OCR_CHAR_ERRORS = {
-    '0': ['O', 'o'],
-    '1': ['I', 'l', 'i'],
-    '2': ['Z', 'z'],
-    '3': ['B'],
-    '4': ['A'],
-    '5': ['S', 's'],
-    '6': ['G'],
-    '7': ['T'],
-    '8': ['B'],
-    '9': ['g', 'q']
+    "0": ["O", "o"],
+    "1": ["I", "l", "i"],
+    "2": ["Z", "z"],
+    "3": ["B"],
+    "4": ["A"],
+    "5": ["S", "s"],
+    "6": ["G"],
+    "7": ["T"],
+    "8": ["B"],
+    "9": ["g", "q"],
 }
 
 
-def parse_data(planogram_text_dump: str) -> list:
-    product_list = []
-    lines_not_matched = []
+def parse_data(planogram_text_dump: str) -> list[dict[str, str]]:
+    product_list: list[dict[str, str]] = []
+    lines_not_matched: list[str] = []
 
     for line in planogram_text_dump.strip().split("\n"):
         match = ITEM_ATTRIBUTES_RE.search(line)
@@ -41,7 +43,7 @@ def parse_data(planogram_text_dump: str) -> list:
             {
                 "upc": upc.strip(),
                 "name": name.strip(),
-                "location": fix_location_ocr_inaccuracies(location.strip())
+                "location": fix_location_ocr_inaccuracies(location.strip()),
             }
         )
 
@@ -54,7 +56,9 @@ def parse_data(planogram_text_dump: str) -> list:
     return natsorted(product_list, key=lambda p: p["location"], reverse=True)
 
 
-def assert_unique(product_list, unique_type, key=None):
+def assert_unique(
+    product_list: list[dict[str, str]], unique_type: str, key: Callable[[dict[str, str]], str]
+) -> None:
     if key is None:
         return
 
@@ -88,8 +92,9 @@ def fix_location_ocr_inaccuracies(location: str) -> str:
             result += COMMON_OCR_CHAR_ERRORS.get(char, [char])[0]
         elif idx > 0 and char.isalpha():
             fixed_char = get_numeric_ocr_char(char)
-            assert fixed_char is not None, f"Error in attempt to fix location {location}; "\
-                f"fix not found for char: {char}"
+            assert fixed_char != "", (
+                f"Error in attempt to fix location {location}; " f"fix not found for char: {char}"
+            )
 
             result += fixed_char
         else:
@@ -98,9 +103,9 @@ def fix_location_ocr_inaccuracies(location: str) -> str:
     return result
 
 
-def get_numeric_ocr_char(char):
+def get_numeric_ocr_char(char: str) -> str:
     for number, char_list in COMMON_OCR_CHAR_ERRORS.items():
         if char in char_list:
             return number
 
-    return None
+    return ""
