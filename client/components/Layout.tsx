@@ -23,7 +23,7 @@ export const Layout = (props: Props) => {
         <meta charSet="utf-8" />
         <title>{props.title}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href={`${context.STATIC_URL}favicon.ico`} type="image/x-icon" />
+        <link rel="icon" type="image/x-icon" href={`${context.STATIC_URL}public/favicon.png`} />
         <link rel="stylesheet" type="text/css" href={`${context.STATIC_URL}admin/css/fonts.css`} />
         <link rel="stylesheet" type="text/css" href={`${context.STATIC_URL}dist/index.css`} />
         <script defer crossOrigin="anonymous" src={`${context.STATIC_URL}dist/index.js`} />
