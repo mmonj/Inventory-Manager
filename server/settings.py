@@ -88,6 +88,7 @@ TEMPLATES = [
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
+                "server.context_processors.user",
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.csrf",
                 "django.template.context_processors.request",
