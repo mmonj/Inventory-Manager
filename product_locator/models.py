@@ -1,4 +1,4 @@
-from typing import Any, Tuple
+from typing import Any
 from checkdigit import gs1
 
 from django.db import models
@@ -49,12 +49,14 @@ class Product(models.Model):
 
     def clean(self, *args: Any, **kwargs: Any) -> None:
         if self.upc is None or not self.upc.isnumeric():
-            raise ValidationError('UPC number be numeric')
+            raise ValidationError("UPC number be numeric")
         if len(self.upc) != 12:
-            raise ValidationError('UPC number must be 12 digits')
+            raise ValidationError("UPC number must be 12 digits")
         if not gs1.validate(self.upc):
             expected_check_digit = gs1.calculate(self.upc[:11])
-            raise ValidationError(f'The UPC number is invalid. Expected a check digit of {expected_check_digit}')
+            raise ValidationError(
+                f"The UPC number is invalid. Expected a check digit of {expected_check_digit}"
+            )
         super().clean(*args, **kwargs)
 
     def save(self, *args: Any, **kwargs: Any) -> None:
