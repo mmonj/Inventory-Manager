@@ -1,9 +1,10 @@
 import React, { useRef } from "react";
 
-import { StoreD7Ddec6B39 } from "@reactivated";
-
 interface Props {
-  stores: StoreD7Ddec6B39[];
+  stores: {
+    pk: number;
+    name: string;
+  }[];
   isFieldRepsDisabled?: boolean;
 }
 

@@ -1,27 +1,28 @@
 import React, { useState } from "react";
 
-import { Context, templates } from "@reactivated";
+import { Context, StoreD7Ddec6B39, templates } from "@reactivated";
 
 import { BarcodeScanner } from "@client/components/BarcodeScanner";
 import { Layout } from "@client/components/Layout";
 import { StoreSelector } from "@client/components/StorePicker";
 
 export default (props: templates.ProductLocatorIndex) => {
-  const [storeId, setStoreId] = useState<string>("");
+  const [store, setStore] = useState<StoreD7Ddec6B39 | null>(null);
   const context = React.useContext(Context);
 
   const storeIdFromQueryParam = new URL(context.request.url).searchParams.get("store-id") ?? "";
-  if (storeId !== storeIdFromQueryParam) {
-    setStoreId(() => storeIdFromQueryParam);
+  const storeFromQueryParam: StoreD7Ddec6B39 | undefined = props.stores.filter(
+    (store) => store.pk === parseInt(storeIdFromQueryParam)
+  )[0];
+  if (storeFromQueryParam !== undefined && storeFromQueryParam.pk !== store?.pk) {
+    setStore(() => storeFromQueryParam);
   }
 
   return (
     <Layout title="Product Locator">
       <section id="store-select-container" className="m-2 px-2 mw-rem-60 mx-auto">
-        {!props.stores.some((store) => store.pk === parseInt(storeId)) && (
-          <StoreSelector stores={props.stores} isFieldRepsDisabled={true} />
-        )}
-        {props.stores.some((store) => store.pk === parseInt(storeId)) && <BarcodeScanner />}
+        {!store && <StoreSelector stores={props.stores} isFieldRepsDisabled={true} />}
+        {!!store && <BarcodeScanner storeId={store.pk} storeName={store.name} />}
       </section>
     </Layout>
   );
