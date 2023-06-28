@@ -1,13 +1,9 @@
 @import "variables";
 
 @each $i in $max-width-rem-values {
-  .mw-rem-#{$i}{
+  .mw-rem-#{$i} {
     max-width: #{$i}rem;
   }
-}
-
-.bg-blue-theme {
-  background-color: $bg-dark-3;
 }
 
 .title-color {
@@ -55,7 +51,7 @@
 
   /* currently selected option */
   &-results__option--selected {
-    background-color: #3a3a3a!important;
+    background-color: #3a3a3a !important;
   }
 
   /* non-selected options */
