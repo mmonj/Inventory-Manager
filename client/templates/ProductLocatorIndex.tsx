@@ -2,8 +2,8 @@ import React, { useState } from "react";
 
 import { Context, StoreD7Ddec6B39, templates } from "@reactivated";
 
-import { BarcodeScanner } from "@client/components/BarcodeScanner";
 import { Layout } from "@client/components/Layout";
+import { ProductLocatorScanner } from "@client/components/ProductLocatorScanner";
 import { StoreSelector } from "@client/components/StorePicker";
 
 export default (props: templates.ProductLocatorIndex) => {
@@ -22,7 +22,7 @@ export default (props: templates.ProductLocatorIndex) => {
     <Layout title="Product Locator">
       <section id="store-select-container" className="m-2 px-2 mw-rem-60 mx-auto">
         {!store && <StoreSelector stores={props.stores} isFieldRepsDisabled={true} />}
-        {!!store && <BarcodeScanner storeId={store.pk} storeName={store.name} />}
+        {!!store && <ProductLocatorScanner storeId={store.pk} storeName={store.name} />}
       </section>
     </Layout>
   );

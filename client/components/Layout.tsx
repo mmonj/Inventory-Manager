@@ -7,6 +7,7 @@ import { Navbar } from "./Navbar";
 
 import "@client/styles/bs-material-dark.css";
 import "@client/styles/shared.css";
+import "@client/styles/logger/scanner.css";
 
 interface Props {
   title: string;
