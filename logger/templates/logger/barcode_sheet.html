@@ -4,111 +4,111 @@
 {% block title %}Barcode Sheet{% endblock %}
 
 {% block extra_head_elements %}
-  <script defer src="{% static 'logger/scripts/barcode_sheet.js' %}"></script>
-  <link rel="stylesheet" href="{% static 'logger/styles/barcode_sheet.css' %}">
+<script defer src="{% static 'logger/scripts/barcode_sheet.js' %}"></script>
+<link rel="stylesheet" href="{% static 'styles/logger/barcode_sheet.css' %}">
 {% endblock %}
 
 {% block body_header %}
-  {% include "logger/includes/navbar.html" %}
-  <section>
-    {% include "product_locator/includes/messages.html" %}
+{% include "logger/includes/navbar.html" %}
+<section>
+  {% include "product_locator/includes/messages.html" %}
 
-    <div id="company-logo-container" class="p-3 text-center">
-      <img src="{{ parent_company.third_party_logo_url }}" alt="" />
-    </div>
-    <h5 id="store-name-title" class="text-center">{{ store_name }}</h5>
-    <h6 id="item-count-indicator" class="text-center mb-3">x items shown</h6>
-    <div id="sheet-type-container" class="dropdown mb-3 text-center">
-      <button id="sheet-type-main-button" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-        %%sheet-type-verbose%%
+  <div id="company-logo-container" class="p-3 text-center">
+    <img src="{{ parent_company.third_party_logo_url }}" alt="" />
+  </div>
+  <h5 id="store-name-title" class="text-center">{{ store_name }}</h5>
+  <h6 id="item-count-indicator" class="text-center mb-3">x items shown</h6>
+  <div id="sheet-type-container" class="dropdown mb-3 text-center">
+    <button id="sheet-type-main-button" class="btn btn-secondary dropdown-toggle" type="button"
+      data-bs-toggle="dropdown" aria-expanded="false">
+      %%sheet-type-verbose%%
+    </button>
+    <ul class="dropdown-menu">
+      <li>
+        <button class="py-2 dropdown-item sheet-type-change" type="button" data-sheet_type="all-products"
+          data-sheet_type_verbose="All Products">
+          All products
+        </button>
+      </li>
+      <li>
+        <button class="py-2 dropdown-item sheet-type-change out-of-dist" type="button" data-sheet_type="out-of-dist"
+          data-sheet_type_verbose="Out of distribution" data-is_carried="false">
+          Out of distribution
+        </button>
+      </li>
+      <li>
+        <button class="py-2 dropdown-item sheet-type-change in-dist" type="button" data-sheet_type="in-dist"
+          data-sheet_type_verbose="In distribution" data-is_carried="true">
+          In distribution
+        </button>
+      </li>
+    </ul>
+    <div class="my-3">
+      {% if sheet_type == "out-of-dist" %}
+      <button id="edit-item-stock" class="btn btn-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" class="bi bi-pencil-square mx-2" viewBox="0 0 16 16">
+          <path
+            d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z">
+          </path>
+          <path fill-rule="evenodd"
+            d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z">
+          </path>
+        </svg>
+        <span class="fw-semibold">Mark products as carried</span>
       </button>
-      <ul class="dropdown-menu">
-        <li>
-          <button class="py-2 dropdown-item sheet-type-change"
-                  type="button"
-                  data-sheet_type="all-products"
-                  data-sheet_type_verbose="All Products">
-            All products
-          </button>
-        </li>
-        <li>
-          <button class="py-2 dropdown-item sheet-type-change out-of-dist"
-                  type="button"
-                  data-sheet_type="out-of-dist"
-                  data-sheet_type_verbose="Out of distribution"
-                  data-is_carried="false">
-            Out of distribution
-          </button>
-        </li>
-        <li>
-          <button class="py-2 dropdown-item sheet-type-change in-dist"
-                  type="button"
-                  data-sheet_type="in-dist"
-                  data-sheet_type_verbose="In distribution"
-                  data-is_carried="true">
-            In distribution
-          </button>
-        </li>
-      </ul>
-      <div class="my-3">
-        {% if sheet_type == "out-of-dist" %}
-          <button id="edit-item-stock" class="btn btn-primary">
-            <svg xmlns="http://www.w3.org/2000/svg" class="bi bi-pencil-square mx-2" viewBox="0 0 16 16">
-              <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"></path>
-              <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"></path>
-            </svg>
-            <span class="fw-semibold">Mark products as carried</span>
-          </button>
-        {% endif %}
-      </div>
+      {% endif %}
     </div>
-  </section>
+  </div>
+</section>
 {% endblock %}
 
 {% block body_main %}
-  <section class="mx-auto my-2 p-2">
-    <form id="stock-update-form" action="{% url 'logger:set_carried_product_additions' %}" method="POST">
-      {% csrf_token %}
+<section class="mx-auto my-2 p-2">
+  <form id="stock-update-form" action="{% url 'logger:set_carried_product_additions' %}" method="POST">
+    {% csrf_token %}
 
-      <ul id="products-container"
-          class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 mx-auto">
-        {% for product_addition in product_additions %}
-          <!-- .product-container receives a 'hidden' attribute by default. This will be overridden by the client-side javascript -->
-          <li class="col product-container card text-center border-0 my-1" data-is_carried="{{ product_addition.is_carried|yesno:'true,false' }}" hidden>
-            <div class="new-item-indicator-container mb-1">
-              {% if product_addition.is_new %}
-                <img src="{% static 'products/images/new_item_icon.png' %}" alt="New Product Indicator">
-              {% endif %}
+    <ul id="products-container"
+      class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 mx-auto">
+      {% for product_addition in product_additions %}
+      <!-- .product-container receives a 'hidden' attribute by default. This will be overridden by the client-side javascript -->
+      <li class="col product-container card text-center border-0 my-1"
+        data-is_carried="{{ product_addition.is_carried|yesno:'true,false' }}" hidden>
+        <div class="new-item-indicator-container mb-1">
+          {% if product_addition.is_new %}
+          <img src="{% static 'public/logger/new_item_icon.png' %}" alt="New Product Indicator">
+          {% endif %}
+        </div>
+        <div class="product-images-container d-flex justify-content-center">
+          <div class="barcode-container">
+            <img src="data:image/png;base64,{{ product_addition.product.barcode_b64 }}" class="barcode-image"
+              alt="Product Barcode">
+            <div class="upc-number">
+              {% spaceless %}
+              {% for upc_section in product_addition.product.upc_sections %}
+              <span class="upc-section mx-1">{{upc_section}}</span>
+              {% endfor %}
+              {% endspaceless %}
             </div>
-            <div class="product-images-container d-flex justify-content-center">
-              <div class="barcode-container">
-                <img src="data:image/png;base64,{{ product_addition.product.barcode_b64 }}" class="barcode-image" alt="Product Barcode">
-                <div class="upc-number">
-                  {% spaceless %}
-                    {% for upc_section in product_addition.product.upc_sections %}
-                      <span class="upc-section mx-1">{{upc_section}}</span>
-                    {% endfor %}
-                  {% endspaceless %}
-                </div>
-              </div>
-              <div class="product-image-container">
-                <img src="{{ product_addition.product.item_image_url }}" class="product-image" alt="Product Image">
-              </div>
-            </div>
-            <div class="card-body">
-              <label class="card-text">{{ product_addition.product.name }}</label>
-            </div>
-            <input name="product-addition-id" value="{{ product_addition.id }}" type="checkbox" class="form-check-input checkbox-stock-update p-2 visually-hidden">
-          </li>
-        {% endfor %}
-      </ul>
-      
-      <div class="text-center">
-        <input type="hidden" name="barcode-sheet-id" value="{{ barcode_sheet_id }}">
-        <input type="hidden" name="store-name" value="{{ store_name }}">
-        <input type="hidden" name="parent-company" value="{{ parent_company.short_name }}">
-        <button id="btn-stock-update" type="submit" class="btn btn-primary visually-hidden">Submit</button>
-      </div>
-    </form>
-  </section>
+          </div>
+          <div class="product-image-container">
+            <img src="{{ product_addition.product.item_image_url }}" class="product-image" alt="Product Image">
+          </div>
+        </div>
+        <div class="card-body">
+          <label class="card-text">{{ product_addition.product.name }}</label>
+        </div>
+        <input name="product-addition-id" value="{{ product_addition.id }}" type="checkbox"
+          class="form-check-input checkbox-stock-update p-2 visually-hidden">
+      </li>
+      {% endfor %}
+    </ul>
+
+    <div class="text-center">
+      <input type="hidden" name="barcode-sheet-id" value="{{ barcode_sheet_id }}">
+      <input type="hidden" name="store-name" value="{{ store_name }}">
+      <input type="hidden" name="parent-company" value="{{ parent_company.short_name }}">
+      <button id="btn-stock-update" type="submit" class="btn btn-primary visually-hidden">Submit</button>
+    </div>
+  </form>
+</section>
 {% endblock %}
