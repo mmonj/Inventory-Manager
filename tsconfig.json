@@ -19,6 +19,9 @@
             ],
             "@reactivated/*": [
                 "node_modules/_reactivated/*"
+            ],
+            "@static/*": [
+                "static/*"
             ]
         }
     },
