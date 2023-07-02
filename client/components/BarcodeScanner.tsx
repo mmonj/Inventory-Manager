@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 
 import { reverse } from "@reactivated";
 
@@ -10,6 +10,9 @@ import {
 } from "html5-qrcode";
 import { Html5QrcodeScannerConfig } from "html5-qrcode/esm/html5-qrcode-scanner";
 import Nav from "react-bootstrap/Nav";
+
+import { ScannerContext } from "@client/templates/ProductLocatorIndex";
+import { scannerContextType } from "@client/types";
 
 interface ScannerPluginProps {
   scanSuccessCallback: QrcodeSuccessCallback;
@@ -24,12 +27,31 @@ interface BarcodeScannerProps {
 type navLinkType = "scanner" | "keyboard";
 
 function ProductLoggerKeyboard() {
+  const { scanSuccessCallback } = useContext<scannerContextType | null>(ScannerContext)!;
+  const upcInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleSubmit(event: React.FormEvent): Promise<void> {
+    event.preventDefault();
+
+    try {
+      const result = await scanSuccessCallback(upcInputRef.current!.value);
+      console.log("result:", result);
+    } catch (error) {
+      console.log("Error:", error);
+    }
+  }
+
   return (
-    <form id="form-manual-upc" action={reverse("logger:log_product_scan")} method="POST">
+    <form
+      onSubmit={handleSubmit}
+      id="form-manual-upc"
+      action={reverse("logger:log_product_scan")}
+      method="POST">
       <label htmlFor="text-input-upc" className="d-block my-2">
         UPC Number
       </label>
       <input
+        ref={upcInputRef}
         id="text-input-upc"
         type="text"
         autoComplete="off"
@@ -69,6 +91,7 @@ export function Html5QrcodePlugin({ scanSuccessCallback, scanErrorCallback }: Sc
 
     // cleanup function when component will unmount
     return () => {
+      console.log("unmounted");
       scanner.clear().catch((error) => {
         console.error("Failed to clear html5QrcodeScanner. ", error);
       });
