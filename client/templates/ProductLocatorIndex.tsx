@@ -18,12 +18,13 @@ export const ScannerContext = createContext<scannerContextType | null>(null);
 
 export default (props: templates.ProductLocatorIndex) => {
   const [store, setStore] = useState<StoreD7Ddec6B39 | null>(null);
-  const [productData, isLoading, isError, fetchCallback] = useFetch<ProductResponseType>();
   const [scannedUpc, setScannedUpc] = useState("");
   const [modalShow, setModalShow] = useState(false);
-  const context = React.useContext(Context);
+  const getProductProps = useFetch<ProductResponseType>();
+  const djangoContext = React.useContext(Context);
 
-  const storeIdFromQueryParam = new URL(context.request.url).searchParams.get("store-id") ?? "";
+  const storeIdFromQueryParam =
+    new URL(djangoContext.request.url).searchParams.get("store-id") ?? "";
   const storeFromQueryParam: StoreD7Ddec6B39 | undefined = props.stores.filter(
     (store) => store.pk === parseInt(storeIdFromQueryParam)
   )[0];
@@ -35,7 +36,7 @@ export default (props: templates.ProductLocatorIndex) => {
     console.log("Scanned code:", decodedText);
     setScannedUpc(() => decodedText);
 
-    await fetchCallback(() =>
+    await getProductProps.fetchData(() =>
       getProductLocation(decodedText, store!.pk, reverse("product_locator:get_product_location"))
     );
   }
@@ -61,29 +62,29 @@ export default (props: templates.ProductLocatorIndex) => {
               />
             </ScannerContext.Provider>
             <ol id="scanner-results" className="list-group list-group-numbered px-2">
-              {isLoading && (
+              {getProductProps.isLoading && (
                 <div className="d-flex justify-content-center">
                   <LoadingSpinner />
                 </div>
               )}
-              {isError && (
+              {getProductProps.isError && (
                 <Alert variant="danger" className="text-center">
                   An Error Occurred!
                 </Alert>
               )}
-              {productData?.home_locations.map((location) => (
+              {getProductProps.data?.home_locations.map((location) => (
                 <li
                   key={crypto.randomUUID()}
                   className="list-group-item d-flex justify-content-between align-items-start">
                   <div className="ms-2 me-auto location-container">
                     <div className="fw-bold location-name">{location.name}</div>
                     <div className="fw-bold planogram-name">{location.planogram}</div>
-                    <div className="product-name">{productData.product.name}</div>
+                    <div className="product-name">{getProductProps.data!.product.name}</div>
                   </div>
                 </li>
               ))}
             </ol>
-            {!!productData && (
+            {!!getProductProps.data && (
               <div className="my-2 text-center">
                 <Button
                   variant="secondary"
@@ -97,12 +98,15 @@ export default (props: templates.ProductLocatorIndex) => {
         )}
       </section>
       <section>
-        <ProductLocatorModal
-          scannedUpc={scannedUpc}
-          planograms={props.planograms}
-          modalShow={modalShow}
-          onHide={() => setModalShow(() => false)}
-        />
+        {!!store && (
+          <ProductLocatorModal
+            scannedUpc={scannedUpc}
+            planograms={props.planograms}
+            storeId={store.pk}
+            modalShow={modalShow}
+            onHide={() => setModalShow(() => false)}
+          />
+        )}
       </section>
     </Layout>
   );

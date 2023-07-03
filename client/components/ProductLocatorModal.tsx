@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Context, PlanogramF7840876Ea, reverse } from "@reactivated";
+import { Context, Planogram_81F76E013B, reverse } from "@reactivated";
 import { Alert } from "react-bootstrap";
 
 import Button from "react-bootstrap/Button";
@@ -15,12 +15,13 @@ import { LoadingSpinner } from "./LoadingSpinner";
 interface Props {
   modalShow: boolean;
   onHide: () => void;
-  planograms: PlanogramF7840876Ea[];
+  planograms: Planogram_81F76E013B[];
   scannedUpc: string;
+  storeId: number;
 }
 
-export function ProductLocatorModal({ modalShow, onHide, planograms, scannedUpc }: Props) {
-  const [data, isLoading, isError, fetchData] = useFetch<LocationUpdateResponseType>();
+export function ProductLocatorModal({ modalShow, onHide, planograms, scannedUpc, storeId }: Props) {
+  const locUpdateProps = useFetch<LocationUpdateResponseType>();
   const djangoContext = React.useContext(Context);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
@@ -28,7 +29,9 @@ export function ProductLocatorModal({ modalShow, onHide, planograms, scannedUpc 
     const formData = new FormData(event.target as HTMLFormElement);
     const formElm = event.target as HTMLFormElement;
 
-    await fetchData(() => postNewProductLocation(formData, formElm, djangoContext.csrf_token));
+    await locUpdateProps.fetchData(() =>
+      postNewProductLocation(formData, formElm, djangoContext.csrf_token)
+    );
   }
 
   return (
@@ -66,11 +69,16 @@ export function ProductLocatorModal({ modalShow, onHide, planograms, scannedUpc 
                 Planogram
               </label>
               <select name="planogram-id" id="planogram-name-update" className="form-select">
-                {planograms.map((planogram) => (
-                  <option key={planogram.pk} value={planogram.pk}>
-                    {planogram.name}
-                  </option>
-                ))}
+                {planograms.map((planogram) => {
+                  if (planogram.store?.pk !== storeId) {
+                    return null;
+                  }
+                  return (
+                    <option key={planogram.pk} value={planogram.pk}>
+                      {planogram.name}
+                    </option>
+                  );
+                })}
               </select>
             </p>
             <p>
@@ -86,21 +94,26 @@ export function ProductLocatorModal({ modalShow, onHide, planograms, scannedUpc 
                 required
               />
             </p>
-            {isError && (
-              <Alert key={"danger"} variant={"danger"}>
-                An error occurred. Try again.
-              </Alert>
-            )}
           </fieldset>
-          <div className="d-flex justify-content-end">
+          <div className="d-flex justify-content-center mb-3">
             <Button variant="secondary" className="mx-1" onClick={onHide}>
               Close
             </Button>
             <Button type="submit" className="mx-1" variant="primary">
               Submit Changes&nbsp;
-              {isLoading && <LoadingSpinner color="text-light" size="sm" />}
+              {locUpdateProps.isLoading && <LoadingSpinner color="text-light" size="sm" />}
             </Button>
           </div>
+          {locUpdateProps.isError && (
+            <Alert key={"danger"} variant={"danger"} className="text-center">
+              An error occurred. Try again.
+            </Alert>
+          )}
+          {!locUpdateProps.isError && !locUpdateProps.isLoading && locUpdateProps.data && (
+            <Alert key={"success"} variant={"success"} className="text-center">
+              Submitted successfully!
+            </Alert>
+          )}
         </form>
       </Modal.Body>
     </Modal>

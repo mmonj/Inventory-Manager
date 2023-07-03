@@ -5,7 +5,7 @@ export function useFetch<T>() {
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
 
-  const execFetch = (callbackFetch: () => Promise<Response>) => {
+  const fetchData = (callbackFetch: () => Promise<Response>) => {
     setData(() => null);
     setIsLoading(() => true);
     setIsError(() => false);
@@ -29,5 +29,5 @@ export function useFetch<T>() {
       });
   };
 
-  return [data, isLoading, isError, execFetch] as const;
+  return { data, isLoading, isError, fetchData };
 }
