@@ -7,4 +7,4 @@ from .models import Planogram, Store
 @template
 class ProductLocatorIndex(NamedTuple):
     stores: List[Pick[Store, "pk", "name"]]
-    planograms: List[Pick[Planogram, "name"]]
+    planograms: List[Pick[Planogram, "pk", "name"]]
