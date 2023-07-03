@@ -2,8 +2,8 @@ import React from "react";
 
 import { Context, reverse } from "@reactivated";
 
-export function Navbar() {
-  const context = React.useContext(Context);
+export function NavbarProductLocator() {
+  const djangoContext = React.useContext(Context);
 
   return (
     <nav className="navbar navbar-expand-lg bg-body-tertiary border-bottom">
@@ -23,7 +23,7 @@ export function Navbar() {
         </button>
         <div className="collapse navbar-collapse" id="navbarSupportedContent">
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-            {context.user.is_superuser && (
+            {djangoContext.user.is_superuser && (
               <li className="nav-item">
                 <a className="nav-link" href={reverse("product_locator:add_new_products")}>
                   Add New Products
@@ -38,14 +38,14 @@ export function Navbar() {
                 Home
               </a>
             </li>
-            {!context.user.is_authenticated && (
+            {!djangoContext.user.is_authenticated && (
               <li className="nav-item">
                 <a className="nav-link" href={reverse("logger:login_view")}>
                   Log In
                 </a>
               </li>
             )}
-            {context.user.is_authenticated && (
+            {djangoContext.user.is_authenticated && (
               <li className="nav-item">
                 <a className="nav-link" href={reverse("logger:logout_view")}>
                   Log Out

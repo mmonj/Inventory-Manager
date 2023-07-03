@@ -8,6 +8,7 @@ import Button from "react-bootstrap/Button";
 import { BarcodeScanner } from "@client/components/BarcodeScanner";
 import { Layout } from "@client/components/Layout";
 import { LoadingSpinner } from "@client/components/LoadingSpinner";
+import { NavbarProductLocator } from "@client/components/NavbarProductLocator";
 import { ProductLocatorModal } from "@client/components/ProductLocatorModal";
 import { StoreSelector } from "@client/components/StorePicker";
 import { useFetch } from "@client/hooks/useFetch";
@@ -46,7 +47,7 @@ export default (props: templates.ProductLocatorIndex) => {
   }
 
   return (
-    <Layout title="Product Locator">
+    <Layout title="Product Locator" navbarComponent={<NavbarProductLocator />}>
       <section id="store-select-container" className="m-2 px-2 mw-rem-60 mx-auto">
         {!store && <StoreSelector stores={props.stores} isFieldRepsDisabled={true} />}
         {!!store && (
