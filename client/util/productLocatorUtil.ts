@@ -1,4 +1,4 @@
-export function fetchGetProductLocation(
+export function getProductLocation(
   upc: string,
   store_id: number,
   action_path: string
@@ -10,4 +10,25 @@ export function fetchGetProductLocation(
   const action_url = action_path + "?" + params.toString();
 
   return fetch(action_url, { method: "get" });
+}
+
+export function postNewProductLocation(
+  formData: FormData,
+  formElm: HTMLFormElement,
+  csrfTokenValue: string
+): Promise<Response> {
+  const payload = {
+    upc: formData.get("upc-number"),
+    planogram_id: formData.get("planogram-id"),
+    location: formData.get("new-location-name"),
+  };
+
+  return fetch(formElm.action, {
+    method: formElm.method,
+    headers: {
+      "content-type": "application/json",
+      "X-CSRFToken": csrfTokenValue,
+    },
+    body: JSON.stringify(payload),
+  });
 }

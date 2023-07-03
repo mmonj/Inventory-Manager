@@ -2,19 +2,25 @@ import React, { createContext, useState } from "react";
 
 import { Context, StoreD7Ddec6B39, reverse, templates } from "@reactivated";
 
+import Alert from "react-bootstrap/Alert";
+import Button from "react-bootstrap/Button";
+
 import { BarcodeScanner } from "@client/components/BarcodeScanner";
 import { Layout } from "@client/components/Layout";
 import { LoadingSpinner } from "@client/components/LoadingSpinner";
+import { ProductLocatorModal } from "@client/components/ProductLocatorModal";
 import { StoreSelector } from "@client/components/StorePicker";
 import { useFetch } from "@client/hooks/useFetch";
-import { ProductResponseJsonType, scannerContextType } from "@client/types";
-import { fetchGetProductLocation } from "@client/util/productLocatorUtil";
+import { ProductResponseType, scannerContextType } from "@client/types";
+import { getProductLocation } from "@client/util/productLocatorUtil";
 
 export const ScannerContext = createContext<scannerContextType | null>(null);
 
 export default (props: templates.ProductLocatorIndex) => {
   const [store, setStore] = useState<StoreD7Ddec6B39 | null>(null);
-  const [productData, isLoading, isError, fetchCallback] = useFetch<ProductResponseJsonType>();
+  const [productData, isLoading, isError, fetchCallback] = useFetch<ProductResponseType>();
+  const [scannedUpc, setScannedUpc] = useState("");
+  const [modalShow, setModalShow] = useState(false);
   const context = React.useContext(Context);
 
   const storeIdFromQueryParam = new URL(context.request.url).searchParams.get("store-id") ?? "";
@@ -27,13 +33,10 @@ export default (props: templates.ProductLocatorIndex) => {
 
   async function scanSuccessCallback(decodedText: string): Promise<void> {
     console.log("Scanned code:", decodedText);
+    setScannedUpc(() => decodedText);
 
     await fetchCallback(() =>
-      fetchGetProductLocation(
-        decodedText,
-        store!.pk,
-        reverse("product_locator:get_product_location")
-      )
+      getProductLocation(decodedText, store!.pk, reverse("product_locator:get_product_location"))
     );
   }
 
@@ -58,8 +61,16 @@ export default (props: templates.ProductLocatorIndex) => {
               />
             </ScannerContext.Provider>
             <ol id="scanner-results" className="list-group list-group-numbered px-2">
-              {isLoading && <LoadingSpinner />}
-              {isError && <div>Error occurred</div>}
+              {isLoading && (
+                <div className="d-flex justify-content-center">
+                  <LoadingSpinner />
+                </div>
+              )}
+              {isError && (
+                <Alert variant="danger" className="text-center">
+                  An Error Occurred!
+                </Alert>
+              )}
               {productData?.home_locations.map((location) => (
                 <li
                   key={crypto.randomUUID()}
@@ -74,16 +85,24 @@ export default (props: templates.ProductLocatorIndex) => {
             </ol>
             {!!productData && (
               <div className="my-2 text-center">
-                <button
-                  className="btn btn-secondary rounded-4"
-                  data-bs-toggle="modal"
-                  data-bs-target="#modal-add-location">
+                <Button
+                  variant="secondary"
+                  className="rounded-4"
+                  onClick={() => setModalShow(true)}>
                   Add location for this UPC
-                </button>
+                </Button>
               </div>
             )}
           </section>
         )}
+      </section>
+      <section>
+        <ProductLocatorModal
+          scannedUpc={scannedUpc}
+          planograms={props.planograms}
+          modalShow={modalShow}
+          onHide={() => setModalShow(() => false)}
+        />
       </section>
     </Layout>
   );

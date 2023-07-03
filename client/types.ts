@@ -3,7 +3,7 @@ export interface scannerContextType {
   scanErrorcallback: (errorMessage: string) => void;
 }
 
-export interface ProductResponseJsonType {
+export interface ProductResponseType {
   product: {
     upc: string;
     name: string;
@@ -12,4 +12,9 @@ export interface ProductResponseJsonType {
     name: string;
     planogram: string;
   }[];
+}
+
+export interface LocationUpdateResponseType {
+  name: string;
+  planogram: string;
 }
