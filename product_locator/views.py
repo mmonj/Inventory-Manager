@@ -1,10 +1,9 @@
 import logging
 
-from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse, HttpResponseNotFound
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views.decorators.http import require_http_methods
@@ -14,19 +13,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request as DrfRequest
 
 from product_locator import templates
-
+from .forms import PlanogramForm
 
 from . import models, serializers, planogram_parser, util
 
 logger = logging.getLogger("main_logger")
-
-
-class PlanogramModelForm(forms.Form):
-    planogram_text_dump = forms.CharField(max_length=100000, widget=forms.Textarea)
-    planogram_id = forms.ModelChoiceField(
-        queryset=models.Planogram.objects.all().order_by("store__name").select_related("store"),
-        empty_label="Select a planogram",
-    )
 
 
 @login_required(login_url=reverse_lazy("logger:login_view"))
@@ -44,42 +35,31 @@ def index(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def add_new_products(request: HttpRequest) -> HttpResponse:
     if request.method == "GET":
+        return templates.ProductLocatorAddNewProducts(form=PlanogramForm()).render(request)
+
+    # if POST
+    received_form = PlanogramForm(request.POST)
+    if not received_form.is_valid():
+        return templates.ProductLocatorAddNewProducts(form=received_form).render(request)
+
+    planogram: models.Planogram = received_form.cleaned_data["planogram_pk"]
+    planogram_text_dump = received_form.cleaned_data["planogram_text_dump"]
+    product_list: list[dict[str, str]] = planogram_parser.parse_data(planogram_text_dump)
+    logger.info(f"{len(product_list)} parsed from user input")
+
+    if not product_list:
+        messages.error(request, "You have submitted data that resulted in 0 items being parsed.")
         return render(
             request,
             "product_locator/add_new_products.html",
-            {"planogram_form": PlanogramModelForm()},
+            {"planogram_form": PlanogramForm(request.POST)},
+            status=500,
         )
-    elif request.method == "POST":
-        received_form = PlanogramModelForm(request.POST)
-        if not received_form.is_valid():
-            return render(
-                request,
-                "product_locator/add_new_products.html",
-                {"planogram_form": received_form, "form_errors": received_form.errors},
-            )
 
-        planogram: models.Planogram = received_form.cleaned_data["planogram_id"]
-        planogram_text_dump = received_form.cleaned_data["planogram_text_dump"]
-        product_list: list[dict[str, str]] = planogram_parser.parse_data(planogram_text_dump)
-        logger.info(f"{len(product_list)} parsed from user input")
+    util.add_location_records(product_list, planogram)
 
-        if not product_list:
-            messages.error(
-                request, "You have submitted data that resulted in 0 items being parsed."
-            )
-            return render(
-                request,
-                "product_locator/add_new_products.html",
-                {"planogram_form": PlanogramModelForm(request.POST)},
-                status=500,
-            )
-
-        util.add_location_records(product_list, planogram)
-
-        messages.success(request, f"Submitted {len(product_list)} items successfully")
-        return redirect("product_locator:add_new_products")
-
-    return HttpResponseNotFound()
+    messages.success(request, f"Submitted {len(product_list)} items successfully")
+    return redirect("product_locator:add_new_products")
 
 
 @api_view(["GET"])

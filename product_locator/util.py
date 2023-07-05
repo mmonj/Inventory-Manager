@@ -12,7 +12,7 @@ logger = logging.getLogger("main_logger")
 
 
 def add_location_records(product_list: list[dict[str, str]], planogram: Planogram) -> None:
-    new_locations = []
+    new_locations: list[HomeLocation] = []
 
     for product_data in product_list:
         new_locations.append(HomeLocation(name=product_data["location"], planogram=planogram))
