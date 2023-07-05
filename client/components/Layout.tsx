@@ -8,6 +8,7 @@ import "@static/styles/bs-navbar-overrides.css";
 import "@static/styles/bs-overrides.css";
 import "@static/styles/logger/scanner.css";
 import "@static/styles/shared.css";
+import { ContribMessages } from "./ContribMessages";
 
 interface Props {
   title: string;
@@ -44,7 +45,10 @@ export const Layout = (props: Props) => {
         <script defer crossOrigin="anonymous" src={`${djangoContext.STATIC_URL}dist/index.js`} />
       </Helmet>
       <header>{props.navbarComponent}</header>
-      <main>{props.children}</main>
+      <main>
+        <ContribMessages />
+        {props.children}
+      </main>
     </>
   );
 };
