@@ -42,7 +42,7 @@ export default (props: templates.ProductLocatorIndex) => {
     );
   }
 
-  function scanErrorcallback(errorMessage: string) {
+  function scanErrorCallback(errorMessage: string) {
     console.log("Error occurred on scan. Message:", errorMessage);
   }
 
@@ -56,11 +56,8 @@ export default (props: templates.ProductLocatorIndex) => {
               <h5 className="card-title text-center title-color">{store.name}</h5>
             </div>
 
-            <ScannerContext.Provider value={{ scanSuccessCallback, scanErrorcallback }}>
-              <BarcodeScanner
-                scanSuccessCallback={scanSuccessCallback}
-                scanErrorCallback={scanErrorcallback}
-              />
+            <ScannerContext.Provider value={{ scanSuccessCallback, scanErrorCallback }}>
+              <BarcodeScanner />
             </ScannerContext.Provider>
             <ol id="scanner-results" className="list-group list-group-numbered px-2">
               {getProductProps.isLoading && (

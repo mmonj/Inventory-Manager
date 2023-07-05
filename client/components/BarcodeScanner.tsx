@@ -1,28 +1,13 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 
-import { reverse } from "@reactivated";
+import { Context, reverse } from "@reactivated";
 
-import {
-  Html5QrcodeScanner,
-  Html5QrcodeSupportedFormats,
-  QrcodeErrorCallback,
-  QrcodeSuccessCallback,
-} from "html5-qrcode";
+import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Html5QrcodeScannerConfig } from "html5-qrcode/esm/html5-qrcode-scanner";
 import Nav from "react-bootstrap/Nav";
 
 import { ScannerContext } from "@client/templates/ProductLocatorIndex";
 import { scannerContextType } from "@client/types";
-
-interface ScannerPluginProps {
-  scanSuccessCallback: QrcodeSuccessCallback;
-  scanErrorCallback: QrcodeErrorCallback;
-}
-
-interface BarcodeScannerProps {
-  scanSuccessCallback: QrcodeSuccessCallback;
-  scanErrorCallback: QrcodeErrorCallback;
-}
 
 type navLinkType = "scanner" | "keyboard";
 
@@ -69,8 +54,39 @@ function ProductLoggerKeyboard() {
   );
 }
 
-export function Html5QrcodePlugin({ scanSuccessCallback, scanErrorCallback }: ScannerPluginProps) {
+export function Html5QrcodePlugin() {
+  const djangoContext = useContext(Context);
+  const { scanSuccessCallback, scanErrorCallback } = useContext<scannerContextType | null>(
+    ScannerContext
+  )!;
+
+  const getScanSound = () => {
+    return new Audio(djangoContext.STATIC_URL + "public/logger/scan_sound.ogg");
+  };
   const viewportElementId = "scanner-viewport-container";
+  const duplicateScanDelayMs = 6000;
+  const previousScanInfo = {
+    decodedText: "", // UPC
+    timeScannedMs: 0,
+  };
+
+  function initialScanSuccessCallback(decodedText: string): void {
+    if (
+      Date.now() - previousScanInfo.timeScannedMs < duplicateScanDelayMs &&
+      decodedText === previousScanInfo.decodedText
+    ) {
+      console.log(`Duplicate UPC has been scanned within the ${duplicateScanDelayMs} ms threshold`);
+      return;
+    }
+    previousScanInfo.decodedText = decodedText;
+    previousScanInfo.timeScannedMs = Date.now();
+
+    void (async () => {
+      await getScanSound().play();
+      console.log(`Sent ${decodedText} to scanSuccessCallback`);
+      await scanSuccessCallback(decodedText);
+    })();
+  }
 
   useEffect(() => {
     // when component mounts
@@ -87,7 +103,7 @@ export function Html5QrcodePlugin({ scanSuccessCallback, scanErrorCallback }: Sc
     };
 
     const scanner = new Html5QrcodeScanner(viewportElementId, config, true);
-    scanner.render(scanSuccessCallback, scanErrorCallback);
+    scanner.render(initialScanSuccessCallback, scanErrorCallback);
 
     // cleanup function when component will unmount
     return () => {
@@ -101,7 +117,7 @@ export function Html5QrcodePlugin({ scanSuccessCallback, scanErrorCallback }: Sc
   return <div id={viewportElementId} />;
 }
 
-export function BarcodeScanner({ scanSuccessCallback, scanErrorCallback }: BarcodeScannerProps) {
+export function BarcodeScanner() {
   const [activeNavLink, setActiveNavLink] = useState<navLinkType>("scanner");
 
   return (
@@ -119,12 +135,7 @@ export function BarcodeScanner({ scanSuccessCallback, scanErrorCallback }: Barco
         </Nav.Item>
       </Nav>
 
-      {activeNavLink === "scanner" && (
-        <Html5QrcodePlugin
-          scanSuccessCallback={scanSuccessCallback}
-          scanErrorCallback={scanErrorCallback}
-        />
-      )}
+      {activeNavLink === "scanner" && <Html5QrcodePlugin />}
       {activeNavLink === "keyboard" && <ProductLoggerKeyboard />}
     </>
   );

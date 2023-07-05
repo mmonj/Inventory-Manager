@@ -6,7 +6,7 @@ import {
 
 export interface scannerContextType {
   scanSuccessCallback: (decodedText: string) => Promise<void>;
-  scanErrorcallback: (errorMessage: string) => void;
+  scanErrorCallback: (errorMessage: string) => void;
 }
 
 export interface ProductResponseType {
