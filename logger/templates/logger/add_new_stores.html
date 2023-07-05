@@ -9,7 +9,7 @@
 
 {% block body_main %}
 <section class="m-3 mw-rem-60 mx-auto">
-  {% include "templates/includes/messages.html" %}
+  {% include "includes/messages.html" %}
 
   <form action="{% url 'logger:add_new_stores' %}" method="POST">
     {% csrf_token %}

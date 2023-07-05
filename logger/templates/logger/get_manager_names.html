@@ -28,7 +28,7 @@
 
 {% block body_main %}
 <section class="mw-rem-50 mx-auto p-3">
-  {% include "templates/includes/messages.html" %}
+  {% include "includes/messages.html" %}
 
   <form id="manager-names-form" action="{% url 'logger:get_manager_names' %}" method="POST">
     {% csrf_token %}
