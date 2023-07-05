@@ -4,23 +4,23 @@
 {% block title %}Add New Stores{% endblock %}
 
 {% block body_header %}
-    {% include "logger/includes/navbar.html" %}
+{% include "logger/includes/navbar.html" %}
 {% endblock %}
 
 {% block body_main %}
-  <section class="m-3 mw-rem-60 mx-auto">
-    {% include "product_locator/includes/messages.html" %}
-    
-    <form action="{% url 'logger:add_new_stores' %}" method="POST">
-      {% csrf_token %}
-    
-      <div>
-        <label for="stores-list-text" class="form-label">Enter new stores (separate stores with a new line)</label>
-        {% render_field form.stores_text class="form-control" id="stores-list-text" style="height: 70vh" %}
-        <div class="d-grid gap-2 col-6 mx-auto mt-2">
-          <button class="btn btn-primary" type="submit">Submit</button>
-        </div>
+<section class="m-3 mw-rem-60 mx-auto">
+  {% include "templates/includes/messages.html" %}
+
+  <form action="{% url 'logger:add_new_stores' %}" method="POST">
+    {% csrf_token %}
+
+    <div>
+      <label for="stores-list-text" class="form-label">Enter new stores (separate stores with a new line)</label>
+      {% render_field form.stores_text class="form-control" id="stores-list-text" style="height: 70vh" %}
+      <div class="d-grid gap-2 col-6 mx-auto mt-2">
+        <button class="btn btn-primary" type="submit">Submit</button>
       </div>
-    </form>
-  </section>
+    </div>
+  </form>
+</section>
 {% endblock%}
