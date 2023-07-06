@@ -6,7 +6,7 @@ export function NavbarProductLocator() {
   const djangoContext = React.useContext(Context);
 
   return (
-    <nav className="navbar navbar-expand-lg bg-body-tertiary border-bottom">
+    <nav className="navbar navbar-expand-lg bg-body-tertiary border-bottom bg-blue-theme">
       <div className="container-fluid">
         <a className="navbar-brand" href={reverse("product_locator:index")}>
           Product Locator

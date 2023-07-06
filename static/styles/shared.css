@@ -18,6 +18,10 @@
   max-width: 70rem;
 }
 
+.bg-blue-theme {
+  background-color: rgb(35, 45, 59);
+}
+
 .title-color {
   color: rgb(247, 223, 186);
 }
