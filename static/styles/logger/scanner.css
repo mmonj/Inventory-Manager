@@ -2,6 +2,10 @@ body {
   margin: 0;
 }
 
+#scanner-viewport-container {
+  border: none !important;
+}
+
 #scanner-viewport-container__scan_region {
   height: 30vh;
 }
@@ -12,8 +16,26 @@ body {
   object-fit: cover;
 }
 
-#scanner-viewport-container__dashboard {
-  display: none !important;
+#scanner-viewport-container__dashboard_section_csr > span:nth-child(2) {
+  display: none;
+}
+
+#html5-qrcode-button-camera-start,
+#html5-qrcode-button-camera-stop,
+#html5-qrcode-button-file-selection {
+  color: #fff;
+  background-color: #6c757d;
+  border: 1px solid #6c757d;
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+#html5-qrcode-button-camera-permission {
+  color: #fff;
+  background-color: #6c757d;
+  border: 1px solid #6c757d;
+  border-radius: 6px;
+  padding: 3px 8px;
 }
 
 .product-container {
