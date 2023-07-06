@@ -23,7 +23,8 @@ django-rq = "^2.8.1"
 redis = "^4.5.5"
 natsort = "^8.3.1"
 shortuuid = "^1.0.11"
-django-stubs = "^4.2.1"
+django-stubs = {extras = ["compatible-mypy"], version = "^4.2.3"}
+djangorestframework-stubs = {extras = ["compatible-mypy"], version = "^3.14.2"}
 
 
 [tool.poetry.group.dev.dependencies]
