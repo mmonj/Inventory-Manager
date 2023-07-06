@@ -1,34 +1,34 @@
-from . import models
 from rest_framework import serializers
 
+from .models import HomeLocation, Product, Store
 
-class StoreSerializer(serializers.ModelSerializer[models.Store]):
+
+class StoreSerializer(serializers.ModelSerializer[Store]):
     class Meta:
-        model = models.Store
+        model = Store
         fields = ["id", "name"]
 
 
-class HomeLocationSerializer(serializers.ModelSerializer[models.HomeLocation]):
+class HomeLocationSerializer(serializers.ModelSerializer[HomeLocation]):
     planogram = serializers.SerializerMethodField()
 
-    def get_planogram(self, home_location: models.HomeLocation) -> str:
+    def get_planogram(self, home_location: HomeLocation) -> str:
         # return home_location.planogram.name
         return str(home_location.planogram)
 
     class Meta:
-        model = models.HomeLocation
+        model = HomeLocation
         fields = ["name", "planogram"]
 
 
-class ProductSerializer(serializers.ModelSerializer[models.Product]):
+class ProductSerializer(serializers.ModelSerializer[Product]):
     class Meta:
-        model = models.Product
+        model = Product
         fields = ["upc", "name"]
 
 
-class HomeLocation_Products_Serializer(serializers.ModelSerializer[models.HomeLocation]):
+class HomeLocation_Products_Serializer(serializers.ModelSerializer[HomeLocation]):
     products = ProductSerializer(many=True)
 
     class Meta:
-        model = models.HomeLocation
-        fields = ["name", "products"]
+        model = HomeLocation
