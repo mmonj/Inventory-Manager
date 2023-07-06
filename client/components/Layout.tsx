@@ -3,12 +3,13 @@ import React from "react";
 import { Context } from "@reactivated";
 import { Helmet } from "react-helmet-async";
 
+import { ContribMessages } from "./ContribMessages";
+
 // import "@static/styles/bs-material-dark.css";
 import "@static/styles/bs-navbar-overrides.css";
 import "@static/styles/bs-overrides.css";
 import "@static/styles/logger/scanner.css";
 import "@static/styles/shared.css";
-import { ContribMessages } from "./ContribMessages";
 
 interface Props {
   title: string;

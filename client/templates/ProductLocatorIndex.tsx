@@ -24,6 +24,7 @@ export default (props: templates.ProductLocatorIndex) => {
   const getProductProps = useFetch<ProductResponseType>();
   const djangoContext = React.useContext(Context);
 
+  // Get store from query param `store-id`
   const storeIdFromQueryParam =
     new URL(djangoContext.request.url).searchParams.get("store-id") ?? "";
   const storeFromQueryParam: StoreD7Ddec6B39 | undefined = props.stores.filter(
