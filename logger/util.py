@@ -1,11 +1,11 @@
 import shortuuid
 
-from . import serializers
-from products import models
+from .serializers import StoreSerializer, FieldRepresentativeSerializer
+from products.models import FieldRepresentative, ProductAddition, Store
 
 
 def record_product_addition(
-    product_addition: models.ProductAddition, is_product_scanned: bool = False
+    product_addition: ProductAddition, is_product_scanned: bool = False
 ) -> None:
     if is_product_scanned and not product_addition.is_carried:
         product_addition.is_carried = True
@@ -14,17 +14,17 @@ def record_product_addition(
     product_addition.save(update_fields=["date_last_scanned", "is_carried"])
 
 
-def set_not_carried(product_addition: models.ProductAddition) -> None:
+def set_not_carried(product_addition: ProductAddition) -> None:
     if product_addition.is_carried:
         product_addition.is_carried = False
         product_addition.save(update_fields=["is_carried"])
 
 
 def get_territory_list():
-    field_reps = models.FieldRepresentative.objects.prefetch_related("stores").all()
-    territory_list = serializers.FieldRepresentativeSerializer(field_reps, many=True).data
+    field_reps = FieldRepresentative.objects.prefetch_related("stores").all()
+    territory_list = FieldRepresentativeSerializer(field_reps, many=True).data
 
-    stores_data = serializers.StoreSerializer(models.Store.objects.all(), many=True).data
+    stores_data = StoreSerializer(Store.objects.all(), many=True).data
     territory_list.append({"id": shortuuid.uuid(), "name": "All Stores", "stores": stores_data})
 
     return territory_list
