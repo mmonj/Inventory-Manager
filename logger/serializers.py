@@ -85,7 +85,7 @@ class ProductSerializer(serializers.ModelSerializer[Product]):
 
         return upc_sections
 
-    def get_item_image_url(self, product: Product):
+    def get_item_image_url(self, product: Product) -> str:
         if not product.item_image:
             return static("public/logger/images/image_not_available.png")
         return product.item_image.url

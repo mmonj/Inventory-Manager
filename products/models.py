@@ -155,6 +155,8 @@ class Store(models.Model):
         return f"Store(name={ repr(self.name) }, field_representative={self.field_representative})"
 
     def sanitize_store_name(self) -> None:
+        if self.name is None:
+            return
         self.name = re.sub(self.trailing_number_re, "", self.name)
 
     def clean(self, *args: Any, **kwargs: Any) -> None:

@@ -1,5 +1,6 @@
 from typing import Optional
 from django.contrib import admin
+from django_stubs_ext import QuerySetAny
 
 from .models import (
     BarcodeSheet,
@@ -43,30 +44,38 @@ class StoreAdmin(admin.ModelAdmin[Store]):
     list_filter = ["field_representative__name"]
 
     def get_personnel_contact_first_name(self, store: Store) -> Optional[str]:
-        contacts = store.contacts.all()
-        if not contacts.exists():
+        contacts: QuerySetAny[PersonnelContact, PersonnelContact] = store.contacts.all()
+        if not contacts:
             return None
-        return contacts.first().first_name
+        first_contact: Optional[PersonnelContact] = contacts.first()
+        if not first_contact:
+            return None
+        return first_contact.first_name
 
     def get_personnel_contact_last_name(self, store: Store) -> Optional[str]:
-        contacts = store.contacts.all()
-        if not contacts.exists():
+        contacts: QuerySetAny[PersonnelContact, PersonnelContact] = store.contacts.all()
+        if not contacts:
             return None
-        return contacts.first().last_name
+
+        first_contact: Optional[PersonnelContact] = contacts.first()
+        if not first_contact:
+            return None
+
+        return first_contact.last_name
 
     def get_field_representative(self, store: Store) -> Optional[str]:
         if store.field_representative is None:
             return None
         return store.field_representative.name
 
-    get_personnel_contact_first_name.admin_order_field = "contacts__first_name"
-    get_personnel_contact_first_name.short_description = "Contact first name"
+    setattr(get_personnel_contact_first_name, "admin_order_field", "contacts__first_name")
+    setattr(get_personnel_contact_first_name, "short_description", "Contact first name")
 
-    get_personnel_contact_last_name.admin_order_field = "contacts__last_name"
-    get_personnel_contact_last_name.short_description = "Contact last name"
+    setattr(get_personnel_contact_last_name, "admin_order_field", "contacts__last_name")
+    setattr(get_personnel_contact_last_name, "short_description", "Contact last name")
 
-    get_field_representative.admin_order_field = "field_representative__name"
-    get_field_representative.short_description = "Field Rep"
+    setattr(get_field_representative, "admin_order_field", "field_representative__name")
+    setattr(get_field_representative, "short_description", "Field Rep")
 
 
 class PersonnelContactAdmin(admin.ModelAdmin[PersonnelContact]):

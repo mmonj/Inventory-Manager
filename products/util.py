@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Iterable, List, Optional, Set
+from typing import Any, Generator, List, Optional, Set
 import pytz
 import zipfile
 
@@ -22,12 +22,10 @@ from .models import (
 )
 from io import BytesIO
 from datetime import datetime, timezone, timedelta, date
-from itertools import islice
 from pathlib import Path
 
 from django.core.files import File
 from django.core.exceptions import ValidationError
-from django.db import models
 
 logger = logging.getLogger("main_logger")
 
@@ -39,19 +37,6 @@ def import_field_reps(field_reps_info: dict[str, ImportedFieldRepInfo]) -> None:
         new_field_reps.append(FieldRepresentative(name=field_rep_name, work_email=work_email))
 
     FieldRepresentative.objects.bulk_create(new_field_reps, ignore_conflicts=True)
-
-
-def bulk_create_in_batches(
-    TargetModelClass: models.Model,
-    objs: Iterable[models.Model],
-    batch_size: int = 100,
-    ignore_conflicts: bool = False,
-) -> None:
-    while True:
-        batch = list(islice(objs, batch_size))
-        if not batch:
-            break
-        TargetModelClass.objects.bulk_create(batch, batch_size, ignore_conflicts=ignore_conflicts)
 
 
 def import_new_stores(stores: list[str]) -> None:
@@ -69,7 +54,7 @@ def import_new_stores(stores: list[str]) -> None:
         except ValidationError:
             continue
 
-    bulk_create_in_batches(Store, iter(new_stores), ignore_conflicts=True)
+    Store.objects.bulk_create(new_stores, batch_size=100, ignore_conflicts=True)
 
 
 def import_territories(territory_info: dict[str, Any]) -> None:
@@ -78,8 +63,8 @@ def import_territories(territory_info: dict[str, Any]) -> None:
         name: territory_info[name] for name in territory_info if name != "All Stores"
     }
 
-    new_stores = []
-    new_contacts: Iterable[PersonnelContact]
+    new_stores: list[Store] = []
+    new_contacts: Generator[PersonnelContact, None, None]
     stores_with_contacts = {}
 
     logger.info("Importing territories")
@@ -92,7 +77,8 @@ def import_territories(territory_info: dict[str, Any]) -> None:
         manager_names = store_info.get("manager_names")
         if manager_names and all(manager_names):
             stores_with_contacts[store_name] = manager_names
-    bulk_create_in_batches(Store, iter(new_stores), batch_size=100, ignore_conflicts=True)
+
+    Store.objects.bulk_create(new_stores, batch_size=100, ignore_conflicts=True)
 
     stores = Store.objects.filter(name__in=stores_with_contacts.keys())
     new_contacts = (
@@ -103,7 +89,8 @@ def import_territories(territory_info: dict[str, Any]) -> None:
         )
         for store in stores
     )
-    bulk_create_in_batches(PersonnelContact, new_contacts, batch_size=100)
+
+    PersonnelContact.objects.bulk_create(new_contacts, batch_size=100)
 
 
 def import_products(
@@ -126,7 +113,8 @@ def import_products(
             for upc, product_info in products_dict.items()
             if Product(upc=upc).is_valid_upc()
         )
-        bulk_create_in_batches(Product, new_products, batch_size=100, ignore_conflicts=True)
+
+        Product.objects.bulk_create(new_products, batch_size=100, ignore_conflicts=True)
 
     if brand_logos_zip is not None:
         logger.info("Importing brand logos")
@@ -164,7 +152,7 @@ def import_distribution_data(
             if Product(upc=upc).is_valid_upc()
         )
 
-        bulk_create_in_batches(Product, new_products, batch_size=100, ignore_conflicts=True)
+        Product.objects.bulk_create(new_products, batch_size=100, ignore_conflicts=True)
         # products = Product.objects.filter(upc__in=store_distribution_data.keys())
         products = Product.objects.in_bulk(store_distribution_data.keys(), field_name="upc")
 
@@ -183,8 +171,9 @@ def import_distribution_data(
             for upc, product_distribution_data in store_distribution_data.items()
             if Product(upc=upc).is_valid_upc()
         )
-        bulk_create_in_batches(
-            ProductAddition, new_product_additions, batch_size=100, ignore_conflicts=True
+
+        ProductAddition.objects.bulk_create(
+            new_product_additions, batch_size=100, ignore_conflicts=True
         )
 
 
