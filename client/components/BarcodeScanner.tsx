@@ -62,7 +62,7 @@ export function Html5QrcodePlugin() {
 
   const getScanSound = () => new Audio(djangoContext.STATIC_URL + "public/logger/scan_sound.ogg");
   const viewportElementId = "scanner-viewport-container";
-  const duplicateScanDelayMs = 6000;
+  const duplicateScanDelayMs = 2000;
   const previousScanInfo = {
     decodedText: "", // UPC
     timeScannedMs: 0,
