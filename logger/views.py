@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Optional
+from typing import List, Optional
 import urllib.parse
 
 from django.contrib import messages
@@ -8,12 +8,22 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.http import HttpRequest, HttpResponse, JsonResponse, HttpResponseRedirect
+from django.db.models import Prefetch
+from django.http import (
+    HttpRequest,
+    HttpResponse,
+    HttpResponseNotFound,
+    JsonResponse,
+    HttpResponseRedirect,
+)
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy, reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.encoding import iri_to_uri
 from django.views.decorators.http import require_http_methods
+
+from logger import templates
+from .types import SheetTypeDescriptionInterface
 
 from . import forms, serializers, util
 from products import models
@@ -115,9 +125,8 @@ def add_new_stores(request: HttpRequest) -> HttpResponse:
             {"form": received_form, "form_errors": received_form.errors},
         )
 
-    new_stores = [
-        s for s in (f.strip() for f in received_form.cleaned_data["stores_text"].split("\n")) if s
-    ]
+    new_stores_from_post: str = received_form.cleaned_data["stores_text"]
+    new_stores = [s for s in (f.strip() for f in new_stores_from_post.split("\n")) if s]
     logger.info(
         f"Adding new stores from user input. {len(new_stores)} possible new stores submitted."
     )
@@ -234,9 +243,42 @@ def barcode_sheet_history(
 @login_required(login_url=reverse_lazy("logger:login_view"))
 @require_http_methods(["GET"])
 def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpResponse:
+    # Check sheet_type validity
+    sheet_type: str = request.GET.get("sheet-type", "")
+    possible_sheet_types_info: List[SheetTypeDescriptionInterface] = [
+        {
+            "sheetType": "all-products",
+            "sheetTypeVerbose": "All Products",
+        },
+        {
+            "sheetType": "out-of-dist",
+            "sheetTypeVerbose": "Out Of Distribution",
+        },
+        {
+            "sheetType": "in-dist",
+            "sheetTypeVerbose": "In Distribution",
+        },
+    ]
+
+    result_sheet_type_info = util.get_sheet_type_info(sheet_type, possible_sheet_types_info)
+    if result_sheet_type_info is None:
+        return HttpResponseNotFound()
+
+    # get barcode sheet
+    sheet_query_info = util.get_sheet_query_info(sheet_type)
+    if sheet_query_info is None:
+        return HttpResponseNotFound()
+
     barcode_sheet = get_object_or_404(
         models.BarcodeSheet.objects.prefetch_related(
-            "store", "parent_company", "product_additions"
+            "store",
+            "parent_company",
+            Prefetch(
+                "product_additions",
+                queryset=models.ProductAddition.objects.filter(
+                    is_carried__in=sheet_query_info["is_carried_list"]
+                ),
+            ),
         ),
         id=barcode_sheet_id,
     )
@@ -246,9 +288,16 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
     ).data
 
     logger.info(
-        f"Serving Barcode Sheet. Client: '{barcode_sheet.parent_company.short_name}' - "
+        f"Serving Barcode Sheet. Client: '{barcode_sheet.parent_company}' - "
         f"Store: '{barcode_sheet.store.name}'"
     )
+
+    return templates.LoggerBarcodeSheet(
+        barcodeSheet=barcode_sheet_data,  # type: ignore[arg-type]
+        sheetTypeInfo=result_sheet_type_info,
+        possibleSheetTypesInfo=possible_sheet_types_info,
+        excludeBsOverrides=True,
+    ).render(request)
 
     return render(
         request,

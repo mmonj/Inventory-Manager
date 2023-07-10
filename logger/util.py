@@ -1,4 +1,7 @@
+from typing import List, Optional
 import shortuuid
+
+from .types import SheetQueryInfoInterface, SheetTypeDescriptionInterface
 
 from .serializers import StoreSerializer, FieldRepresentativeSerializer
 from products.models import FieldRepresentative, ProductAddition, Store
@@ -28,3 +31,34 @@ def get_territory_list():
     territory_list.append({"id": shortuuid.uuid(), "name": "All Stores", "stores": stores_data})
 
     return territory_list
+
+
+def get_sheet_type_info(
+    sheet_type: str, possible_sheet_types_info: List[SheetTypeDescriptionInterface]
+) -> Optional[SheetTypeDescriptionInterface]:
+    for possible_sheet_type in possible_sheet_types_info:
+        if sheet_type == possible_sheet_type["sheetType"]:
+            return possible_sheet_type
+    return None
+
+
+def get_sheet_query_info(sheet_type: str) -> Optional[SheetQueryInfoInterface]:
+    sheet_queries_info: List[SheetQueryInfoInterface] = [
+        {
+            "sheetType": "all-products",
+            "is_carried_list": [True, False],
+        },
+        {
+            "sheetType": "out-of-dist",
+            "is_carried_list": [False],
+        },
+        {
+            "sheetType": "in-dist",
+            "is_carried_list": [True],
+        },
+    ]
+
+    for sheet_query_info in sheet_queries_info:
+        if sheet_type == sheet_query_info["sheetType"]:
+            return sheet_query_info
+    return None

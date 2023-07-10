@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import List, Literal, TypedDict
 
 
 class ProductInterface(TypedDict):
@@ -26,3 +26,15 @@ class BarcodeSheetInterface(TypedDict):
     store_name: str
     parent_company: ParentCompanyInterface
     product_additions: List[ProductAdditionInterface]
+
+
+class SheetTypeInterface(TypedDict):
+    sheetType: Literal["all-products", "out-of-dist", "in-dist"]
+
+
+class SheetTypeDescriptionInterface(SheetTypeInterface):
+    sheetTypeVerbose: Literal["All Products", "Out Of Distribution", "In Distribution"]
+
+
+class SheetQueryInfoInterface(SheetTypeInterface):
+    is_carried_list: List[bool]

@@ -24,7 +24,7 @@
     <ul class="dropdown-menu">
       {% for field_rep in field_representatives %}
         <li>
-          <a class="dropdown-item py-2" href="{% url 'logger:barcode_sheet_history' field_rep.id %}" data-field_rep_id="{{ field_rep.id }}">{{ field_rep.name }}</a>
+          <a class="dropdown-item py-2" href="{% url 'logger:barcode_sheet_history_repid' field_rep.id %}" data-field_rep_id="{{ field_rep.id }}">{{ field_rep.name }}</a>
         </li>
       {% endfor %}
     </ul>
