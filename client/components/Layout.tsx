@@ -8,7 +8,6 @@ import { ContribMessages } from "./ContribMessages";
 // import "@static/styles/bs-material-dark.css";
 import "@static/styles/bs-navbar-overrides.css";
 import "@static/styles/bs-overrides.css";
-import "@static/styles/logger/scanner.css";
 import "@static/styles/shared.css";
 
 interface Props {
@@ -16,9 +15,10 @@ interface Props {
   children: React.ReactNode;
   navbarComponent: JSX.Element;
   className?: string;
+  extraStyles?: string[];
 }
 
-export const Layout = (props: Props) => {
+export const Layout = ({ extraStyles = [], ...props }: Props) => {
   const djangoContext = React.useContext(Context);
 
   return (
@@ -44,6 +44,14 @@ export const Layout = (props: Props) => {
           crossOrigin="anonymous"></link>
         <link rel="stylesheet" type="text/css" href={`${djangoContext.STATIC_URL}dist/index.css`} />
         <script defer crossOrigin="anonymous" src={`${djangoContext.STATIC_URL}dist/index.js`} />
+        {extraStyles.map((staticBasePath, idx) => (
+          <link
+            key={idx}
+            rel="stylesheet"
+            type="text/css"
+            href={djangoContext.STATIC_URL + staticBasePath}
+          />
+        ))}
       </Helmet>
       <header>{props.navbarComponent}</header>
       <main>

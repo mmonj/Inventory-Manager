@@ -48,7 +48,10 @@ export default (props: templates.ProductLocatorIndex) => {
   }
 
   return (
-    <Layout title="Product Locator" navbarComponent={<NavbarProductLocator />}>
+    <Layout
+      title="Product Locator"
+      navbarComponent={<NavbarProductLocator />}
+      extraStyles={["styles/logger/barcode_sheet.css"]}>
       <section id="store-select-container" className="m-2 px-2 mw-rem-60 mx-auto">
         {!store && <StoreSelector stores={props.stores} isFieldRepsDisabled={true} />}
         {!!store && (
