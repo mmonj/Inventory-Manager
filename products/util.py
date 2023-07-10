@@ -205,7 +205,7 @@ def get_missing_products(upcs_batch: list[str], products: list[Product]) -> list
     return missing_upcs
 
 
-def get_utc_datetime(datetime_str: str) -> datetime:
+def get_utc_datetime(datetime_str: Optional[str]) -> datetime:
     if datetime_str is None:
         return datetime.fromtimestamp(0, timezone.utc)
 
