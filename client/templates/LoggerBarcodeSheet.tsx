@@ -5,7 +5,7 @@ import { templates } from "@reactivated";
 import { Layout } from "@client/components/Layout";
 import { BarcodeSheetContent } from "@client/components/productLogger/BarcodeSheetContent";
 import { BarcodeSheetHeader } from "@client/components/productLogger/BarcodeSheetHeader";
-import { NavbarProductLogger } from "@client/components/productLogger/NavbarProductLogger";
+import { Navbar } from "@client/components/productLogger/Navbar";
 import { BarcodeSheetSchema, sheetTypeType } from "@client/types";
 
 export default (props: templates.LoggerBarcodeSheet) => {
@@ -20,7 +20,7 @@ export default (props: templates.LoggerBarcodeSheet) => {
   return (
     <Layout
       title="Barcode Sheet"
-      navbarComponent={<NavbarProductLogger />}
+      navbarComponent={<Navbar />}
       extraStyles={["styles/logger/barcode_sheet.css"]}>
       <BarcodeSheetHeader {...props} handleSheetTypeChange={handleSheetTypeChange} />
       <BarcodeSheetContent {...props} />

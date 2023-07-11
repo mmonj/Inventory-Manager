@@ -10,7 +10,7 @@ import { useFetch } from "@client/hooks/useFetch";
 import { LocationUpdateResponseType } from "@client/types";
 import { postNewProductLocation } from "@client/util/productLocatorUtil";
 
-import { LoadingSpinner } from "./LoadingSpinner";
+import { LoadingSpinner } from "../LoadingSpinner";
 
 interface Props {
   modalShow: boolean;

@@ -2,7 +2,7 @@ import React from "react";
 
 import { Context, reverse } from "@reactivated";
 
-export function NavbarProductLocator() {
+export function Navbar() {
   const djangoContext = React.useContext(Context);
 
   return (
