@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 import { templates } from "@reactivated";
 
@@ -9,6 +9,8 @@ import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { BarcodeSheetSchema, sheetTypeType } from "@client/types";
 
 export default (props: templates.StockTrackerBarcodeSheet) => {
+  const [isEditMode, setIsEditMode] = useState(false);
+
   BarcodeSheetSchema.parse(props);
 
   function handleSheetTypeChange(newSheetType: sheetTypeType) {
@@ -23,8 +25,12 @@ export default (props: templates.StockTrackerBarcodeSheet) => {
       navbar={<NavigationBar />}
       extraStyles={["styles/stock_tracker/barcode_sheet.css"]}
       excludeBsBodyOverrides={true}>
-      <BarcodeSheetHeader {...props} handleSheetTypeChange={handleSheetTypeChange} />
-      <BarcodeSheetContent {...props} />
+      <BarcodeSheetHeader
+        {...props}
+        handleSheetTypeChange={handleSheetTypeChange}
+        setIsEditMode={setIsEditMode}
+      />
+      <BarcodeSheetContent {...props} isEditMode={isEditMode} />
     </Layout>
   );
 };

@@ -303,16 +303,6 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
         possibleSheetTypesInfo=possible_sheet_types_info,
     ).render(request)
 
-    return render(
-        request,
-        "stock_tracker/barcode_sheet.html",
-        {
-            **barcode_sheet_data,
-            "sheet_type": request.GET.get("sheet-type"),
-            "exclude_bs_overrides": True,
-        },
-    )
-
 
 @require_http_methods(["GET", "POST"])
 def get_manager_names(request: HttpRequest) -> HttpResponse:
@@ -382,9 +372,21 @@ def get_manager_names(request: HttpRequest) -> HttpResponse:
 
 @require_http_methods(["POST"])
 def set_carried_product_additions(request: HttpRequest) -> HttpResponse:
-    product_additions = models.ProductAddition.objects.filter(
-        id__in=request.POST.getlist("product-addition-id")
+    product_id_list = request.POST.getlist("product-addition-id")
+    redirect_route = (
+        reverse("stock_tracker:get_barcode_sheet", args=[request.POST.get("barcode-sheet-id")])
+        + "?"
+        + urllib.parse.urlencode(
+            {"store-name": request.POST.get("store-name"), "sheet-type": "out-of-dist"}
+        )
     )
+
+    if not product_id_list:
+        logger.info("Barcode sheet form returned 0 new products. Redirecting with error message")
+        messages.error(request, "Error. Received 0 new products to update")
+        return HttpResponseRedirect(redirect_route)
+
+    product_additions = models.ProductAddition.objects.filter(id__in=product_id_list)
     logger.info(
         "Updating {} product additions from barcode sheet form for client '{}' for store: '{}'".format(
             len(product_additions),
@@ -395,14 +397,6 @@ def set_carried_product_additions(request: HttpRequest) -> HttpResponse:
 
     for product_addition in product_additions:
         util.record_product_addition(product_addition, is_product_scanned=True)
-
-    redirect_route = (
-        reverse("stock_tracker:get_barcode_sheet", args=[request.POST.get("barcode-sheet-id")])
-        + "?"
-        + urllib.parse.urlencode(
-            {"store-name": request.POST.get("store-name"), "sheet-type": "out-of-dist"}
-        )
-    )
 
     messages.success(request, "Submitted Successfully")
     return HttpResponseRedirect(redirect_route)

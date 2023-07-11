@@ -7,6 +7,7 @@ import { sheetTypeType } from "@client/types";
 
 interface Props extends templates.StockTrackerBarcodeSheet {
   handleSheetTypeChange: (newSheetType: sheetTypeType) => void;
+  setIsEditMode: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export function BarcodeSheetHeader(props: Props) {
@@ -43,7 +44,11 @@ export function BarcodeSheetHeader(props: Props) {
         <div className="my-3">
           {props.sheetTypeInfo.sheetType === "out-of-dist" && (
             <>
-              <button id="edit-item-stock" className="btn btn-primary">
+              <button
+                onClick={() => props.setIsEditMode((prevMode) => !prevMode)}
+                type="button"
+                id="edit-item-stock"
+                className="btn btn-primary">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="bi bi-pencil-square mx-2"
