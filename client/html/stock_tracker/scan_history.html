@@ -51,8 +51,9 @@
           <div class="d-flex flex-row justify-content-between">
             <div class="truncated-text-container">
               <p class="truncated-text mb-1">{{ product_addition.product.name }}</p>
-              <small class="text-muted">{{ product_addition.product.parent_company.short_name | default:"Unknown Brand"
-                }}</small>
+              <small class="text-muted">
+                {{ product_addition.product.parent_company.short_name | default:"Unknown Brand"}}
+              </small>
             </div>
 
             <div class="spinner-remove-product my-auto" hidden="">
