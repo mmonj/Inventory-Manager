@@ -9,7 +9,7 @@ import { BarcodeScanner } from "@client/components/BarcodeScanner";
 import { Layout } from "@client/components/Layout";
 import { LoadingSpinner } from "@client/components/LoadingSpinner";
 import { StoreSelector } from "@client/components/StorePicker";
-import { Navbar } from "@client/components/productLocator/Navbar";
+import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { ProductLocatorModal } from "@client/components/productLocator/ProductLocatorModal";
 import { useFetch } from "@client/hooks/useFetch";
 import { ProductResponseType, scannerContextType } from "@client/types";
@@ -50,7 +50,7 @@ export default (props: templates.ProductLocatorIndex) => {
   return (
     <Layout
       title="Product Locator"
-      navbar={<Navbar />}
+      navbar={<NavigationBar />}
       extraStyles={["styles/stock_tracker/scanner.css"]}>
       <section id="store-select-container" className="m-2 px-2 mw-rem-60 mx-auto">
         {!store && <StoreSelector stores={props.stores} isFieldRepsDisabled={true} />}

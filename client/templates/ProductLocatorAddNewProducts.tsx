@@ -7,7 +7,7 @@ import { FieldHandler } from "reactivated/dist/forms";
 import { DjangoFormsWidgetsSelect, DjangoFormsWidgetsTextarea } from "reactivated/dist/generated";
 
 import { Layout } from "@client/components/Layout";
-import { Navbar } from "@client/components/productLocator/Navbar";
+import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { Select, Textarea } from "@client/components/widgets";
 
 export default (props: templates.ProductLocatorAddNewProducts) => {
@@ -28,7 +28,7 @@ export default (props: templates.ProductLocatorAddNewProducts) => {
   }
 
   return (
-    <Layout title="Add New Products" navbar={<Navbar />}>
+    <Layout title="Add New Products" navbar={<NavigationBar />}>
       <section className="mw-rem-60 mx-auto p-2">
         <h1 id="page-title" className="m-3 text-center title-color ">
           Add New Products
