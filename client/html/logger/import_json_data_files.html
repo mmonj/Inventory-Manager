@@ -9,7 +9,7 @@
 
 {% block body_main %}
 <section class="m-3 mw-rem-60 mx-auto">
-  {% include "includes/messages.html" %}
+  {% include "_common/includes/messages.html" %}
 
   <form action="{% url 'logger:import_json_data_files' %}" method="POST" enctype="multipart/form-data">
     {% csrf_token %}
