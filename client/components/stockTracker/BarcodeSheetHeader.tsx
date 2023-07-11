@@ -5,7 +5,7 @@ import { ButtonGroup, Dropdown, DropdownButton } from "react-bootstrap";
 
 import { sheetTypeType } from "@client/types";
 
-interface Props extends templates.LoggerBarcodeSheet {
+interface Props extends templates.StockTrackerBarcodeSheet {
   handleSheetTypeChange: (newSheetType: sheetTypeType) => void;
 }
 

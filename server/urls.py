@@ -19,11 +19,10 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('django-rq/', include('django_rq.urls')),
-    path('', include('homepage.urls')),
-    path('api/', include('api.urls')),
-    path('logger/', include('logger.urls')),
-    path('product_locator/', include('product_locator.urls')),
-] \
-    + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    path("admin/", admin.site.urls),
+    path("django-rq/", include("django_rq.urls")),
+    path("", include("homepage.urls")),
+    path("api/", include("api.urls")),
+    path("logger/", include("stock_tracker.urls")),
+    path("product_locator/", include("product_locator.urls")),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

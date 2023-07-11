@@ -1,15 +1,15 @@
-{% extends "logger/layout.html" %}
+{% extends "stock_tracker/layout.html" %}
 {% load static %}
 
 {% block title %}Barcode Sheet{% endblock %}
 
 {% block extra_head_elements %}
-<script defer src="{% static 'scripts/logger/barcode_sheet.js' %}"></script>
-<link rel="stylesheet" href="{% static 'styles/logger/barcode_sheet.css' %}">
+<script defer src="{% static 'scripts/stock_tracker/barcode_sheet.js' %}"></script>
+<link rel="stylesheet" href="{% static 'styles/stock_tracker/barcode_sheet.css' %}">
 {% endblock %}
 
 {% block body_header %}
-{% include "logger/includes/navbar.html" %}
+{% include "stock_tracker/includes/navbar.html" %}
 <section>
   {% include "_common/includes/messages.html" %}
 
@@ -64,7 +64,7 @@
 
 {% block body_main %}
 <section class="mx-auto my-2 p-2">
-  <form id="stock-update-form" action="{% url 'logger:set_carried_product_additions' %}" method="POST">
+  <form id="stock-update-form" action="{% url 'stock_tracker:set_carried_product_additions' %}" method="POST">
     {% csrf_token %}
 
     <ul id="products-container"
@@ -75,7 +75,7 @@
         data-is_carried="{{ product_addition.is_carried|yesno:'true,false' }}" hidden>
         <div class="new-item-indicator-container mb-1">
           {% if product_addition.is_new %}
-          <img src="{% static 'public/logger/images/new_item_icon.png' %}" alt="New Product Indicator">
+          <img src="{% static 'public/stock_tracker/images/new_item_icon.png' %}" alt="New Product Indicator">
           {% endif %}
         </div>
         <div class="product-images-container d-flex justify-content-center">

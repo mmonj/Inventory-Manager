@@ -5,7 +5,7 @@ from .types import BarcodeSheetInterface, SheetTypeDescriptionInterface
 
 
 @template
-class LoggerBarcodeSheet(NamedTuple):
+class StockTrackerBarcodeSheet(NamedTuple):
     barcodeSheet: BarcodeSheetInterface
     sheetTypeInfo: SheetTypeDescriptionInterface
     possibleSheetTypesInfo: List[SheetTypeDescriptionInterface]

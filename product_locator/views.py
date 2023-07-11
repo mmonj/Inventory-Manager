@@ -20,7 +20,7 @@ from . import models, serializers, planogram_parser, util
 logger = logging.getLogger("main_logger")
 
 
-@login_required(login_url=reverse_lazy("logger:login_view"))
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET"])
 def index(request: HttpRequest) -> HttpResponse:
     stores = models.Store.objects.all()
@@ -31,7 +31,7 @@ def index(request: HttpRequest) -> HttpResponse:
     )
 
 
-@login_required(login_url=reverse_lazy("logger:login_view"))
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET", "POST"])
 def add_new_products(request: HttpRequest) -> HttpResponse:
     if request.method == "GET":

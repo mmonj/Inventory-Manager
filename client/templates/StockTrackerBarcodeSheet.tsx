@@ -3,12 +3,12 @@ import React from "react";
 import { templates } from "@reactivated";
 
 import { Layout } from "@client/components/Layout";
-import { BarcodeSheetContent } from "@client/components/productLogger/BarcodeSheetContent";
-import { BarcodeSheetHeader } from "@client/components/productLogger/BarcodeSheetHeader";
-import { Navbar } from "@client/components/productLogger/Navbar";
+import { BarcodeSheetContent } from "@client/components/stockTracker/BarcodeSheetContent";
+import { BarcodeSheetHeader } from "@client/components/stockTracker/BarcodeSheetHeader";
+import { Navbar } from "@client/components/stockTracker/Navbar";
 import { BarcodeSheetSchema, sheetTypeType } from "@client/types";
 
-export default (props: templates.LoggerBarcodeSheet) => {
+export default (props: templates.StockTrackerBarcodeSheet) => {
   BarcodeSheetSchema.parse(props);
 
   function handleSheetTypeChange(newSheetType: sheetTypeType) {
@@ -21,7 +21,7 @@ export default (props: templates.LoggerBarcodeSheet) => {
     <Layout
       title="Barcode Sheet"
       navbarComponent={<Navbar />}
-      extraStyles={["styles/logger/barcode_sheet.css"]}>
+      extraStyles={["styles/stock_tracker/barcode_sheet.css"]}>
       <BarcodeSheetHeader {...props} handleSheetTypeChange={handleSheetTypeChange} />
       <BarcodeSheetContent {...props} />
     </Layout>

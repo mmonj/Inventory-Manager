@@ -1,4 +1,4 @@
-import { LoggerTypesSheetTypeDescriptionInterface } from "@reactivated";
+import { StockTrackerTypesSheetTypeDescriptionInterface } from "@reactivated";
 
 import {
   DjangoFormsWidgetsSelect,
@@ -87,4 +87,4 @@ export const BarcodeSheetSchema = z.object({
   excludeBsOverrides: z.boolean(),
 });
 
-export type sheetTypeType = LoggerTypesSheetTypeDescriptionInterface["sheetType"];
+export type sheetTypeType = StockTrackerTypesSheetTypeDescriptionInterface["sheetType"];

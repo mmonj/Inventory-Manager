@@ -9,8 +9,8 @@ export function Navbar() {
     <>
       <nav className="navbar navbar-expand-lg bg-body-tertiary border-bottom bg-blue-theme">
         <div className="container-fluid">
-          <a className="navbar-brand" href={reverse("logger:scanner")}>
-            Inventory Logger
+          <a className="navbar-brand" href={reverse("stock_tracker:scanner")}>
+            Inventory Tracker
           </a>
           <button
             className="navbar-toggler"
@@ -27,17 +27,17 @@ export function Navbar() {
               {djangoContext.user.is_authenticated && (
                 <>
                   <li className="nav-item">
-                    <a className="nav-link" href={reverse("logger:scan_history")}>
+                    <a className="nav-link" href={reverse("stock_tracker:scan_history")}>
                       Scan History
                     </a>
                   </li>
                   <li className="nav-item">
-                    <a className="nav-link" href={reverse("logger:barcode_sheet_history")}>
+                    <a className="nav-link" href={reverse("stock_tracker:barcode_sheet_history")}>
                       Barcode Sheets
                     </a>
                   </li>
                   <li className="nav-item">
-                    <a className="nav-link" href={reverse("logger:get_manager_names")}>
+                    <a className="nav-link" href={reverse("stock_tracker:get_manager_names")}>
                       Manager Update Form
                     </a>
                   </li>
@@ -47,12 +47,12 @@ export function Navbar() {
               {djangoContext.user.is_superuser && (
                 <>
                   <li className="nav-item">
-                    <a className="nav-link" href={reverse("logger:add_new_stores")}>
+                    <a className="nav-link" href={reverse("stock_tracker:add_new_stores")}>
                       Add New Stores
                     </a>
                   </li>
                   <li className="nav-item">
-                    <a className="nav-link" href={reverse("logger:import_json_data_files")}>
+                    <a className="nav-link" href={reverse("stock_tracker:import_json_data_files")}>
                       Import Old Database
                     </a>
                   </li>
@@ -69,7 +69,7 @@ export function Navbar() {
               {!djangoContext.user.is_authenticated && (
                 <>
                   <li className="nav-item">
-                    <a className="nav-link" href={reverse("logger:login_view")}>
+                    <a className="nav-link" href={reverse("stock_tracker:login_view")}>
                       Log In
                     </a>
                   </li>
@@ -78,7 +78,7 @@ export function Navbar() {
               {djangoContext.user.is_authenticated && (
                 <>
                   <li className="nav-item">
-                    <a className="nav-link" href={reverse("logger:logout_view")}>
+                    <a className="nav-link" href={reverse("stock_tracker:logout_view")}>
                       Log Out
                     </a>
                   </li>

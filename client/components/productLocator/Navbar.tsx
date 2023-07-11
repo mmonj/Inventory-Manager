@@ -40,14 +40,14 @@ export function Navbar() {
             </li>
             {!djangoContext.user.is_authenticated && (
               <li className="nav-item">
-                <a className="nav-link" href={reverse("logger:login_view")}>
+                <a className="nav-link" href={reverse("stock_tracker:login_view")}>
                   Log In
                 </a>
               </li>
             )}
             {djangoContext.user.is_authenticated && (
               <li className="nav-item">
-                <a className="nav-link" href={reverse("logger:logout_view")}>
+                <a className="nav-link" href={reverse("stock_tracker:logout_view")}>
                   Log Out
                 </a>
               </li>

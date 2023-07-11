@@ -1,4 +1,4 @@
-{% extends "logger/layout.html" %}
+{% extends "stock_tracker/layout.html" %}
 {% load static %}
 
 {% block title %}Inventory Manager{% endblock %}
@@ -28,12 +28,12 @@
       </div>
       <div class="card-body col-md-8 d-flex flex-column justify-content-between">
         <div>
-          <h5 class="card-title">Inventory Logger</h5>
+          <h5 class="card-title">Inventory Tracker</h5>
           <p class="card-text">Adjust and monitor inventory for individual stores</p>
           <p class="card-text">Features a built-in barcode scanner</p>
         </div>
         <div class="text-end mt-3">
-          <a href="{% url 'logger:scanner' %}" class="btn btn-primary">Go to Inventory Logger</a>
+          <a href="{% url 'stock_tracker:scanner' %}" class="btn btn-primary">Go to Inventory Tracker</a>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-{% extends "logger/layout.html" %}
+{% extends "stock_tracker/layout.html" %}
 {% load static %}
 
 {% block title %}Scan History{% endblock %}
@@ -22,18 +22,18 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-<script defer src="{% static 'scripts/logger/util.js' %}"></script>
-<script defer src="{% static 'scripts/logger/scan_history.js' %}"></script>
+<script defer src="{% static 'scripts/stock_tracker/util.js' %}"></script>
+<script defer src="{% static 'scripts/stock_tracker/scan_history.js' %}"></script>
 {% endblock %}
 
 {% block body_header %}
-{% include "logger/includes/navbar.html" %}
+{% include "stock_tracker/includes/navbar.html" %}
 {% endblock %}
 
 {% block body_main %}
 {% if territory_list %}
 <h1 class="m-3 text-center title-color">Scan History</h1>
-{% include "logger/includes/store_picker.html" %}
+{% include "stock_tracker/includes/store_picker.html" %}
 <script id="territory_list" type="application/json">{{ territory_list | safe }}</script>
 {% endif %}
 
@@ -42,8 +42,8 @@
     <ol class="list-group">
       {% for product_addition in product_additions %}
       <li class="list-group-item product-list-item collapse show">
-        <form class="form-unsubmit-product" action="{% url 'logger:uncarry_product_addition' product_addition.pk %}"
-          method="POST">
+        <form class="form-unsubmit-product"
+          action="{% url 'stock_tracker:uncarry_product_addition' product_addition.pk %}" method="POST">
           <div class="d-flex w-100 justify-content-between">
             <h5 class="mb-1">{{ product_addition.product.upc }}</h5>
             <small class="text-muted">{{ product_addition.date_last_scanned }}</small>

@@ -1,10 +1,10 @@
-{% extends "logger/layout.html" %}
+{% extends "stock_tracker/layout.html" %}
 {% load static %}
 
 {% block title%}Manager Update Form{% endblock %}
 
 {% block extra_head_elements%}
-<script defer src="{% static 'scripts/logger/get_manager_names.js' %}"></script>
+<script defer src="{% static 'scripts/stock_tracker/get_manager_names.js' %}"></script>
 <style>
   .empty-required-field {
     border-color: #ff000036 !important;
@@ -23,14 +23,14 @@
 {% endblock %}
 
 {% block body_header %}
-{% include "logger/includes/navbar.html" %}
+{% include "stock_tracker/includes/navbar.html" %}
 {% endblock %}
 
 {% block body_main %}
 <section class="mw-rem-50 mx-auto p-3">
   {% include "_common/includes/messages.html" %}
 
-  <form id="manager-names-form" action="{% url 'logger:get_manager_names' %}" method="POST">
+  <form id="manager-names-form" action="{% url 'stock_tracker:get_manager_names' %}" method="POST">
     {% csrf_token %}
 
     <fieldset>

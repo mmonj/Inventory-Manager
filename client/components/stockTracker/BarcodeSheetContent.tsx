@@ -2,14 +2,14 @@ import React, { useContext } from "react";
 
 import { CSRFToken, Context, reverse, templates } from "@reactivated";
 
-export function BarcodeSheetContent(props: templates.LoggerBarcodeSheet) {
+export function BarcodeSheetContent(props: templates.StockTrackerBarcodeSheet) {
   const djangoContext = useContext(Context);
 
   return (
     <section className="mx-auto my-2 p-2">
       <form
         id="stock-update-form"
-        action={reverse("logger:set_carried_product_additions")}
+        action={reverse("stock_tracker:set_carried_product_additions")}
         method="POST">
         <CSRFToken />
 
@@ -26,7 +26,7 @@ export function BarcodeSheetContent(props: templates.LoggerBarcodeSheet) {
               <div className="new-item-indicator-container mb-1">
                 {product_addition.is_new && (
                   <img
-                    src={djangoContext.STATIC_URL + "public/logger/images/new_item_icon.png"}
+                    src={djangoContext.STATIC_URL + "public/stock_tracker/images/new_item_icon.png"}
                     alt="New Product Indicator"></img>
                 )}
               </div>

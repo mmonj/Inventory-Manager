@@ -87,7 +87,7 @@ class ProductSerializer(serializers.ModelSerializer[Product]):
 
     def get_item_image_url(self, product: Product) -> str:
         if not product.item_image:
-            return static("public/logger/images/image_not_available.png")
+            return static("public/stock_tracker/images/image_not_available.png")
         return product.item_image.url
 
     def get_barcode_b64(self, product: Product) -> str:

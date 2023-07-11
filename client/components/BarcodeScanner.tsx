@@ -30,7 +30,7 @@ function ProductLoggerKeyboard() {
     <form
       onSubmit={handleSubmit}
       id="form-manual-upc"
-      action={reverse("logger:log_product_scan")}
+      action={reverse("stock_tracker:log_product_scan")}
       method="POST">
       <label htmlFor="text-input-upc" className="d-block my-2">
         UPC Number
@@ -60,7 +60,8 @@ export function Html5QrcodePlugin() {
     ScannerContext
   )!;
 
-  const getScanSound = () => new Audio(djangoContext.STATIC_URL + "public/logger/scan_sound.ogg");
+  const getScanSound = () =>
+    new Audio(djangoContext.STATIC_URL + "public/stock_tracker/scan_sound.ogg");
   const viewportElementId = "scanner-viewport-container";
   const duplicateScanDelayMs = 2000;
   const previousScanInfo = {

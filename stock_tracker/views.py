@@ -22,10 +22,9 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.encoding import iri_to_uri
 from django.views.decorators.http import require_http_methods
 
-from logger import templates
 from .types import SheetTypeDescriptionInterface
 
-from . import forms, serializers, util
+from . import forms, serializers, util, templates
 from products import models
 from products.util import import_new_stores
 
@@ -41,7 +40,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
         return redirect("homepage:index")
 
     if request.method == "GET":
-        return render(request, "logger/login.html")
+        return render(request, "stock_tracker/login.html")
     else:
         # Attempt to sign user in
         username = request.POST["username"]
@@ -58,21 +57,23 @@ def login_view(request: HttpRequest) -> HttpResponse:
 
             return redirect("homepage:index")
         else:
-            return render(request, "logger/login.html", {"is_invalid_credentials": True})
+            return render(request, "stock_tracker/login.html", {"is_invalid_credentials": True})
 
 
 @require_http_methods(["GET"])
 def logout_view(request: HttpRequest) -> HttpResponse:
     logout(request)
-    return redirect("logger:login_view")
+    return redirect("stock_tracker:login_view")
 
 
-@login_required(login_url=reverse_lazy("logger:login_view"))
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET"])
 def scanner(request: HttpRequest) -> HttpResponse:
     territory_list = util.get_territory_list()
 
-    return render(request, "logger/scanner.html", {"territory_list": json.dumps(territory_list)})
+    return render(
+        request, "stock_tracker/scanner.html", {"territory_list": json.dumps(territory_list)}
+    )
 
 
 @require_http_methods(["POST"])
@@ -111,17 +112,17 @@ def log_product_scan(request: HttpRequest) -> HttpResponse:
     return JsonResponse(resp_json)
 
 
-@login_required(login_url=reverse_lazy("logger:login_view"))
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET", "POST"])
 def add_new_stores(request: HttpRequest) -> HttpResponse:
     if request.method == "GET":
-        return render(request, "logger/add_new_stores.html", {"form": forms.NewStoresForm()})
+        return render(request, "stock_tracker/add_new_stores.html", {"form": forms.NewStoresForm()})
 
     received_form = forms.NewStoresForm(request.POST)
     if not received_form.is_valid():
         return render(
             request,
-            "logger/add_new_stores.html",
+            "stock_tracker/add_new_stores.html",
             {"form": received_form, "form_errors": received_form.errors},
         )
 
@@ -133,17 +134,19 @@ def add_new_stores(request: HttpRequest) -> HttpResponse:
     import_new_stores(new_stores)
 
     messages.success(request, "Your submission was successful")
-    return redirect("logger:add_new_stores")
+    return redirect("stock_tracker:add_new_stores")
 
 
-@login_required(login_url=reverse_lazy("logger:login_view"))
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET"])
 def scan_history(request: HttpRequest) -> HttpResponse:
     if not request.GET:
         territory_list = util.get_territory_list()
 
         return render(
-            request, "logger/scan_history.html", {"territory_list": json.dumps(territory_list)}
+            request,
+            "stock_tracker/scan_history.html",
+            {"territory_list": json.dumps(territory_list)},
         )
 
     store_id = request.GET.get("store-id")
@@ -156,12 +159,12 @@ def scan_history(request: HttpRequest) -> HttpResponse:
 
     return render(
         request,
-        "logger/scan_history.html",
+        "stock_tracker/scan_history.html",
         {"product_additions": product_additions, "store_name": store.name},
     )
 
 
-@login_required(login_url=reverse_lazy("logger:login_view"))
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["POST"])
 def uncarry_product_addition(request: HttpRequest, product_addition_pk: int) -> HttpResponse:
     product_addition = models.ProductAddition.objects.get(pk=product_addition_pk)
@@ -171,21 +174,23 @@ def uncarry_product_addition(request: HttpRequest, product_addition_pk: int) -> 
     return JsonResponse({"message": "success"})
 
 
-@login_required(login_url=reverse_lazy("logger:login_view"))
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET", "POST"])
 def import_json_data_files(request: HttpRequest) -> HttpResponse:
     from products import util
 
     if request.method == "GET":
         return render(
-            request, "logger/import_json_data_files.html", {"form": forms.ImportJsonDataFiles()}
+            request,
+            "stock_tracker/import_json_data_files.html",
+            {"form": forms.ImportJsonDataFiles()},
         )
 
     received_form = forms.ImportJsonDataFiles(request.POST, request.FILES)
     if not received_form.is_valid():
         return render(
             request,
-            "logger/import_json_data_files.html",
+            "stock_tracker/import_json_data_files.html",
             {"form": received_form, "form_errors": received_form.errors},
         )
 
@@ -206,7 +211,7 @@ def import_json_data_files(request: HttpRequest) -> HttpResponse:
     util.import_distribution_data(stores_distribution_data)
 
     messages.success(request, "Your submission was successful")
-    return redirect("logger:import_json_data_files")
+    return redirect("stock_tracker:import_json_data_files")
 
 
 @require_http_methods(["GET"])
@@ -231,7 +236,7 @@ def barcode_sheet_history(
 
     return render(
         request,
-        "logger/barcode_sheet_history.html",
+        "stock_tracker/barcode_sheet_history.html",
         {
             "field_representatives": field_representatives,
             "recent_barcode_sheets": recent_barcode_sheets,
@@ -240,7 +245,7 @@ def barcode_sheet_history(
     )
 
 
-@login_required(login_url=reverse_lazy("logger:login_view"))
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET"])
 def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpResponse:
     # Check sheet_type validity
@@ -292,7 +297,7 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
         f"Store: '{barcode_sheet.store.name}'"
     )
 
-    return templates.LoggerBarcodeSheet(
+    return templates.StockTrackerBarcodeSheet(
         barcodeSheet=barcode_sheet_data,  # type: ignore[arg-type]
         sheetTypeInfo=result_sheet_type_info,
         possibleSheetTypesInfo=possible_sheet_types_info,
@@ -301,7 +306,7 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
 
     return render(
         request,
-        "logger/barcode_sheet.html",
+        "stock_tracker/barcode_sheet.html",
         {
             **barcode_sheet_data,
             "sheet_type": request.GET.get("sheet-type"),
@@ -320,7 +325,7 @@ def get_manager_names(request: HttpRequest) -> HttpResponse:
 
         return render(
             request,
-            "logger/get_manager_names.html",
+            "stock_tracker/get_manager_names.html",
             {"territory_list": json.dumps(field_reps_data)},
         )
 
@@ -373,7 +378,7 @@ def get_manager_names(request: HttpRequest) -> HttpResponse:
             models.PersonnelContact.objects.bulk_create(new_contacts)
 
     messages.success(request, "Submitted contact names successfully")
-    return redirect("logger:get_manager_names")
+    return redirect("stock_tracker:get_manager_names")
 
 
 @require_http_methods(["POST"])
@@ -393,7 +398,7 @@ def set_carried_product_additions(request: HttpRequest) -> HttpResponse:
         util.record_product_addition(product_addition, is_product_scanned=True)
 
     redirect_route = (
-        reverse("logger:get_barcode_sheet", args=[request.POST.get("barcode-sheet-id")])
+        reverse("stock_tracker:get_barcode_sheet", args=[request.POST.get("barcode-sheet-id")])
         + "?"
         + urllib.parse.urlencode(
             {"store-name": request.POST.get("store-name"), "sheet-type": "out-of-dist"}

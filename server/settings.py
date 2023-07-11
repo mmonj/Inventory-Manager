@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     "homepage",
     "api",
     "products",
-    "logger",
+    "stock_tracker",
     "product_locator",
     "widget_tweaks",
     "rest_framework",

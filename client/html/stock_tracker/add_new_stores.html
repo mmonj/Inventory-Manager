@@ -1,17 +1,17 @@
-{% extends "logger/layout.html"%}
+{% extends "stock_tracker/layout.html"%}
 {% load widget_tweaks %}
 
 {% block title %}Add New Stores{% endblock %}
 
 {% block body_header %}
-{% include "logger/includes/navbar.html" %}
+{% include "stock_tracker/includes/navbar.html" %}
 {% endblock %}
 
 {% block body_main %}
 <section class="m-3 mw-rem-60 mx-auto">
   {% include "_common/includes/messages.html" %}
 
-  <form action="{% url 'logger:add_new_stores' %}" method="POST">
+  <form action="{% url 'stock_tracker:add_new_stores' %}" method="POST">
     {% csrf_token %}
 
     <div>
