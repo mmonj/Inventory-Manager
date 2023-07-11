@@ -9,4 +9,3 @@ class StockTrackerBarcodeSheet(NamedTuple):
     barcodeSheet: BarcodeSheetInterface
     sheetTypeInfo: SheetTypeDescriptionInterface
     possibleSheetTypesInfo: List[SheetTypeDescriptionInterface]
-    excludeBsOverrides: bool

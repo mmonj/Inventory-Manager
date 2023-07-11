@@ -301,7 +301,6 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
         barcodeSheet=barcode_sheet_data,  # type: ignore[arg-type]
         sheetTypeInfo=result_sheet_type_info,
         possibleSheetTypesInfo=possible_sheet_types_info,
-        excludeBsOverrides=True,
     ).render(request)
 
     return render(

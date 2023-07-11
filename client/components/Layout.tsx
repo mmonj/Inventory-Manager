@@ -5,20 +5,19 @@ import { Helmet } from "react-helmet-async";
 
 import { ContribMessages } from "./ContribMessages";
 
-// import "@static/styles/bs-material-dark.css";
 import "@static/styles/bs-navbar-overrides.css";
-import "@static/styles/bs-overrides.css";
 import "@static/styles/shared.css";
 
 interface Props {
   title: string;
   children: React.ReactNode;
-  navbarComponent: JSX.Element;
+  navbar: JSX.Element;
   className?: string;
   extraStyles?: string[];
+  excludeBsBodyOverrides?: boolean;
 }
 
-export const Layout = ({ extraStyles = [], ...props }: Props) => {
+export const Layout = ({ extraStyles = [], excludeBsBodyOverrides = false, ...props }: Props) => {
   const djangoContext = React.useContext(Context);
 
   return (
@@ -43,6 +42,14 @@ export const Layout = ({ extraStyles = [], ...props }: Props) => {
           integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65"
           crossOrigin="anonymous"></link>
         <link rel="stylesheet" type="text/css" href={`${djangoContext.STATIC_URL}dist/index.css`} />
+        {!excludeBsBodyOverrides && (
+          <link
+            rel="stylesheet"
+            type="text/css"
+            href={`${djangoContext.STATIC_URL}styles/bs-overrides.css`}
+          />
+        )}
+
         <script defer crossOrigin="anonymous" src={`${djangoContext.STATIC_URL}dist/index.js`} />
         {extraStyles.map((staticBasePath, idx) => (
           <link
@@ -53,7 +60,7 @@ export const Layout = ({ extraStyles = [], ...props }: Props) => {
           />
         ))}
       </Helmet>
-      <header>{props.navbarComponent}</header>
+      <header>{props.navbar}</header>
       <main>
         <ContribMessages />
         {props.children}

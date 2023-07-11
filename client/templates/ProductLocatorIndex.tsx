@@ -50,7 +50,7 @@ export default (props: templates.ProductLocatorIndex) => {
   return (
     <Layout
       title="Product Locator"
-      navbarComponent={<Navbar />}
+      navbar={<Navbar />}
       extraStyles={["styles/stock_tracker/scanner.css"]}>
       <section id="store-select-container" className="m-2 px-2 mw-rem-60 mx-auto">
         {!store && <StoreSelector stores={props.stores} isFieldRepsDisabled={true} />}

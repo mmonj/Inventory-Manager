@@ -84,7 +84,6 @@ export const BarcodeSheetSchema = z.object({
     sheetType: z.string(),
     sheetTypeVerbose: z.string(),
   }),
-  excludeBsOverrides: z.boolean(),
 });
 
 export type sheetTypeType = StockTrackerTypesSheetTypeDescriptionInterface["sheetType"];

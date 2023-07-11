@@ -20,8 +20,9 @@ export default (props: templates.StockTrackerBarcodeSheet) => {
   return (
     <Layout
       title="Barcode Sheet"
-      navbarComponent={<Navbar />}
-      extraStyles={["styles/stock_tracker/barcode_sheet.css"]}>
+      navbar={<Navbar />}
+      extraStyles={["styles/stock_tracker/barcode_sheet.css"]}
+      excludeBsBodyOverrides={true}>
       <BarcodeSheetHeader {...props} handleSheetTypeChange={handleSheetTypeChange} />
       <BarcodeSheetContent {...props} />
     </Layout>
