@@ -7,7 +7,7 @@ export function NavigationBar() {
   const djangoContext = React.useContext(Context);
 
   return (
-    <Navbar expand="lg" className="bg-body-tertiary bg-blue-theme px-2">
+    <Navbar expand="lg" className="bg-body-tertiary bg-blue-theme border-bottom px-2">
       <Container fluid>
         <Navbar.Brand href="#home">Inventory Tracker</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
