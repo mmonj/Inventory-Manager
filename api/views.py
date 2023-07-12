@@ -1,6 +1,15 @@
 import hashlib
 import logging
-from products import models
+
+from django.http import HttpRequest, HttpResponse
+from products.models import (
+    Store,
+    FieldRepresentative,
+    BrandParentCompany,
+    ProductAddition,
+    Product,
+    BarcodeSheet,
+)
 from products.util import get_current_work_cycle
 from products.tasks import get_external_product_images
 from .serializers import BarcodeSheetSerializer, StoreSerializer, FieldRepresentativeSerializer
@@ -10,12 +19,12 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-logger = logging.getLogger('main_logger')
+logger = logging.getLogger("main_logger")
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def validate_api_token(request):
+def validate_api_token(request: HttpRequest) -> HttpResponse:
     """This route is used to check the validity of the client's API token without having to send any specific data.
     The presence of the @permission_classes decorator will assert the validity of the client's API token
 
@@ -23,36 +32,36 @@ def validate_api_token(request):
         dict: Unimportant JSON response. The purpose of this route is to return
         a status code of 200 or 403 in the response
     """
-    return Response({'message': 'Validated'})
+    return Response({"message": "Validated"})
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def get_field_rep_info(request):
+def get_field_rep_info(request: HttpRequest) -> HttpResponse:
     store_name = request.GET.get("store_name")
-    store, _ = models.Store.objects.select_related("field_representative").get_or_create(name=store_name)
+    store, _ = Store.objects.select_related("field_representative").get_or_create(name=store_name)
 
     resp_json = StoreSerializer(store).data
     return Response(resp_json)
 
 
-@api_view(['GET'])
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def get_field_reps(request):
-    field_reps = models.FieldRepresentative.objects.all()
+def get_field_reps(request: HttpRequest) -> HttpResponse:
+    field_reps = FieldRepresentative.objects.all()
     resp_json = FieldRepresentativeSerializer(field_reps, many=True).data
 
     return Response(resp_json)
 
 
-@api_view(['PUT'])
+@api_view(["PUT"])
 @permission_classes([IsAuthenticated])
-def update_store_field_rep(request):
-    store_id = request.data.get("store_id")
-    new_field_rep_id = request.data.get("new_field_rep_id")
+def update_store_field_rep(request: HttpRequest) -> HttpResponse:
+    store_id = request.data.get("store_id")  # type: ignore[attr-defined]
+    new_field_rep_id = request.data.get("new_field_rep_id")  # type: ignore[attr-defined]
 
-    store = models.Store.objects.get(id=store_id)
-    new_field_rep = models.FieldRepresentative.objects.get(id=new_field_rep_id)
+    store = Store.objects.get(id=store_id)
+    new_field_rep = FieldRepresentative.objects.get(id=new_field_rep_id)
     store.field_representative = new_field_rep
     store.save(update_fields=["field_representative"])
 
@@ -60,22 +69,26 @@ def update_store_field_rep(request):
     return Response(resp_data)
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def get_store_product_additions(request):
+def get_store_product_additions(request: HttpRequest) -> HttpResponse:
     logger.info(
-        f'Received client name "{request.data.get("client_name")}" for store "{request.data.get("store_name")}"')
+        f'Received client name "{request.data.get("client_name")}" for store "{request.data.get("store_name")}"'  # type: ignore[attr-defined]
+    )
 
-    if not request.data.get("products"):
-        logger.info("Received 0 products from request payload. Returning with default JSON response.")
+    if not request.data.get("products"):  # type: ignore[attr-defined]
+        logger.info(
+            "Received 0 products from request payload. Returning with default JSON response."
+        )
 
-        store, _ = models.Store.objects.select_related("field_representative").get_or_create(
-            name=request.data["store_name"])
-        return Response({
-            "store": StoreSerializer(store).data
-        })
+        store, _ = Store.objects.select_related("field_representative").get_or_create(
+            name=request.data["store_name"]  # type: ignore[attr-defined]
+        )
+        return Response({"store": StoreSerializer(store).data})
 
-    parent_company = get_object_or_404(models.BrandParentCompany, short_name=request.data.get('client_name'))
+    parent_company = get_object_or_404(
+        BrandParentCompany, short_name=request.data.get("client_name")  # type: ignore[attr-defined]
+    )
 
     sorted_upcs: list = update_product_names(request.data, parent_company)
     hash_object = hashlib.sha256()
@@ -85,33 +98,33 @@ def get_store_product_additions(request):
     # initiate worker
     get_external_product_images.delay()
 
-    store, _ = models.Store.objects.get_or_create(name=request.data['store_name'])
-    product_additions = update_product_additions(store, request.data)
+    store, _ = Store.objects.get_or_create(name=request.data["store_name"])  # type: ignore[attr-defined]
+    product_additions = update_product_additions(store, request.data)  # type: ignore[attr-defined]
 
     current_work_cycle = get_current_work_cycle()
-    barcode_sheet, is_new_barcode_sheet = models.BarcodeSheet.objects.prefetch_related(
-        "store", "store__field_representative", "parent_company", "product_additions").get_or_create(
-            store=store,
-            parent_company=parent_company,
-            upcs_hash=upcs_hash,
-            work_cycle=current_work_cycle
-        )
+    barcode_sheet, is_new_barcode_sheet = BarcodeSheet.objects.prefetch_related(
+        "store", "store__field_representative", "parent_company", "product_additions"
+    ).get_or_create(
+        store=store,
+        parent_company=parent_company,
+        upcs_hash=upcs_hash,
+        work_cycle=current_work_cycle,
+    )
 
     if is_new_barcode_sheet:
         barcode_sheet.product_additions.add(*product_additions)
 
     resp_json = BarcodeSheetSerializer(
-        barcode_sheet,
-        context={
-            'work_cycle': current_work_cycle
-        }
+        barcode_sheet, context={"work_cycle": current_work_cycle}
     ).data
 
-    logger.info(f"Returning JSON response with {len(resp_json['product_additions'])} product additions to client.")
+    logger.info(
+        f"Returning JSON response with {len(resp_json['product_additions'])} product additions to client."
+    )
     return Response(resp_json)
 
 
-def update_product_names(request_json: dict, parent_company: models.BrandParentCompany) -> tuple:
+def update_product_names(request_json: dict, parent_company: BrandParentCompany) -> tuple:
     """Bulk create products if they don't already exist.
     Bulk update existing products with product name if they don't contain it
 
@@ -121,57 +134,62 @@ def update_product_names(request_json: dict, parent_company: models.BrandParentC
     Returns:
         tuple: tuple<str> of sorted UPC numbers
     """
+
     def get_product_name(upc: str, products: list):
         for product_info in products:
-            if product_info['upc'] == upc:
-                return product_info['name']
+            if product_info["upc"] == upc:
+                return product_info["name"]
         return None
 
-    upcs = [p['upc'] for p in request_json.get('products')]
+    upcs = [p["upc"] for p in request_json.get("products")]
 
     # bulk create products
     new_products = []
-    for product_info in request_json['products']:
-        temp_product = models.Product(upc=product_info['upc'], name=product_info['name'], parent_company=parent_company)
+    for product_info in request_json["products"]:
+        temp_product = Product(
+            upc=product_info["upc"], name=product_info["name"], parent_company=parent_company
+        )
         if not temp_product.is_valid_upc():
-            logger.info(f'Invalid UPC {temp_product.upc}. Skipping')
+            logger.info(f"Invalid UPC {temp_product.upc}. Skipping")
             continue
         new_products.append(temp_product)
 
-    logger.info(f'Bulk creating {len(new_products)} products')
-    new_products = models.Product.objects.bulk_create(new_products, ignore_conflicts=True)
+    logger.info(f"Bulk creating {len(new_products)} products")
+    new_products = Product.objects.bulk_create(new_products, ignore_conflicts=True)
 
     # bulk update products with no name
-    products = models.Product.objects.filter(upc__in=upcs, name=None)
+    products = Product.objects.filter(upc__in=upcs, name=None)
 
     for product in products:
         product.parent_company = parent_company
-        product.name = get_product_name(product.upc, request_json.get('products'))
+        product.name = get_product_name(product.upc, request_json.get("products"))
 
-    products.bulk_update(products, ['parent_company', 'name'])
+    products.bulk_update(products, ["parent_company", "name"])
 
     return sorted(upcs)
 
 
-def update_product_additions(store: models.Store, request_json: dict) -> list:
+def update_product_additions(store: Store, request_json: dict) -> list:
     """Bulk create ProductAddition records if they don't already exist
 
     Args:
-        store (products.models.Store): products.models.Store instance
+        store (products.Store): products.Store instance
         request_json (dict): request json payload received from client
 
     Returns:
-        list: list of products.models.ProductAddition that match the UPCs present in request_json
+        list: list of products.ProductAddition that match the UPCs present in request_json
     """
-    upcs = [p['upc'] for p in request_json['products']]
-    products = models.Product.objects.filter(upc__in=upcs)
+    upcs = [p["upc"] for p in request_json["products"]]
+    products = Product.objects.filter(upc__in=upcs)
     new_product_additions = []
 
     for product in products:
-        temp_product_addition = models.ProductAddition(store=store, product=product)
+        temp_product_addition = ProductAddition(store=store, product=product)
         new_product_additions.append(temp_product_addition)
 
-    logger.info(f'Bulk creating {len(new_product_additions)} product additions')
-    models.ProductAddition.objects.bulk_create(new_product_additions, ignore_conflicts=True)
+    logger.info(f"Bulk creating {len(new_product_additions)} product additions")
+    ProductAddition.objects.bulk_create(new_product_additions, ignore_conflicts=True)
 
-    return models.ProductAddition.objects.filter(store=store, product__upc__in=upcs).select_related("store", "product")
+    return ProductAddition.objects.filter(store=store, product__upc__in=upcs).select_related(
+        "store", "product"
+    )

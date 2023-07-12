@@ -1,60 +1,85 @@
+import datetime
 from rest_framework import serializers
-from products import models
+from products.models import (
+    Product,
+    ProductAddition,
+    FieldRepresentative,
+    PersonnelContact,
+    Store,
+    BarcodeSheet,
+    WorkCycle,
+)
 
 
-class ProductSerializer(serializers.ModelSerializer):
+class ProductSerializer(serializers.ModelSerializer[Product]):
     class Meta:
-        model = models.Product
-        fields = ['upc', 'name']
+        model = Product
+        fields = ["upc", "name"]
 
 
-class ProductAdditionSerializer(serializers.ModelSerializer):
+class ProductAdditionSerializer(serializers.ModelSerializer[ProductAddition]):
     is_new = serializers.SerializerMethodField(read_only=True)
     product = ProductSerializer()
 
     class Meta:
-        model = models.ProductAddition
-        fields = ['product', 'is_carried', 'is_new']
+        model = ProductAddition
+        fields = ["product", "is_carried", "is_new"]
 
-    def get_is_new(self, product_addition) -> bool:
-        return (self.context['work_cycle'].start_date <= product_addition.date_added
-                and product_addition.date_added <= self.context['work_cycle'].end_date)
+    def get_is_new(self, product_addition: ProductAddition) -> bool:
+        work_cycle: WorkCycle = self.context["work_cycle"]
+        return (
+            work_cycle.start_date <= product_addition.date_added
+            and product_addition.date_added <= work_cycle.end_date
+        )
 
 
-class PersonnelContactSerializer(serializers.ModelSerializer):
+class PersonnelContactSerializer(serializers.ModelSerializer[PersonnelContact]):
     class Meta:
-        model = models.PersonnelContact
-        fields = ['first_name', 'last_name']
+        model = PersonnelContact
+        fields = ["first_name", "last_name"]
 
 
-class FieldRepresentativeSerializer(serializers.ModelSerializer):
+class FieldRepresentativeSerializer(serializers.ModelSerializer[FieldRepresentative]):
     class Meta:
-        model = models.FieldRepresentative
+        model = FieldRepresentative
         fields = ["id", "name", "work_email"]
 
 
-class StoreSerializer(serializers.ModelSerializer):
+class StoreSerializer(serializers.ModelSerializer[Store]):
     contacts = PersonnelContactSerializer(many=True)
     field_representative = FieldRepresentativeSerializer()
 
     class Meta:
-        model = models.Store
-        fields = ['id', 'name', 'contacts', 'field_representative']
+        model = Store
+        fields = ["id", "name", "contacts", "field_representative"]
 
 
-class BarcodeSheetSerializer(serializers.ModelSerializer):
+class BarcodeSheetSerializer(serializers.ModelSerializer[BarcodeSheet]):
     store = StoreSerializer()
     product_additions = ProductAdditionSerializer(many=True)
     barcode_sheet_id = serializers.SerializerMethodField()
     date_created = serializers.SerializerMethodField()
 
     class Meta:
-        model = models.BarcodeSheet
-        fields = ["barcode_sheet_id", "store", "parent_company", "product_additions", "date_created"]
-        read_only_fields = ["barcode_sheet_id", "store", "parent_company", "product_additions", "date_created"]
+        model = BarcodeSheet
+        fields = [
+            "barcode_sheet_id",
+            "store",
+            "parent_company",
+            "product_additions",
+            "date_created",
+        ]
+        read_only_fields = [
+            "barcode_sheet_id",
+            "store",
+            "parent_company",
+            "product_additions",
+            "date_created",
+        ]
 
-    def get_barcode_sheet_id(self, barcode_sheet: models.BarcodeSheet):
+    def get_barcode_sheet_id(self, barcode_sheet: BarcodeSheet) -> int:
         return barcode_sheet.id
 
-    def get_date_created(self, barcode_sheet: models.BarcodeSheet):
-        return barcode_sheet.datetime_created.date()
+    def get_date_created(self, barcode_sheet: BarcodeSheet) -> datetime.date:
+        datetime_created: datetime.datetime = barcode_sheet.datetime_created
+        return datetime_created.date()
