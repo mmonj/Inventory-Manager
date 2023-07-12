@@ -1,7 +1,7 @@
 import React from "react";
 
 import { reverse, templates } from "@reactivated";
-import { Dropdown } from "react-bootstrap";
+import { ButtonGroup, Dropdown, DropdownButton } from "react-bootstrap";
 
 import { format } from "date-fns";
 
@@ -21,24 +21,24 @@ export default function (props: templates.StockTrackerBarcodeSheetsHistory) {
       <section className="mw-rem-60 mx-auto">
         <h1 className="m-3 text-center title-color">Barcode Sheet History</h1>
 
-        <Dropdown className="text-center my-3">
-          <Dropdown.Toggle variant="success" id="dropdown-basic">
-            {currentFieldRepName ?? "Field Rep"}
-          </Dropdown.Toggle>
-
-          <Dropdown.Menu variant="secondary" className="btn-secondary">
-            {props.field_representatives.map((field_rep) => (
+        <div className="text-center my-3">
+          <DropdownButton
+            as={ButtonGroup}
+            title={currentFieldRepName ?? "Field Rep"}
+            variant={"secondary"}>
+            {props.field_representatives.map((field_rep, idx) => (
               <Dropdown.Item
                 className={field_rep.pk === props.current_field_rep_id ? "active" : ""}
                 key={field_rep.pk}
+                eventKey={idx}
                 href={reverse("stock_tracker:barcode_sheet_history_repid", {
                   field_representative_id: field_rep.pk,
                 })}>
                 {field_rep.name}
               </Dropdown.Item>
             ))}
-          </Dropdown.Menu>
-        </Dropdown>
+          </DropdownButton>
+        </div>
 
         <ol className="p-0">
           {props.recent_barcode_sheets.map((barcode_sheet) => {
