@@ -49,12 +49,7 @@ def add_new_products(request: HttpRequest) -> HttpResponse:
 
     if not product_list:
         messages.error(request, "You have submitted data that resulted in 0 items being parsed.")
-        return render(
-            request,
-            "product_locator/add_new_products.html",
-            {"planogram_form": PlanogramForm(request.POST)},
-            status=500,
-        )
+        return templates.ProductLocatorAddNewProducts(form=received_form).render(request)
 
     util.add_location_records(product_list, planogram)
 
