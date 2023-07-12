@@ -11,6 +11,7 @@ from .models import (
     ProductAddition,
     Store,
     WorkCycle,
+    StoreGUID,
 )
 
 
@@ -31,6 +32,11 @@ class ProductAdmin(admin.ModelAdmin[Product]):
 class ProductAdditionAdmin(admin.ModelAdmin[ProductAddition]):
     search_fields = ["store__name", "product__upc", "product__name", "date_added"]
     list_display = ["store", "product", "date_added", "date_last_scanned", "is_carried"]
+
+
+class StoreGuidAdmin(admin.ModelAdmin[StoreGUID]):
+    search_fields = ["value"]
+    list_display = ["value", "date_created"]
 
 
 class StoreAdmin(admin.ModelAdmin[Store]):
@@ -98,6 +104,7 @@ admin.site.register(WorkCycle)
 admin.site.register(FieldRepresentative, FieldRepresentativeAdmin)
 admin.site.register(BrandParentCompany, BrandParentCompanyAdmin)
 admin.site.register(Product, ProductAdmin)
+admin.site.register(StoreGUID, StoreGuidAdmin)
 admin.site.register(Store, StoreAdmin)
 admin.site.register(ProductAddition, ProductAdditionAdmin)
 admin.site.register(PersonnelContact, PersonnelContactAdmin)

@@ -1,5 +1,6 @@
 import hashlib
 import logging
+from typing import List, Optional
 
 from django.http import HttpRequest, HttpResponse
 from products.models import (
@@ -9,6 +10,7 @@ from products.models import (
     ProductAddition,
     Product,
     BarcodeSheet,
+    StoreGUID,
 )
 from products.util import get_current_work_cycle
 from products.tasks import get_external_product_images
@@ -52,6 +54,46 @@ def get_field_reps(request: HttpRequest) -> HttpResponse:
     resp_json = FieldRepresentativeSerializer(field_reps, many=True).data
 
     return Response(resp_json)
+
+
+@api_view(["GET"])
+def get_matching_stores(request: HttpRequest) -> HttpResponse:
+    received_store_name = request.GET.get("store-name", "")
+    received_partial_store_address = request.GET.get("partial-store-address", "")
+    # possible store GUID. The GUID indicated may or may not be unique per store,
+    # but it will be stored for historical purposes
+    received_store_guid = request.GET.get("store-guid", "")
+
+    if (
+        received_store_name == ""
+        or received_partial_store_address == ""
+        or received_store_guid == ""
+    ):
+        return Response({"message": "Missing search query params"}, status=500)
+
+    stores_queryset = Store.objects.filter(
+        name__icontains=received_partial_store_address
+    ).prefetch_related("field_representative", "store_guids")
+    stores_list: List[Store] = []
+
+    if not stores_queryset:
+        new_store: Store = Store.objects.create(name=received_store_name)
+        store_guid, is_new_guid = StoreGUID.objects.get_or_create(value=received_store_guid)
+        new_store.store_guids.add(store_guid)
+        stores_list = [new_store]
+    elif stores_queryset.count() > 0:
+        first_store: Optional[Store] = stores_queryset.first()
+        if first_store:
+            store_guid, is_new_guid = StoreGUID.objects.get_or_create(value=received_store_guid)
+            first_store.store_guids.add(store_guid)
+            stores_list = [first_store]
+
+    if stores_queryset.count() > 1:
+        logger.info(
+            f"Multiple stores matched partial store address: {received_partial_store_address}. Full store name from request data: {received_store_name}"
+        )
+
+    return Response(StoreSerializer(stores_list, many=True).data)
 
 
 @api_view(["PUT"])
