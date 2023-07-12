@@ -139,11 +139,21 @@ class PersonnelContact(models.Model):
         db_table = "personnel_contacts"
 
 
+class StoreGUID(models.Model):
+    value = models.CharField(max_length=255, unique=True)
+    date_created = models.DateField(default=timezone.now)
+
+    def __str__(self) -> str:
+        return self.value
+
+
 class Store(models.Model):
     name = models.CharField(max_length=255, null=True, unique=True)
     field_representative = models.ForeignKey(
         FieldRepresentative, null=True, blank=True, on_delete=models.SET_NULL, related_name="stores"
     )
+    date_created = models.DateField(default=timezone.now)
+    store_guids = models.ManyToManyField(StoreGUID, related_name="stores")
 
     # non-column attribute
     trailing_number_re = re.compile(r" *-* *[0-9]+ *$", flags=re.I)
