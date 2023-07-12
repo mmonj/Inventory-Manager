@@ -5,6 +5,7 @@ import { Container, Nav, Navbar } from "react-bootstrap";
 
 export function NavigationBar() {
   const djangoContext = React.useContext(Context);
+  const currentPath = djangoContext.request.path;
 
   return (
     <Navbar expand="lg" className="bg-body-tertiary bg-blue-theme border-bottom px-2">
@@ -15,13 +16,25 @@ export function NavigationBar() {
           <Nav className="me-auto mb-2 mb-lg-0">
             {djangoContext.user.is_authenticated && (
               <>
-                <Nav.Link href={reverse("stock_tracker:scan_history")}>Scan History</Nav.Link>
+                <Nav.Link
+                  href={reverse("stock_tracker:scan_history")}
+                  className={reverse("stock_tracker:scan_history") === currentPath ? "active" : ""}>
+                  Scan History
+                </Nav.Link>
 
-                <Nav.Link href={reverse("stock_tracker:barcode_sheet_history")}>
+                <Nav.Link
+                  href={reverse("stock_tracker:barcode_sheet_history")}
+                  className={
+                    reverse("stock_tracker:barcode_sheet_history") === currentPath ? "active" : ""
+                  }>
                   Barcode Sheets
                 </Nav.Link>
 
-                <Nav.Link href={reverse("stock_tracker:get_manager_names")}>
+                <Nav.Link
+                  href={reverse("stock_tracker:get_manager_names")}
+                  className={
+                    reverse("stock_tracker:get_manager_names") === currentPath ? "active" : ""
+                  }>
                   Manager Update Form
                 </Nav.Link>
               </>
@@ -29,9 +42,19 @@ export function NavigationBar() {
 
             {djangoContext.user.is_superuser && (
               <>
-                <Nav.Link href={reverse("stock_tracker:add_new_stores")}>Add New Stores</Nav.Link>
+                <Nav.Link
+                  href={reverse("stock_tracker:add_new_stores")}
+                  className={
+                    reverse("stock_tracker:add_new_stores") === currentPath ? "active" : ""
+                  }>
+                  Add New Stores
+                </Nav.Link>
 
-                <Nav.Link href={reverse("stock_tracker:import_json_data_files")}>
+                <Nav.Link
+                  href={reverse("stock_tracker:import_json_data_files")}
+                  className={
+                    reverse("stock_tracker:import_json_data_files") === currentPath ? "active" : ""
+                  }>
                   Import Old Database
                 </Nav.Link>
               </>
@@ -42,10 +65,18 @@ export function NavigationBar() {
             <Nav.Link href={reverse("homepage:index")}>Home</Nav.Link>
 
             {djangoContext.user.is_authenticated && (
-              <Nav.Link href={reverse("stock_tracker:logout_view")}>Log Out</Nav.Link>
+              <Nav.Link
+                href={reverse("stock_tracker:logout_view")}
+                className={reverse("stock_tracker:logout_view") === currentPath ? "active" : ""}>
+                Log Out
+              </Nav.Link>
             )}
             {!djangoContext.user.is_authenticated && (
-              <Nav.Link href={reverse("stock_tracker:login_view")}>Log In</Nav.Link>
+              <Nav.Link
+                href={reverse("stock_tracker:login_view")}
+                className={reverse("stock_tracker:login_view") === currentPath ? "active" : ""}>
+                Log In
+              </Nav.Link>
             )}
           </Nav>
         </Navbar.Collapse>
