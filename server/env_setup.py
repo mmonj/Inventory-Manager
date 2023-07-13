@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = os.environ["DJANGO_STATIC_URL"]
 STATIC_ROOT = BASE_DIR / "collected"
 STATICFILES_DIRS = (BASE_DIR / "static/",)
 
