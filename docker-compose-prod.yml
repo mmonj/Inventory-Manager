@@ -10,10 +10,13 @@ services:
     container_name: inventory_manager
     command: >
       bash -c "python manage.py migrate
+      && python manage.py generate_client_assets
+      && python manage.py build
       && python manage.py collectstatic --clear --noinput
       && uvicorn server.asgi:application --host 0.0.0.0 --port 8080"
-    user: "1000"
+    user: "${UID}"
     volumes:
+      - /app/node_modules
       - ./:/app
     env_file:
       - prod.env
@@ -42,7 +45,7 @@ services:
     image: mmonj.inventory_manager_django
     container_name: inventory-manager-rq-worker
     command: python manage.py rqworker default
-    user: "1000"
+    user: "${UID}"
     volumes:
       - ./:/app
     env_file:
