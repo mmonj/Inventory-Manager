@@ -150,7 +150,7 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "simple": {
-            "format": "{levelname} {asctime:s} {filename:s} {funcName:<30s} {lineno} -- {message}",
+            "format": "{levelname} {asctime:s} {filename:s} {funcName:s} {lineno:3d} -- {message}",
             "datefmt": "%Y-%m-%d %I:%M:%S %p",
             "style": "{",
         },
