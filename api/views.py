@@ -3,6 +3,8 @@ import logging
 from typing import List, Optional
 
 from django.http import HttpRequest, HttpResponse
+from django_stubs_ext import QuerySetAny
+from .types import GetStoreAdditionsInterface, ProductInterface, UpdateStoreFieldRepInterface
 from products.models import (
     Store,
     FieldRepresentative,
@@ -37,14 +39,14 @@ def validate_api_token(request: HttpRequest) -> HttpResponse:
     return Response({"message": "Validated"})
 
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def get_field_rep_info(request: HttpRequest) -> HttpResponse:
-    store_name = request.GET.get("store_name")
-    store, _ = Store.objects.select_related("field_representative").get_or_create(name=store_name)
+# @api_view(["GET"])
+# @permission_classes([IsAuthenticated])
+# def get_field_rep_info(request: HttpRequest) -> HttpResponse:
+#     store_name = request.GET.get("store_name")
+#     store, _ = Store.objects.select_related("field_representative").get_or_create(name=store_name)
 
-    resp_json = StoreSerializer(store).data
-    return Response(resp_json)
+#     resp_json = StoreSerializer(store).data
+#     return Response(resp_json)
 
 
 @api_view(["GET"])
@@ -58,30 +60,47 @@ def get_field_reps(request: HttpRequest) -> HttpResponse:
 
 @api_view(["GET"])
 def get_matching_stores(request: HttpRequest) -> HttpResponse:
-    received_store_name = request.GET.get("store-name", "")
-    received_partial_store_address = request.GET.get("partial-store-address", "")
+    received_store_name = request.GET.get("store-name")
+    received_partial_store_address = request.GET.get("partial-store-address")
     # possible store GUID. The GUID indicated may or may not be unique per store,
     # but it will be stored for historical purposes
-    received_store_guid = request.GET.get("store-guid", "")
+    received_store_guid = request.GET.get("store-guid")
 
-    if (
-        received_store_name == ""
-        or received_partial_store_address == ""
-        or received_store_guid == ""
-    ):
+    if received_store_name is None or received_store_guid is None:
         return Response({"message": "Missing search query params"}, status=500)
+    if "" in [received_store_name, received_partial_store_address, received_store_guid]:
+        return Response(
+            {"message": "Received search query params with no value (empty string)"}, status=500
+        )
 
-    stores_queryset = Store.objects.filter(
-        name__icontains=received_partial_store_address
-    ).prefetch_related("field_representative", "store_guids")
+    logger.info(
+        f"Received data store_name '{received_store_name}', "
+        f"partial store address '{received_partial_store_address}', store guid '{received_store_guid}'"
+    )
+
+    stores_queryset: QuerySetAny[Store, Store]
+
+    if received_partial_store_address is None:
+        logger.info("Getting store by exact store name")
+        stores_queryset = Store.objects.filter(name=received_store_name).prefetch_related(
+            "field_representative", "store_guids"
+        )
+    else:
+        logger.info("Getting store by partial store address")
+        stores_queryset = Store.objects.filter(
+            name__icontains=received_partial_store_address
+        ).prefetch_related("field_representative", "store_guids")
+
     stores_list: List[Store] = []
 
     if not stores_queryset:
+        logger.info("No store match found. Creating new store record")
         new_store: Store = Store.objects.create(name=received_store_name)
         store_guid, is_new_guid = StoreGUID.objects.get_or_create(value=received_store_guid)
         new_store.store_guids.add(store_guid)
         stores_list = [new_store]
     elif stores_queryset.count() > 0:
+        logger.info("At least one store record retrieved. Returning first record in queryset")
         first_store: Optional[Store] = stores_queryset.first()
         if first_store:
             store_guid, is_new_guid = StoreGUID.objects.get_or_create(value=received_store_guid)
@@ -90,7 +109,8 @@ def get_matching_stores(request: HttpRequest) -> HttpResponse:
 
     if stores_queryset.count() > 1:
         logger.info(
-            f"Multiple stores matched partial store address: {received_partial_store_address}. Full store name from request data: {received_store_name}"
+            f"A total of {stores_queryset.count()} stores matched partial store address"
+            f": '{received_partial_store_address}'. Full store name from request data: '{received_store_name}'"
         )
 
     return Response(StoreSerializer(stores_list, many=True).data)
@@ -99,8 +119,12 @@ def get_matching_stores(request: HttpRequest) -> HttpResponse:
 @api_view(["PUT"])
 @permission_classes([IsAuthenticated])
 def update_store_field_rep(request: HttpRequest) -> HttpResponse:
-    store_id = request.data.get("store_id")  # type: ignore[attr-defined]
-    new_field_rep_id = request.data.get("new_field_rep_id")  # type: ignore[attr-defined]
+    request_data: UpdateStoreFieldRepInterface = request.data  # type: ignore[attr-defined]
+    store_id = request_data.get("store_id")
+    new_field_rep_id = request_data.get("new_field_rep_id")
+
+    if store_id is None or new_field_rep_id is None:
+        return Response({"message": "Missing attributes"}, 500)
 
     store = Store.objects.get(id=store_id)
     new_field_rep = FieldRepresentative.objects.get(id=new_field_rep_id)
@@ -114,25 +138,26 @@ def update_store_field_rep(request: HttpRequest) -> HttpResponse:
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def get_store_product_additions(request: HttpRequest) -> HttpResponse:
+    request_data: GetStoreAdditionsInterface = request.data  # type: ignore [attr-defined]
     logger.info(
-        f'Received client name "{request.data.get("client_name")}" for store "{request.data.get("store_name")}"'  # type: ignore[attr-defined]
+        f'Received client name "{request_data.get("client_name")}" for store "{request_data.get("store_name")}"'
     )
 
-    if not request.data.get("products"):  # type: ignore[attr-defined]
+    if not request_data.get("products"):
         logger.info(
             "Received 0 products from request payload. Returning with default JSON response."
         )
 
-        store, _ = Store.objects.select_related("field_representative").get_or_create(
-            name=request.data["store_name"]  # type: ignore[attr-defined]
+        store = Store.objects.select_related("field_representative").get(
+            pk=request_data["store_id"]
         )
         return Response({"store": StoreSerializer(store).data})
 
     parent_company = get_object_or_404(
-        BrandParentCompany, short_name=request.data.get("client_name")  # type: ignore[attr-defined]
+        BrandParentCompany, short_name=request_data.get("client_name")
     )
 
-    sorted_upcs: list = update_product_names(request.data, parent_company)
+    sorted_upcs: List[str] = update_product_names(request_data, parent_company)
     hash_object = hashlib.sha256()
     hash_object.update(str(sorted_upcs).encode())
     upcs_hash = hash_object.hexdigest()
@@ -140,9 +165,8 @@ def get_store_product_additions(request: HttpRequest) -> HttpResponse:
     # initiate worker
     get_external_product_images.delay()
 
-    store, _ = Store.objects.get_or_create(name=request.data["store_name"])  # type: ignore[attr-defined]
-    product_additions = update_product_additions(store, request.data)  # type: ignore[attr-defined]
-
+    store = Store.objects.get(pk=request_data["store_id"])
+    product_additions = update_product_additions(store, request_data)
     current_work_cycle = get_current_work_cycle()
     barcode_sheet, is_new_barcode_sheet = BarcodeSheet.objects.prefetch_related(
         "store", "store__field_representative", "parent_company", "product_additions"
@@ -166,7 +190,9 @@ def get_store_product_additions(request: HttpRequest) -> HttpResponse:
     return Response(resp_json)
 
 
-def update_product_names(request_json: dict, parent_company: BrandParentCompany) -> tuple:
+def update_product_names(
+    request_data: GetStoreAdditionsInterface, parent_company: BrandParentCompany
+) -> List[str]:
     """Bulk create products if they don't already exist.
     Bulk update existing products with product name if they don't contain it
 
@@ -177,17 +203,17 @@ def update_product_names(request_json: dict, parent_company: BrandParentCompany)
         tuple: tuple<str> of sorted UPC numbers
     """
 
-    def get_product_name(upc: str, products: list):
+    def get_product_name(upc: str, products: List[ProductInterface]) -> Optional[str]:
         for product_info in products:
             if product_info["upc"] == upc:
                 return product_info["name"]
         return None
 
-    upcs = [p["upc"] for p in request_json.get("products")]
+    upcs = [p["upc"] for p in request_data["products"]]
 
     # bulk create products
     new_products = []
-    for product_info in request_json["products"]:
+    for product_info in request_data["products"]:
         temp_product = Product(
             upc=product_info["upc"], name=product_info["name"], parent_company=parent_company
         )
@@ -204,14 +230,16 @@ def update_product_names(request_json: dict, parent_company: BrandParentCompany)
 
     for product in products:
         product.parent_company = parent_company
-        product.name = get_product_name(product.upc, request_json.get("products"))
+        product.name = get_product_name(product.upc, request_data["products"])
 
     products.bulk_update(products, ["parent_company", "name"])
 
     return sorted(upcs)
 
 
-def update_product_additions(store: Store, request_json: dict) -> list:
+def update_product_additions(
+    store: Store, request_data: GetStoreAdditionsInterface
+) -> List[ProductAddition]:
     """Bulk create ProductAddition records if they don't already exist
 
     Args:
@@ -221,7 +249,7 @@ def update_product_additions(store: Store, request_json: dict) -> list:
     Returns:
         list: list of products.ProductAddition that match the UPCs present in request_json
     """
-    upcs = [p["upc"] for p in request_json["products"]]
+    upcs = [p["upc"] for p in request_data["products"]]
     products = Product.objects.filter(upc__in=upcs)
     new_product_additions = []
 
@@ -232,6 +260,8 @@ def update_product_additions(store: Store, request_json: dict) -> list:
     logger.info(f"Bulk creating {len(new_product_additions)} product additions")
     ProductAddition.objects.bulk_create(new_product_additions, ignore_conflicts=True)
 
-    return ProductAddition.objects.filter(store=store, product__upc__in=upcs).select_related(
-        "store", "product"
+    return list(
+        ProductAddition.objects.filter(store=store, product__upc__in=upcs).select_related(
+            "store", "product"
+        )
     )

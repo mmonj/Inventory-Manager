@@ -86,6 +86,7 @@ class StoreAdmin(admin.ModelAdmin[Store]):
 
 class PersonnelContactAdmin(admin.ModelAdmin[PersonnelContact]):
     search_fields = ["first_name", "last_name", "store__name"]
+    autocomplete_fields = ["store"]
     list_display = ["first_name", "last_name", "store"]
     list_filter = ["store__field_representative__name"]
 
