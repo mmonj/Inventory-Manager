@@ -73,6 +73,7 @@ def get_matching_stores(request: HttpRequest) -> HttpResponse:
             {"message": "Received search query params with no value (empty string)"}, status=500
         )
 
+    received_store_guid = received_store_guid.upper().strip()
     logger.info(
         f"Received data store_name '{received_store_name}', "
         f"partial store address '{received_partial_store_address}', store guid '{received_store_guid}'"

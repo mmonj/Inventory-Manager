@@ -1,5 +1,7 @@
 from typing import Optional
+from django.db import models
 from django.contrib import admin
+from django.http import HttpRequest
 from django_stubs_ext import QuerySetAny
 
 from .models import (
@@ -36,13 +38,25 @@ class ProductAdditionAdmin(admin.ModelAdmin[ProductAddition]):
 
 class StoreGuidAdmin(admin.ModelAdmin[StoreGUID]):
     search_fields = ["value"]
-    list_display = ["value", "date_created"]
+    list_display = ["value", "date_created", "stores_count"]
+
+    def get_queryset(self, request: HttpRequest) -> QuerySetAny[StoreGUID, StoreGUID]:
+        qs = super(StoreGuidAdmin, self).get_queryset(request)
+        qs = qs.annotate(models.Count("stores"))
+        return qs
+
+    def stores_count(self, store_guid: StoreGUID) -> int:
+        count: int = store_guid.stores__count  # type:ignore [attr-defined]
+        return count
+
+    setattr(stores_count, "admin_order_field", "stores__count")
 
 
 class StoreAdmin(admin.ModelAdmin[Store]):
-    search_fields = ["name"]
+    search_fields = ["name", "store_guids__value"]
     list_display = [
         "name",
+        "date_created",
         "get_personnel_contact_first_name",
         "get_personnel_contact_last_name",
         "get_field_representative",

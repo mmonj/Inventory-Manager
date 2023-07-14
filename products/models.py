@@ -143,6 +143,14 @@ class StoreGUID(models.Model):
     value = models.CharField(max_length=255, unique=True)
     date_created = models.DateField(default=timezone.now)
 
+    def clean(self, *args: Any, **kwargs: Any) -> None:
+        if not self.value:
+            raise ValidationError("Value is required for StoreGUID")
+
+        self.value = self.value.upper().strip()
+
+        super().clean(*args, **kwargs)
+
     def __str__(self) -> str:
         return self.value
 
