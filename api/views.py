@@ -9,6 +9,7 @@ from .util import update_product_additions, update_product_names, validate_struc
 from .types import (
     GetStoreAdditionsInterface,
     UpdateStoreFieldRepInterface,
+    UpdateStoreInfo,
     UpdateStorePersonnelInterface,
 )
 from products.models import (
@@ -31,6 +32,7 @@ from .serializers import (
 from django.shortcuts import get_object_or_404
 from rest_framework.request import Request as DRFRequest
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
@@ -69,26 +71,21 @@ def get_field_reps(request: HttpRequest) -> HttpResponse:
     return Response(resp_json)
 
 
-@api_view(["GET"])
-def get_matching_stores(request: HttpRequest) -> HttpResponse:
-    received_store_name = request.GET.get("store-name")
-    received_partial_store_address = request.GET.get("partial-store-address")
+@api_view(["POST"])
+def update_store_info(request: DRFRequest) -> HttpResponse:
+    request_data: UpdateStoreInfo = validate_structure(request.data, UpdateStoreInfo)
+
+    received_store_name = request_data.store_name
+    received_partial_store_address = request_data.partial_store_address
     # possible store GUID. The GUID indicated may or may not be unique per store,
     # but it will be stored for historical purposes
-    received_store_guid = request.GET.get("store-guid")
+    received_store_guid = request_data.store_guid
 
-    if received_store_name is None or received_store_guid is None:
-        return Response({"message": "Missing search query params"}, status=500)
     if "" in [received_store_name, received_partial_store_address, received_store_guid]:
-        return Response(
-            {"message": "Received search query params with no value (empty string)"}, status=500
-        )
+        raise ValidationError
 
     received_store_guid = received_store_guid.upper().strip()
-    logger.info(
-        f"Received data store_name '{received_store_name}', "
-        f"partial store address '{received_partial_store_address}', store guid '{received_store_guid}'"
-    )
+    logger.info(f"Received request data {request_data}")
 
     stores_queryset: QuerySetAny[Store, Store]
 

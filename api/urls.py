@@ -14,9 +14,9 @@ urlpatterns = [
     path("get_field_reps/", views.get_field_reps, name="get_field_reps"),
     path("update_store_field_rep/", views.update_store_field_rep, name="update_store_field_rep"),
     path(
-        "get_matching_stores/",
-        views.get_matching_stores,
-        name="get_matching_stores",
+        "update_store_info/",
+        views.update_store_info,
+        name="update_store_info",
     ),
     path("update_store_personnel/", views.update_store_personnel, name="update_store_personnel"),
 ]

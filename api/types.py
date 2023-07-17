@@ -25,3 +25,12 @@ class UpdateStorePersonnelInterface:
     existing_personnel_id: Optional[int]
     new_personnel_first_name: str
     new_personnel_last_name: str
+
+
+@frozen
+class UpdateStoreInfo:
+    store_name: str
+    partial_store_address: Optional[str]
+    # possible store GUID. The GUID indicated may or may not be unique per store,
+    # but it will be stored for historical purposes
+    store_guid: str
