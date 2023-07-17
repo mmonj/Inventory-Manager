@@ -36,7 +36,7 @@ class ProductAdditionSerializer(serializers.ModelSerializer[ProductAddition]):
 class PersonnelContactSerializer(serializers.ModelSerializer[PersonnelContact]):
     class Meta:
         model = PersonnelContact
-        fields = ["first_name", "last_name"]
+        fields = ["id", "first_name", "last_name"]
 
 
 class FieldRepresentativeSerializer(serializers.ModelSerializer[FieldRepresentative]):

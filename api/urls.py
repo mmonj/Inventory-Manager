@@ -18,4 +18,5 @@ urlpatterns = [
         views.get_matching_stores,
         name="get_matching_stores",
     ),
+    path("update_store_personnel/", views.update_store_personnel, name="update_store_personnel"),
 ]

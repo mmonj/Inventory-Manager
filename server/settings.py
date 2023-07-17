@@ -10,14 +10,18 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
-from pathlib import Path
-
+import cattrs
 import django_stubs_ext
+from pathlib import Path
+from typing import Type, TypeVar
+
 
 # retrieve django settings that are included as environmental variables
 from .env_setup import *  # noqa: F401
 
 django_stubs_ext.monkeypatch()
+
+T = TypeVar("T")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -213,3 +217,17 @@ LOGGING = {
         # }
     },
 }
+
+
+def structure_generic(value: T, expected_type: Type[T]) -> T:
+    if not isinstance(value, expected_type):
+        raise ValueError(
+            f"Value of {repr(value)} has type {type(value)}. Expected {expected_type}."
+        )
+    return value
+
+
+cattrs.register_structure_hook(str, structure_generic)
+cattrs.register_structure_hook(int, structure_generic)
+cattrs.register_structure_hook(float, structure_generic)
+cattrs.register_structure_hook(bool, structure_generic)

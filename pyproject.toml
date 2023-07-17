@@ -26,6 +26,7 @@ shortuuid = "^1.0.11"
 django-stubs = {extras = ["compatible-mypy"], version = "^4.2.3"}
 djangorestframework-stubs = {extras = ["compatible-mypy"], version = "^3.14.2"}
 uvicorn = "^0.22.0"
+cattrs = "^23.1.2"
 
 
 [tool.poetry.group.dev.dependencies]

@@ -4,21 +4,32 @@ from typing import List, Optional
 
 from django.http import HttpRequest, HttpResponse
 from django_stubs_ext import QuerySetAny
-from .types import GetStoreAdditionsInterface, ProductInterface, UpdateStoreFieldRepInterface
+
+from .util import update_product_additions, update_product_names, validate_structure
+from .types import (
+    GetStoreAdditionsInterface,
+    UpdateStoreFieldRepInterface,
+    UpdateStorePersonnelInterface,
+)
 from products.models import (
+    PersonnelContact,
     Store,
     FieldRepresentative,
     BrandParentCompany,
-    ProductAddition,
-    Product,
     BarcodeSheet,
     StoreGUID,
 )
 from products.util import get_current_work_cycle
 from products.tasks import get_external_product_images
-from .serializers import BarcodeSheetSerializer, StoreSerializer, FieldRepresentativeSerializer
+from .serializers import (
+    BarcodeSheetSerializer,
+    PersonnelContactSerializer,
+    StoreSerializer,
+    FieldRepresentativeSerializer,
+)
 
 from django.shortcuts import get_object_or_404
+from rest_framework.request import Request as DRFRequest
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -125,7 +136,7 @@ def update_store_field_rep(request: HttpRequest) -> HttpResponse:
     new_field_rep_id = request_data.get("new_field_rep_id")
 
     if store_id is None or new_field_rep_id is None:
-        return Response({"message": "Missing attributes"}, 500)
+        return Response({"message": "Missing fields"}, 500)
 
     store = Store.objects.get(id=store_id)
     new_field_rep = FieldRepresentative.objects.get(id=new_field_rep_id)
@@ -191,78 +202,34 @@ def get_store_product_additions(request: HttpRequest) -> HttpResponse:
     return Response(resp_json)
 
 
-def update_product_names(
-    request_data: GetStoreAdditionsInterface, parent_company: BrandParentCompany
-) -> List[str]:
-    """Bulk create products if they don't already exist.
-    Bulk update existing products with product name if they don't contain it
-
-    Args:
-        request_json (dict): request json payload received from client
-
-    Returns:
-        tuple: tuple<str> of sorted UPC numbers
-    """
-
-    def get_product_name(upc: str, products: List[ProductInterface]) -> Optional[str]:
-        for product_info in products:
-            if product_info["upc"] == upc:
-                return product_info["name"]
-        return None
-
-    upcs = [p["upc"] for p in request_data["products"]]
-
-    # bulk create products
-    new_products = []
-    for product_info in request_data["products"]:
-        temp_product = Product(
-            upc=product_info["upc"], name=product_info["name"], parent_company=parent_company
-        )
-        if not temp_product.is_valid_upc():
-            logger.info(f"Invalid UPC {temp_product.upc}. Skipping")
-            continue
-        new_products.append(temp_product)
-
-    logger.info(f"Bulk creating {len(new_products)} products")
-    new_products = Product.objects.bulk_create(new_products, ignore_conflicts=True)
-
-    # bulk update products with no name
-    products = Product.objects.filter(upc__in=upcs, name=None)
-
-    for product in products:
-        product.parent_company = parent_company
-        product.name = get_product_name(product.upc, request_data["products"])
-
-    products.bulk_update(products, ["parent_company", "name"])
-
-    return sorted(upcs)
-
-
-def update_product_additions(
-    store: Store, request_data: GetStoreAdditionsInterface
-) -> List[ProductAddition]:
-    """Bulk create ProductAddition records if they don't already exist
-
-    Args:
-        store (products.Store): products.Store instance
-        request_json (dict): request json payload received from client
-
-    Returns:
-        list: list of products.ProductAddition that match the UPCs present in request_json
-    """
-    upcs = [p["upc"] for p in request_data["products"]]
-    products = Product.objects.filter(upc__in=upcs)
-    new_product_additions = []
-
-    for product in products:
-        temp_product_addition = ProductAddition(store=store, product=product)
-        new_product_additions.append(temp_product_addition)
-
-    logger.info(f"Bulk creating {len(new_product_additions)} product additions")
-    ProductAddition.objects.bulk_create(new_product_additions, ignore_conflicts=True)
-
-    return list(
-        ProductAddition.objects.filter(store=store, product__upc__in=upcs).select_related(
-            "store", "product"
-        )
+@api_view(["POST"])
+def update_store_personnel(request: DRFRequest) -> HttpResponse:
+    request_data: UpdateStorePersonnelInterface = validate_structure(
+        request.data, UpdateStorePersonnelInterface
     )
+
+    if "" in [
+        request_data.store_id,
+        request_data.new_personnel_first_name,
+        request_data.new_personnel_last_name,
+    ]:
+        return Response({"detail": "Empty field values provided"}, status=500)
+
+    if request_data.existing_personnel_id:
+        logger.info("here1")
+        personnel_contact = PersonnelContact.objects.get(pk=request_data.existing_personnel_id)
+        personnel_contact.first_name = request_data.new_personnel_first_name
+        personnel_contact.last_name = request_data.new_personnel_last_name
+        personnel_contact.save(update_fields=["first_name", "last_name"])
+
+        return Response(PersonnelContactSerializer(personnel_contact).data)
+    else:
+        logger.info("here2")
+        store = Store.objects.get(pk=request_data.store_id)
+        new_personel_contact = PersonnelContact.objects.create(
+            first_name=request_data.new_personnel_first_name,
+            last_name=request_data.new_personnel_last_name,
+            store=store,
+        )
+
+        return Response(PersonnelContactSerializer(new_personel_contact).data)

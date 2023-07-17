@@ -32,3 +32,4 @@ class HomeLocation_Products_Serializer(serializers.ModelSerializer[HomeLocation]
 
     class Meta:
         model = HomeLocation
+        fields = ["name", "products"]
