@@ -3,14 +3,14 @@ import logging
 from django.core.exceptions import ValidationError
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.decorators.http import require_http_methods
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.request import Request as DrfRequest
+from rest_framework.request import Request as DRFRequest
 
 from product_locator import templates
 from .forms import PlanogramForm
@@ -22,7 +22,7 @@ logger = logging.getLogger("main_logger")
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET"])
-def index(request: HttpRequest) -> HttpResponse:
+def index(request: DRFRequest) -> HttpResponse:
     stores = models.Store.objects.all()
     planograms = models.Planogram.objects.all().select_related("store")
 
@@ -33,7 +33,7 @@ def index(request: HttpRequest) -> HttpResponse:
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET", "POST"])
-def add_new_products(request: HttpRequest) -> HttpResponse:
+def add_new_products(request: DRFRequest) -> HttpResponse:
     if request.method == "GET":
         return templates.ProductLocatorAddNewProducts(form=PlanogramForm()).render(request)
 
@@ -59,7 +59,7 @@ def add_new_products(request: HttpRequest) -> HttpResponse:
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def get_product_location(request: DrfRequest) -> Response:
+def get_product_location(request: DRFRequest) -> Response:
     upc = request.GET.get("upc")
     store_id = request.GET.get("store_id")
     if store_id is None:
@@ -85,7 +85,7 @@ def get_product_location(request: DrfRequest) -> Response:
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def add_new_product_location(request: DrfRequest) -> HttpResponse:
+def add_new_product_location(request: DRFRequest) -> HttpResponse:
     try:
         product, _ = models.Product.objects.get_or_create(upc=request.data["upc"])
     except ValidationError:
@@ -105,7 +105,7 @@ def add_new_product_location(request: DrfRequest) -> HttpResponse:
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def get_planogram_locations(request: HttpRequest) -> HttpResponse:
+def get_planogram_locations(request: DRFRequest) -> HttpResponse:
     planogram_name = request.GET.get("planogram-name")
     store_name = request.GET.get("store-name")
     home_locations = (
