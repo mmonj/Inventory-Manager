@@ -28,17 +28,17 @@ def update_product_names(
 
     def get_product_name(upc: str, products: List[ProductInterface]) -> Optional[str]:
         for product_info in products:
-            if product_info["upc"] == upc:
-                return product_info["name"]
+            if product_info.upc == upc:
+                return product_info.name
         return None
 
-    upcs = [p["upc"] for p in request_data["products"]]
+    upcs = [p.upc for p in request_data.products]
 
     # bulk create products
     new_products = []
-    for product_info in request_data["products"]:
+    for product_info in request_data.products:
         temp_product = Product(
-            upc=product_info["upc"], name=product_info["name"], parent_company=parent_company
+            upc=product_info.upc, name=product_info.name, parent_company=parent_company
         )
         if not temp_product.is_valid_upc():
             logger.info(f"Invalid UPC {temp_product.upc}. Skipping")
@@ -53,7 +53,7 @@ def update_product_names(
 
     for product in products:
         product.parent_company = parent_company
-        product.name = get_product_name(product.upc, request_data["products"])
+        product.name = get_product_name(product.upc, request_data.products)
 
     products.bulk_update(products, ["parent_company", "name"])
 
@@ -72,7 +72,7 @@ def update_product_additions(
     Returns:
         list: list of products.ProductAddition that match the UPCs present in request_json
     """
-    upcs = [p["upc"] for p in request_data["products"]]
+    upcs = [p.upc for p in request_data.products]
     products = Product.objects.filter(upc__in=upcs)
     new_product_additions = []
 

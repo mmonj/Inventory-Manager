@@ -1,20 +1,23 @@
-from typing import List, Optional, TypedDict
+from typing import List, Optional
 
 from attr import frozen
 
 
-class ProductInterface(TypedDict):
+@frozen
+class ProductInterface:
     upc: str
     name: str
 
 
-class GetStoreAdditionsInterface(TypedDict):
+@frozen
+class GetStoreAdditionsInterface:
     store_id: int
     client_name: str
     products: List[ProductInterface]
 
 
-class UpdateStoreFieldRepInterface(TypedDict):
+@frozen
+class UpdateStoreFieldRepInterface:
     store_id: int
     new_field_rep_id: int
 

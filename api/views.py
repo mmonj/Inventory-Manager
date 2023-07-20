@@ -2,7 +2,7 @@ import hashlib
 import logging
 from typing import List, Optional
 
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
 from django_stubs_ext import QuerySetAny
 
 from .util import update_product_additions, update_product_names, validate_structure
@@ -41,7 +41,7 @@ logger = logging.getLogger("main_logger")
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def validate_api_token(request: HttpRequest) -> HttpResponse:
+def validate_api_token(request: DRFRequest) -> HttpResponse:
     """This route is used to check the validity of the client's API token without having to send any specific data.
     The presence of the @permission_classes decorator will assert the validity of the client's API token
 
@@ -49,22 +49,12 @@ def validate_api_token(request: HttpRequest) -> HttpResponse:
         dict: Unimportant JSON response. The purpose of this route is to return
         a status code of 200 or 403 in the response
     """
-    return Response({"message": "Validated"})
-
-
-# @api_view(["GET"])
-# @permission_classes([IsAuthenticated])
-# def get_field_rep_info(request: HttpRequest) -> HttpResponse:
-#     store_name = request.GET.get("store_name")
-#     store, _ = Store.objects.select_related("field_representative").get_or_create(name=store_name)
-
-#     resp_json = StoreSerializer(store).data
-#     return Response(resp_json)
+    return Response({"detail": "Validated"})
 
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def get_field_reps(request: HttpRequest) -> HttpResponse:
+def get_field_reps(request: DRFRequest) -> HttpResponse:
     field_reps = FieldRepresentative.objects.all()
     resp_json = FieldRepresentativeSerializer(field_reps, many=True).data
 
@@ -127,16 +117,13 @@ def update_store_info(request: DRFRequest) -> HttpResponse:
 
 @api_view(["PUT"])
 @permission_classes([IsAuthenticated])
-def update_store_field_rep(request: HttpRequest) -> HttpResponse:
-    request_data: UpdateStoreFieldRepInterface = request.data  # type: ignore[attr-defined]
-    store_id = request_data.get("store_id")
-    new_field_rep_id = request_data.get("new_field_rep_id")
+def update_store_field_rep(request: DRFRequest) -> HttpResponse:
+    request_data: UpdateStoreFieldRepInterface = validate_structure(
+        request.data, UpdateStoreFieldRepInterface
+    )
 
-    if store_id is None or new_field_rep_id is None:
-        return Response({"message": "Missing fields"}, 500)
-
-    store = Store.objects.get(id=store_id)
-    new_field_rep = FieldRepresentative.objects.get(id=new_field_rep_id)
+    store = Store.objects.get(id=request_data.store_id)
+    new_field_rep = FieldRepresentative.objects.get(id=request_data.new_field_rep_id)
     store.field_representative = new_field_rep
     store.save(update_fields=["field_representative"])
 
@@ -146,25 +133,23 @@ def update_store_field_rep(request: HttpRequest) -> HttpResponse:
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def get_store_product_additions(request: HttpRequest) -> HttpResponse:
-    request_data: GetStoreAdditionsInterface = request.data  # type: ignore [attr-defined]
+def get_store_product_additions(request: DRFRequest) -> HttpResponse:
+    request_data: GetStoreAdditionsInterface = validate_structure(
+        request.data, GetStoreAdditionsInterface
+    )
     logger.info(
-        f'Received client name "{request_data.get("client_name")}" for store "{request_data.get("store_name")}"'
+        f'Received client name "{request_data.client_name}" for store "{request_data.store_id}"'
     )
 
-    if not request_data.get("products"):
+    if not request_data.products:
         logger.info(
             "Received 0 products from request payload. Returning with default JSON response."
         )
 
-        store = Store.objects.select_related("field_representative").get(
-            pk=request_data["store_id"]
-        )
+        store = Store.objects.select_related("field_representative").get(pk=request_data.store_id)
         return Response({"store": StoreSerializer(store).data})
 
-    parent_company = get_object_or_404(
-        BrandParentCompany, short_name=request_data.get("client_name")
-    )
+    parent_company = get_object_or_404(BrandParentCompany, short_name=request_data.client_name)
 
     sorted_upcs: List[str] = update_product_names(request_data, parent_company)
     hash_object = hashlib.sha256()
@@ -174,7 +159,7 @@ def get_store_product_additions(request: HttpRequest) -> HttpResponse:
     # initiate worker
     get_external_product_images.delay()
 
-    store = Store.objects.get(pk=request_data["store_id"])
+    store = Store.objects.get(pk=request_data.store_id)
     product_additions = update_product_additions(store, request_data)
     current_work_cycle = get_current_work_cycle()
     barcode_sheet, is_new_barcode_sheet = BarcodeSheet.objects.prefetch_related(
@@ -213,7 +198,6 @@ def update_store_personnel(request: DRFRequest) -> HttpResponse:
         return Response({"detail": "Empty field values provided"}, status=500)
 
     if request_data.existing_personnel_id:
-        logger.info("here1")
         personnel_contact = PersonnelContact.objects.get(pk=request_data.existing_personnel_id)
         personnel_contact.first_name = request_data.new_personnel_first_name
         personnel_contact.last_name = request_data.new_personnel_last_name
@@ -221,7 +205,6 @@ def update_store_personnel(request: DRFRequest) -> HttpResponse:
 
         return Response(PersonnelContactSerializer(personnel_contact).data)
     else:
-        logger.info("here2")
         store = Store.objects.get(pk=request_data.store_id)
         new_personel_contact = PersonnelContact.objects.create(
             first_name=request_data.new_personnel_first_name,
