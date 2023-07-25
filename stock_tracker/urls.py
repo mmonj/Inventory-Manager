@@ -25,7 +25,7 @@ urlpatterns = [
     path(
         "barcode_sheet/<int:barcode_sheet_id>/", views.get_barcode_sheet, name="get_barcode_sheet"
     ),
-    path("get_manager_names/", views.get_manager_names, name="get_manager_names"),
+    path("store_manager_names/", views.get_manager_names, name="get_manager_names"),
     path(
         "set_carried_product_additions/",
         views.set_carried_product_additions,

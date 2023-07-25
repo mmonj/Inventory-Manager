@@ -28,3 +28,19 @@ class StockTrackerBarcodeSheetsHistory(NamedTuple):
             "product_additions.pk",
         ]
     ]
+
+
+@template
+class StocktrackerStoreManagerNames(NamedTuple):
+    field_reps: List[
+        Pick[
+            FieldRepresentative,
+            "pk",
+            "name",
+            "stores.pk",
+            "stores.name",
+            "stores.contacts.pk",
+            "stores.contacts.first_name",
+            "stores.contacts.last_name",
+        ]
+    ]

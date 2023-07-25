@@ -224,6 +224,7 @@ def import_json_data_files(request: HttpRequest) -> HttpResponse:
     return redirect("stock_tracker:import_json_data_files")
 
 
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET"])
 def barcode_sheet_history(
     request: HttpRequest, field_representative_id: Optional[int] = None
@@ -311,19 +312,15 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
     ).render(request)
 
 
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET", "POST"])
 def get_manager_names(request: HttpRequest) -> HttpResponse:
     if request.method == "GET":
-        field_reps = FieldRepresentative.objects.prefetch_related("stores").all()
-        field_reps_data = serializers.FieldRepresentativeStoresManagersSerializer(
-            field_reps, many=True
-        ).data
+        field_reps = FieldRepresentative.objects.prefetch_related(
+            "stores", "stores__contacts"
+        ).all()
 
-        return render(
-            request,
-            "stock_tracker/get_manager_names.html",
-            {"territory_list": json.dumps(field_reps_data)},
-        )
+        return templates.StocktrackerStoreManagerNames(field_reps=list(field_reps)).render(request)
 
     # if POST
     #
@@ -373,6 +370,7 @@ def get_manager_names(request: HttpRequest) -> HttpResponse:
     return redirect("stock_tracker:get_manager_names")
 
 
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["POST"])
 def set_carried_product_additions(request: HttpRequest) -> HttpResponse:
     product_id_list = request.POST.getlist("product-addition-id")
