@@ -10,7 +10,7 @@ export function NavigationBar() {
   return (
     <Navbar expand="lg" className="bg-body-tertiary bg-blue-theme border-bottom px-2">
       <Container fluid>
-        <Navbar.Brand href="#home">Inventory Tracker</Navbar.Brand>
+        <Navbar.Brand href={reverse("stock_tracker:scanner")}>Inventory Tracker</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto mb-2 mb-lg-0">

@@ -44,3 +44,16 @@ class StocktrackerStoreManagerNames(NamedTuple):
             "stores.contacts.last_name",
         ]
     ]
+
+
+@template
+class StockTrackerScanner(NamedTuple):
+    field_reps: List[
+        Pick[
+            FieldRepresentative,
+            "pk",
+            "name",
+            "stores.pk",
+            "stores.name",
+        ]
+    ]

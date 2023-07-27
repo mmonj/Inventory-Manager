@@ -7,9 +7,20 @@ import {
 } from "reactivated/dist/generated";
 import { z } from "zod";
 
-export interface scannerContextType {
-  scanSuccessCallback: (decodedText: string) => Promise<void>;
-  scanErrorCallback: (errorMessage: string) => void;
+export type TScanSuccessCallback = (decodedText: string) => Promise<void>;
+export type TScanErrorCallback = (errorMessage: string) => void;
+
+export interface IProductAdditionResponse {
+  product_info: {
+    upc: string;
+    name: string;
+    store_name: string;
+    is_carried: boolean;
+  };
+}
+
+export interface ApiResponse<T> extends Response {
+  json: () => Promise<T>;
 }
 
 export interface ProductResponseType {

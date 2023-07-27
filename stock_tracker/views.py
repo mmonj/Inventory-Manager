@@ -76,11 +76,9 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET"])
 def scanner(request: HttpRequest) -> HttpResponse:
-    territory_list = util.get_territory_list()
+    field_reps = FieldRepresentative.objects.prefetch_related("stores").all()
 
-    return render(
-        request, "stock_tracker/scanner.html", {"territory_list": json.dumps(territory_list)}
-    )
+    return templates.StockTrackerScanner(field_reps=list(field_reps)).render(request)
 
 
 @require_http_methods(["POST"])

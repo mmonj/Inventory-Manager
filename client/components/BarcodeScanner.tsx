@@ -6,13 +6,19 @@ import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Html5QrcodeScannerConfig } from "html5-qrcode/esm/html5-qrcode-scanner";
 import Nav from "react-bootstrap/Nav";
 
-import { ScannerContext } from "@client/templates/ProductLocatorIndex";
-import { scannerContextType } from "@client/types";
+import { TScanErrorCallback, TScanSuccessCallback } from "@client/types";
 
 type navLinkType = "scanner" | "keyboard";
+interface IScannerProps {
+  scanSuccessCallback: TScanSuccessCallback;
+  scanErrorCallback: TScanErrorCallback;
+}
 
-function ProductLoggerKeyboard() {
-  const { scanSuccessCallback } = useContext<scannerContextType | null>(ScannerContext)!;
+function ProductLoggerKeyboard({
+  scanSuccessCallback,
+}: {
+  scanSuccessCallback: TScanSuccessCallback;
+}) {
   const upcInputRef = useRef<HTMLInputElement>(null);
 
   async function handleSubmit(event: React.FormEvent): Promise<void> {
@@ -54,11 +60,8 @@ function ProductLoggerKeyboard() {
   );
 }
 
-export function Html5QrcodePlugin() {
+function Html5QrcodePlugin({ scanSuccessCallback, scanErrorCallback }: IScannerProps) {
   const djangoContext = useContext(Context);
-  const { scanSuccessCallback, scanErrorCallback } = useContext<scannerContextType | null>(
-    ScannerContext
-  )!;
 
   const getScanSound = () =>
     new Audio(djangoContext.STATIC_URL + "public/stock_tracker/scan_sound.ogg");
@@ -116,7 +119,7 @@ export function Html5QrcodePlugin() {
   return <div id={viewportElementId} />;
 }
 
-export function BarcodeScanner() {
+export function BarcodeScanner(props: IScannerProps) {
   const [activeNavLink, setActiveNavLink] = useState<navLinkType>("scanner");
 
   return (
@@ -134,8 +137,10 @@ export function BarcodeScanner() {
         </Nav.Item>
       </Nav>
 
-      {activeNavLink === "scanner" && <Html5QrcodePlugin />}
-      {activeNavLink === "keyboard" && <ProductLoggerKeyboard />}
+      {activeNavLink === "scanner" && <Html5QrcodePlugin {...props} />}
+      {activeNavLink === "keyboard" && (
+        <ProductLoggerKeyboard scanSuccessCallback={props.scanSuccessCallback} />
+      )}
     </>
   );
 }

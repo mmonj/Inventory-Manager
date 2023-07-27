@@ -1,4 +1,4 @@
-import React, { createContext, useState } from "react";
+import React, { useState } from "react";
 
 import { Context, StoreD7Ddec6B39, reverse, templates } from "@reactivated";
 
@@ -8,14 +8,12 @@ import Button from "react-bootstrap/Button";
 import { BarcodeScanner } from "@client/components/BarcodeScanner";
 import { Layout } from "@client/components/Layout";
 import { LoadingSpinner } from "@client/components/LoadingSpinner";
-import { StoreSelector } from "@client/components/StorePicker";
+import { FieldRepStoreSelector } from "@client/components/StoreSelector";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { ProductLocatorModal } from "@client/components/productLocator/ProductLocatorModal";
 import { useFetch } from "@client/hooks/useFetch";
-import { ProductResponseType, scannerContextType } from "@client/types";
+import { ProductResponseType } from "@client/types";
 import { getProductLocation } from "@client/util/productLocatorUtil";
-
-export const ScannerContext = createContext<scannerContextType | null>(null);
 
 export default (props: templates.ProductLocatorIndex) => {
   const [store, setStore] = useState<StoreD7Ddec6B39 | null>(null);
@@ -27,9 +25,9 @@ export default (props: templates.ProductLocatorIndex) => {
   // Get store from query param `store-id`
   const storeIdFromQueryParam =
     new URL(djangoContext.request.url).searchParams.get("store-id") ?? "";
-  const storeFromQueryParam: StoreD7Ddec6B39 | undefined = props.stores.filter(
+  const storeFromQueryParam = props.stores.find(
     (store) => store.pk === parseInt(storeIdFromQueryParam)
-  )[0];
+  );
   if (storeFromQueryParam !== undefined && storeFromQueryParam.pk !== store?.pk) {
     setStore(() => storeFromQueryParam);
   }
@@ -47,22 +45,33 @@ export default (props: templates.ProductLocatorIndex) => {
     console.log("Error occurred on scan. Message:", errorMessage);
   }
 
+  function handleStoreSubmission(storePk: string): void {
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.set("store-id", storePk);
+    window.location.href = newUrl.href;
+  }
+
   return (
     <Layout
       title="Product Locator"
       navbar={<NavigationBar />}
       extraStyles={["styles/stock_tracker/scanner.css"]}>
       <section id="store-select-container" className="m-2 px-2 mw-rem-60 mx-auto">
-        {!store && <StoreSelector stores={props.stores} isFieldRepsDisabled={true} />}
+        {!store && (
+          <FieldRepStoreSelector
+            stores={props.stores}
+            propType="stores"
+            handleStoreSubmission={handleStoreSubmission}
+          />
+        )}
         {!!store && (
           <section id="scanner-container" className="mw-rem-60 mx-auto">
             <div id="scanner-store-indicator" className="p-2">
               <h5 className="card-title text-center title-color">{store.name}</h5>
             </div>
 
-            <ScannerContext.Provider value={{ scanSuccessCallback, scanErrorCallback }}>
-              <BarcodeScanner />
-            </ScannerContext.Provider>
+            <BarcodeScanner {...{ scanSuccessCallback, scanErrorCallback }} />
+
             <ol id="scanner-results" className="list-group list-group-numbered px-2">
               {getProductProps.isLoading && (
                 <div className="d-flex justify-content-center">
