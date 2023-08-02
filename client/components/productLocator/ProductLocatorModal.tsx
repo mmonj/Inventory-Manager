@@ -101,7 +101,9 @@ export function ProductLocatorModal({ modalShow, onHide, planograms, scannedUpc,
             </Button>
             <Button type="submit" className="mx-1" variant="primary">
               Submit Changes&nbsp;
-              {locUpdateProps.isLoading && <LoadingSpinner color="text-light" size="sm" />}
+              {locUpdateProps.isLoading && (
+                <LoadingSpinner isBlockElement={false} color="text-light" size="sm" />
+              )}
             </Button>
           </div>
           {locUpdateProps.isError && (

@@ -75,7 +75,7 @@ export default (props: templates.ProductLocatorIndex) => {
             <ol id="scanner-results" className="list-group list-group-numbered px-2">
               {getProductProps.isLoading && (
                 <div className="d-flex justify-content-center">
-                  <LoadingSpinner />
+                  <LoadingSpinner isBlockElement={true} />
                 </div>
               )}
               {getProductProps.isError && (
