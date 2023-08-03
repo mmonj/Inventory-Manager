@@ -228,6 +228,6 @@ def structure_generic(value: T, expected_type: Type[T]) -> T:
 
 
 cattrs.register_structure_hook(str, structure_generic)
-cattrs.register_structure_hook(int, structure_generic)
+# cattrs.register_structure_hook(int, structure_generic)
 cattrs.register_structure_hook(float, structure_generic)
 cattrs.register_structure_hook(bool, structure_generic)

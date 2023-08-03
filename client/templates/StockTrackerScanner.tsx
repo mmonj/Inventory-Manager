@@ -11,7 +11,7 @@ import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { IScannedProduct, NewScanListItem } from "@client/components/stockTracker/NewScanListItem";
 import { useFetch } from "@client/hooks/useFetch";
 import { IProductAdditionResponse, TScanErrorCallback, TScanSuccessCallback } from "@client/types";
-import { postProductAddition } from "@client/util/stockTrackerUtil";
+import { postProductAddition } from "@client/util/stockTracker/common";
 
 export interface IStore {
   pk: number;
@@ -124,7 +124,7 @@ export default function (props: templates.StockTrackerScanner) {
               ))}
               {isLoading && (
                 <div className="d-flex justify-content-center">
-                  <LoadingSpinner />
+                  <LoadingSpinner isBlockElement={true} />
                 </div>
               )}
               {isError && (

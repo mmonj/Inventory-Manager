@@ -26,7 +26,7 @@ class BrandParentCompanySerializer(serializers.ModelSerializer[BrandParentCompan
         read_only_fields = ["short_name", "third_party_logo_url"]
 
     def get_third_party_logo_url(self, parent_company: BrandParentCompany) -> str:
-        return parent_company.third_party_logo.url
+        return parent_company.third_party_logo.url  # type:ignore [no-any-return]
 
 
 class StoreSerializer(serializers.ModelSerializer[Store]):
@@ -88,7 +88,7 @@ class ProductSerializer(serializers.ModelSerializer[Product]):
     def get_item_image_url(self, product: Product) -> str:
         if not product.item_image:
             return static("public/stock_tracker/images/image_not_available.png")
-        return product.item_image.url
+        return product.item_image.url  # type:ignore [no-any-return]
 
     def get_barcode_b64(self, product: Product) -> str:
         writer_options = {

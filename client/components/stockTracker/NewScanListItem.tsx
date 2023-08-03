@@ -5,7 +5,7 @@ import { Context, reverse } from "@reactivated";
 import { useFetch } from "@client/hooks/useFetch";
 import { IStore } from "@client/templates/StockTrackerScanner";
 import { IProductAdditionResponse } from "@client/types";
-import { postProductAddition } from "@client/util/stockTrackerUtil";
+import { postProductAddition } from "@client/util/stockTracker/common";
 
 import { LoadingSpinner } from "../LoadingSpinner";
 
@@ -50,12 +50,7 @@ export function NewScanListItem({ upcNumber, productName, onProductDeleteHandler
         <div className="product-name">{productName}</div>
       </div>
 
-      {/* <div className="spinner-remove-product my-auto" hidden>
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-      </div> */}
-      {isLoading && <LoadingSpinner />}
+      {isLoading && <LoadingSpinner isBlockElement={false} />}
       {!isLoading && (
         <button
           onClick={() => onDeleteClick(upcNumber)}

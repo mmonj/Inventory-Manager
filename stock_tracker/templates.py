@@ -57,3 +57,8 @@ class StockTrackerScanner(NamedTuple):
             "stores.name",
         ]
     ]
+
+
+@template
+class StockTrackerScanHistory(NamedTuple):
+    field_reps: List[Pick[FieldRepresentative, "pk", "name", "stores.pk", "stores.name"]]

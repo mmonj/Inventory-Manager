@@ -236,6 +236,21 @@ django = "*"
 typing-extensions = "*"
 
 [[package]]
+name = "django-typomatic"
+version = "2.3.2"
+description = "A simple solution for generating Typescript interfaces from your Django Rest Framework Serializers."
+optional = false
+python-versions = "*"
+files = [
+    {file = "django-typomatic-2.3.2.tar.gz", hash = "sha256:43b082715accf9c001998e800d1b72abb76aadb33a8469a29de5c15b71158b45"},
+    {file = "django_typomatic-2.3.2-py3-none-any.whl", hash = "sha256:d3c574b0184bb2c2a496b807495791dcefedc122162fb82be1b2fa007ebcc54e"},
+]
+
+[package.dependencies]
+django = "*"
+djangorestframework = "*"
+
+[[package]]
 name = "django-widget-tweaks"
 version = "1.4.12"
 description = "Tweak the form field rendering in templates, not in python-level form definitions."
@@ -960,4 +975,4 @@ standard = ["colorama (>=0.4)", "httptools (>=0.5.0)", "python-dotenv (>=0.13)",
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "84ab7fb442d9c09f3a4b713376632ee610673ebd326f79bccfe49354d8b1fed5"
+content-hash = "9ed306ee0a9d4321ff08c4a9635884d0749ea3e9a2ab01abe04e3ceb3898897f"

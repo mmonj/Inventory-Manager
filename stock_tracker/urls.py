@@ -1,8 +1,23 @@
 from django.urls import path
 
 from . import views
+from .api_internal import views as api_views
 
 app_name = "stock_tracker"
+
+api_urlpatterns = [
+    path(
+        "get_product_additions_by_store/",
+        api_views.get_product_additions_by_store,
+        name="get_product_additions_by_store",
+    ),
+    path(
+        "uncarry_product_addition_by_id/",
+        api_views.uncarry_product_addition_by_id,
+        name="uncarry_product_addition_by_id",
+    ),
+]
+
 urlpatterns = [
     path("scanner/", views.scanner, name="scanner"),
     path("login/", views.login_view, name="login_view"),
@@ -31,4 +46,4 @@ urlpatterns = [
         views.set_carried_product_additions,
         name="set_carried_product_additions",
     ),
-]
+] + api_urlpatterns

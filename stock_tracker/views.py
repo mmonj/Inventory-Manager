@@ -145,31 +145,8 @@ def add_new_stores(request: HttpRequest) -> HttpResponse:
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET"])
 def scan_history(request: HttpRequest) -> HttpResponse:
-    if not request.GET:
-        territory_list = util.get_territory_list()
-
-        return render(
-            request,
-            "stock_tracker/scan_history.html",
-            {"territory_list": json.dumps(territory_list)},
-        )
-
-    store_id = request.GET.get("store-id")
-    if store_id is None:
-        return HttpResponseNotFound()
-
-    store = Store.objects.get(pk=store_id)
-    product_additions = ProductAddition.objects.filter(store=store, is_carried=True).order_by(
-        "-date_last_scanned"
-    )[:100]
-    for product_addition in product_additions:
-        product_addition.product.name = product_addition.product.name or "Unknown product name"
-
-    return render(
-        request,
-        "stock_tracker/scan_history.html",
-        {"product_additions": product_additions, "store_name": store.name},
-    )
+    field_reps = FieldRepresentative.objects.prefetch_related("stores").all()
+    return templates.StockTrackerScanHistory(field_reps=list(field_reps)).render(request)
 
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))

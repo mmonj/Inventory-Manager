@@ -1,8 +1,10 @@
+import { ApiResponse, LocationUpdateResponseType, ProductResponseType } from "@client/types";
+
 export function getProductLocation(
   upc: string,
   store_id: number,
   action_path: string
-): Promise<Response> {
+): Promise<ApiResponse<ProductResponseType>> {
   const params = new URLSearchParams();
   params.append("upc", upc);
   params.append("store_id", store_id.toString());
@@ -16,7 +18,7 @@ export function postNewProductLocation(
   formData: FormData,
   formElm: HTMLFormElement,
   csrfTokenValue: string
-): Promise<Response> {
+): Promise<ApiResponse<LocationUpdateResponseType>> {
   const payload = {
     upc: formData.get("upc-number"),
     planogram_id: formData.get("planogram-id"),

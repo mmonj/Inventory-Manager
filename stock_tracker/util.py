@@ -1,10 +1,8 @@
 from typing import List, Optional
-import shortuuid
 
 from .types import SheetQueryInfoInterface, SheetTypeDescriptionInterface
 
-from .serializers import StoreSerializer, FieldRepresentativeSerializer
-from products.models import FieldRepresentative, ProductAddition, Store
+from products.models import ProductAddition
 
 
 def record_product_addition(
@@ -21,16 +19,6 @@ def set_not_carried(product_addition: ProductAddition) -> None:
     if product_addition.is_carried:
         product_addition.is_carried = False
         product_addition.save(update_fields=["is_carried"])
-
-
-def get_territory_list():
-    field_reps = FieldRepresentative.objects.prefetch_related("stores").all()
-    territory_list = FieldRepresentativeSerializer(field_reps, many=True).data
-
-    stores_data = StoreSerializer(Store.objects.all(), many=True).data
-    territory_list.append({"id": shortuuid.uuid(), "name": "All Stores", "stores": stores_data})
-
-    return territory_list
 
 
 def get_sheet_type_info(
