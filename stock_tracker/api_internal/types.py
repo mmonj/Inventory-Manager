@@ -12,3 +12,9 @@ class ProductAdditionsGETRequest:
 @frozen
 class ProductAdditionUncarryRequest:
     product_addition_id: int
+
+
+@frozen
+class LogProductScanRequest:
+    upc: str
+    store_id: int

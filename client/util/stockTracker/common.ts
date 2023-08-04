@@ -1,33 +1,25 @@
 import { reverse } from "@reactivated";
 
-import { ApiResponse, IProductAdditionResponse } from "@client/types";
+import { ApiResponse } from "@client/types";
 
 import { BasicProductAddition } from "./apiInterfaces";
 
-interface IPostProductAdditionOptions {
-  isRemove?: boolean;
-}
-
-export async function postProductAddition(
+export async function postLogProductScan(
   upc: string,
   storeId: number,
-  storeName: string,
-  actionUrl: string,
-  csrfToken: string,
-  { isRemove = false }: IPostProductAdditionOptions = {}
-): Promise<ApiResponse<IProductAdditionResponse>> {
+  csrfToken: string
+): Promise<ApiResponse<BasicProductAddition>> {
   const headers = {
     "X-CSRFToken": csrfToken,
+    "Content-Type": "application/json",
   };
 
   const payload_data = {
     upc: upc,
     store_id: storeId,
-    store_name: storeName,
-    is_remove: isRemove,
   };
 
-  return fetch(actionUrl, {
+  return fetch(reverse("stock_tracker:log_product_scan"), {
     method: "POST",
     headers: headers,
     body: JSON.stringify(payload_data),

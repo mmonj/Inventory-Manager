@@ -1,12 +1,10 @@
 import json
 import logging
 from typing import List, Optional
-import urllib.parse
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Prefetch
 from django.http import (
@@ -26,7 +24,6 @@ from .types import SheetTypeDescriptionInterface
 
 from . import forms, serializers, util, templates
 from products.models import (
-    Product,
     ProductAddition,
     BarcodeSheet,
     FieldRepresentative,
@@ -79,42 +76,6 @@ def scanner(request: HttpRequest) -> HttpResponse:
     field_reps = FieldRepresentative.objects.prefetch_related("stores").all()
 
     return templates.StockTrackerScanner(field_reps=list(field_reps)).render(request)
-
-
-@require_http_methods(["POST"])
-def log_product_scan(request: HttpRequest) -> HttpResponse:
-    body = json.loads(request.body)
-
-    try:
-        product, _is_new_product = Product.objects.get_or_create(upc=body["upc"])
-    except ValidationError as ex:
-        return JsonResponse(
-            {"message": "Bad request", "errors": [f for f in ex.__dict__["__all__"]]}, status=400
-        )
-
-    store = Store.objects.get(pk=body["store_id"])
-    product_addition, _ = ProductAddition.objects.get_or_create(product=product, store=store)
-    if body["is_remove"]:
-        util.set_not_carried(product_addition)
-        logger.info(
-            f"Set product addition record (un-carry) for '{product.upc}' for store '{store.name}'"
-        )
-    else:
-        util.record_product_addition(product_addition, is_product_scanned=True)
-        logger.info(
-            f"Set product addition record (carry) for '{product.upc}' for store '{store.name}'"
-        )
-
-    resp_json = {
-        "product_info": {
-            "upc": product_addition.product.upc,
-            "name": product_addition.product.name or "",
-            "store_name": product_addition.store.name,
-            "is_carried": product_addition.is_carried,
-        }
-    }
-
-    return JsonResponse(resp_json)
 
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
@@ -349,12 +310,8 @@ def get_manager_names(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["POST"])
 def set_carried_product_additions(request: HttpRequest) -> HttpResponse:
     product_id_list = request.POST.getlist("product-addition-id")
-    redirect_route = (
-        reverse("stock_tracker:get_barcode_sheet", args=[request.POST.get("barcode-sheet-id")])
-        + "?"
-        + urllib.parse.urlencode(
-            {"store-name": request.POST.get("store-name"), "sheet-type": "out-of-dist"}
-        )
+    redirect_route = reverse(
+        "stock_tracker:get_barcode_sheet", args=[request.POST.get("barcode-sheet-id")]
     )
 
     if not product_id_list:

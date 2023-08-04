@@ -16,13 +16,13 @@ api_urlpatterns = [
         api_views.uncarry_product_addition_by_id,
         name="uncarry_product_addition_by_id",
     ),
+    path("log_product_scan/", api_views.log_product_scan, name="log_product_scan"),
 ]
 
 urlpatterns = [
     path("scanner/", views.scanner, name="scanner"),
     path("login/", views.login_view, name="login_view"),
     path("logout/", views.logout_view, name="logout_view"),
-    path("log_product_scan/", views.log_product_scan, name="log_product_scan"),
     path("add_new_stores/", views.add_new_stores, name="add_new_stores"),
     path("scan_history/", views.scan_history, name="scan_history"),
     path(

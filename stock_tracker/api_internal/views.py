@@ -1,14 +1,17 @@
 import logging
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.decorators import api_view
 from rest_framework.request import Request as DRFRequest
 from rest_framework.response import Response as DRFResponse
 
-from products.models import ProductAddition
+from products.models import Product, ProductAddition, Store
+from stock_tracker import util
 from .serializers import BasicProductAddition
 
-from .types import ProductAdditionUncarryRequest, ProductAdditionsGETRequest
+from .types import LogProductScanRequest, ProductAdditionUncarryRequest, ProductAdditionsGETRequest
 
 from api.util import validate_structure
 
@@ -32,6 +35,23 @@ def get_product_additions_by_store(request: DRFRequest) -> DRFResponse:
     logger.info(request_data.page)
 
     return DRFResponse(BasicProductAddition(list(page.object_list), many=True, read_only=True).data)
+
+
+@api_view(["POST"])
+def log_product_scan(request: DRFRequest) -> DRFResponse:
+    request_data = validate_structure(request.data, LogProductScanRequest)
+    try:
+        product, _ = Product.objects.get_or_create(upc=request_data.upc)
+    except DjangoValidationError as ex:
+        raise DRFValidationError(ex.messages)
+
+    store = Store.objects.get(pk=request_data.store_id)
+    product_addition, _ = ProductAddition.objects.get_or_create(product=product, store=store)
+
+    util.record_product_addition(product_addition, is_product_scanned=True)
+    logger.info(f"Set product addition record (carry) for '{product.upc}' for store '{store.name}'")
+
+    return DRFResponse(BasicProductAddition(product_addition).data)
 
 
 @api_view(["PUT"])

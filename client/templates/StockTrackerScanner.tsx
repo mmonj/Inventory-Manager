@@ -1,6 +1,6 @@
 import React, { useContext, useState } from "react";
 
-import { Context, reverse, templates } from "@reactivated";
+import { Context, templates } from "@reactivated";
 import { Alert } from "react-bootstrap";
 
 import { BarcodeScanner } from "@client/components/BarcodeScanner";
@@ -8,10 +8,11 @@ import { Layout } from "@client/components/Layout";
 import { LoadingSpinner } from "@client/components/LoadingSpinner";
 import { FieldRepStoreSelector } from "@client/components/StoreSelector";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
-import { IScannedProduct, NewScanListItem } from "@client/components/stockTracker/NewScanListItem";
+import { NewScanListItem } from "@client/components/stockTracker/NewScanListItem";
 import { useFetch } from "@client/hooks/useFetch";
-import { IProductAdditionResponse, TScanErrorCallback, TScanSuccessCallback } from "@client/types";
-import { postProductAddition } from "@client/util/stockTracker/common";
+import { TScanErrorCallback, TScanSuccessCallback } from "@client/types";
+import { BasicProductAddition } from "@client/util/stockTracker/apiInterfaces";
+import { postLogProductScan } from "@client/util/stockTracker/common";
 
 export interface IStore {
   pk: number;
@@ -25,9 +26,9 @@ export interface IFieldRep {
 }
 
 export default function (props: templates.StockTrackerScanner) {
-  const [scannedProducts, setScannedProducts] = useState<IScannedProduct[]>([]);
+  const [productAdditions, setProductAdditions] = useState<BasicProductAddition[]>([]);
   const [store, setStore] = useState<IStore | null>(null);
-  const { isError, isLoading, fetchData } = useFetch<IProductAdditionResponse>();
+  const { isError, isLoading, fetchData } = useFetch<BasicProductAddition>();
   const djangoContext = useContext(Context);
 
   function findMatchingStore(storePk: number): IStore | null {
@@ -55,37 +56,25 @@ export default function (props: templates.StockTrackerScanner) {
     const storePk = store?.pk;
     if (storePk === undefined) throw new Error("Store pk is undefined");
 
-    const fetchCallback = () =>
-      postProductAddition(
-        decodedText,
-        storePk,
-        storeName,
-        reverse("stock_tracker:log_product_scan"),
-        djangoContext.csrf_token
-      );
+    const fetchCallback = () => postLogProductScan(decodedText, storePk, djangoContext.csrf_token);
 
     const [isSuccess, result] = await fetchData(fetchCallback);
     if (isSuccess) {
-      if (scannedProducts.some((product) => product.upcNumber === decodedText)) {
-        setScannedProducts((prev) => prev.filter((product) => product.upcNumber !== decodedText));
+      if (productAdditions.some((productAddition) => productAddition.product.upc === decodedText)) {
+        setProductAdditions((prev) =>
+          prev.filter((productAddition) => productAddition.product.upc !== decodedText)
+        );
       }
 
-      setScannedProducts((prev) => {
-        return [
-          {
-            key: crypto.randomUUID(),
-            productName: result.product_info.name,
-            upcNumber: decodedText,
-          },
-          ...prev,
-        ];
+      setProductAdditions((prev) => {
+        return [result, ...prev];
       });
     }
   };
 
   function onProductDelete(upcNumber: string) {
-    setScannedProducts((prev) => {
-      return prev.filter((product) => product.upcNumber !== upcNumber);
+    setProductAdditions((prev) => {
+      return prev.filter((productAddition) => productAddition.product.upc !== upcNumber);
     });
   }
 
@@ -113,13 +102,11 @@ export default function (props: templates.StockTrackerScanner) {
             <BarcodeScanner scanSuccessCallback={onScanSuccess} scanErrorCallback={onScanError} />
 
             <ol id="scanner-results" className="list-group list-group-numbered px-2">
-              {scannedProducts.map((scannedProduct) => (
+              {productAdditions.map((productAddition) => (
                 <NewScanListItem
-                  key={scannedProduct.key}
-                  productName={scannedProduct.productName}
-                  upcNumber={scannedProduct.upcNumber}
+                  key={productAddition.id}
+                  productAddition={productAddition}
                   onProductDeleteHandler={onProductDelete}
-                  store={store}
                 />
               ))}
               {isLoading && (
