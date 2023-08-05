@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import TypedDict
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -40,7 +41,19 @@ DATABASES = {
 
 TIME_ZONE = os.environ["TZ"]
 
-RQ_QUEUES = {
+
+class IRedisConnection(TypedDict):
+    HOST: str
+    PORT: int
+    DB: int
+    DEFAULT_TIMEOUT: int
+
+
+class IRqQueues(TypedDict):
+    default: IRedisConnection
+
+
+RQ_QUEUES: IRqQueues = {
     "default": {
         "HOST": os.environ["REDIS_HOST"],
         "PORT": 6379,

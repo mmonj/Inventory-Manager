@@ -1,5 +1,8 @@
 from typing import List, Literal, TypedDict
 
+SheetType = Literal["all-products", "out-of-dist", "in-dist"]
+SheetTypeVerbose = Literal["All Products", "Out Of Distribution", "In Distribution"]
+
 
 class ProductInterface(TypedDict):
     upc: str
@@ -29,11 +32,11 @@ class BarcodeSheetInterface(TypedDict):
 
 
 class SheetTypeInterface(TypedDict):
-    sheetType: Literal["all-products", "out-of-dist", "in-dist"]
+    sheetType: SheetType
 
 
 class SheetTypeDescriptionInterface(SheetTypeInterface):
-    sheetTypeVerbose: Literal["All Products", "Out Of Distribution", "In Distribution"]
+    sheetTypeVerbose: SheetTypeVerbose
 
 
 class SheetQueryInfoInterface(SheetTypeInterface):

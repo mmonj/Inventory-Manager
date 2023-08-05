@@ -6,5 +6,6 @@ exclude =
     node_modules
 extend-ignore =
     E501  # Line too long: black handles this.
+    E203  # Whitespace before ':'
     F403  # mypy analyzes undefined names for wildcards.
     F821  # We use literals inside Pick that get flagged as missing variable/names.
