@@ -16,7 +16,7 @@ from .types import IUpcItemDbData, IUpcItemDbItem
 from .models import Product
 
 PRODUCT_LOOKUP_ENDPOINT = "https://api.upcitemdb.com/prod/trial/lookup?upc={upc_lookup_str}"
-IMAGE_URL_PREFERENCES = [
+IMAGE_HOSTNAME_PREFERENCES = [
     "target.scene7.com",
     "pics.drugstore.com",
     "i5.walmartimages.com",
@@ -175,22 +175,23 @@ def download_image(product: Product, product_image_url: str) -> bool:
 
 
 def reorder_images_based_on_preferences(product_image_urls: list[str]) -> list[str]:
-    result: list[str] = []
-    num_matches = 0
-    for image_url in product_image_urls:
-        match = DOMAIN_HOSTNAME_RE.search(image_url)
-        if match is None:
-            logger.error(f"No DOMAIN_HOSTNAME_RE match found in url {image_url}")
-            continue
+    preferred_urls: set[str] = set()
+    remaining_urls: set[str] = set()
 
-        hostname = match.group(2)
-        if hostname in IMAGE_URL_PREFERENCES:
-            result.insert(num_matches, image_url)
-            num_matches += 1
-        else:
-            result.append(image_url)
+    for preference_hostname in IMAGE_HOSTNAME_PREFERENCES:
+        for image_url in product_image_urls:
+            hostname_match = DOMAIN_HOSTNAME_RE.search(image_url)
+            if hostname_match is None:
+                logger.error(f"No DOMAIN_HOSTNAME_RE match found in url {image_url}")
+                continue
 
-    return result
+            hostname = hostname_match.group(2)
+            if hostname == preference_hostname:
+                preferred_urls.add(image_url)
+            else:
+                remaining_urls.add(image_url)
+
+    return list(preferred_urls | remaining_urls)
 
 
 def trim_and_resize_image(img: Image.Image) -> Optional[Image.Image]:
