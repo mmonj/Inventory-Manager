@@ -10,6 +10,12 @@ import { z } from "zod";
 export type TScanSuccessCallback = (decodedText: string) => Promise<void>;
 export type TScanErrorCallback = (errorMessage: string) => void;
 
+export interface IHttpError {
+  detail: string;
+}
+
+export type TNotFoundErrorList = string[];
+
 export interface IProductAdditionResponse {
   product_info: {
     upc: string;

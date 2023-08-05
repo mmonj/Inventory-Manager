@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { ApiResponse } from "@client/types";
+import { ApiResponse, IHttpError, TNotFoundErrorList } from "@client/types";
 
 export function useFetch<T>() {
   const [data, setData] = useState<T | null>(null);
@@ -15,7 +15,7 @@ export function useFetch<T>() {
     return fetchCallback()
       .then((resp) => {
         if (!resp.ok) {
-          throw new Error(`An error occurred: Status ${resp.status}: ${resp.statusText}`);
+          throw resp;
         }
 
         return resp.json();
@@ -26,7 +26,7 @@ export function useFetch<T>() {
         setIsError(() => false);
         return [true, data] as const;
       })
-      .catch((error: Error) => {
+      .catch((error: ApiResponse<IHttpError | TNotFoundErrorList>) => {
         setData(() => null);
         setIsLoading(() => false);
         setIsError(() => true);

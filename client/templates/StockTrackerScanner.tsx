@@ -11,6 +11,7 @@ import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { NewScanListItem } from "@client/components/stockTracker/NewScanListItem";
 import { useFetch } from "@client/hooks/useFetch";
 import { TScanErrorCallback, TScanSuccessCallback } from "@client/types";
+import { getErrorList } from "@client/util/commonUtil";
 import { BasicProductAddition } from "@client/util/stockTracker/apiInterfaces";
 import { postLogProductScan } from "@client/util/stockTracker/common";
 
@@ -30,6 +31,7 @@ export default function (props: templates.StockTrackerScanner) {
   const [store, setStore] = useState<IStore | null>(null);
   const { isError, isLoading, fetchData } = useFetch<BasicProductAddition>();
   const djangoContext = useContext(Context);
+  const [errorList, setErrorList] = useState<string[]>([]);
 
   function findMatchingStore(storePk: number): IStore | null {
     for (const field_rep of props.field_reps) {
@@ -69,6 +71,9 @@ export default function (props: templates.StockTrackerScanner) {
       setProductAdditions((prev) => {
         return [result, ...prev];
       });
+    } else {
+      const errorList = getErrorList(await result.json());
+      setErrorList(() => errorList);
     }
   };
 
@@ -101,6 +106,18 @@ export default function (props: templates.StockTrackerScanner) {
 
             <BarcodeScanner scanSuccessCallback={onScanSuccess} scanErrorCallback={onScanError} />
 
+            {isLoading && (
+              <div className="d-flex justify-content-center">
+                <LoadingSpinner isBlockElement={true} />
+              </div>
+            )}
+            {isError && (
+              <Alert variant="danger" className="text-center mx-2">
+                {errorList.map((error) => (
+                  <div key={crypto.randomUUID()}>{error}</div>
+                ))}
+              </Alert>
+            )}
             <ol id="scanner-results" className="list-group list-group-numbered px-2">
               {productAdditions.map((productAddition) => (
                 <NewScanListItem
@@ -109,16 +126,6 @@ export default function (props: templates.StockTrackerScanner) {
                   onProductDeleteHandler={onProductDelete}
                 />
               ))}
-              {isLoading && (
-                <div className="d-flex justify-content-center">
-                  <LoadingSpinner isBlockElement={true} />
-                </div>
-              )}
-              {isError && (
-                <Alert variant="danger" className="text-center">
-                  An Error Occurred!
-                </Alert>
-              )}
             </ol>
           </section>
         )}
