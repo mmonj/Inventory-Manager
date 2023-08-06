@@ -29,22 +29,6 @@ export interface ApiResponse<T> extends Response {
   json: () => Promise<T>;
 }
 
-export interface ProductResponseType {
-  product: {
-    upc: string;
-    name: string;
-  };
-  home_locations: {
-    name: string;
-    planogram: string;
-  }[];
-}
-
-export interface LocationUpdateResponseType {
-  name: string;
-  planogram: string;
-}
-
 export const filteredKeys = ["template_name", "is_hidden", "attrs", "tag"];
 export type FilteredKeysType = (typeof filteredKeys)[number];
 

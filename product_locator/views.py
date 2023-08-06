@@ -3,19 +3,30 @@ import logging
 from django.core.exceptions import ValidationError
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Prefetch
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.decorators.http import require_http_methods
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.exceptions import NotFound as DrfNotFound, ValidationError as DrfValidationError
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request as DRFRequest
 
+from .types import GetProductLocationRequest
+from api.util import validate_structure
+
 from product_locator import templates
 from .forms import PlanogramForm
 
-from . import models, serializers, planogram_parser, util
+from . import planogram_parser, util
+from .models import Product, Store, Planogram, HomeLocation
+from .serializers import (
+    HomeLocationSerializer,
+    ProductWithHomeLocationsSerializer,
+    HomeLocation_Products_Serializer,
+)
 
 logger = logging.getLogger("main_logger")
 
@@ -23,8 +34,8 @@ logger = logging.getLogger("main_logger")
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET"])
 def index(request: DRFRequest) -> HttpResponse:
-    stores = models.Store.objects.all()
-    planograms = models.Planogram.objects.all().select_related("store")
+    stores = Store.objects.all()
+    planograms = Planogram.objects.all().select_related("store")
 
     return templates.ProductLocatorIndex(stores=list(stores), planograms=list(planograms)).render(
         request
@@ -42,7 +53,7 @@ def add_new_products(request: DRFRequest) -> HttpResponse:
     if not received_form.is_valid():
         return templates.ProductLocatorAddNewProducts(form=received_form).render(request)
 
-    planogram: models.Planogram = received_form.cleaned_data["planogram_pk"]
+    planogram: Planogram = received_form.cleaned_data["planogram_pk"]
     planogram_text_dump = received_form.cleaned_data["planogram_text_dump"]
     product_list: list[dict[str, str]] = planogram_parser.parse_data(planogram_text_dump)
     logger.info(f"{len(product_list)} parsed from user input")
@@ -60,47 +71,47 @@ def add_new_products(request: DRFRequest) -> HttpResponse:
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_product_location(request: DRFRequest) -> Response:
-    upc = request.GET.get("upc")
-    store_id = request.GET.get("store_id")
-    if store_id is None:
-        raise Exception("No store id given in url params")
-
+    request_data = validate_structure(request.GET, GetProductLocationRequest)
     try:
-        product = models.Product.objects.prefetch_related("home_locations").get(upc=upc)
-    except models.Product.DoesNotExist:
-        return Response([], status=404)
+        Product(upc=request_data.upc).clean()
+    except ValidationError as ex:
+        raise DrfValidationError(ex.messages)
 
-    store = models.Store.objects.get(pk=store_id)
-    home_locations = models.HomeLocation.objects.filter(planogram__store=store).filter(
-        products__in=[product]
+    product = (
+        Product.objects.prefetch_related(
+            Prefetch(
+                "home_locations",
+                queryset=HomeLocation.objects.filter(planogram__store__pk=request_data.store_id),
+            ),
+        )
+        .filter(upc=request_data.upc)
+        .first()
     )
 
-    resp_json = {
-        "product": serializers.ProductSerializer(product).data,
-        "home_locations": serializers.HomeLocationSerializer(home_locations, many=True).data,
-    }
+    if product is None:
+        raise DrfNotFound(f"Product with UPC {request_data.upc} not found")
 
-    return Response(resp_json)
+    return Response(ProductWithHomeLocationsSerializer(product).data)
 
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def add_new_product_location(request: DRFRequest) -> HttpResponse:
     try:
-        product, _ = models.Product.objects.get_or_create(upc=request.data["upc"])
+        product, _ = Product.objects.get_or_create(upc=request.data["upc"])
     except ValidationError:
         return Response({"message": "Invalid UPC"}, status=500)
 
-    planogram = models.Planogram.objects.get(id=request.data["planogram_id"])
-    location, is_new_location = models.HomeLocation.objects.select_related(
-        "planogram"
-    ).get_or_create(name=request.data["location"], planogram=planogram)
+    planogram = Planogram.objects.get(id=request.data["planogram_id"])
+    location, is_new_location = HomeLocation.objects.select_related("planogram").get_or_create(
+        name=request.data["location"], planogram=planogram
+    )
 
     if location not in product.home_locations.select_related("planogram", "planogram__store").all():
         logger.info(f"Adding location '{location}' to product '{product}'")
         product.home_locations.add(location)
 
-    return Response(serializers.HomeLocationSerializer(location).data)
+    return Response(HomeLocationSerializer(location).data)
 
 
 @api_view(["GET"])
@@ -109,13 +120,11 @@ def get_planogram_locations(request: DRFRequest) -> HttpResponse:
     planogram_name = request.GET.get("planogram-name")
     store_name = request.GET.get("store-name")
     home_locations = (
-        models.HomeLocation.objects.prefetch_related("products")
+        HomeLocation.objects.prefetch_related("products")
         .filter(planogram__name=planogram_name, planogram__store__name=store_name)
         .all()
     )
 
-    home_locations_json = serializers.HomeLocation_Products_Serializer(
-        home_locations, many=True
-    ).data
+    home_locations_json = HomeLocation_Products_Serializer(home_locations, many=True).data
 
     return Response(home_locations_json)

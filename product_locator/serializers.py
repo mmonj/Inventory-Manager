@@ -21,14 +21,16 @@ class HomeLocationSerializer(serializers.ModelSerializer[HomeLocation]):
         fields = ["name", "planogram"]
 
 
-class ProductSerializer(serializers.ModelSerializer[Product]):
+class ProductWithHomeLocationsSerializer(serializers.ModelSerializer[Product]):
+    home_locations = HomeLocationSerializer(many=True)
+
     class Meta:
         model = Product
-        fields = ["upc", "name"]
+        fields = ["upc", "name", "home_locations"]
 
 
 class HomeLocation_Products_Serializer(serializers.ModelSerializer[HomeLocation]):
-    products = ProductSerializer(many=True)
+    products = ProductWithHomeLocationsSerializer(many=True)
 
     class Meta:
         model = HomeLocation

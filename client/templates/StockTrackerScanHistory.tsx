@@ -9,8 +9,8 @@ import { FieldRepStoreSelector } from "@client/components/StoreSelector";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { ProductAdditionListItem } from "@client/components/stockTracker/ProductAdditionListItem";
 import { useFetch } from "@client/hooks/useFetch";
+import { getProductAdditions } from "@client/util/stockTracker";
 import { BasicProductAddition } from "@client/util/stockTracker/apiInterfaces";
-import { getProductAdditions } from "@client/util/stockTracker/common";
 
 import { IStore } from "./StockTrackerScanner";
 
@@ -87,7 +87,8 @@ export default function (props: templates.StockTrackerScanHistory) {
         <div
           onClick={() => handleGetProductAdditions(chosenStore!.pk)}
           role="button"
-          className="my-3 text-center text-bold">
+          className="my-3 text-center text-bold"
+        >
           {chosenStore !== null && !productAdditionPaginationState.isLoading && (
             <Alert className="p-2" style={{ fontWeight: "500" }}>
               Load more product additions

@@ -3,8 +3,8 @@ import React, { useContext } from "react";
 import { Context } from "@reactivated";
 
 import { useFetch } from "@client/hooks/useFetch";
+import { uncarry_product_addition } from "@client/util/stockTracker";
 import { BasicProductAddition } from "@client/util/stockTracker/apiInterfaces";
-import { uncarry_product_addition } from "@client/util/stockTracker/common";
 
 import { LoadingSpinner } from "../LoadingSpinner";
 

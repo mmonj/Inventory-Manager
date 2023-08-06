@@ -5,8 +5,8 @@ import { Context } from "@reactivated";
 import { format } from "date-fns";
 
 import { useFetch } from "@client/hooks/useFetch";
+import { uncarry_product_addition } from "@client/util/stockTracker";
 import { BasicProductAddition } from "@client/util/stockTracker/apiInterfaces";
-import { uncarry_product_addition } from "@client/util/stockTracker/common";
 
 import { LoadingSpinner } from "../LoadingSpinner";
 
@@ -55,7 +55,8 @@ export function ProductAdditionListItem({
           <button
             onClick={handleDeleteClick}
             type="button"
-            className="button-remove-product btn btn-primary badge rounded-pill my-auto ms-2 py-2">
+            className="button-remove-product btn btn-primary badge rounded-pill my-auto ms-2 py-2"
+          >
             Delete
           </button>
         )}

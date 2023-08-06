@@ -1,16 +1,19 @@
 import { useState } from "react";
 
 import { ApiResponse, IHttpError, TNotFoundErrorList } from "@client/types";
+import { getErrorList } from "@client/util/commonUtil";
 
 export function useFetch<T>() {
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [errorMessages, setErrorMessages] = useState<string[]>([]);
 
   const fetchData = async (fetchCallback: () => Promise<ApiResponse<T>>) => {
     setData(() => null);
     setIsLoading(() => true);
     setIsError(() => false);
+    setErrorMessages(() => []);
 
     return fetchCallback()
       .then((resp) => {
@@ -24,15 +27,21 @@ export function useFetch<T>() {
         setData(() => data);
         setIsLoading(() => false);
         setIsError(() => false);
+        setErrorMessages(() => []);
+
         return [true, data] as const;
       })
-      .catch((error: ApiResponse<IHttpError | TNotFoundErrorList>) => {
+      .catch(async (resp: ApiResponse<IHttpError | TNotFoundErrorList>) => {
         setData(() => null);
         setIsLoading(() => false);
         setIsError(() => true);
-        return [false, error] as const;
+
+        const data = await resp.json();
+        setErrorMessages(() => getErrorList(data));
+
+        return [false, resp] as const;
       });
   };
 
-  return { data, isLoading, isError, fetchData };
+  return { data, isLoading, isError, errorMessages, fetchData };
 }

@@ -12,14 +12,14 @@ import { FieldRepStoreSelector } from "@client/components/StoreSelector";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { ProductLocatorModal } from "@client/components/productLocator/ProductLocatorModal";
 import { useFetch } from "@client/hooks/useFetch";
-import { ProductResponseType } from "@client/types";
-import { getProductLocation } from "@client/util/productLocatorUtil";
+import { getProductLocation } from "@client/util/productLocator";
+import { IProductLocation } from "@client/util/productLocator/apiInterfaces";
 
 export default (props: templates.ProductLocatorIndex) => {
   const [store, setStore] = useState<StoreD7Ddec6B39 | null>(null);
   const [scannedUpc, setScannedUpc] = useState("");
   const [modalShow, setModalShow] = useState(false);
-  const getProductProps = useFetch<ProductResponseType>();
+  const getProductFetcher = useFetch<IProductLocation>();
   const djangoContext = React.useContext(Context);
 
   // Get store from query param `store-id`
@@ -36,7 +36,7 @@ export default (props: templates.ProductLocatorIndex) => {
     console.log("Scanned code:", decodedText);
     setScannedUpc(() => decodedText);
 
-    await getProductProps.fetchData(() =>
+    await getProductFetcher.fetchData(() =>
       getProductLocation(decodedText, store!.pk, reverse("product_locator:get_product_location"))
     );
   }
@@ -55,7 +55,8 @@ export default (props: templates.ProductLocatorIndex) => {
     <Layout
       title="Product Locator"
       navbar={<NavigationBar />}
-      extraStyles={["styles/stock_tracker/scanner.css"]}>
+      extraStyles={["styles/stock_tracker/scanner.css"]}
+    >
       <section id="store-select-container" className="m-2 px-2 mw-rem-60 mx-auto">
         {!store && (
           <FieldRepStoreSelector
@@ -72,35 +73,45 @@ export default (props: templates.ProductLocatorIndex) => {
 
             <BarcodeScanner {...{ scanSuccessCallback, scanErrorCallback }} />
 
+            {getProductFetcher.isLoading && (
+              <div className="d-flex justify-content-center">
+                <LoadingSpinner isBlockElement={true} />
+              </div>
+            )}
+            {getProductFetcher.isError && (
+              <Alert variant="danger" className="text-center">
+                {getProductFetcher.errorMessages.map((message) => (
+                  <div key={crypto.randomUUID()}>{message}</div>
+                ))}
+              </Alert>
+            )}
             <ol id="scanner-results" className="list-group list-group-numbered px-2">
-              {getProductProps.isLoading && (
-                <div className="d-flex justify-content-center">
-                  <LoadingSpinner isBlockElement={true} />
-                </div>
-              )}
-              {getProductProps.isError && (
-                <Alert variant="danger" className="text-center">
-                  An Error Occurred!
-                </Alert>
-              )}
-              {getProductProps.data?.home_locations.map((location) => (
+              {getProductFetcher.data?.home_locations.map((location) => (
                 <li
                   key={crypto.randomUUID()}
-                  className="list-group-item d-flex justify-content-between align-items-start">
+                  className="list-group-item d-flex justify-content-between align-items-start"
+                >
                   <div className="ms-2 me-auto location-container">
                     <div className="fw-bold location-name">{location.name}</div>
                     <div className="fw-bold planogram-name">{location.planogram}</div>
-                    <div className="product-name">{getProductProps.data!.product.name}</div>
+                    <div className="product-name">{getProductFetcher.data?.name}</div>
                   </div>
                 </li>
               ))}
+              {getProductFetcher.data?.home_locations.length === 0 && (
+                <div className="text-center my-2">
+                  Product &apos;{getProductFetcher.data.name}&apos; is not part of any planogram for
+                  this store
+                </div>
+              )}
             </ol>
-            {!!getProductProps.data && (
+            {!!getProductFetcher.data && (
               <div className="my-2 text-center">
                 <Button
                   variant="secondary"
                   className="rounded-4"
-                  onClick={() => setModalShow(true)}>
+                  onClick={() => setModalShow(true)}
+                >
                   Add location for this UPC
                 </Button>
               </div>

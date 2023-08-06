@@ -7,8 +7,8 @@ import Button from "react-bootstrap/Button";
 import Modal from "react-bootstrap/Modal";
 
 import { useFetch } from "@client/hooks/useFetch";
-import { LocationUpdateResponseType } from "@client/types";
-import { postNewProductLocation } from "@client/util/productLocatorUtil";
+import { postNewProductLocation } from "@client/util/productLocator";
+import { ILocationUpdateResponseType } from "@client/util/productLocator/apiInterfaces";
 
 import { LoadingSpinner } from "../LoadingSpinner";
 
@@ -21,7 +21,7 @@ interface Props {
 }
 
 export function ProductLocatorModal({ modalShow, onHide, planograms, scannedUpc, storeId }: Props) {
-  const locUpdateProps = useFetch<LocationUpdateResponseType>();
+  const locUpdateProps = useFetch<ILocationUpdateResponseType>();
   const djangoContext = React.useContext(Context);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
@@ -40,7 +40,8 @@ export function ProductLocatorModal({ modalShow, onHide, planograms, scannedUpc,
       onHide={onHide}
       size="lg"
       aria-labelledby="contained-modal-title-vcenter"
-      centered>
+      centered
+    >
       <Modal.Header closeButton>
         <Modal.Title id="contained-modal-title-vcenter">Add Location</Modal.Title>
       </Modal.Header>
@@ -48,7 +49,8 @@ export function ProductLocatorModal({ modalShow, onHide, planograms, scannedUpc,
         <form
           onSubmit={handleSubmit}
           action={reverse("product_locator:add_new_product_location")}
-          method="POST">
+          method="POST"
+        >
           <fieldset>
             <legend>Location</legend>
             <p>
