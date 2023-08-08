@@ -1,4 +1,3 @@
-import datetime
 from rest_framework import serializers
 from products.models import (
     Product,
@@ -55,31 +54,17 @@ class StoreSerializer(serializers.ModelSerializer[Store]):
 
 
 class BarcodeSheetSerializer(serializers.ModelSerializer[BarcodeSheet]):
-    store = StoreSerializer()
     product_additions = ProductAdditionSerializer(many=True)
-    barcode_sheet_id = serializers.SerializerMethodField()
-    date_created = serializers.SerializerMethodField()
 
     class Meta:
         model = BarcodeSheet
         fields = [
-            "barcode_sheet_id",
-            "store",
-            "parent_company",
+            "id",
+            "datetime_created",
             "product_additions",
-            "date_created",
         ]
         read_only_fields = [
-            "barcode_sheet_id",
-            "store",
-            "parent_company",
+            "id",
+            "datetime_created",
             "product_additions",
-            "date_created",
         ]
-
-    def get_barcode_sheet_id(self, barcode_sheet: BarcodeSheet) -> int:
-        return barcode_sheet.id
-
-    def get_date_created(self, barcode_sheet: BarcodeSheet) -> datetime.date:
-        datetime_created: datetime.datetime = barcode_sheet.datetime_created
-        return datetime_created.date()

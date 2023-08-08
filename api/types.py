@@ -4,26 +4,26 @@ from attr import frozen
 
 
 @frozen
-class ProductInterface:
+class IProduct:
     upc: str
     name: str
 
 
 @frozen
-class GetStoreAdditionsInterface:
+class IGetStoreProductAdditions:
     store_id: int
     client_name: str
-    products: List[ProductInterface]
+    products: List[IProduct]
 
 
 @frozen
-class UpdateStoreFieldRepInterface:
+class IUpdateStoreFieldRep:
     store_id: int
     new_field_rep_id: int
 
 
 @frozen
-class UpdateStorePersonnelInterface:
+class IUpdateStorePersonnel:
     store_id: int
     existing_personnel_id: Optional[int]
     new_personnel_first_name: str
@@ -31,7 +31,7 @@ class UpdateStorePersonnelInterface:
 
 
 @frozen
-class UpdateStoreInfo:
+class IUpdateStoreInfo:
     store_name: str
     partial_store_address: Optional[str]
     # possible store GUID. The GUID indicated may or may not be unique per store,

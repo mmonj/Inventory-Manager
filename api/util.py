@@ -3,7 +3,7 @@ from typing import Any, List, Optional, Type, TypeVar
 
 import cattrs
 
-from .types import GetStoreAdditionsInterface, ProductInterface
+from .types import IGetStoreProductAdditions, IProduct
 from products.models import BrandParentCompany, Product, ProductAddition, Store
 
 from rest_framework.exceptions import ValidationError
@@ -13,9 +13,9 @@ logger = logging.getLogger("main_logger")
 T = TypeVar("T")
 
 
-def update_product_names(
-    request_data: GetStoreAdditionsInterface, parent_company: BrandParentCompany
-) -> List[str]:
+def update_product_record_names(
+    request_data: IGetStoreProductAdditions, parent_company: BrandParentCompany
+) -> list[str]:
     """Bulk create products if they don't already exist.
     Bulk update existing products with product name if they don't contain it
 
@@ -26,7 +26,7 @@ def update_product_names(
         tuple: tuple<str> of sorted UPC numbers
     """
 
-    def get_product_name(upc: str, products: List[ProductInterface]) -> Optional[str]:
+    def get_product_name(upc: str, products: List[IProduct]) -> Optional[str]:
         for product_info in products:
             if product_info.upc == upc:
                 return product_info.name
@@ -46,22 +46,22 @@ def update_product_names(
         new_products.append(temp_product)
 
     logger.info(f"Bulk creating {len(new_products)} products")
-    new_products = Product.objects.bulk_create(new_products, ignore_conflicts=True)
+    Product.objects.bulk_create(new_products, ignore_conflicts=True)
 
     # bulk update products with no name
-    products = Product.objects.filter(upc__in=upcs, name=None)
+    products_with_no_name = Product.objects.filter(upc__in=upcs, name=None)
 
-    for product in products:
+    for product in products_with_no_name:
         product.parent_company = parent_company
         product.name = get_product_name(product.upc, request_data.products)
 
-    products.bulk_update(products, ["parent_company", "name"])
+    products_with_no_name.bulk_update(products_with_no_name, ["parent_company", "name"])
 
     return sorted(upcs)
 
 
 def update_product_additions(
-    store: Store, request_data: GetStoreAdditionsInterface
+    store: Store, request_data: IGetStoreProductAdditions
 ) -> List[ProductAddition]:
     """Bulk create ProductAddition records if they don't already exist
 
@@ -74,7 +74,7 @@ def update_product_additions(
     """
     upcs = [p.upc for p in request_data.products]
     products = Product.objects.filter(upc__in=upcs)
-    new_product_additions = []
+    new_product_additions: list[ProductAddition] = []
 
     for product in products:
         temp_product_addition = ProductAddition(store=store, product=product)

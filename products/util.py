@@ -291,24 +291,24 @@ def get_product_additions_count(
 
 
 def get_current_work_cycle() -> WorkCycle:
-    """Get the (only) current WorkCycle instance and adjust its time span if the current date is outside of it
+    """Get the latest WorkCycle instance; return if today's date is within the work cycle's date intervals
+        else create a new WorkCycle record and return that
 
     Returns:
         products.WorkCycle: latest products.WorkCycle instance
     """
-    work_cycle = WorkCycle.objects.latest("end_date")
+    latest_work_cycle = WorkCycle.objects.latest("end_date")
+    if date.today() <= latest_work_cycle.end_date:
+        return latest_work_cycle
 
-    if date.today() > work_cycle.end_date:
-        work_cycle_time_span = timedelta(weeks=2)
-        num_cycles_offset = (date.today() - work_cycle.end_date) // work_cycle_time_span
-        num_cycles_offset = num_cycles_offset + 1
+    work_cycle_time_span = timedelta(weeks=2)
+    num_cycles_offset = (date.today() - latest_work_cycle.end_date) // work_cycle_time_span
+    num_cycles_offset = num_cycles_offset + 1
 
-        new_work_cycle = WorkCycle(
-            start_date=work_cycle.start_date + (num_cycles_offset * work_cycle_time_span),
-            end_date=work_cycle.end_date + (num_cycles_offset * work_cycle_time_span),
-        )
+    new_work_cycle = WorkCycle(
+        start_date=latest_work_cycle.start_date + (num_cycles_offset * work_cycle_time_span),
+        end_date=latest_work_cycle.end_date + (num_cycles_offset * work_cycle_time_span),
+    )
 
-        new_work_cycle.save()
-        return new_work_cycle
-
-    return work_cycle
+    new_work_cycle.save()
+    return new_work_cycle
