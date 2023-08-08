@@ -208,6 +208,9 @@ class ProductAddition(models.Model):
     date_added = models.DateField(default=timezone.now)
     date_last_scanned = models.DateTimeField(null=True, blank=True)
     is_carried = models.BooleanField(default=False)
+    scheduled_updates = models.ManyToManyField(
+        "ScheduledProductAdditionUpdate", related_name="product_additions"
+    )
 
     def update_date_scanned(self) -> None:
         self.date_last_scanned = timezone.now()
@@ -222,6 +225,19 @@ class ProductAddition(models.Model):
     class Meta:
         unique_together = ["store", "product"]
         db_table = "product_additions"
+
+
+class ScheduledProductAdditionUpdate(models.Model):
+    scheduled_on = models.ForeignKey(
+        WorkCycle,
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
+        related_name="scheduled_product_addition_updates",
+    )
+
+    class Meta:
+        db_table = "scheduled_product_addition_update"
 
 
 class BarcodeSheet(models.Model):
