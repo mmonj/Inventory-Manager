@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.decorators.http import require_http_methods
@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request as DRFRequest
 
-from .types import GetProductLocationRequest
+from .types import GetProductLocationRequest, IImportedProductInfo
 from api.util import validate_structure
 
 from product_locator import templates
@@ -44,7 +44,7 @@ def index(request: DRFRequest) -> HttpResponse:
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET", "POST"])
-def add_new_products(request: DRFRequest) -> HttpResponse:
+def add_new_products(request: HttpRequest) -> HttpResponse:
     if request.method == "GET":
         return templates.ProductLocatorAddNewProducts(form=PlanogramForm()).render(request)
 
@@ -54,17 +54,22 @@ def add_new_products(request: DRFRequest) -> HttpResponse:
         return templates.ProductLocatorAddNewProducts(form=received_form).render(request)
 
     planogram: Planogram = received_form.cleaned_data["planogram_pk"]
-    planogram_text_dump = received_form.cleaned_data["planogram_text_dump"]
-    product_list: list[dict[str, str]] = planogram_parser.parse_data(planogram_text_dump)
+    planogram_text_dump: str = received_form.cleaned_data["planogram_text_dump"]
+
+    product_list: list[IImportedProductInfo] = planogram_parser.parse_data(
+        planogram_text_dump, request
+    )
     logger.info(f"{len(product_list)} parsed from user input")
 
     if not product_list:
         messages.error(request, "You have submitted data that resulted in 0 items being parsed.")
         return templates.ProductLocatorAddNewProducts(form=received_form).render(request)
 
-    util.add_location_records(product_list, planogram)
+    num_products_added = util.add_location_records(product_list, planogram, request)
 
-    messages.success(request, f"Submitted {len(product_list)} items successfully")
+    messages.success(
+        request, f"Submitted {num_products_added} out of {len(product_list)} items successfully"
+    )
     return redirect("product_locator:add_new_products")
 
 

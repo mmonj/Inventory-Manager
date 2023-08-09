@@ -3,6 +3,11 @@ import re
 from typing import Callable
 from natsort import natsorted
 
+from django.contrib import messages
+from django.http import HttpRequest
+
+from .types import IImportedProductInfo
+
 logger = logging.getLogger("main_logger")
 
 # ITEM_ATTRIBUTES_RE = r"(.+?)[ \t]+(\d{12})(?:[ \t]+\d)?[ \t]+([a-z]\d+)"
@@ -25,8 +30,8 @@ COMMON_OCR_CHAR_ERRORS = {
 }
 
 
-def parse_data(planogram_text_dump: str) -> list[dict[str, str]]:
-    product_list: list[dict[str, str]] = []
+def parse_data(planogram_text_dump: str, request: HttpRequest) -> list[IImportedProductInfo]:
+    product_list: list[IImportedProductInfo] = []
     lines_not_matched: list[str] = []
 
     for line in planogram_text_dump.strip().split("\n"):
@@ -49,15 +54,18 @@ def parse_data(planogram_text_dump: str) -> list[dict[str, str]]:
 
     for line in lines_not_matched:
         logger.info(f"Regex was not matched on line: '{line}'")
+        messages.error(request, f"No data was parsed from line: {line}")
 
     # assert_unique(product_list, "upc", key=lambda e: e["upc"])
-    assert_unique(product_list, "location", key=lambda e: e["location"])
+    # assert_unique(product_list, "location", key=lambda e: e["location"])
 
     return natsorted(product_list, key=lambda p: p["location"], reverse=True)
 
 
 def assert_unique(
-    product_list: list[dict[str, str]], unique_type: str, key: Callable[[dict[str, str]], str]
+    product_list: list[IImportedProductInfo],
+    unique_type: str,
+    key: Callable[[IImportedProductInfo], str],
 ) -> None:
     if key is None:
         return
