@@ -11,7 +11,6 @@ import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { NewScanListItem } from "@client/components/stockTracker/NewScanListItem";
 import { useFetch } from "@client/hooks/useFetch";
 import { TScanErrorCallback, TScanSuccessCallback } from "@client/types";
-import { getErrorList } from "@client/util/commonUtil";
 import { postLogProductScan } from "@client/util/stockTracker";
 import { BasicProductAddition } from "@client/util/stockTracker/apiInterfaces";
 
@@ -29,9 +28,8 @@ export interface IFieldRep {
 export default function (props: templates.StockTrackerScanner) {
   const [productAdditions, setProductAdditions] = useState<BasicProductAddition[]>([]);
   const [store, setStore] = useState<IStore | null>(null);
-  const { isError, isLoading, fetchData } = useFetch<BasicProductAddition>();
+  const { isError, isLoading, errorMessages, fetchData } = useFetch<BasicProductAddition>();
   const djangoContext = useContext(Context);
-  const [errorList, setErrorList] = useState<string[]>([]);
 
   function findMatchingStore(storePk: number): IStore | null {
     for (const field_rep of props.field_reps) {
@@ -71,9 +69,6 @@ export default function (props: templates.StockTrackerScanner) {
       setProductAdditions((prev) => {
         return [result, ...prev];
       });
-    } else {
-      const errorList = getErrorList(await result.json());
-      setErrorList(() => errorList);
     }
   };
 
@@ -113,7 +108,7 @@ export default function (props: templates.StockTrackerScanner) {
             )}
             {isError && (
               <Alert variant="danger" className="text-center mx-2">
-                {errorList.map((error) => (
+                {errorMessages.map((error) => (
                   <div key={crypto.randomUUID()}>{error}</div>
                 ))}
               </Alert>

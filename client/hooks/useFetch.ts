@@ -31,15 +31,19 @@ export function useFetch<T>() {
 
         return [true, data] as const;
       })
-      .catch(async (resp: ApiResponse<IHttpError | TNotFoundErrorList>) => {
+      .catch(async function (errorResp: ApiResponse<IHttpError | TNotFoundErrorList | Error>) {
         setData(() => null);
         setIsLoading(() => false);
         setIsError(() => true);
+        if (errorResp instanceof Error) {
+          setErrorMessages(() => [errorResp.message]);
+          return [false, errorResp] as const;
+        } else {
+          const data = await (errorResp as ApiResponse<IHttpError | TNotFoundErrorList>).json();
+          setErrorMessages(() => getErrorList(data));
 
-        const data = await resp.json();
-        setErrorMessages(() => getErrorList(data));
-
-        return [false, resp] as const;
+          return [false, errorResp] as const;
+        }
       });
   };
 
