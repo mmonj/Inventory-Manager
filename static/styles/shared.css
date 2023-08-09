@@ -18,6 +18,10 @@
   max-width: 70rem;
 }
 
+.bg-danger {
+  background: rgba(189, 0, 0, 0.3098039216) !important;
+}
+
 .bg-blue-theme {
   background-color: rgb(35, 45, 59);
 }
