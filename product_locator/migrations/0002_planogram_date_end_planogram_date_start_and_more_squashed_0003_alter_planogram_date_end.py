@@ -31,6 +31,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='planogram',
             name='date_end',
-            field=models.DateField(null=True),
+            field=models.DateField(null=True, blank=True),
         ),
     ]

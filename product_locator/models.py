@@ -17,7 +17,7 @@ class Planogram(models.Model):
     name = models.CharField(max_length=50, default="Inline Plano")
     store = models.ForeignKey(Store, null=True, on_delete=models.CASCADE, related_name="planograms")
     date_start = models.DateField(null=False, blank=False, default=timezone.now)
-    date_end = models.DateField(null=True, blank=False)
+    date_end = models.DateField(null=True, blank=True)
 
     def __str__(self) -> str:
         return f"{self.name} - {self.store}"
