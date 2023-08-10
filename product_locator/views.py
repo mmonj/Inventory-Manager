@@ -90,6 +90,7 @@ def get_product_location(request: DRFRequest) -> Response:
             ),
         )
         .filter(upc=request_data.upc)
+        .order_by("-home_locations__planogram__date_start")
         .first()
     )
 

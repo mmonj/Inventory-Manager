@@ -85,19 +85,24 @@ export default (props: templates.ProductLocatorIndex) => {
                 ))}
               </Alert>
             )}
-            <ol id="scanner-results" className="list-group list-group-numbered px-2">
-              {getProductFetcher.data?.home_locations.map((location) => (
-                <li
-                  key={crypto.randomUUID()}
-                  className="list-group-item d-flex justify-content-between align-items-start"
-                >
-                  <div className="ms-2 me-auto location-container">
-                    <div className="fw-bold location-name">{location.name}</div>
-                    <div className="fw-bold planogram-name">{location.planogram}</div>
-                    <div className="product-name">{getProductFetcher.data?.name}</div>
-                  </div>
-                </li>
-              ))}
+
+            <ol id="scanner-results" className="list-group list-group-numbered px-2 mb-2">
+              {getProductFetcher.data?.home_locations.map((location) => {
+                if (location.planogram.date_end !== null) return;
+
+                return (
+                  <li
+                    key={crypto.randomUUID()}
+                    className={"list-group-item d-flex justify-content-between align-items-start"}
+                  >
+                    <div className="ms-2 me-auto location-container">
+                      <div className="fw-bold location-name">{location.name}</div>
+                      <div className="fw-bold planogram-name">{location.planogram.name}</div>
+                      <div className="product-name">{getProductFetcher.data?.name}</div>
+                    </div>
+                  </li>
+                );
+              })}
               {getProductFetcher.data?.home_locations.length === 0 && (
                 <div className="text-center my-2">
                   Product &apos;{getProductFetcher.data.name}&apos; is not part of any planogram for
@@ -105,6 +110,34 @@ export default (props: templates.ProductLocatorIndex) => {
                 </div>
               )}
             </ol>
+
+            <ol id="scanner-results-outdated" className="list-group list-group-numbered px-2">
+              {getProductFetcher.data?.home_locations.map((location) => {
+                if (location.planogram.date_end === null) return;
+
+                return (
+                  <li
+                    key={crypto.randomUUID()}
+                    className={
+                      "list-group-item d-flex justify-content-between align-items-start bg-danger"
+                    }
+                  >
+                    <div className="ms-2 me-auto location-container">
+                      <div className="fw-bold location-name">{location.name}</div>
+                      <div className="fw-bold planogram-name">{location.planogram.name}</div>
+                      <div className="product-name">{getProductFetcher.data?.name}</div>
+                    </div>
+                  </li>
+                );
+              })}
+              {getProductFetcher.data?.home_locations.length === 0 && (
+                <div className="text-center my-2">
+                  Product &apos;{getProductFetcher.data.name}&apos; is not part of any planogram for
+                  this store
+                </div>
+              )}
+            </ol>
+
             {!!getProductFetcher.data && (
               <div className="my-2 text-center">
                 <Button

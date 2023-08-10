@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import HomeLocation, Product, Store
+from .models import HomeLocation, Planogram, Product, Store
 
 
 class StoreSerializer(serializers.ModelSerializer[Store]):
@@ -9,16 +9,18 @@ class StoreSerializer(serializers.ModelSerializer[Store]):
         fields = ["id", "name"]
 
 
-class HomeLocationSerializer(serializers.ModelSerializer[HomeLocation]):
-    planogram = serializers.SerializerMethodField()
+class PlanogramSerializer(serializers.ModelSerializer[Planogram]):
+    class Meta:
+        model = Planogram
+        fields = ["pk", "name", "date_start", "date_end"]
 
-    def get_planogram(self, home_location: HomeLocation) -> str:
-        # return home_location.planogram.name
-        return str(home_location.planogram)
+
+class HomeLocationSerializer(serializers.ModelSerializer[HomeLocation]):
+    planogram = PlanogramSerializer()
 
     class Meta:
         model = HomeLocation
-        fields = ["name", "planogram"]
+        fields = ["pk", "name", "planogram"]
 
 
 class ProductWithHomeLocationsSerializer(serializers.ModelSerializer[Product]):

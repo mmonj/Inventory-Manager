@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Context, Planogram_81F76E013B, reverse } from "@reactivated";
+import { Context, Planogram_0344C0Aff5, reverse } from "@reactivated";
 import { Alert } from "react-bootstrap";
 
 import Button from "react-bootstrap/Button";
@@ -15,7 +15,7 @@ import { LoadingSpinner } from "../LoadingSpinner";
 interface Props {
   modalShow: boolean;
   onHide: () => void;
-  planograms: Planogram_81F76E013B[];
+  planograms: Planogram_0344C0Aff5[];
   scannedUpc: string;
   storeId: number;
 }
@@ -72,8 +72,8 @@ export function ProductLocatorModal({ modalShow, onHide, planograms, scannedUpc,
               </label>
               <select name="planogram-id" id="planogram-name-update" className="form-select">
                 {planograms.map((planogram) => {
-                  if (planogram.store?.pk !== storeId) {
-                    return null;
+                  if (planogram.store?.pk !== storeId || planogram.date_end !== null) {
+                    return;
                   }
                   return (
                     <option key={planogram.pk} value={planogram.pk}>
