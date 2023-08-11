@@ -14,6 +14,7 @@ class ProductInterface(TypedDict):
 
 class ParentCompanyInterface(TypedDict):
     short_name: str
+    expanded_name: str
     third_party_logo_url: str
 
 

@@ -22,8 +22,8 @@ class BrandParentCompanySerializer(serializers.ModelSerializer[BrandParentCompan
 
     class Meta:
         model = BrandParentCompany
-        fields = ["short_name", "third_party_logo_url"]
-        read_only_fields = ["short_name", "third_party_logo_url"]
+        fields = ["short_name", "expanded_name", "third_party_logo_url"]
+        read_only_fields = ["short_name", "expanded_name", "third_party_logo_url"]
 
     def get_third_party_logo_url(self, parent_company: BrandParentCompany) -> str:
         return parent_company.third_party_logo.url  # type:ignore [no-any-return]

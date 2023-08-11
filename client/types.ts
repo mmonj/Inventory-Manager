@@ -64,6 +64,7 @@ export const BarcodeSheetSchema = z.object({
     store_name: z.string(),
     parent_company: z.object({
       short_name: z.string(),
+      expanded_name: z.string().nullable(),
       third_party_logo_url: z.string(),
     }),
     product_additions: z.array(
