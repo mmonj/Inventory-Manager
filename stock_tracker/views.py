@@ -310,8 +310,9 @@ def get_manager_names(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["POST"])
 def set_carried_product_additions(request: HttpRequest) -> HttpResponse:
     product_id_list = request.POST.getlist("product-addition-id")
-    redirect_route = reverse(
-        "stock_tracker:get_barcode_sheet", args=[request.POST.get("barcode-sheet-id")]
+    redirect_route = (
+        reverse("stock_tracker:get_barcode_sheet", args=[request.POST.get("barcode-sheet-id")])
+        + "?sheet-type=out-of-dist"
     )
 
     if not product_id_list:
