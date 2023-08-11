@@ -1,7 +1,14 @@
 import logging
-from typing import Any, Generator, List, Optional, Set
 import pytz
 import zipfile
+
+from io import BytesIO
+from datetime import datetime, timezone, timedelta, date
+from pathlib import Path
+from typing import Any, Generator, List, Optional, Set
+
+from django.core.files import File
+from django.core.exceptions import ValidationError
 
 from .types import (
     BasicStoreInfo,
@@ -20,14 +27,10 @@ from .models import (
     FieldRepresentative,
     WorkCycle,
 )
-from io import BytesIO
-from datetime import datetime, timezone, timedelta, date
-from pathlib import Path
-
-from django.core.files import File
-from django.core.exceptions import ValidationError
 
 logger = logging.getLogger("main_logger")
+
+WORK_CYCLE_TIME_SPAN = timedelta(weeks=2)
 
 
 def import_field_reps(field_reps_info: dict[str, ImportedFieldRepInfo]) -> None:
@@ -290,6 +293,23 @@ def get_product_additions_count(
     return len(product_addition_set)
 
 
+def is_date_within_work_cycle(date_in_question: date, work_cycle: WorkCycle) -> bool:
+    return work_cycle.start_date <= date_in_question and date_in_question <= work_cycle.end_date
+
+
+def get_num_work_cycles_offset(date_in_question: date, work_cycle: WorkCycle) -> int:
+    if is_date_within_work_cycle(date_in_question, work_cycle):
+        return 0
+
+    num_adjustment = 1
+    if date_in_question < work_cycle.end_date:
+        num_adjustment = 0
+
+    num_cycles_offset = int((date_in_question - work_cycle.end_date) / WORK_CYCLE_TIME_SPAN)
+
+    return abs(num_cycles_offset) + num_adjustment
+
+
 def get_current_work_cycle() -> WorkCycle:
     """Get the latest WorkCycle instance; return if today's date is within the work cycle's date intervals
         else create a new WorkCycle record and return that
@@ -297,17 +317,17 @@ def get_current_work_cycle() -> WorkCycle:
     Returns:
         products.WorkCycle: latest products.WorkCycle instance
     """
+    today_date = date.today()
     latest_work_cycle = WorkCycle.objects.latest("end_date")
-    if date.today() <= latest_work_cycle.end_date:
+
+    if is_date_within_work_cycle(today_date, latest_work_cycle):
         return latest_work_cycle
 
-    work_cycle_time_span = timedelta(weeks=2)
-    num_cycles_offset = (date.today() - latest_work_cycle.end_date) // work_cycle_time_span
-    num_cycles_offset = num_cycles_offset + 1
+    num_cycles_offset = get_num_work_cycles_offset(today_date, latest_work_cycle)
 
     new_work_cycle = WorkCycle(
-        start_date=latest_work_cycle.start_date + (num_cycles_offset * work_cycle_time_span),
-        end_date=latest_work_cycle.end_date + (num_cycles_offset * work_cycle_time_span),
+        start_date=latest_work_cycle.start_date + (num_cycles_offset * WORK_CYCLE_TIME_SPAN),
+        end_date=latest_work_cycle.end_date + (num_cycles_offset * WORK_CYCLE_TIME_SPAN),
     )
 
     new_work_cycle.save()

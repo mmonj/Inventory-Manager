@@ -1,3 +1,4 @@
+from typing import Optional
 from rest_framework import serializers
 from products.models import (
     Product,
@@ -8,6 +9,7 @@ from products.models import (
     BarcodeSheet,
     WorkCycle,
 )
+from products.util import get_num_work_cycles_offset
 
 
 class ProductSerializer(serializers.ModelSerializer[Product]):
@@ -18,11 +20,12 @@ class ProductSerializer(serializers.ModelSerializer[Product]):
 
 class ProductAdditionSerializer(serializers.ModelSerializer[ProductAddition]):
     is_new = serializers.SerializerMethodField(read_only=True)
+    num_work_cycles_since_order = serializers.SerializerMethodField(read_only=True)
     product = ProductSerializer()
 
     class Meta:
         model = ProductAddition
-        fields = ["product", "is_carried", "is_new"]
+        fields = ["product", "is_carried", "is_new", "num_work_cycles_since_order"]
 
     def get_is_new(self, product_addition: ProductAddition) -> bool:
         work_cycle: WorkCycle = self.context["work_cycle"]
@@ -30,6 +33,12 @@ class ProductAdditionSerializer(serializers.ModelSerializer[ProductAddition]):
             work_cycle.start_date <= product_addition.date_added
             and product_addition.date_added <= work_cycle.end_date
         )
+
+    def get_num_work_cycles_since_order(self, product_addition: ProductAddition) -> Optional[int]:
+        if product_addition.date_ordered is None:
+            return None
+
+        return get_num_work_cycles_offset(product_addition.date_ordered, self.context["work_cycle"])
 
 
 class PersonnelContactSerializer(serializers.ModelSerializer[PersonnelContact]):
@@ -55,16 +64,20 @@ class StoreSerializer(serializers.ModelSerializer[Store]):
 
 class BarcodeSheetSerializer(serializers.ModelSerializer[BarcodeSheet]):
     product_additions = ProductAdditionSerializer(many=True)
+    barcode_sheet_id = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = BarcodeSheet
         fields = [
-            "id",
+            "barcode_sheet_id",
             "datetime_created",
             "product_additions",
         ]
         read_only_fields = [
-            "id",
+            "barcode_sheet_id",
             "datetime_created",
             "product_additions",
         ]
+
+    def get_barcode_sheet_id(self, barcode_sheet: BarcodeSheet) -> int:
+        return barcode_sheet.pk
