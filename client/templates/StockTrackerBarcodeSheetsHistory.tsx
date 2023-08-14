@@ -25,7 +25,8 @@ export default function (props: templates.StockTrackerBarcodeSheetsHistory) {
           <DropdownButton
             as={ButtonGroup}
             title={currentFieldRepName ?? "Field Rep"}
-            variant={"secondary"}>
+            variant={"secondary"}
+          >
             {props.field_representatives.map((field_rep, idx) => (
               <Dropdown.Item
                 className={field_rep.pk === props.current_field_rep_id ? "active" : ""}
@@ -33,7 +34,8 @@ export default function (props: templates.StockTrackerBarcodeSheetsHistory) {
                 eventKey={idx}
                 href={reverse("stock_tracker:barcode_sheet_history_repid", {
                   field_representative_id: field_rep.pk,
-                })}>
+                })}
+              >
                 {field_rep.name}
               </Dropdown.Item>
             ))}
@@ -42,9 +44,7 @@ export default function (props: templates.StockTrackerBarcodeSheetsHistory) {
 
         <ol className="p-0">
           {props.recent_barcode_sheets.map((barcode_sheet) => {
-            const search_params = `?store-name=${encodeURI(
-              barcode_sheet.store.name!
-            )}&sheet-type=out-of-dist`;
+            const search_params = `?sheet-type=out-of-dist`;
 
             return (
               <li key={barcode_sheet.pk} className="card collapse show my-2 text-center">
@@ -67,7 +67,8 @@ export default function (props: templates.StockTrackerBarcodeSheetsHistory) {
                         barcode_sheet_id: barcode_sheet.pk,
                       }) + search_params
                     }
-                    className="btn btn-primary">
+                    className="btn btn-primary"
+                  >
                     View Barcode Sheet
                   </a>
                 </div>

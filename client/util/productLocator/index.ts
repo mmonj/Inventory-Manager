@@ -1,3 +1,5 @@
+import { interfaces, reverse } from "@reactivated";
+
 import { ApiResponse } from "@client/types";
 
 import { ILocationUpdateResponseType, IProductLocation } from "./apiInterfaces";
@@ -23,6 +25,7 @@ export function postNewProductLocation(
 ): Promise<ApiResponse<ILocationUpdateResponseType>> {
   const payload = {
     upc: formData.get("upc-number"),
+    product_name: formData.get("product-name"),
     planogram_id: formData.get("planogram-id"),
     location: formData.get("new-location-name"),
   };
@@ -35,4 +38,21 @@ export function postNewProductLocation(
     },
     body: JSON.stringify(payload),
   });
+}
+
+export function getRelatedProducts(
+  productName: string,
+  storeId: number
+): Promise<ApiResponse<interfaces.MatchingProducts>> {
+  const headers = {
+    Accept: "application/json",
+  };
+
+  return fetch(
+    reverse("product_locator:get_product_locations_by_name", {
+      store_id: storeId,
+      product_name: productName,
+    }),
+    { headers: headers }
+  );
 }

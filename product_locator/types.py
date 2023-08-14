@@ -12,3 +12,11 @@ class IImportedProductInfo(TypedDict):
 class GetProductLocationRequest:
     upc: str
     store_id: int
+
+
+@frozen
+class IAddNewProductLocation:
+    upc: str
+    product_name: str
+    planogram_id: str
+    location: str

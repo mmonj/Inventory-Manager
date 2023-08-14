@@ -14,7 +14,12 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request as DRFRequest
 
-from .types import GetProductLocationRequest, IImportedProductInfo
+from .types import (
+    GetProductLocationRequest,
+    IAddNewProductLocation,
+    IImportedProductInfo,
+)
+from . import interfaces_response
 from api.util import validate_structure
 
 from product_locator import templates
@@ -103,14 +108,18 @@ def get_product_location(request: DRFRequest) -> Response:
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def add_new_product_location(request: DRFRequest) -> HttpResponse:
-    try:
-        product, _ = Product.objects.get_or_create(upc=request.data["upc"])
-    except ValidationError:
-        return Response({"message": "Invalid UPC"}, status=500)
+    request_data = validate_structure(request.data, IAddNewProductLocation)
 
-    planogram = Planogram.objects.get(id=request.data["planogram_id"])
+    product = Product.objects.filter(upc=request_data.upc).first()
+    if product is None:
+        try:
+            product = Product.objects.create(upc=request_data.upc, name=request_data.product_name)
+        except ValidationError as ex:
+            raise DrfValidationError(ex.messages)
+
+    planogram = Planogram.objects.get(id=request_data.planogram_id)
     location, is_new_location = HomeLocation.objects.select_related("planogram").get_or_create(
-        name=request.data["location"], planogram=planogram
+        name=request_data.location, planogram=planogram
     )
 
     if location not in product.home_locations.select_related("planogram", "planogram__store").all():
@@ -118,6 +127,23 @@ def add_new_product_location(request: DRFRequest) -> HttpResponse:
         product.home_locations.add(location)
 
     return Response(HomeLocationSerializer(location).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_product_locations_by_name(
+    request: HttpRequest, store_id: int, product_name: str
+) -> HttpResponse:
+    products = Product.objects.filter(name__icontains=product_name).prefetch_related(
+        Prefetch(
+            "home_locations",
+            queryset=HomeLocation.objects.filter(planogram__store__pk=store_id),
+        )
+    )
+
+    return interfaces_response.MatchingProducts(
+        [p for p in products if p.home_locations.all()]
+    ).render(request)
 
 
 @api_view(["GET"])

@@ -138,7 +138,7 @@ export default (props: templates.ProductLocatorIndex) => {
               )}
             </ol>
 
-            {!!getProductFetcher.data && (
+            {(!!getProductFetcher.data || getProductFetcher.isError) && (
               <div className="my-2 text-center">
                 <Button
                   variant="secondary"
@@ -153,10 +153,11 @@ export default (props: templates.ProductLocatorIndex) => {
         )}
       </section>
       <section>
-        {!!store && (
+        {!!store && modalShow && (
           <ProductLocatorModal
             scannedUpc={scannedUpc}
             planograms={props.planograms}
+            productName={getProductFetcher.data?.name}
             storeId={store.pk}
             modalShow={modalShow}
             onHide={() => setModalShow(() => false)}

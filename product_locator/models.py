@@ -19,8 +19,18 @@ class Planogram(models.Model):
     date_start = models.DateField(null=False, blank=False, default=timezone.now)
     date_end = models.DateField(null=True, blank=True)
 
+    def get_plano_status(self) -> str:
+        plano_status = ""
+        if self.date_end is not None:
+            plano_status = " [OUTDATED]"
+        return plano_status
+
+    @property
+    def plano_status(self) -> str:
+        return self.get_plano_status()
+
     def __str__(self) -> str:
-        return f"{self.name} - {self.store}"
+        return f"{self.name} - {self.store}{self.plano_status}"
 
     class Meta:
         unique_together = ["name", "store"]
@@ -29,6 +39,10 @@ class Planogram(models.Model):
 class HomeLocation(models.Model):
     name = models.CharField(max_length=25)
     planogram = models.ForeignKey(Planogram, on_delete=models.CASCADE, related_name="locations")
+
+    @property
+    def display_name(self) -> str:
+        return f"{self.name} - {self.planogram.name}{self.planogram.plano_status}"
 
     def __str__(self) -> str:
         return f"{self.name} - {self.planogram}"
