@@ -49,7 +49,9 @@ export function ProductLocatorModal({
     );
   }
 
-  async function handleSearchRelatedNames() {
+  async function handleSearchRelatedNames(): Promise<void> {
+    if (productNameRef.current?.value.trim() === "") return;
+
     const callback = () => getRelatedProducts(productNameRef.current!.value, storeId);
     await relatedProductsFetch.fetchData(callback);
   }

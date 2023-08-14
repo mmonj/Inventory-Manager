@@ -137,7 +137,9 @@ def get_product_locations_by_name(
     products = Product.objects.filter(name__icontains=product_name).prefetch_related(
         Prefetch(
             "home_locations",
-            queryset=HomeLocation.objects.filter(planogram__store__pk=store_id),
+            queryset=HomeLocation.objects.filter(
+                planogram__store__pk=store_id, planogram__date_end__isnull=True
+            ),
         )
     )
 
