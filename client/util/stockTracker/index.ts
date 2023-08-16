@@ -2,7 +2,7 @@ import { reverse } from "@reactivated";
 
 import { ApiResponse } from "@client/types";
 
-import { BasicProductAddition } from "./apiInterfaces";
+import { BasicProductAddition } from "./ajaxInterfaces";
 
 export async function postLogProductScan(
   upc: string,

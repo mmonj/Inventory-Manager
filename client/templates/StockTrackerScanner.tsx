@@ -12,7 +12,7 @@ import { NewScanListItem } from "@client/components/stockTracker/NewScanListItem
 import { useFetch } from "@client/hooks/useFetch";
 import { TScanErrorCallback, TScanSuccessCallback } from "@client/types";
 import { postLogProductScan } from "@client/util/stockTracker";
-import { BasicProductAddition } from "@client/util/stockTracker/apiInterfaces";
+import { BasicProductAddition } from "@client/util/stockTracker/ajaxInterfaces";
 
 export interface IStore {
   pk: number;

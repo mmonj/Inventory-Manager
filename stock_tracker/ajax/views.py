@@ -9,9 +9,13 @@ from rest_framework.response import Response as DRFResponse
 
 from products.models import Product, ProductAddition, Store
 from stock_tracker import util
-from .serializers import BasicProductAddition
+from .interfaces_response import BasicProductAddition
 
-from .types import LogProductScanRequest, ProductAdditionUncarryRequest, ProductAdditionsGETRequest
+from .interfaces_request import (
+    LogProductScanRequest,
+    ProductAdditionUncarryRequest,
+    ProductAdditionsGETRequest,
+)
 
 from api.util import validate_structure
 
@@ -26,11 +30,14 @@ def get_product_additions_by_store(request: DRFRequest) -> DRFResponse:
 
     product_additions = (
         ProductAddition.objects.prefetch_related("product", "product__parent_company")
-        .filter(store__pk=request_data.store_id)
-        .order_by("-id")
+        .filter(store__pk=request_data.store_id, is_carried=True)
+        .order_by("-date_last_scanned", "-id")
     )
 
     paginator = Paginator(product_additions, per_page=num_records_limit)
+    if request_data.page > paginator.num_pages:
+        raise DRFValidationError("End of results")
+
     page = paginator.get_page(request_data.page)
     logger.info(request_data.page)
 

@@ -10,7 +10,7 @@ import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { ProductAdditionListItem } from "@client/components/stockTracker/ProductAdditionListItem";
 import { useFetch } from "@client/hooks/useFetch";
 import { getProductAdditions } from "@client/util/stockTracker";
-import { BasicProductAddition } from "@client/util/stockTracker/apiInterfaces";
+import { BasicProductAddition } from "@client/util/stockTracker/ajaxInterfaces";
 
 import { IStore } from "./StockTrackerScanner";
 
@@ -104,7 +104,9 @@ export default function (props: templates.StockTrackerScanHistory) {
           )}
           {productAdditionPaginationState.isError && (
             <Alert ref={paginationErrorMessage} className="p-2" variant="danger">
-              Something went wrong in fetching more product additions
+              {productAdditionPaginationState.errorMessages.map((msg) => (
+                <div key={crypto.randomUUID()}>{msg}</div>
+              ))}
             </Alert>
           )}
         </div>

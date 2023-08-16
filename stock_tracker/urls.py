@@ -1,11 +1,11 @@
 from django.urls import path
 
 from . import views
-from .api_internal import views as api_views
+from .ajax import views as api_views
 
 app_name = "stock_tracker"
 
-api_urlpatterns = [
+ajax_urlpatterns = [
     path(
         "get_product_additions_by_store/",
         api_views.get_product_additions_by_store,
@@ -51,4 +51,4 @@ urlpatterns = [
         views.set_product_distribution_order_status,
         name="set_product_distribution_order_status",
     ),
-] + api_urlpatterns
+] + ajax_urlpatterns

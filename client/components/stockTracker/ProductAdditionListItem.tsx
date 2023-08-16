@@ -6,7 +6,7 @@ import { format } from "date-fns";
 
 import { useFetch } from "@client/hooks/useFetch";
 import { uncarry_product_addition } from "@client/util/stockTracker";
-import { BasicProductAddition } from "@client/util/stockTracker/apiInterfaces";
+import { BasicProductAddition } from "@client/util/stockTracker/ajaxInterfaces";
 
 import { LoadingSpinner } from "../LoadingSpinner";
 
@@ -21,6 +21,11 @@ export function ProductAdditionListItem({
 }: Props) {
   const productAdditionDeleteState = useFetch<BasicProductAddition>();
   const djangoContext = React.useContext(Context);
+
+  const dateLastScanned =
+    productAddition.date_last_scanned === null
+      ? ""
+      : format(new Date(productAddition.date_last_scanned!), "MMMM d, yyyy, hh:mm a");
 
   async function handleDeleteClick() {
     const fetchCallback = () => {
@@ -37,9 +42,7 @@ export function ProductAdditionListItem({
       <div className="d-flex w-100 justify-content-between">
         <h5 className="mb-1">{productAddition.product.upc}</h5>
 
-        <small className="text-muted">
-          {format(new Date(productAddition.date_last_scanned!), "MMMM d, yyyy, hh:mm a")}{" "}
-        </small>
+        <small className="text-muted">{dateLastScanned} </small>
       </div>
       <div className="d-flex flex-row justify-content-between">
         <div className="truncated-text-container">

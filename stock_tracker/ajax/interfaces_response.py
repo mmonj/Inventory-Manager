@@ -1,6 +1,6 @@
 from products.models import BrandParentCompany, Product, ProductAddition
 from rest_framework import serializers
-from django_typomatic import ts_interface, generate_ts
+from django_typomatic import ts_interface, generate_ts  # type: ignore [import, unused-ignore]
 
 
 @ts_interface()

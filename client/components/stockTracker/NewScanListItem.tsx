@@ -4,7 +4,7 @@ import { Context } from "@reactivated";
 
 import { useFetch } from "@client/hooks/useFetch";
 import { uncarry_product_addition } from "@client/util/stockTracker";
-import { BasicProductAddition } from "@client/util/stockTracker/apiInterfaces";
+import { BasicProductAddition } from "@client/util/stockTracker/ajaxInterfaces";
 
 import { LoadingSpinner } from "../LoadingSpinner";
 

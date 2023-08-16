@@ -13,7 +13,7 @@ import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { ProductLocatorModal } from "@client/components/productLocator/ProductLocatorModal";
 import { useFetch } from "@client/hooks/useFetch";
 import { getProductLocation } from "@client/util/productLocator";
-import { IProductLocation } from "@client/util/productLocator/apiInterfaces";
+import { IProductLocation } from "@client/util/productLocator/ajaxInterfaces";
 
 export default (props: templates.ProductLocatorIndex) => {
   const [store, setStore] = useState<StoreD7Ddec6B39 | null>(null);

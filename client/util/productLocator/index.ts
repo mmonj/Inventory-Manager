@@ -2,7 +2,7 @@ import { interfaces, reverse } from "@reactivated";
 
 import { ApiResponse } from "@client/types";
 
-import { ILocationUpdateResponseType, IProductLocation } from "./apiInterfaces";
+import { ILocationUpdateResponseType, IProductLocation } from "./ajaxInterfaces";
 
 export function getProductLocation(
   upc: string,

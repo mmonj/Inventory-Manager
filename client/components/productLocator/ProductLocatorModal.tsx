@@ -8,7 +8,7 @@ import Modal from "react-bootstrap/Modal";
 
 import { useFetch } from "@client/hooks/useFetch";
 import { getRelatedProducts, postNewProductLocation } from "@client/util/productLocator";
-import { ILocationUpdateResponseType } from "@client/util/productLocator/apiInterfaces";
+import { ILocationUpdateResponseType } from "@client/util/productLocator/ajaxInterfaces";
 
 import { LoadingSpinner } from "../LoadingSpinner";
 
