@@ -46,4 +46,9 @@ urlpatterns = [
         views.set_carried_product_additions,
         name="set_carried_product_additions",
     ),
+    path(
+        "set_product_distribution_order_status/",
+        views.set_product_distribution_order_status,
+        name="set_product_distribution_order_status",
+    ),
 ] + api_urlpatterns

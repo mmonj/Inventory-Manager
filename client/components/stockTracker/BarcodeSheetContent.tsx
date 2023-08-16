@@ -1,12 +1,14 @@
 import React, { useContext } from "react";
 
 import { CSRFToken, Context, reverse, templates } from "@reactivated";
+import { Button } from "react-bootstrap";
 
 interface Props extends templates.StockTrackerBarcodeSheet {
   isEditMode: boolean;
 }
 
 export function BarcodeSheetContent(props: Props) {
+  const [isDistributionUpdate, setIsDistributionUpdate] = React.useState(true);
   const djangoContext = useContext(Context);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -17,32 +19,47 @@ export function BarcodeSheetContent(props: Props) {
       event.preventDefault();
       alert("You must pick at least one item");
     }
+
+    if (!isDistributionUpdate && allProductAdditionIds.length > 1) {
+      const isAccept = confirm(
+        "You have marked more than 1 item as ordered. This seems high. Are you sure?"
+      );
+      if (!isAccept) {
+        event.preventDefault();
+        return;
+      }
+    }
   }
 
   return (
     <section className="mx-auto my-2 p-2 pb-4">
-      <form
-        onSubmit={handleSubmit}
-        id="stock-update-form"
-        action={reverse("stock_tracker:set_carried_product_additions")}
-        method="POST">
+      <form onSubmit={handleSubmit} id="stock-update-form" method="POST">
         <CSRFToken />
 
         <ul
           id="products-container"
-          className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 mx-auto">
+          className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 mx-auto"
+        >
           {/* product-container receives a 'hidden' attribute by default. This will be overridden by the client-side javascript */}
 
           {props.barcodeSheet.product_additions.map((product_addition, idx) => (
             <li
               key={idx}
               className="col product-container card text-center border-0 my-1"
-              data-is_carried={product_addition.is_carried}>
+              data-is_carried={product_addition.is_carried}
+            >
               <div className="new-item-indicator-container mb-1">
                 {product_addition.is_new && (
                   <img
                     src={djangoContext.STATIC_URL + "public/stock_tracker/images/new_item_icon.png"}
-                    alt="New Product Indicator"></img>
+                    alt="New Product Indicator"
+                  ></img>
+                )}
+                {product_addition.date_ordered !== null && (
+                  <img
+                    src={djangoContext.STATIC_URL + "public/stock_tracker/images/ordered_icon.png"}
+                    alt="Item Previously Ordered"
+                  ></img>
                 )}
               </div>
               <div className="product-images-container d-flex justify-content-center">
@@ -96,9 +113,28 @@ export function BarcodeSheetContent(props: Props) {
             value={props.barcodeSheet.parent_company.short_name}
           />
           {props.isEditMode && (
-            <button id="btn-stock-update" type="submit" className="btn btn-primary">
-              Submit
-            </button>
+            <Button
+              onClick={() => setIsDistributionUpdate(() => true)}
+              id="btn-stock-update"
+              type="submit"
+              formAction={reverse("stock_tracker:set_carried_product_additions")}
+              variant="primary"
+              className="mx-3 my-2"
+            >
+              Submit as In-Distribution
+            </Button>
+          )}
+          {props.isEditMode && (
+            <Button
+              onClick={() => setIsDistributionUpdate(() => false)}
+              id="btn-stock-order"
+              type="submit"
+              variant="primary"
+              className="mx-3 my-2"
+              formAction={reverse("stock_tracker:set_product_distribution_order_status")}
+            >
+              Submit as ordered
+            </Button>
           )}
         </div>
       </form>

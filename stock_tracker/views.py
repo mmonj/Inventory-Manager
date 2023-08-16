@@ -11,11 +11,13 @@ from django.http import (
     HttpRequest,
     HttpResponse,
     HttpResponseNotFound,
+    HttpResponseServerError,
     JsonResponse,
     HttpResponseRedirect,
 )
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse_lazy, reverse
+from django.urls import reverse_lazy
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.encoding import iri_to_uri
 from django.views.decorators.http import require_http_methods
@@ -308,13 +310,27 @@ def get_manager_names(request: HttpRequest) -> HttpResponse:
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["POST"])
-def set_carried_product_additions(request: HttpRequest) -> HttpResponse:
+def set_product_distribution_order_status(request: HttpRequest) -> HttpResponse:
     product_id_list = request.POST.getlist("product-addition-id")
-    redirect_route = (
-        reverse("stock_tracker:get_barcode_sheet", args=[request.POST.get("barcode-sheet-id")])
-        + "?sheet-type=out-of-dist"
-    )
+    product_additions = ProductAddition.objects.filter(id__in=product_id_list)
+    for product_addition in product_additions:
+        product_addition.date_ordered = timezone.now()
+        product_addition.save(update_fields=["date_ordered"])
 
+    logger.info(f"Marked Product Addition IDs {', '.join(product_id_list)} as ordered")
+
+    messages.success(request, f"Submitted {len(product_id_list)} item(s) as ordered")
+    return HttpResponseRedirect(request.META["HTTP_REFERER"])
+
+
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
+@require_http_methods(["POST"])
+def set_carried_product_additions(request: HttpRequest) -> HttpResponse:
+    redirect_route: Optional[str] = request.META.get("HTTP_REFERER")
+    if redirect_route is None:
+        return HttpResponseServerError()
+
+    product_id_list = request.POST.getlist("product-addition-id")
     if not product_id_list:
         logger.info("Barcode sheet form returned 0 new products. Redirecting with error message")
         messages.error(request, "Error. Received 0 new products to update")
@@ -332,5 +348,5 @@ def set_carried_product_additions(request: HttpRequest) -> HttpResponse:
     for product_addition in product_additions:
         util.record_product_addition(product_addition, is_product_scanned=True)
 
-    messages.success(request, "Submitted Successfully")
+    messages.success(request, f"Submitted {len(product_id_list)} item(s) as In-Distribution")
     return HttpResponseRedirect(redirect_route)

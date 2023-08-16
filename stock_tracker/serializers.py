@@ -1,5 +1,5 @@
 from typing import Optional
-import barcode
+import barcode  # type:ignore [import, unused-ignore]
 import base64
 import io
 
@@ -114,8 +114,8 @@ class ProductAdditionSerializer(serializers.ModelSerializer[ProductAddition]):
 
     class Meta:
         model = ProductAddition
-        fields = ["id", "product", "is_carried", "is_new"]
-        read_only_fields = ["id", "product", "is_carried", "is_new"]
+        fields = ["id", "product", "is_carried", "is_new", "date_ordered"]
+        read_only_fields = ["id", "product", "is_carried", "is_new", "date_ordered"]
 
     def get_is_new(self, product_addition: ProductAddition) -> bool:
         # could not return single comparison expression result: mypy complained it would return Any

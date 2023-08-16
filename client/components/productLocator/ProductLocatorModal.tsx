@@ -39,6 +39,9 @@ export function ProductLocatorModal({
   const selectedPlanogramDropdownRef = React.useRef<HTMLSelectElement>(null);
   const newLocationValueRef = React.useRef<HTMLInputElement>(null);
 
+  const relatedProductLocationsFromFetch =
+    relatedProductsFetch.data?.products.map((product) => product.home_locations).flat(1) ?? [];
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     const formData = new FormData(event.target as HTMLFormElement);
@@ -58,15 +61,26 @@ export function ProductLocatorModal({
 
   function handleChangeRelatedLocationsDropdown(event: React.ChangeEvent<HTMLSelectElement>) {
     const selectedRelatedProductLocationPk = parseInt(event.target.value);
-    const selectedRelatedProductLocation = relatedProductsFetch
-      .data!.products.map((product) => product.home_locations)
-      .flat(1)
-      .find((home_location) => home_location.pk === selectedRelatedProductLocationPk);
+
+    const selectedRelatedProduct = relatedProductsFetch.data?.products.find((product) =>
+      product.home_locations.some(
+        (home_location) => home_location.pk === selectedRelatedProductLocationPk
+      )
+    );
+
+    if (selectedRelatedProduct === undefined) {
+      throw new Error("selectedRelatedProduct is undefined");
+    }
+
+    const selectedRelatedProductLocation = relatedProductLocationsFromFetch.find(
+      (home_location) => home_location.pk === selectedRelatedProductLocationPk
+    );
 
     if (selectedRelatedProductLocation === undefined) {
       throw new Error("selectedRelatedProductLocation is undefined");
     }
 
+    productNameRef.current!.value = selectedRelatedProduct.name!;
     selectedPlanogramDropdownRef.current!.value =
       selectedRelatedProductLocation.planogram.pk.toString();
     newLocationValueRef.current!.value = selectedRelatedProductLocation.name;
@@ -137,7 +151,7 @@ export function ProductLocatorModal({
             {relatedProductsFetch.data && (
               <div className="my-2">
                 <label htmlFor="related-product-locations" className="form-label">
-                  Related Products &amp; Locations
+                  Related Products &amp; Locations ({relatedProductLocationsFromFetch.length})
                 </label>
                 <select
                   onChange={handleChangeRelatedLocationsDropdown}

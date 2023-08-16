@@ -3,6 +3,8 @@ from typing import Any, List, Optional, Type, TypeVar
 
 import cattrs
 
+from products.util import get_current_work_cycle, get_num_work_cycles_offset
+
 from .types import IGetStoreProductAdditions, IProduct
 from products.models import BrandParentCompany, Product, ProductAddition, Store
 
@@ -77,17 +79,28 @@ def update_product_additions(
     new_product_additions: list[ProductAddition] = []
 
     for product in products:
-        temp_product_addition = ProductAddition(store=store, product=product)
-        new_product_additions.append(temp_product_addition)
+        new_product_additions.append(ProductAddition(store=store, product=product))
 
     logger.info(f"Bulk creating {len(new_product_additions)} product additions")
     ProductAddition.objects.bulk_create(new_product_additions, ignore_conflicts=True)
 
-    return list(
-        ProductAddition.objects.filter(store=store, product__upc__in=upcs).select_related(
-            "store", "product"
+    product_additions = ProductAddition.objects.filter(
+        store=store, product__upc__in=upcs
+    ).select_related("store", "product")
+
+    for product_addition in product_additions:
+        if product_addition.date_ordered is None:
+            continue
+
+        num_cycles_offset = get_num_work_cycles_offset(
+            product_addition.date_ordered, get_current_work_cycle()
         )
-    )
+
+        if product_addition.is_carried is False and num_cycles_offset > 0:
+            product_addition.is_carried = True
+            product_addition.save(update_fields=["is_carried"])
+
+    return list(product_additions)
 
 
 def validate_structure(data: dict[str, Any], interfaceClass: Type[T]) -> T:
