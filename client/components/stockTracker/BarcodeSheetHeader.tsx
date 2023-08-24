@@ -17,7 +17,7 @@ export function BarcodeSheetHeader(props: Props) {
         {props.barcodeSheet.store_name}
       </h5>
       <h6 id="item-count-indicator" className="text-center mb-3">
-        {`${props.barcodeSheet.product_additions.length} items shown`}
+        {`${props.barcodeSheet.product_additions.length} shown / ${props.total_products} total items`}
       </h6>
       <div id="sheet-type-container" className="dropdown mb-3 text-center">
         <DropdownButton

@@ -6,7 +6,6 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Prefetch
 from django.http import (
     HttpRequest,
     HttpResponse,
@@ -22,7 +21,9 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.encoding import iri_to_uri
 from django.views.decorators.http import require_http_methods
 
-from .types import SheetTypeDescriptionInterface
+from api.util import validate_structure
+
+from .types import BarcodeSheetInterface, SheetTypeDescriptionInterface
 
 from . import forms, serializers, util, templates
 from products.models import (
@@ -224,19 +225,24 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
         BarcodeSheet.objects.prefetch_related(
             "store",
             "parent_company",
-            Prefetch(
-                "product_additions",
-                queryset=ProductAddition.objects.filter(
-                    is_carried__in=sheet_query_info["is_carried_list"]
-                ),
-            ),
+            "product_additions",
         ),
         id=barcode_sheet_id,
     )
 
-    barcode_sheet_data = serializers.BarcodeSheetSerializer(
-        barcode_sheet, context={"work_cycle": barcode_sheet.work_cycle}
-    ).data
+    barcode_sheet_data = validate_structure(
+        serializers.BarcodeSheetSerializer(
+            barcode_sheet, context={"work_cycle": barcode_sheet.work_cycle}
+        ).data,
+        BarcodeSheetInterface,
+    )
+
+    num_products = len(barcode_sheet_data["product_additions"])
+    barcode_sheet_data["product_additions"] = [
+        p
+        for p in barcode_sheet_data["product_additions"]
+        if p["is_carried"] in sheet_query_info["is_carried_list"]
+    ]
 
     logger.info(
         f"Serving Barcode Sheet. Client: '{barcode_sheet.parent_company}' - "
@@ -244,7 +250,8 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
     )
 
     return templates.StockTrackerBarcodeSheet(
-        barcodeSheet=barcode_sheet_data,  # type: ignore[arg-type]
+        barcodeSheet=barcode_sheet_data,
+        total_products=num_products,
         sheetTypeInfo=result_sheet_type_info,
         possibleSheetTypesInfo=possible_sheet_types_info,
     ).render(request)

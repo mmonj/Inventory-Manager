@@ -9,6 +9,7 @@ from .types import BarcodeSheetInterface, SheetTypeDescriptionInterface
 @template
 class StockTrackerBarcodeSheet(NamedTuple):
     barcodeSheet: BarcodeSheetInterface
+    total_products: int
     sheetTypeInfo: SheetTypeDescriptionInterface
     possibleSheetTypesInfo: List[SheetTypeDescriptionInterface]
 

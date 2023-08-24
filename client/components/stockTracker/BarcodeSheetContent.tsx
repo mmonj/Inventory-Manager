@@ -18,11 +18,12 @@ export function BarcodeSheetContent(props: Props) {
     if (allProductAdditionIds.length === 0) {
       event.preventDefault();
       alert("You must pick at least one item");
+      return;
     }
 
-    if (!isDistributionUpdate && allProductAdditionIds.length > 1) {
+    if (!isDistributionUpdate) {
       const isAccept = confirm(
-        "You have marked more than 1 item as ordered. This seems high. Are you sure?"
+        `You have marked ${allProductAdditionIds.length} item(s) as ordered. Are you sure?`
       );
       if (!isAccept) {
         event.preventDefault();
