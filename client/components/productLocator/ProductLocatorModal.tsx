@@ -53,9 +53,10 @@ export function ProductLocatorModal({
   }
 
   async function handleSearchRelatedNames(): Promise<void> {
-    if (productNameRef.current?.value.trim() === "") return;
+    const productNameQuery = productNameRef.current!.value.trim();
+    if (productNameQuery === "") return;
 
-    const callback = () => getRelatedProducts(productNameRef.current!.value, storeId);
+    const callback = () => getRelatedProducts(productNameQuery, storeId);
     await relatedProductsFetch.fetchData(callback);
   }
 

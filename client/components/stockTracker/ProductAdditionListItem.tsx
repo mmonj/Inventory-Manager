@@ -38,7 +38,7 @@ export function ProductAdditionListItem({
   }
 
   return (
-    <li key={productAddition.id} className="list-group-item product-list-item collapse show">
+    <li className="list-group-item product-list-item">
       <div className="d-flex w-100 justify-content-between">
         <h5 className="mb-1">{productAddition.product.upc}</h5>
 
