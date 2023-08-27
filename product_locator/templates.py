@@ -1,4 +1,5 @@
 from typing import List, NamedTuple
+
 from reactivated import Pick, template
 
 from .forms import PlanogramForm

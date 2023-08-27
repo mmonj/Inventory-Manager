@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-import { Context, StoreD7Ddec6B39, reverse, templates } from "@reactivated";
+import { Context, StoreD7Ddec6B39, interfaces, reverse, templates } from "@reactivated";
 
 import Alert from "react-bootstrap/Alert";
 import Button from "react-bootstrap/Button";
@@ -13,13 +13,12 @@ import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { ProductLocatorModal } from "@client/components/productLocator/ProductLocatorModal";
 import { useFetch } from "@client/hooks/useFetch";
 import { getProductLocation } from "@client/util/productLocator";
-import { IProductLocation } from "@client/util/productLocator/ajaxInterfaces";
 
 export default (props: templates.ProductLocatorIndex) => {
   const [store, setStore] = useState<StoreD7Ddec6B39 | null>(null);
   const [scannedUpc, setScannedUpc] = useState("");
   const [modalShow, setModalShow] = useState(false);
-  const getProductFetcher = useFetch<IProductLocation>();
+  const getProductFetcher = useFetch<interfaces.IProductLocations>();
   const djangoContext = React.useContext(Context);
 
   // Get store from query param `store-id`
@@ -87,7 +86,7 @@ export default (props: templates.ProductLocatorIndex) => {
             )}
 
             <ol id="scanner-results" className="list-group list-group-numbered px-2 mb-2">
-              {getProductFetcher.data?.home_locations.map((location) => {
+              {getProductFetcher.data?.product.home_locations.map((location) => {
                 if (location.planogram.date_end !== null) return;
 
                 return (
@@ -98,7 +97,7 @@ export default (props: templates.ProductLocatorIndex) => {
                     <div className="ms-2 me-auto location-container">
                       <div className="fw-bold location-name">{location.name}</div>
                       <div className="fw-bold planogram-name">{location.planogram.name}</div>
-                      <div className="product-name">{getProductFetcher.data?.name}</div>
+                      <div className="product-name">{getProductFetcher.data?.product.name}</div>
                     </div>
                   </li>
                 );
@@ -106,7 +105,7 @@ export default (props: templates.ProductLocatorIndex) => {
             </ol>
 
             <ol id="scanner-results-outdated" className="list-group list-group-numbered px-2">
-              {getProductFetcher.data?.home_locations.map((location) => {
+              {getProductFetcher.data?.product.home_locations.map((location) => {
                 if (location.planogram.date_end === null) return;
 
                 return (
@@ -119,17 +118,17 @@ export default (props: templates.ProductLocatorIndex) => {
                     <div className="ms-2 me-auto location-container">
                       <div className="fw-bold location-name">{location.name}</div>
                       <div className="fw-bold planogram-name">{location.planogram.name}</div>
-                      <div className="product-name">{getProductFetcher.data?.name}</div>
+                      <div className="product-name">{getProductFetcher.data?.product.name}</div>
                     </div>
                   </li>
                 );
               })}
             </ol>
 
-            {getProductFetcher.data?.home_locations.length === 0 && (
+            {getProductFetcher.data?.product.home_locations.length === 0 && (
               <div className="text-center my-2 alert alert-danger">
-                UPC <span className="fw-bold">{getProductFetcher.data.upc}</span> not found for this
-                store
+                UPC <span className="fw-bold">{getProductFetcher.data.product.upc}</span> not found
+                for this store
               </div>
             )}
 
@@ -152,7 +151,7 @@ export default (props: templates.ProductLocatorIndex) => {
           <ProductLocatorModal
             scannedUpc={scannedUpc}
             planograms={props.planograms}
-            productName={getProductFetcher.data?.name}
+            productName={getProductFetcher.data?.product.name ?? undefined}
             storeId={store.pk}
             modalShow={modalShow}
             onHide={() => setModalShow(() => false)}

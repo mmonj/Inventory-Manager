@@ -1,4 +1,5 @@
 from django.urls import path
+
 from . import views
 from .ajax import views as ajax_views
 from .api import views as api_views
@@ -12,15 +13,17 @@ pages = [
 ]
 
 ajax = [
-    path("ajax/get_product_location/", views.get_product_location, name="get_product_location"),
+    path(
+        "ajax/get_product_location/", ajax_views.get_product_location, name="get_product_location"
+    ),
     path(
         "ajax/get_product_locations_by_name/<int:store_id>/<str:product_name>/",
-        views.get_product_locations_by_name,
+        ajax_views.get_product_locations_by_name,
         name="get_product_locations_by_name",
     ),
     path(
         "ajax/add_new_product_location/",
-        views.add_new_product_location,
+        ajax_views.add_new_product_location,
         name="add_new_product_location",
     ),
     path(

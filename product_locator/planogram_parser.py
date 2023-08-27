@@ -1,10 +1,10 @@
 import logging
 import re
 from typing import Callable
-from natsort import natsorted
 
 from django.contrib import messages
 from django.http import HttpRequest
+from natsort import natsorted
 
 from .types import IImportedProductInfo
 

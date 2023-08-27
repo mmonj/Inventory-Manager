@@ -1,8 +1,8 @@
 from typing import Any
-from checkdigit import gs1
 
-from django.db import models
+from checkdigit import gs1
 from django.core.exceptions import ValidationError
+from django.db import models
 from django.utils import timezone
 
 

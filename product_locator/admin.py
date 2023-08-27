@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Store, Planogram, HomeLocation, Product
+
+from .models import HomeLocation, Planogram, Product, Store
 
 
 class PlanogramAdmin(admin.ModelAdmin[Planogram]):

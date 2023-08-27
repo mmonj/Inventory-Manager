@@ -2,27 +2,25 @@ import { interfaces, reverse } from "@reactivated";
 
 import { ApiResponse } from "@client/types";
 
-import { ILocationUpdateResponseType, IProductLocation } from "./ajaxInterfaces";
-
 export function getProductLocation(
   upc: string,
   store_id: number,
   action_path: string
-): Promise<ApiResponse<IProductLocation>> {
+): Promise<ApiResponse<interfaces.IProductLocations>> {
   const params = new URLSearchParams();
   params.append("upc", upc);
   params.append("store_id", store_id.toString());
 
   const action_url = action_path + "?" + params.toString();
 
-  return fetch(action_url, { method: "get" });
+  return fetch(action_url, { method: "GET", headers: { Accept: "application/json" } });
 }
 
 export function postNewProductLocation(
   formData: FormData,
   formElm: HTMLFormElement,
   csrfTokenValue: string
-): Promise<ApiResponse<ILocationUpdateResponseType>> {
+): Promise<ApiResponse<interfaces.IHomeLocationUpdate>> {
   const payload = {
     upc: formData.get("upc-number"),
     product_name: formData.get("product-name"),
@@ -33,6 +31,7 @@ export function postNewProductLocation(
   return fetch(formElm.action, {
     method: formElm.method,
     headers: {
+      Accept: "application/json",
       "content-type": "application/json",
       "X-CSRFToken": csrfTokenValue,
     },

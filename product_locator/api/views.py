@@ -2,14 +2,12 @@ import logging
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import NotFound as DrfNotFound
-from rest_framework.response import Response as DrfResponse
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request as DRFRequest
+from rest_framework.response import Response as DrfResponse
 
 from ..models import HomeLocation, ProductScanAudit
-
 from .serializers import HomeLocation_Products_Serializer, ScanAuditSerializer
-
 
 logger = logging.getLogger("main_logger")
 

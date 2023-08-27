@@ -1,12 +1,6 @@
 from rest_framework import serializers
 
-from ..models import HomeLocation, Planogram, Product, ProductScanAudit, Store
-
-
-class StoreSerializer(serializers.ModelSerializer[Store]):
-    class Meta:
-        model = Store
-        fields = ["id", "name"]
+from ..models import HomeLocation, Planogram, Product, ProductScanAudit
 
 
 class PlanogramSerializer(serializers.ModelSerializer[Planogram]):

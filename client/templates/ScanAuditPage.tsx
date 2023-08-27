@@ -36,7 +36,7 @@ export default function (props: templates.ScanAuditPage) {
 
   function handleScanAuditSubmission(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (scanAuditSelectRef.current!.value === "-1") {
+    if (scanAuditSelectRef.current!.value === "") {
       return;
     }
 
@@ -89,15 +89,18 @@ export default function (props: templates.ScanAuditPage) {
                 name="previous-scan-audits"
                 id="previous-scan-audits"
                 className="form-select me-1"
-                defaultValue={"-1"}
+                defaultValue={""}
                 required
               >
-                <option value="-1" disabled>
+                <option value="" disabled>
                   Choose a Scan Audit to add to
                 </option>
                 {props.previous_audits.map((previous_audit) => (
                   <option key={previous_audit.pk} value={previous_audit.pk}>
-                    {format(new Date(previous_audit.datetime_created), "MMMM d, yyyy, hh:mm a")}{" "}
+                    {format(
+                      new Date(previous_audit.datetime_created),
+                      "EEEE, MMMM d, yyyy, hh:mm a"
+                    )}{" "}
                   </option>
                 ))}
               </select>

@@ -8,7 +8,6 @@ import Modal from "react-bootstrap/Modal";
 
 import { useFetch } from "@client/hooks/useFetch";
 import { getRelatedProducts, postNewProductLocation } from "@client/util/productLocator";
-import { ILocationUpdateResponseType } from "@client/util/productLocator/ajaxInterfaces";
 
 import { LoadingSpinner } from "../LoadingSpinner";
 
@@ -29,7 +28,7 @@ export function ProductLocatorModal({
   productName,
   storeId,
 }: Props) {
-  const locUpdateProps = useFetch<ILocationUpdateResponseType>();
+  const locUpdateProps = useFetch<interfaces.IHomeLocationUpdate>();
   const relatedProductsFetch = useFetch<interfaces.MatchingProducts>();
   const djangoContext = React.useContext(Context);
 

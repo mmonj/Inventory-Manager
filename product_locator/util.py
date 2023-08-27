@@ -4,10 +4,8 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest
 
-from .types import IImportedProductInfo
-
 from .models import HomeLocation, Planogram, Product
-
+from .types import IImportedProductInfo
 
 logger = logging.getLogger("main_logger")
 

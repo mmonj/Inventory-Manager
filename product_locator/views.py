@@ -1,36 +1,18 @@
 import logging
 
-from django.core.exceptions import ValidationError
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Prefetch
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.decorators.http import require_http_methods
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.exceptions import NotFound as DrfNotFound, ValidationError as DrfValidationError
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.request import Request as DRFRequest
-
-from .types import (
-    GetProductLocationRequest,
-    IAddNewProductLocation,
-    IImportedProductInfo,
-)
-from . import interfaces_response
-from api.util import validate_structure
 
 from product_locator import templates
-from .forms import PlanogramForm
 
 from . import planogram_parser, util
-from .models import Product, ProductScanAudit, Store, Planogram, HomeLocation
-from .api.serializers import (
-    HomeLocationSerializer,
-    ProductWithHomeLocationsSerializer,
-)
+from .forms import PlanogramForm
+from .models import Planogram, ProductScanAudit, Store
+from .types import IImportedProductInfo
 
 logger = logging.getLogger("main_logger")
 
@@ -87,77 +69,3 @@ def scan_audit(request: HttpRequest) -> HttpResponse:
     )
 
     return templates.ScanAuditPage(previous_audits=list(scan_audits)).render(request)
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def get_product_location(request: DRFRequest) -> Response:
-    request_data = validate_structure(request.GET, GetProductLocationRequest)
-    try:
-        Product(upc=request_data.upc).clean()
-    except ValidationError as ex:
-        raise DrfValidationError(ex.messages)
-
-    product = (
-        Product.objects.prefetch_related(
-            Prefetch(
-                "home_locations",
-                queryset=HomeLocation.objects.filter(planogram__store__pk=request_data.store_id),
-            ),
-        )
-        .filter(upc=request_data.upc)
-        .order_by("-home_locations__planogram__date_start")
-        .first()
-    )
-
-    if product is None:
-        raise DrfNotFound(f"Product with UPC {request_data.upc} not found")
-
-    return Response(ProductWithHomeLocationsSerializer(product).data)
-
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def add_new_product_location(request: DRFRequest) -> HttpResponse:
-    request_data = validate_structure(request.data, IAddNewProductLocation)
-
-    product = Product.objects.filter(upc=request_data.upc).first()
-    if product is None:
-        try:
-            product = Product.objects.create(upc=request_data.upc, name=request_data.product_name)
-        except ValidationError as ex:
-            raise DrfValidationError(ex.messages)
-
-    planogram = Planogram.objects.get(id=request_data.planogram_id)
-    location, is_new_location = HomeLocation.objects.select_related("planogram").get_or_create(
-        name=request_data.location, planogram=planogram
-    )
-
-    if location not in product.home_locations.select_related("planogram", "planogram__store").all():
-        logger.info(f"Adding location '{location}' to product '{product}'")
-        product.home_locations.add(location)
-
-    return Response(HomeLocationSerializer(location).data)
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def get_product_locations_by_name(
-    request: HttpRequest, store_id: int, product_name: str
-) -> HttpResponse:
-    products = (
-        Product.objects.filter(name__icontains=product_name)
-        .order_by("name")
-        .prefetch_related(
-            Prefetch(
-                "home_locations",
-                queryset=HomeLocation.objects.filter(
-                    planogram__store__pk=store_id, planogram__date_end__isnull=True
-                ),
-            )
-        )
-    )
-
-    return interfaces_response.MatchingProducts(
-        [p for p in products if p.home_locations.all()]
-    ).render(request)
