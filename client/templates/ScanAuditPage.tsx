@@ -63,6 +63,7 @@ export default function (props: templates.ScanAuditPage) {
     );
 
     if (isSuccess) {
+      setScannedUpcs((prev) => prev.filter((prevUpc) => prevUpc !== decodedText));
       setScannedUpcs((prev) => [decodedText, ...prev]);
     }
   }
@@ -137,7 +138,7 @@ export default function (props: templates.ScanAuditPage) {
         </section>
       )}
 
-      <ol className="list-group px-2 mw-rem-60 mx-auto">
+      <ol className="list-group list-group-numbered px-2 mw-rem-60 mx-auto">
         {scannedUpcs.map((upc) => (
           <li
             key={crypto.randomUUID()}
