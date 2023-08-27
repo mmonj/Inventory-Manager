@@ -56,3 +56,43 @@ export function getRelatedProducts(
     { headers: headers }
   );
 }
+
+export function postToScanAudit(
+  scan_audit_id: number,
+  upc: string,
+  csrfToken: string
+): Promise<ApiResponse<interfaces.IProductLocatorProduct>> {
+  const headers = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    "X-CSRFToken": csrfToken,
+  };
+
+  return fetch(reverse("product_locator:add_upc_to_scan_audit"), {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify({
+      scan_audit_id: scan_audit_id,
+      upc: upc,
+    }),
+  });
+}
+
+export function createNewScanAudit(
+  product_type: string,
+  csrfToken: string
+): Promise<ApiResponse<interfaces.IScanAuditCreation>> {
+  const headers = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    "X-CSRFToken": csrfToken,
+  };
+
+  return fetch(reverse("product_locator:create_new_scan_audit"), {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify({
+      product_type: product_type,
+    }),
+  });
+}

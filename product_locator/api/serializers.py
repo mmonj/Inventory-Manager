@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import HomeLocation, Planogram, Product, Store
+from ..models import HomeLocation, Planogram, Product, ProductScanAudit, Store
 
 
 class StoreSerializer(serializers.ModelSerializer[Store]):
@@ -37,3 +37,17 @@ class HomeLocation_Products_Serializer(serializers.ModelSerializer[HomeLocation]
     class Meta:
         model = HomeLocation
         fields = ["name", "products"]
+
+
+class ProductBasicSerializer(serializers.ModelSerializer[Product]):
+    class Meta:
+        model = Product
+        fields = ["id", "upc", "name", "date_created"]
+
+
+class ScanAuditSerializer(serializers.ModelSerializer[ProductScanAudit]):
+    products_in_stock = ProductBasicSerializer(many=True)
+
+    class Meta:
+        model = ProductScanAudit
+        fields = ["id", "product_type", "datetime_created", "products_in_stock"]

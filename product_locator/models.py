@@ -83,3 +83,9 @@ class Product(models.Model):
 
     def __str__(self) -> str:
         return f"{self.upc} {self.name}"
+
+
+class ProductScanAudit(models.Model):
+    product_type = models.CharField(max_length=50, null=True, blank=False)
+    datetime_created = models.DateTimeField(null=False, blank=False, default=timezone.now)
+    products_in_stock = models.ManyToManyField(Product, related_name="scan_audits")

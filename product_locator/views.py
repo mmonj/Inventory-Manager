@@ -26,11 +26,10 @@ from product_locator import templates
 from .forms import PlanogramForm
 
 from . import planogram_parser, util
-from .models import Product, Store, Planogram, HomeLocation
-from .serializers import (
+from .models import Product, ProductScanAudit, Store, Planogram, HomeLocation
+from .api.serializers import (
     HomeLocationSerializer,
     ProductWithHomeLocationsSerializer,
-    HomeLocation_Products_Serializer,
 )
 
 logger = logging.getLogger("main_logger")
@@ -38,7 +37,7 @@ logger = logging.getLogger("main_logger")
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET"])
-def index(request: DRFRequest) -> HttpResponse:
+def index(request: HttpRequest) -> HttpResponse:
     stores = Store.objects.all()
     planograms = Planogram.objects.all().select_related("store")
 
@@ -76,6 +75,18 @@ def add_new_products(request: HttpRequest) -> HttpResponse:
         request, f"Submitted {num_products_added} out of {len(product_list)} items successfully"
     )
     return redirect("product_locator:add_new_products")
+
+
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
+@require_http_methods(["GET"])
+def scan_audit(request: HttpRequest) -> HttpResponse:
+    scan_audits = (
+        ProductScanAudit.objects.all()
+        .prefetch_related("products_in_stock")
+        .order_by("-datetime_created")
+    )
+
+    return templates.ScanAuditPage(previous_audits=list(scan_audits)).render(request)
 
 
 @api_view(["GET"])
@@ -134,31 +145,19 @@ def add_new_product_location(request: DRFRequest) -> HttpResponse:
 def get_product_locations_by_name(
     request: HttpRequest, store_id: int, product_name: str
 ) -> HttpResponse:
-    products = Product.objects.filter(name__icontains=product_name).prefetch_related(
-        Prefetch(
-            "home_locations",
-            queryset=HomeLocation.objects.filter(
-                planogram__store__pk=store_id, planogram__date_end__isnull=True
-            ),
+    products = (
+        Product.objects.filter(name__icontains=product_name)
+        .order_by("name")
+        .prefetch_related(
+            Prefetch(
+                "home_locations",
+                queryset=HomeLocation.objects.filter(
+                    planogram__store__pk=store_id, planogram__date_end__isnull=True
+                ),
+            )
         )
     )
 
     return interfaces_response.MatchingProducts(
         [p for p in products if p.home_locations.all()]
     ).render(request)
-
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def get_planogram_locations(request: DRFRequest) -> HttpResponse:
-    planogram_name = request.GET.get("planogram-name")
-    store_name = request.GET.get("store-name")
-    home_locations = (
-        HomeLocation.objects.prefetch_related("products")
-        .filter(planogram__name=planogram_name, planogram__store__name=store_name)
-        .all()
-    )
-
-    home_locations_json = HomeLocation_Products_Serializer(home_locations, many=True).data
-
-    return Response(home_locations_json)

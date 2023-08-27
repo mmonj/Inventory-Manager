@@ -36,8 +36,10 @@ function ProductLoggerKeyboard({
     <form
       onSubmit={handleSubmit}
       id="form-manual-upc"
+      className="mx-2"
       action={reverse("stock_tracker:log_product_scan")}
-      method="POST">
+      method="POST"
+    >
       <label htmlFor="text-input-upc" className="d-block my-2">
         UPC Number
       </label>

@@ -19,8 +19,17 @@ export function NavigationBar() {
                 href={reverse("product_locator:add_new_products")}
                 className={
                   reverse("product_locator:add_new_products") === currentPath ? "active" : ""
-                }>
+                }
+              >
                 Add New Products
+              </Nav.Link>
+            )}
+            {djangoContext.user.is_authenticated && (
+              <Nav.Link
+                href={reverse("product_locator:scan_audit")}
+                className={reverse("product_locator:scan_audit") === currentPath ? "active" : ""}
+              >
+                Scan Audit
               </Nav.Link>
             )}
           </Nav>
@@ -34,7 +43,8 @@ export function NavigationBar() {
             {!djangoContext.user.is_authenticated && (
               <Nav.Link
                 href={reverse("stock_tracker:login_view")}
-                className={reverse("stock_tracker:login_view") === currentPath ? "active" : ""}>
+                className={reverse("stock_tracker:login_view") === currentPath ? "active" : ""}
+              >
                 Log In
               </Nav.Link>
             )}

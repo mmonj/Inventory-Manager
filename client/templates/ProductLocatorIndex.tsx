@@ -127,9 +127,9 @@ export default (props: templates.ProductLocatorIndex) => {
             </ol>
 
             {getProductFetcher.data?.home_locations.length === 0 && (
-              <div className="text-center my-2 alert alert-info">
-                Product <span className="fw-bold">{getProductFetcher.data.name}</span> is not part
-                of any planogram for this store
+              <div className="text-center my-2 alert alert-danger">
+                UPC <span className="fw-bold">{getProductFetcher.data.upc}</span> not found for this
+                store
               </div>
             )}
 
