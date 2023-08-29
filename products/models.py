@@ -161,7 +161,7 @@ class Store(models.Model):
         FieldRepresentative, null=True, blank=True, on_delete=models.SET_NULL, related_name="stores"
     )
     date_created = models.DateField(default=timezone.now)
-    guid = models.CharField(max_length=150, null=True, blank=False, unique=True)
+    guid = models.CharField(max_length=150, null=True, blank=True, unique=True)
     store_guids = models.ManyToManyField(StoreGUID, related_name="stores")
 
     # non-column attribute
