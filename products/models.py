@@ -190,6 +190,9 @@ class Store(models.Model):
             raise ValidationError("Store name cannot be empty")
 
     def validate_guid(self) -> None:
+        if self.guid is None:
+            return
+
         self.guid = self.guid.upper().strip()
 
     def clean(self, *args: Any, **kwargs: Any) -> None:
