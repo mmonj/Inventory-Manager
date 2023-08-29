@@ -1,38 +1,41 @@
 import hashlib
 import logging
-from typing import List, Optional
 
-from django_stubs_ext import QuerySetAny
+from django.core.exceptions import ValidationError
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.exceptions import NotFound as DrfNotFound
+from rest_framework.exceptions import ValidationError as DrfValidationError
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request as DrfRequest
+from rest_framework.response import Response as DrfResponse
 
-from .util import update_product_additions, update_product_record_names, validate_structure
+from products.models import (
+    BarcodeSheet,
+    BrandParentCompany,
+    FieldRepresentative,
+    PersonnelContact,
+    Store,
+)
+from products.tasks import get_external_product_images
+from products.util import get_current_work_cycle
+
+from .serializers import (
+    BarcodeSheetSerializer,
+    FieldRepresentativeSerializer,
+    PersonnelContactSerializer,
+    StoreSerializer,
+)
 from .types import (
     IGetStoreProductAdditions,
     IUpdateStoreFieldRep,
     IUpdateStoreInfo,
     IUpdateStorePersonnel,
 )
-from products.models import (
-    PersonnelContact,
-    Store,
-    FieldRepresentative,
-    BrandParentCompany,
-    BarcodeSheet,
-    StoreGUID,
+from .util import (
+    update_product_additions,
+    update_product_record_names,
+    validate_structure,
 )
-from products.util import get_current_work_cycle
-from products.tasks import get_external_product_images
-from .serializers import (
-    BarcodeSheetSerializer,
-    PersonnelContactSerializer,
-    StoreSerializer,
-    FieldRepresentativeSerializer,
-)
-
-from rest_framework.request import Request as DrfRequest
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.exceptions import ValidationError as DrfValidationError, NotFound as DrfNotFound
-from rest_framework.response import Response as DrfResponse
-from rest_framework.permissions import IsAuthenticated
 
 logger = logging.getLogger("main_logger")
 
@@ -65,52 +68,28 @@ def update_store_info(request: DrfRequest) -> DrfResponse:
 
     received_store_name = request_data.store_name
     received_partial_store_address = request_data.partial_store_address
-    # possible store GUID. The GUID indicated may or may not be unique per store,
-    # but it will be stored for historical purposes
-    received_store_guid = request_data.store_guid
+    received_store_guid = request_data.store_guid.upper().strip()
 
-    if "" in [received_store_name, received_partial_store_address, received_store_guid]:
-        raise DrfValidationError
-
-    received_store_guid = received_store_guid.upper().strip()
     logger.info(f"Received request data {request_data}")
+    if "" in [received_store_name, received_partial_store_address, received_store_guid]:
+        raise DrfValidationError("Empty field value received in payload")
 
-    stores_queryset: QuerySetAny[Store, Store]
+    store = (
+        Store.objects.filter(guid=received_store_guid)
+        .prefetch_related("field_representative", "contacts")
+        .first()
+    )
 
-    if received_partial_store_address is None:
-        logger.info("Getting store by exact store name")
-        stores_queryset = Store.objects.filter(name=received_store_name).prefetch_related(
-            "field_representative", "store_guids"
-        )
-    else:
-        logger.info("Getting store by partial store address")
-        stores_queryset = Store.objects.filter(
-            name__icontains=received_partial_store_address
-        ).prefetch_related("field_representative", "store_guids")
-
-    stores_list: List[Store] = []
-
-    if not stores_queryset:
-        logger.info("No store match found. Creating new store record")
-        new_store: Store = Store.objects.create(name=received_store_name)
-        store_guid, is_new_guid = StoreGUID.objects.get_or_create(value=received_store_guid)
-        new_store.store_guids.add(store_guid)
-        stores_list = [new_store]
-    elif stores_queryset.count() > 0:
-        logger.info("At least one store record retrieved. Returning first record in queryset")
-        first_store: Optional[Store] = stores_queryset.first()
-        if first_store:
-            store_guid, is_new_guid = StoreGUID.objects.get_or_create(value=received_store_guid)
-            first_store.store_guids.add(store_guid)
-            stores_list = [first_store]
-
-    if stores_queryset.count() > 1:
+    if store is None:
         logger.info(
-            f"A total of {stores_queryset.count()} stores matched partial store address"
-            f": '{received_partial_store_address}'. Full store name from request data: '{received_store_name}'"
+            f"No store match found. Creating new store record for store {request_data.store_name}, guid {request_data.store_guid}"
         )
+        try:
+            store = Store.objects.create(name=received_store_name, guid=received_store_guid)
+        except ValidationError as ex:
+            raise DrfValidationError(ex.messages)
 
-    return DrfResponse(StoreSerializer(stores_list, many=True).data)
+    return DrfResponse(StoreSerializer(store).data)
 
 
 @api_view(["PUT"])

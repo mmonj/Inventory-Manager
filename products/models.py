@@ -170,21 +170,22 @@ class Store(models.Model):
     def __str__(self) -> str:
         return f"{self.name}"
 
-    def sanitize_store_name(self) -> None:
+    def sanitize_name(self) -> None:
         if self.name is None:
             return
         self.name = re.sub(self.trailing_number_re, "", self.name)
 
-    def validate_store_name(self) -> None:
+    def validate_name(self) -> None:
         if self.name is None:
-            return
+            raise ValidationError("Store name should not be null")
+
+        self.name = self.name.upper().strip()
 
         if re.search(self.trailing_number_re, self.name):
             raise ValidationError(
                 f"Store name must not have a dash or trailing numbers: {self.name}"
             )
 
-        self.name = self.name.strip()
         if self.name == "":
             raise ValidationError("Store name cannot be empty")
 
@@ -192,10 +193,11 @@ class Store(models.Model):
         if self.guid is None:
             raise ValidationError("GUID should not be null")
 
-        self.guid = self.guid.upper()
+        self.guid = self.guid.upper().strip()
 
     def clean(self, *args: Any, **kwargs: Any) -> None:
-        self.validate_store_name()
+        self.validate_name()
+        self.validate_guid()
 
         super().clean(*args, **kwargs)
 
