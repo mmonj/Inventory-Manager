@@ -93,4 +93,39 @@
   animation-duration: 0.2s;
   animation-fill-mode: forwards;
   animation-play-state: running;
+}
+
+.react-select__single-value {
+  color: white !important;
+}
+.react-select__input-container {
+  color: white !important;
+}
+.react-select__control {
+  color: white !important;
+  background-color: rgb(17, 24, 39) !important;
+}
+.react-select__menu {
+  margin: 0.125rem auto !important;
+  border: #6d6d6d solid 1px;
+}
+.react-select__menu-notice {
+  color: white !important;
+  background-color: rgb(17, 24, 39) !important;
+}
+.react-select__menu-list {
+  background-color: rgb(17, 24, 39) !important;
+}
+.react-select__option {
+  color: white !important;
+  background-color: rgb(17, 24, 39) !important;
+}
+.react-select__option--is-focused {
+  background-color: #67a2f7 !important;
+}
+.react-select__option--is-selected {
+  background-color: #297df9 !important;
+}
+.react-select__group {
+  padding: 0 !important;
 }/*# sourceMappingURL=shared.css.map */

@@ -5,9 +5,6 @@ import { Helmet } from "react-helmet-async";
 
 import { ContribMessages } from "./ContribMessages";
 
-import "@static/styles/bs-navbar-overrides.css";
-import "@static/styles/shared.css";
-
 interface Props {
   title: string;
   children: React.ReactNode;
@@ -40,8 +37,20 @@ export const Layout = ({ extraStyles = [], excludeBsBodyOverrides = false, ...pr
           href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
           rel="stylesheet"
           integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65"
-          crossOrigin="anonymous"></link>
-        <link rel="stylesheet" type="text/css" href={`${djangoContext.STATIC_URL}dist/index.css`} />
+          crossOrigin="anonymous"
+        ></link>
+
+        <link
+          rel="stylesheet"
+          type="text/css"
+          href={`${djangoContext.STATIC_URL}styles/bs-navbar-overrides.css`}
+        />
+        <link
+          rel="stylesheet"
+          type="text/css"
+          href={`${djangoContext.STATIC_URL}styles/shared.css`}
+        />
+
         {!excludeBsBodyOverrides && (
           <link
             rel="stylesheet"

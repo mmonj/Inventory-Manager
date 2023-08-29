@@ -68,4 +68,4 @@ def scan_audit(request: HttpRequest) -> HttpResponse:
         .order_by("-datetime_created")
     )
 
-    return templates.ScanAuditPage(previous_audits=list(scan_audits)).render(request)
+    return templates.ProductLocatorScanAudit(previous_audits=list(scan_audits)).render(request)

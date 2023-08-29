@@ -18,7 +18,7 @@ class ProductLocatorAddNewProducts(NamedTuple):
 
 
 @template
-class ScanAuditPage(NamedTuple):
+class ProductLocatorScanAudit(NamedTuple):
     previous_audits: List[
         Pick[ProductScanAudit, "pk", "product_type", "datetime_created", "products_in_stock.upc"]
     ]
