@@ -32,10 +32,12 @@ interface StoreSelectOption {
 }
 
 function StoreSelector({ stores, selectedStore, setSelectedStore }: StoreSelectorProps) {
-  const options: StoreSelectOption[] = stores.map((store) => ({
-    value: store.pk,
-    label: store.name ?? "-no-store-name-",
-  }));
+  const options: StoreSelectOption[] = stores
+    .map((store) => ({
+      value: store.pk,
+      label: store.name ?? "_error: Null store name",
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 
   return (
     <div id="store-select-container" className="my-1 mb-3">
