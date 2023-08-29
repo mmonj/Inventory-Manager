@@ -80,9 +80,22 @@ def update_store_info(request: DrfRequest) -> DrfResponse:
         .first()
     )
 
+    if store is None and received_partial_store_address is not None:
+        logger.info(
+            f"No store match found. Searching for existing store with partial address: '{received_partial_store_address}'"
+        )
+        store = (
+            Store.objects.filter(name__icontains=received_partial_store_address, guid=None)
+            .prefetch_related("field_representative", "contacts")
+            .first()
+        )
+        if store is not None:
+            store.guid = received_store_guid
+            store.save(update_fields=["guid"])
+
     if store is None:
         logger.info(
-            f"No store match found. Creating new store record for store {request_data.store_name}, guid {request_data.store_guid}"
+            f"No store match found. Creating new store record for store '{request_data.store_name}', guid '{request_data.store_guid}'"
         )
         try:
             store = Store.objects.create(name=received_store_name, guid=received_store_guid)
