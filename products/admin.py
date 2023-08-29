@@ -1,6 +1,7 @@
 from typing import Optional
-from django.db import models
+
 from django.contrib import admin
+from django.db import models
 from django.http import HttpRequest
 from django_stubs_ext import QuerySetAny
 
@@ -12,8 +13,8 @@ from .models import (
     Product,
     ProductAddition,
     Store,
-    WorkCycle,
     StoreGUID,
+    WorkCycle,
 )
 
 
@@ -53,10 +54,11 @@ class StoreGuidAdmin(admin.ModelAdmin[StoreGUID]):
 
 
 class StoreAdmin(admin.ModelAdmin[Store]):
-    search_fields = ["name", "store_guids__value"]
+    search_fields = ["name", "guid"]
     list_display = [
         "name",
         "date_created",
+        "guid",
         "get_personnel_contact_first_name",
         "get_personnel_contact_last_name",
         "get_field_representative",

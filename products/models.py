@@ -1,8 +1,8 @@
 import re
-from typing import Any
-from checkdigit import gs1
 from pathlib import Path
+from typing import Any
 
+from checkdigit import gs1
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
@@ -161,6 +161,7 @@ class Store(models.Model):
         FieldRepresentative, null=True, blank=True, on_delete=models.SET_NULL, related_name="stores"
     )
     date_created = models.DateField(default=timezone.now)
+    guid = models.CharField(max_length=150, null=True, blank=False, unique=True)
     store_guids = models.ManyToManyField(StoreGUID, related_name="stores")
 
     # non-column attribute
@@ -169,15 +170,12 @@ class Store(models.Model):
     def __str__(self) -> str:
         return f"{self.name}"
 
-    def _strd(self) -> str:
-        return f"Store(name={ repr(self.name) }, field_representative={self.field_representative})"
-
     def sanitize_store_name(self) -> None:
         if self.name is None:
             return
         self.name = re.sub(self.trailing_number_re, "", self.name)
 
-    def clean(self, *args: Any, **kwargs: Any) -> None:
+    def validate_store_name(self) -> None:
         if self.name is None:
             return
 
@@ -189,6 +187,15 @@ class Store(models.Model):
         self.name = self.name.strip()
         if self.name == "":
             raise ValidationError("Store name cannot be empty")
+
+    def validate_guid(self) -> None:
+        if self.guid is None:
+            raise ValidationError("GUID should not be null")
+
+        self.guid = self.guid.upper()
+
+    def clean(self, *args: Any, **kwargs: Any) -> None:
+        self.validate_store_name()
 
         super().clean(*args, **kwargs)
 
