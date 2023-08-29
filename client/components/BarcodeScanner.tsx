@@ -112,9 +112,11 @@ function Html5QrcodePlugin({ scanSuccessCallback, scanErrorCallback }: IScannerP
     // cleanup function when component will unmount
     return () => {
       console.log("unmounted");
-      scanner.clear().catch((error) => {
-        console.error("Failed to clear html5QrcodeScanner. ", error);
-      });
+      setTimeout(() => {
+        scanner.clear().catch((error) => {
+          console.error("Failed to clear html5QrcodeScanner. ", error);
+        });
+      }, 1000);
     };
   }, []);
 

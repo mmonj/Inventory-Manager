@@ -106,7 +106,6 @@
   background-color: rgb(17, 24, 39) !important;
 }
 .react-select__menu {
-  margin: 0.125rem auto !important;
   border: #6d6d6d solid 1px;
 }
 .react-select__menu-notice {
@@ -119,6 +118,8 @@
 .react-select__option {
   color: white !important;
   background-color: rgb(17, 24, 39) !important;
+  padding-top: 0.3rem !important;
+  padding-bottom: 0.3rem !important;
 }
 .react-select__option--is-focused {
   background-color: #67a2f7 !important;

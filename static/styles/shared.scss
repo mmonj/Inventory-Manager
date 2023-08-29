@@ -106,7 +106,6 @@
     background-color: $bg-dark-5 !important;
   }
   &__menu {
-    margin: 0.125rem auto !important;
     border: #6d6d6d solid 1px;
   }
 
@@ -120,6 +119,8 @@
   &__option {
     color: white !important;
     background-color: $bg-dark-5 !important;
+    padding-top: 0.3rem !important;
+    padding-bottom: 0.3rem !important;
   }
   &__option--is-focused {
     background-color: #67a2f7 !important;

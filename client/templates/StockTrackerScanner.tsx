@@ -83,48 +83,51 @@ export default function (props: templates.StockTrackerScanner) {
   };
 
   return (
-    <Layout title="Scanner" navbar={<NavigationBar />}>
-      <section className="mw-rem-50 mx-auto">
-        {store === null && (
+    <Layout
+      title="Scanner"
+      navbar={<NavigationBar />}
+      extraStyles={["styles/stock_tracker/scanner.css"]}
+    >
+      {store === null && (
+        <section className="mw-rem-50 mx-auto p-2">
           <FieldRepStoreSelector
             propType="fieldReps"
             field_reps={props.field_reps}
             handleStoreSubmission={handleStoreSubmission}
           />
-        )}
+        </section>
+      )}
 
-        {store !== null && (
-          <section id="scanner-container" className="mw-rem-60 mx-auto">
-            <div id="scanner-store-indicator" className="p-2">
-              <h5 className="card-title text-center title-color">{store.name}</h5>
-            </div>
-
+      {store !== null && (
+        <section id="scanner-container" className="mw-rem-60 mx-auto">
+          <div id="scanner-store-indicator">
+            <h5 className="card-title text-center title-color p-2">{store.name}</h5>
             <BarcodeScanner scanSuccessCallback={onScanSuccess} scanErrorCallback={onScanError} />
+          </div>
 
-            {isLoading && (
-              <div className="d-flex justify-content-center">
-                <LoadingSpinner isBlockElement={true} />
-              </div>
-            )}
-            {isError && (
-              <Alert variant="danger" className="text-center mx-2">
-                {errorMessages.map((error) => (
-                  <div key={crypto.randomUUID()}>{error}</div>
-                ))}
-              </Alert>
-            )}
-            <ol id="scanner-results" className="list-group list-group-numbered px-2">
-              {productAdditions.map((productAddition) => (
-                <NewScanListItem
-                  key={productAddition.id}
-                  productAddition={productAddition}
-                  onProductDeleteHandler={onProductDelete}
-                />
+          {isLoading && (
+            <div className="d-flex justify-content-center">
+              <LoadingSpinner isBlockElement={true} />
+            </div>
+          )}
+          {isError && (
+            <Alert variant="danger" className="text-center mx-2">
+              {errorMessages.map((error) => (
+                <div key={crypto.randomUUID()}>{error}</div>
               ))}
-            </ol>
-          </section>
-        )}
-      </section>
+            </Alert>
+          )}
+          <ol id="scanner-results" className="list-group list-group-numbered px-2">
+            {productAdditions.map((productAddition) => (
+              <NewScanListItem
+                key={productAddition.id}
+                productAddition={productAddition}
+                onProductDeleteHandler={onProductDelete}
+              />
+            ))}
+          </ol>
+        </section>
+      )}
     </Layout>
   );
 }
