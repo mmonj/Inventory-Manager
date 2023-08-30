@@ -1,0 +1,3 @@
+[submodule "survey-worker"]
+	path = survey_worker
+	url = git@github.com:mmonj/survey-worker.git
