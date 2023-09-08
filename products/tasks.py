@@ -1,19 +1,19 @@
 import logging
 import re
-from typing import Optional
-import redis
-import requests
 import time
 from datetime import datetime, timedelta
 from io import BytesIO
-from PIL import Image, ImageChops, ImageOps
-from django_rq import job
+from typing import Optional
+
+import redis
+import requests
 from django.conf import settings
 from django.core.files import File
-
-from .types import IUpcItemDbData, IUpcItemDbItem
+from django_rq import job  # type: ignore [import]
+from PIL import Image, ImageChops, ImageOps
 
 from .models import Product
+from .types import IUpcItemDbData, IUpcItemDbItem
 
 PRODUCT_LOOKUP_ENDPOINT = "https://api.upcitemdb.com/prod/trial/lookup?upc={upc_lookup_str}"
 IMAGE_HOSTNAME_PREFERENCES = [

@@ -6,6 +6,7 @@ import { IFieldRep, IStore } from "@client/templates/StockTrackerScanner";
 
 type BaseProps = {
   handleStoreSubmission: (storePk: string) => void;
+  submitButtonText?: string;
 };
 
 type StoreSelectorProps = {
@@ -121,8 +122,8 @@ export function FieldRepStoreSelector(props: Props) {
           setSelectedStore={setSelectedStore}
         />
       </fieldset>
-      <button type="submit" className="btn btn-primary col-12 my-2">
-        Submit
+      <button type="submit" className="btn btn-primary col-12 my-2 d-block">
+        {props.submitButtonText ?? "Submit"}
       </button>
     </form>
   );

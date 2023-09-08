@@ -1,31 +1,29 @@
 import logging
-import pytz
 import zipfile
-
+from datetime import date, datetime, timedelta, timezone
 from io import BytesIO
-from datetime import datetime, timezone, timedelta, date
 from pathlib import Path
 from typing import Any, Generator, List, Optional, Set
 
-from django.core.files import File
+import pytz
 from django.core.exceptions import ValidationError
+from django.core.files import File
 
+from .models import (
+    BrandParentCompany,
+    FieldRepresentative,
+    PersonnelContact,
+    Product,
+    ProductAddition,
+    Store,
+    WorkCycle,
+)
 from .types import (
     BasicStoreInfo,
     ImportedFieldRepInfo,
     ImportedProductInfo,
     ImportedProductStockData,
     ImportedStoreData,
-)
-
-from .models import (
-    BrandParentCompany,
-    PersonnelContact,
-    Product,
-    ProductAddition,
-    Store,
-    FieldRepresentative,
-    WorkCycle,
 )
 
 logger = logging.getLogger("main_logger")
@@ -311,7 +309,7 @@ def get_num_work_cycles_offset(date_in_question: date, work_cycle: WorkCycle) ->
 
 
 def get_current_work_cycle() -> WorkCycle:
-    """Get the latest WorkCycle instance; return if today's date is within the work cycle's date intervals
+    """Get the latest WorkCycle instance; return if today's date is within existing work cycle's date intervals
         else create a new WorkCycle record and return that
 
     Returns:

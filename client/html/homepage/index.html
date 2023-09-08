@@ -57,5 +57,24 @@
       </div>
     </div>
   </div>
+
+  <div class="card mb-3 rounded-4 overflow-hidden">
+    <div class="row g-0">
+      <div class="col-md-4 text-center">
+        <img src="{% static 'public/survey-logo.png' %}" class="img-fluid rounded-start card-img"
+          alt="product-logger-logo">
+      </div>
+      <div class="card-body col-md-8 d-flex flex-column justify-content-between">
+        <div>
+          <h5 class="card-title">Survey Worker</h5>
+          <p class="card-text">Find and launch work surveys in one go</p>
+          <p class="card-text">Features a searchable dropdown list</p>
+        </div>
+        <div class="text-end mt-3">
+          <a href="{% url 'survey_worker:index' %}" class="btn btn-primary">Go to Survey Launcher</a>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 {% endblock %}

@@ -1,0 +1,38 @@
+{% extends "stock_tracker/layout.html" %}
+{% load static %}
+
+{% block title %}Inventory Manager{% endblock %}
+
+{% block extra_head_elements %}
+{% endblock %}
+
+{% block body_header %}
+{% include "_common/includes/navbar.html" %}
+{% endblock %}
+
+{% block body_main %}
+<section class="my-4 mw-rem-60 mx-auto px-2">
+  <div class="row">
+
+    <div class="col-sm-6">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Survey Launcher</h5>
+          <p class="card-text">Launch survey forms by store lookup</p>
+          <a href="{% url 'survey_worker:survey_launcher' %}" class="btn btn-primary">Go to Survey Launcher</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Task Adminer</h5>
+          <p class="card-text">Administrate RQ Tasks</p>
+          <a href="{% url 'survey_worker:task_adminer' %}" class="btn btn-primary">Go to Task Adminer</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

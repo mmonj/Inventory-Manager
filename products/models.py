@@ -11,6 +11,8 @@ from django.utils import timezone
 class WorkCycle(models.Model):
     start_date = models.DateField(default=timezone.now)
     end_date = models.DateField(default=timezone.now)
+    cmklaunch_urls = models.JSONField(null=True, blank=True, default=list)
+    cmklaunch_stores_data = models.JSONField(null=True, blank=True, default=list)
 
     def __str__(self) -> str:
         return f"{self.start_date} to {self.end_date}"
@@ -23,6 +25,9 @@ class WorkCycle(models.Model):
 class FieldRepresentative(models.Model):
     name = models.CharField(max_length=255)
     work_email = models.EmailField(max_length=255, unique=True)
+    mv_rep_id = models.CharField(max_length=100, null=True, blank=True, unique=True)
+    mv_user = models.CharField(max_length=50, null=True, blank=True, unique=True)
+    mv_pin = models.CharField(max_length=50, null=True, blank=True)
 
     def __str__(self) -> str:
         return f"{self.name}; {self.work_email}"
