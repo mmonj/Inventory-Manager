@@ -2,6 +2,8 @@ import React from "react";
 
 import { SurveyWorkerInterfacesICmklaunchStoreInfo, templates } from "@reactivated";
 
+import { differenceInHours, differenceInMinutes, format } from "date-fns/esm";
+
 import { Layout } from "@client/components/Layout";
 import { FieldRepStoreSelector } from "@client/components/StoreSelector";
 import { NavigationBar } from "@client/components/surveyWorker/navigationBar";
@@ -12,6 +14,7 @@ interface IStoreGuid extends SurveyWorkerInterfacesICmklaunchStoreInfo {
 
 export default function (props: templates.SurveyWorkerLauncher) {
   const [selectedStore, setSelectedStore] = React.useState<IStoreGuid | null>(null);
+  const [isCmklaunchUrlsShown, setIsCmklaunchUrlsShown] = React.useState(false);
 
   const cmklaunchStores = props.cmk_stores_refresh_data.stores.map(
     (store, idx): IStoreGuid => ({
@@ -30,15 +33,78 @@ export default function (props: templates.SurveyWorkerLauncher) {
     });
   }
 
+  function toggleShowOriginalCmklaunchUrls() {
+    setIsCmklaunchUrlsShown((prev) => !prev);
+  }
+
   function getDomainName(url: string): string {
     const hostname = new URL(url).hostname;
     return hostname.substring(hostname.lastIndexOf(".", hostname.lastIndexOf(".") - 1) + 1);
+  }
+
+  function getTimeAgo(dateStr: string | null): string {
+    if (dateStr === null) {
+      return "Never";
+    }
+
+    const date = new Date(dateStr);
+    const now = new Date();
+
+    const hoursDifference = differenceInHours(now, date);
+    const minutesDifference = differenceInMinutes(now, date) % 60; // minutes excluding hours
+
+    if (hoursDifference > 0 && minutesDifference > 0) {
+      return `${hoursDifference} hour(s) ${minutesDifference} minute(s) ago`;
+    } else if (hoursDifference > 0) {
+      return `${hoursDifference} hour(s) ago`;
+    }
+    return `${minutesDifference} minute(s) ago`;
   }
 
   return (
     <Layout title="Survey Launcher" navbar={<NavigationBar />}>
       <section className="mw-rem-60 mx-auto p-2 px-3">
         <h1 className="title-color text-center p-2">Survey Launcher</h1>
+
+        <div className="alert alert-info">
+          <div>
+            <strong>Showing Cycle:</strong>{" "}
+            {format(new Date(props.cycle_start_date), "MMM d, yyyy")} -{" "}
+            {format(new Date(props.cycle_end_date), "MMM d, yyyy")}
+          </div>
+          <div>
+            <strong>Store List Last Syncced:</strong>{" "}
+            {getTimeAgo(props.cmk_stores_refresh_data.datetime_last_refreshed)}
+          </div>
+          <div>
+            <strong>Cmklaunch URLs Pooled:</strong> {props.cmklaunch_urls.length}{" "}
+            <button
+              onClick={toggleShowOriginalCmklaunchUrls}
+              type="button"
+              className="btn btn-secondary py-0 px-1"
+            >
+              {!isCmklaunchUrlsShown ? "Show" : "Hide"}
+            </button>
+          </div>
+
+          {isCmklaunchUrlsShown && (
+            <div className="mt-2 p-2 border border-secondary rounded">
+              <h5 className="text-dark">Original Cmklaunch URLs</h5>
+              {props.cmklaunch_urls.map((cmklaunchUrl, idx) => (
+                <a
+                  key={idx}
+                  href={cmklaunchUrl}
+                  className="d-block text-secondary py-1"
+                  style={{
+                    overflow: "auto",
+                  }}
+                >
+                  {cmklaunchUrl}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
 
         <FieldRepStoreSelector
           propType="stores"
