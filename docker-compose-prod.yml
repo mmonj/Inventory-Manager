@@ -41,9 +41,9 @@ services:
     depends_on:
       - django_app
 
-  rq_worker:
+  rq_worker_default:
     image: mmonj.inventory_manager_django
-    container_name: inventory-manager-rq-worker
+    container_name: inventory-manager-rq-worker-default
     command: python manage.py rqworker default
     user: "${UID}"
     volumes:
@@ -51,8 +51,34 @@ services:
     env_file:
       - prod.env
     restart: unless-stopped
-    networks:
-      - caddy_net
+    depends_on:
+      - django_app
+      - redis
+
+  rq_worker_onehub_synccer:
+    image: mmonj.inventory_manager_django
+    container_name: inventory-manager-rq-worker-onehub-synccer
+    command: python manage.py rqworker onehub_synccer
+    user: "${UID}"
+    volumes:
+      - ./:/app
+    env_file:
+      - prod.env
+    restart: unless-stopped
+    depends_on:
+      - django_app
+      - redis
+
+  rq_scheduler:
+    image: mmonj.inventory_manager_django
+    container_name: inventory-manager-rq-scheduler
+    command: rqscheduler -H redis -p 6379 --db 0
+    user: "${UID}"
+    volumes:
+      - ./:/app
+    env_file:
+      - prod.env
+    restart: unless-stopped
     depends_on:
       - django_app
       - redis

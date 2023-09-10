@@ -37,7 +37,7 @@ RUN if [ "$ENV_TYPE" = "dev" ]; then\
     && poetry install --no-root \
     && npm i \
 ;elif [ "$ENV_TYPE" = "prod" ]; then\
-    poetry install --without dev --no-root --sync \
+    poetry install --without dev --no-root \
     && npm ci --omit=dev \
 ;fi
 
