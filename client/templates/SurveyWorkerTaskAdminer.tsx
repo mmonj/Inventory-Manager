@@ -9,7 +9,7 @@ import { useFetch } from "@client/hooks/useFetch";
 import { getSurveyUrlsUpdateStatus } from "@client/util/surveyWorker";
 
 export default function (props: templates.SurveyWorkerTaskAdminer) {
-  const cmklaunchUrlsTaskFetch = useFetch<{ detail: string }>();
+  const workerTasksFetch = useFetch<{ detail: string }>();
   const djangoContext = React.useContext(Context);
 
   type taskTypeType = (typeof props.task_types)[number];
@@ -20,7 +20,7 @@ export default function (props: templates.SurveyWorkerTaskAdminer) {
       return;
     }
 
-    void cmklaunchUrlsTaskFetch.fetchData(() =>
+    void workerTasksFetch.fetchData(() =>
       getSurveyUrlsUpdateStatus(taskType, djangoContext.csrf_token)
     );
   }
@@ -39,8 +39,8 @@ export default function (props: templates.SurveyWorkerTaskAdminer) {
                   </p>
                   <ButtonWithSpinner
                     type="button"
-                    onClick={() => confirmTask("refresh_cmk_stores")}
-                    fetchState={cmklaunchUrlsTaskFetch}
+                    onClick={() => confirmTask("resync_stores_from_cmklaunchers")}
+                    fetchState={workerTasksFetch}
                     className="btn btn-secondary"
                   >
                     Admin: Refresh Stores
@@ -58,8 +58,8 @@ export default function (props: templates.SurveyWorkerTaskAdminer) {
                   </p>
                   <ButtonWithSpinner
                     type="button"
-                    onClick={() => confirmTask("re_sync_onehub")}
-                    fetchState={cmklaunchUrlsTaskFetch}
+                    onClick={() => confirmTask("resync_cmklaunchers_from_onehub")}
+                    fetchState={workerTasksFetch}
                     className="btn btn-secondary"
                   >
                     Admin: Resync OneHub

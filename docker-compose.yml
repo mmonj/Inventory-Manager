@@ -20,19 +20,6 @@ services:
       - dev.env
     restart: unless-stopped
 
-  rq_worker:
-    image: inventory-manager-django-dev
-    container_name: inventory-manager-rq-worker
-    command: python manage.py rqworker default
-    user: "${UID}"
-    volumes:
-      - ./:/app
-    env_file:
-      - dev.env
-    restart: unless-stopped
-    depends_on:
-      - django_app
-
   # redis-overcommit-on-host
   redis-overcommit:
     build: https://github.com/bkuhl/redis-overcommit-on-host.git
@@ -44,6 +31,46 @@ services:
   redis:
     image: redis
     container_name: redis-inventory-manager
+    restart: unless-stopped
+    depends_on:
+      - django_app
+
+  rq_worker_default:
+    image: inventory-manager-django-dev
+    container_name: inventory-manager-rq-worker-default
+    command: python manage.py rqworker default
+    user: "${UID}"
+    volumes:
+      - ./:/app
+    env_file:
+      - dev.env
+    restart: unless-stopped
+    depends_on:
+      - django_app
+
+  rq_worker_onehub_synccer:
+    image: inventory-manager-django-dev
+    container_name: inventory-manager-rq-worker-onehub-synccer
+    command: python manage.py rqworker onehub_synccer
+    user: "${UID}"
+    volumes:
+      - ./:/app
+    env_file:
+      - dev.env
+    restart: unless-stopped
+    depends_on:
+      - django_app
+
+  rq_scheduler:
+    image: inventory-manager-django-dev
+    container_name: inventory-manager-rq-scheduler
+    # command: rqscheduler -H $REDIS_HOST -p 6379 --db 0
+    command: ["sh", "-c", "rqscheduler -H redis -p 6379 --db 0"]
+    user: "${UID}"
+    volumes:
+      - ./:/app
+    env_file:
+      - dev.env
     restart: unless-stopped
     depends_on:
       - django_app

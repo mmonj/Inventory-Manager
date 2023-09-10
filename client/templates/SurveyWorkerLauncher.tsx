@@ -13,7 +13,7 @@ interface IStoreGuid extends SurveyWorkerInterfacesICmklaunchStoreInfo {
 export default function (props: templates.SurveyWorkerLauncher) {
   const [selectedStore, setSelectedStore] = React.useState<IStoreGuid | null>(null);
 
-  const cmklaunchStores = props.cmklaunch_stores.map(
+  const cmklaunchStores = props.cmk_stores_refresh_data.stores.map(
     (store, idx): IStoreGuid => ({
       pk: idx,
       ...store,

@@ -22,7 +22,6 @@ django-cleanup = "^8.0.0"
 django-rq = "^2.8.1"
 redis = "^4.5.5"
 natsort = "^8.3.1"
-shortuuid = "^1.0.11"
 django-stubs = {extras = ["compatible-mypy"], version = "^4.2.3"}
 djangorestframework-stubs = {extras = ["compatible-mypy"], version = "^3.14.2"}
 uvicorn = "^0.22.0"
@@ -32,6 +31,7 @@ requests-html = "^0.10.0"
 beautifulsoup4 = "^4.12.2"
 sqlparse = "^0.4.4"
 sql-metadata = "^2.8.0"
+rq-scheduler = "^0.13.1"
 
 
 [tool.poetry.group.dev.dependencies]
