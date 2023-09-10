@@ -48,6 +48,7 @@ function StoreSelector({ stores, selectedStore, setSelectedStore }: StoreSelecto
 
       <Select
         required={true}
+        menuShouldScrollIntoView={true}
         placeholder="Select a store"
         value={selectedStore}
         onChange={setSelectedStore}

@@ -18,9 +18,9 @@ export default function (props: templates.SurveyWorkerLauncher) {
   const [isCmklaunchUrlsShown, setIsCmklaunchUrlsShown] = React.useState(false);
 
   const slideInVariants = {
-    hidden: { x: "-120vw" },
+    hidden: { x: "130vw" },
     visible: { x: 0 },
-    exit: { x: "120vw" },
+    exit: { x: "-130vw" },
   };
 
   const cmklaunchStores = props.cmk_stores_refresh_data.stores.map(
@@ -61,11 +61,11 @@ export default function (props: templates.SurveyWorkerLauncher) {
     const minutesDifference = differenceInMinutes(now, date) % 60; // minutes excluding hours
 
     if (hoursDifference > 0 && minutesDifference > 0) {
-      return `${hoursDifference} hour(s) ${minutesDifference} minute(s) ago`;
+      return `${hoursDifference} hour(s) ${minutesDifference} minutes ago`;
     } else if (hoursDifference > 0) {
       return `${hoursDifference} hour(s) ago`;
     }
-    return `${minutesDifference} minute(s) ago`;
+    return `${minutesDifference} minutes ago`;
   }
 
   return (
@@ -101,6 +101,8 @@ export default function (props: templates.SurveyWorkerLauncher) {
                 <a
                   key={idx}
                   href={cmklaunchUrl}
+                  target="_blank"
+                  rel="noreferrer"
                   className="d-block text-secondary py-1"
                   style={{
                     overflow: "auto",
@@ -116,7 +118,7 @@ export default function (props: templates.SurveyWorkerLauncher) {
         <FieldRepStoreSelector
           propType="stores"
           stores={cmklaunchStores}
-          submitButtonText="Search for store surveys"
+          submitButtonText="Search for Surveys"
           handleStoreSubmission={handleStoreSubmission}
         />
 
@@ -147,7 +149,7 @@ export default function (props: templates.SurveyWorkerLauncher) {
                 </p>
               ))}
               <button onClick={launchLinks} type="button" className="btn btn-primary mt-3">
-                Launch all Links
+                Open all Surveys
               </button>
             </motion.div>
           )}
