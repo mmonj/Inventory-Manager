@@ -11,7 +11,7 @@ class IRedisConnection(TypedDict):
 
 class IRqQueues(TypedDict):
     default: IRedisConnection
-    onehub_cmklaunch_sync: IRedisConnection
+    onehub_synccer: IRedisConnection
 
 
 RQ_QUEUES: IRqQueues = {

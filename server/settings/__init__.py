@@ -20,8 +20,6 @@ import django_stubs_ext
 from .env_setup import *  # noqa: F401
 from .redis_queues import *  # noqa: F401
 
-# print("           >>>>>> Test string", file=sys.stderr)
-
 django_stubs_ext.monkeypatch()
 
 T = TypeVar("T")

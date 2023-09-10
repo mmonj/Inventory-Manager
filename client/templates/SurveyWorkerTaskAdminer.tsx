@@ -69,6 +69,8 @@ export default function (props: templates.SurveyWorkerTaskAdminer) {
             </div>
           </div>
         )}
+
+        {!djangoContext.user.is_superuser && <h5>Nothing to see here if you are not an admin!</h5>}
       </section>
     </Layout>
   );

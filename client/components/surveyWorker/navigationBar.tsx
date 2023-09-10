@@ -24,6 +24,12 @@ export function NavigationBar() {
                 >
                   Survey Launcher
                 </Nav.Link>
+                <Nav.Link
+                  href={reverse("survey_worker:task_adminer")}
+                  className={reverse("survey_worker:task_adminer") === currentPath ? "active" : ""}
+                >
+                  Task Adminer
+                </Nav.Link>
               </>
             )}
 
