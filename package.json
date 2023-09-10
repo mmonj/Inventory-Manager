@@ -5,6 +5,7 @@
   "dependencies": {
     "bootstrap": "^5.3.0",
     "date-fns": "^2.30.0",
+    "framer-motion": "^10.16.4",
     "html5-qrcode": "^2.3.8",
     "react-bootstrap": "^2.8.0",
     "react-select": "^5.7.4",

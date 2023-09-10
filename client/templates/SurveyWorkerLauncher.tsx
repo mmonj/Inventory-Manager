@@ -3,6 +3,7 @@ import React from "react";
 import { SurveyWorkerInterfacesICmklaunchStoreInfo, templates } from "@reactivated";
 
 import { differenceInHours, differenceInMinutes, format } from "date-fns/esm";
+import { AnimatePresence, motion } from "framer-motion";
 
 import { Layout } from "@client/components/Layout";
 import { FieldRepStoreSelector } from "@client/components/StoreSelector";
@@ -15,6 +16,12 @@ interface IStoreGuid extends SurveyWorkerInterfacesICmklaunchStoreInfo {
 export default function (props: templates.SurveyWorkerLauncher) {
   const [selectedStore, setSelectedStore] = React.useState<IStoreGuid | null>(null);
   const [isCmklaunchUrlsShown, setIsCmklaunchUrlsShown] = React.useState(false);
+
+  const slideInVariants = {
+    hidden: { x: "-120vw" },
+    visible: { x: 0 },
+    exit: { x: "120vw" },
+  };
 
   const cmklaunchStores = props.cmk_stores_refresh_data.stores.map(
     (store, idx): IStoreGuid => ({
@@ -113,30 +120,38 @@ export default function (props: templates.SurveyWorkerLauncher) {
           handleStoreSubmission={handleStoreSubmission}
         />
 
-        {selectedStore !== null && (
-          <div className="alert alert-info">
-            <h5 className="mb-3" style={{ color: "unset" }}>
-              Available surveys for store <span className="fw-bold">{selectedStore.name}</span>
-            </h5>
-
-            {selectedStore.surveys.map((survey, idx) => (
-              <p
-                key={idx}
-                className="m-1"
-                style={{ overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}
-              >
-                <span className="fw-bold">{survey.category}: </span>
-                <a href={survey.url} style={{ color: "unset" }}>
-                  {getDomainName(survey.url)}
-                </a>
-              </p>
-            ))}
-
-            <button onClick={launchLinks} type="button" className="btn btn-primary mt-3">
-              Launch all Links
-            </button>
-          </div>
-        )}
+        <AnimatePresence mode="popLayout">
+          {selectedStore !== null && (
+            <motion.div
+              key={selectedStore.guid}
+              className="alert alert-info"
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              variants={slideInVariants}
+              transition={{ type: "bounce", stiffness: 60, damping: 20, duration: 0.4 }}
+            >
+              <h5 className="mb-3" style={{ color: "unset" }}>
+                Available surveys for store <span className="fw-bold">{selectedStore.name}</span>
+              </h5>
+              {selectedStore.surveys.map((survey, idx) => (
+                <p
+                  key={idx}
+                  className="m-1"
+                  style={{ overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}
+                >
+                  <span className="fw-bold">{survey.category}: </span>
+                  <a href={survey.url} style={{ color: "unset" }}>
+                    {getDomainName(survey.url)}
+                  </a>
+                </p>
+              ))}
+              <button onClick={launchLinks} type="button" className="btn btn-primary mt-3">
+                Launch all Links
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
     </Layout>
   );
