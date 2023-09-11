@@ -29,9 +29,6 @@ class WorkCycle(models.Model):
 class FieldRepresentative(models.Model):
     name = models.CharField(max_length=255)
     work_email = models.EmailField(max_length=255, unique=True)
-    mv_rep_id = models.CharField(max_length=100, null=True, blank=True, unique=True)
-    mv_user = models.CharField(max_length=50, null=True, blank=True, unique=True)
-    mv_pin = models.CharField(max_length=50, null=True, blank=True)
 
     def __str__(self) -> str:
         return f"{self.name}; {self.work_email}"
