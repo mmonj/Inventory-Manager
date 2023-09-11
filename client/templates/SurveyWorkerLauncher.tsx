@@ -15,6 +15,7 @@ interface IStoreGuid extends SurveyWorkerInterfacesICmklaunchStoreInfo {
 
 export default function (props: templates.SurveyWorkerLauncher) {
   const [selectedStore, setSelectedStore] = React.useState<IStoreGuid | null>(null);
+  const [isStoreSurveysShown, setIsStoreSurveysShown] = React.useState(false);
   const [isCmklaunchUrlsShown, setIsCmklaunchUrlsShown] = React.useState(false);
 
   const slideInVariants = {
@@ -32,6 +33,7 @@ export default function (props: templates.SurveyWorkerLauncher) {
 
   function handleStoreSubmission(fakePk: string) {
     setSelectedStore(() => cmklaunchStores.find((store) => store.pk === parseInt(fakePk)) ?? null);
+    setIsStoreSurveysShown(() => true);
   }
 
   function launchLinks() {
@@ -42,6 +44,10 @@ export default function (props: templates.SurveyWorkerLauncher) {
 
   function toggleShowOriginalCmklaunchUrls() {
     setIsCmklaunchUrlsShown((prev) => !prev);
+  }
+
+  function actionOnStoreSelectChange() {
+    setIsStoreSurveysShown(() => false);
   }
 
   function getDomainName(url: string): string {
@@ -120,10 +126,11 @@ export default function (props: templates.SurveyWorkerLauncher) {
           stores={cmklaunchStores}
           submitButtonText="Search for Surveys"
           handleStoreSubmission={handleStoreSubmission}
+          actionOnStoreSelectChange={actionOnStoreSelectChange}
         />
 
         <AnimatePresence mode="popLayout">
-          {selectedStore !== null && (
+          {isStoreSurveysShown == true && !!selectedStore && (
             <motion.div
               key={selectedStore.guid}
               className="alert alert-info"
@@ -143,7 +150,7 @@ export default function (props: templates.SurveyWorkerLauncher) {
                   style={{ overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}
                 >
                   <span className="fw-bold">{survey.category}: </span>
-                  <a href={survey.url} style={{ color: "unset" }}>
+                  <a href={survey.url} target="_blank" rel="noreferrer" style={{ color: "unset" }}>
                     {getDomainName(survey.url)}
                   </a>
                 </p>

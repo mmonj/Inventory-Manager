@@ -7,6 +7,7 @@ import { IFieldRep, IStore } from "@client/templates/StockTrackerScanner";
 type BaseProps = {
   handleStoreSubmission: (storePk: string) => void;
   submitButtonText?: string;
+  actionOnStoreSelectChange?: () => void;
 };
 
 type StoreSelectorProps = {
@@ -63,6 +64,10 @@ export function FieldRepStoreSelector(props: Props) {
   const [listedStores, setListedStores] = useState<IStore[]>([]);
   const [selectedStore, setSelectedStore] = useState<StoreSelectOption | null>(null);
   const fieldRepRef = useRef<HTMLSelectElement>(null);
+
+  React.useEffect(() => {
+    props.actionOnStoreSelectChange?.();
+  }, [selectedStore]);
 
   function onFieldRepChange() {
     if (props.propType !== "fieldReps") return;
