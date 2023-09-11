@@ -8,6 +8,7 @@ type BaseProps = {
   handleStoreSubmission: (storePk: string) => void;
   submitButtonText?: string;
   actionOnStoreSelectChange?: () => void;
+  isHandleSubmissionWithoutButton?: boolean;
 };
 
 type StoreSelectorProps = {
@@ -44,7 +45,7 @@ function StoreSelector({ stores, selectedStore, setSelectedStore }: StoreSelecto
   return (
     <div id="store-select-container" className="my-1 mb-3">
       <label htmlFor="store-select" className="form-label">
-        Store
+        Select a store
       </label>
 
       <Select
@@ -60,13 +61,20 @@ function StoreSelector({ stores, selectedStore, setSelectedStore }: StoreSelecto
   );
 }
 
-export function FieldRepStoreSelector(props: Props) {
+export function FieldRepStoreSelector({
+  isHandleSubmissionWithoutButton = false,
+  ...props
+}: Props) {
   const [listedStores, setListedStores] = useState<IStore[]>([]);
   const [selectedStore, setSelectedStore] = useState<StoreSelectOption | null>(null);
   const fieldRepRef = useRef<HTMLSelectElement>(null);
 
   React.useEffect(() => {
     props.actionOnStoreSelectChange?.();
+
+    if (isHandleSubmissionWithoutButton == true && selectedStore !== null) {
+      props.handleStoreSubmission(selectedStore.value.toString());
+    }
   }, [selectedStore]);
 
   function onFieldRepChange() {
@@ -128,9 +136,11 @@ export function FieldRepStoreSelector(props: Props) {
           setSelectedStore={setSelectedStore}
         />
       </fieldset>
-      <button type="submit" className="btn btn-primary col-12 my-2 d-block">
-        {props.submitButtonText ?? "Submit"}
-      </button>
+      {isHandleSubmissionWithoutButton == false && (
+        <button type="submit" className="btn btn-primary col-12 my-2 d-block">
+          {props.submitButtonText ?? "Submit"}
+        </button>
+      )}
     </form>
   );
 }

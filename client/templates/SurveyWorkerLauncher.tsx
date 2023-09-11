@@ -15,7 +15,6 @@ interface IStoreGuid extends SurveyWorkerInterfacesICmklaunchStoreInfo {
 
 export default function (props: templates.SurveyWorkerLauncher) {
   const [selectedStore, setSelectedStore] = React.useState<IStoreGuid | null>(null);
-  const [isStoreSurveysShown, setIsStoreSurveysShown] = React.useState(false);
   const [isCmklaunchUrlsShown, setIsCmklaunchUrlsShown] = React.useState(false);
 
   const slideInVariants = {
@@ -33,7 +32,6 @@ export default function (props: templates.SurveyWorkerLauncher) {
 
   function handleStoreSubmission(fakePk: string) {
     setSelectedStore(() => cmklaunchStores.find((store) => store.pk === parseInt(fakePk)) ?? null);
-    setIsStoreSurveysShown(() => true);
   }
 
   function launchLinks() {
@@ -44,10 +42,6 @@ export default function (props: templates.SurveyWorkerLauncher) {
 
   function toggleShowOriginalCmklaunchUrls() {
     setIsCmklaunchUrlsShown((prev) => !prev);
-  }
-
-  function actionOnStoreSelectChange() {
-    setIsStoreSurveysShown(() => false);
   }
 
   function getDomainName(url: string): string {
@@ -126,11 +120,11 @@ export default function (props: templates.SurveyWorkerLauncher) {
           stores={cmklaunchStores}
           submitButtonText="Search for Surveys"
           handleStoreSubmission={handleStoreSubmission}
-          actionOnStoreSelectChange={actionOnStoreSelectChange}
+          isHandleSubmissionWithoutButton={true}
         />
 
         <AnimatePresence mode="popLayout">
-          {isStoreSurveysShown == true && !!selectedStore && (
+          {!!selectedStore && (
             <motion.div
               key={selectedStore.guid}
               className="alert alert-info"
