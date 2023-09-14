@@ -7,16 +7,10 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
-from survey_worker.interfaces import init_cmkstore_refresh_data
-
 
 class WorkCycle(models.Model):
     start_date = models.DateField(default=timezone.now)
     end_date = models.DateField(default=timezone.now)
-    cmklaunch_urls = models.JSONField(null=True, blank=True, default=list)
-    cmklaunch_stores_data = models.JSONField(
-        null=True, blank=True, default=init_cmkstore_refresh_data
-    )
 
     def __str__(self) -> str:
         return f"{self.start_date} to {self.end_date}"
