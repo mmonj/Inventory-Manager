@@ -137,18 +137,25 @@ export default function (props: templates.SurveyWorkerLauncher) {
               <h5 className="mb-3" style={{ color: "unset" }}>
                 Available surveys for store <span className="fw-bold">{selectedStore.name}</span>
               </h5>
-              {selectedStore.surveys.map((survey, idx) => (
-                <p
-                  key={idx}
-                  className="m-1"
-                  style={{ overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}
-                >
-                  <span className="fw-bold">{survey.category}: </span>
-                  <a href={survey.url} target="_blank" rel="noreferrer" style={{ color: "unset" }}>
-                    {getDomainName(survey.url)}
-                  </a>
-                </p>
-              ))}
+              {selectedStore.surveys
+                .sort((a, b) => (a.category < b.category ? 1 : -1))
+                .map((survey, idx) => (
+                  <p
+                    key={idx}
+                    className="m-1"
+                    style={{ overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}
+                  >
+                    <span className="fw-bold">{survey.category}: </span>
+                    <a
+                      href={survey.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: "unset" }}
+                    >
+                      {getDomainName(survey.url)}
+                    </a>
+                  </p>
+                ))}
               <button onClick={launchLinks} type="button" className="btn btn-primary mt-3">
                 Open all Surveys
               </button>
