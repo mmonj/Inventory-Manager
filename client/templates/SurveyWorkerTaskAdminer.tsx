@@ -4,7 +4,7 @@ import { Context, templates } from "@reactivated";
 
 import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
 import { Layout } from "@client/components/Layout";
-import { NavigationBar } from "@client/components/surveyWorker/navigationBar";
+import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { getSurveyUrlsUpdateStatus } from "@client/util/surveyWorker";
 
