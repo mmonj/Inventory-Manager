@@ -23,6 +23,15 @@
         </div>
       </div>
     </div>
+    <div class="col-sm-6">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Territory Viewer</h5>
+          <p class="card-text">View Territory: Stores and tickets</p>
+          <a href="{% url 'survey_worker:territory_viewer' %}" class="btn btn-primary">Go to Territory Viewer</a>
+        </div>
+      </div>
+    </div>
 
     {% if user.is_superuser %}
     <div class="col-sm-6">

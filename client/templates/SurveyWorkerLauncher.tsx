@@ -2,12 +2,13 @@ import React from "react";
 
 import { SurveyWorkerInterfacesICmklaunchStoreInfo, templates } from "@reactivated";
 
-import { differenceInHours, differenceInMinutes, format } from "date-fns/esm";
+import { format } from "date-fns/esm";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Layout } from "@client/components/Layout";
 import { FieldRepStoreSelector } from "@client/components/StoreSelector";
-import { NavigationBar } from "@client/components/surveyWorker/navigationBar";
+import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
+import { getTimeAgo } from "@client/util/surveyWorker";
 
 interface IStoreGuid extends SurveyWorkerInterfacesICmklaunchStoreInfo {
   pk: number;
@@ -47,25 +48,6 @@ export default function (props: templates.SurveyWorkerLauncher) {
   function getDomainName(url: string): string {
     const hostname = new URL(url).hostname;
     return hostname.substring(hostname.lastIndexOf(".", hostname.lastIndexOf(".") - 1) + 1);
-  }
-
-  function getTimeAgo(dateStr: string | null): string {
-    if (dateStr === null) {
-      return "Never";
-    }
-
-    const date = new Date(dateStr);
-    const now = new Date();
-
-    const hoursDifference = differenceInHours(now, date);
-    const minutesDifference = differenceInMinutes(now, date) % 60; // minutes excluding hours
-
-    if (hoursDifference > 0 && minutesDifference > 0) {
-      return `${hoursDifference} hour(s) ${minutesDifference} minutes ago`;
-    } else if (hoursDifference > 0) {
-      return `${hoursDifference} hour(s) ago`;
-    }
-    return `${minutesDifference} minutes ago`;
   }
 
   return (
