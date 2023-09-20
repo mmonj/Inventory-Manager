@@ -26,11 +26,8 @@ export function StoreListItem({ isHideZeroTickets, store, currentTickets }: Prop
 
   return (
     <li>
-      <div
-        className="list-group-item d-flex justify-content-between align-items-start"
-        onClick={() => setIsTicketsShown((prev) => !prev)}
-      >
-        <div className="ms-2 me-auto">
+      <div className="list-group-item d-flex justify-content-between align-items-start">
+        <div className="ms-2 me-auto" onClick={() => setIsTicketsShown((prev) => !prev)}>
           <div className="fw-bold">{store.Name}</div>
           <p className="content-for-list-item my-1">
             <span className="d-block">{store.Address}</span>
