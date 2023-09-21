@@ -51,3 +51,17 @@ export function isHasWebhubStoreNoTickets(
     ) || store.current_pending_mplan_ids.length === 0
   );
 }
+
+export function trimTicketName(input: string): string {
+  const match = input.match(/(.*?)C\d\d+ \(.+?\) \(\d+\) *$/);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+
+  const match2 = input.match(/(.*?)\(\d+\) *$/);
+  if (match2 && match2[1]) {
+    return match2[1].trim();
+  }
+
+  return input;
+}

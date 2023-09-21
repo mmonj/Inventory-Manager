@@ -1,17 +1,22 @@
 import React from "react";
 
-import { Context, SurveyWorkerInterfacesIWebhubStore } from "@reactivated";
+import {
+  Context,
+  SurveyWorkerInterfacesIWebhubStore,
+  SurveyWorkerInterfacesSqlContentMvmPlan,
+} from "@reactivated";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 
 import L, { LatLngLiteral } from "leaflet";
 
 import { extractCoordinates } from "@client/util/commonUtil";
-import { isHasWebhubStoreNoTickets } from "@client/util/surveyWorker";
+import { isHasWebhubStoreNoTickets, trimTicketName } from "@client/util/surveyWorker";
 
 interface Props {
   stores: SurveyWorkerInterfacesIWebhubStore[];
   filteredTicketIds: Set<string>;
   isHideZeroTickets: boolean;
+  currentTickets: SurveyWorkerInterfacesSqlContentMvmPlan[];
 }
 
 const iconUrls = {
@@ -42,7 +47,7 @@ function getCustomIcon(color: keyof typeof iconUrls) {
   });
 }
 
-export default function MapComponent(props: Props) {
+export default function TerritoryMap(props: Props) {
   const [userLocation, setUserLocation] = React.useState<LatLngLiteral | null>(null);
   const djangoContext = React.useContext(Context);
 
@@ -81,7 +86,7 @@ export default function MapComponent(props: Props) {
   return (
     <MapContainer
       center={[mapCenterCoordinates[1], mapCenterCoordinates[0]]}
-      zoom={13}
+      zoom={12.5}
       scrollWheelZoom={true}
       style={{ height: "70vh", marginLeft: "-1rem", marginRight: "-1rem" }}
     >
@@ -120,9 +125,24 @@ export default function MapComponent(props: Props) {
               <span className="d-block" style={{ fontSize: "1rem" }}>
                 {store.Address}
               </span>
-              <small className="text-body d-block" style={{ fontSize: "0.9rem" }}>
+              <small className="d-block" style={{ fontSize: "0.9rem" }}>
                 {store.City}, {store.State} {store.Zip}
               </small>
+              <hr />
+
+              <ul className="list-group" style={{ listStyle: "none" }}>
+                {store.current_pending_mplan_ids.map((storeTicketId) => {
+                  const ticket = props.currentTickets.find((ticket) => ticket.ID === storeTicketId);
+                  if (ticket) {
+                    return (
+                      <li key={ticket.ID} className="">
+                        {trimTicketName(ticket.Name)}
+                      </li>
+                    );
+                  }
+                })}
+              </ul>
+
               <a
                 href={
                   "https://www.google.com/maps/place/" +

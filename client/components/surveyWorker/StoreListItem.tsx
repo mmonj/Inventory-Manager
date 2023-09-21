@@ -5,6 +5,8 @@ import {
   SurveyWorkerInterfacesSqlContentMvmPlan,
 } from "@reactivated";
 
+import { trimTicketName } from "@client/util/surveyWorker";
+
 interface Props {
   store: SurveyWorkerInterfacesIWebhubStore;
   currentTickets: SurveyWorkerInterfacesSqlContentMvmPlan[];
@@ -66,7 +68,7 @@ export function StoreListItem({ store, ...props }: Props) {
               if (ticket) {
                 return (
                   <li key={ticket.ID} className="mb-2">
-                    {ticket.Name}
+                    {trimTicketName(ticket.Name)}
                   </li>
                 );
               }

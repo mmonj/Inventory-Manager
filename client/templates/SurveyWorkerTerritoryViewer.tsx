@@ -12,8 +12,6 @@ interface IFilterSettings {
   isSet: boolean;
 }
 
-const LazyMap = React.lazy(() => import("@client/components/surveyWorker/MapComponent"));
-
 export default function (props: templates.SurveyWorkerTerritoryViewer) {
   const [selectedRepIdx, setSelectedRepIdx] = React.useState<number>(0);
   const [isHideZeroTickets, setIsHideZeroTickets] = React.useState(false);
@@ -21,6 +19,8 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
   const [filteredTicketIds, setFilteredTicketIds] = React.useState<Set<string>>(new Set());
   const [isShowMap, setIsShowMap] = React.useState(false);
   const djangoContext = React.useContext(Context);
+
+  const LazyMap = React.lazy(() => import("@client/components/surveyWorker/TerritoryMap"));
 
   const filterSettings: Record<string, IFilterSettings> = {
     hideZeroTickets: {
@@ -138,6 +138,7 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
               stores={props.reps_to_store[selectedRepIdx].webhub_stores}
               filteredTicketIds={filteredTicketIds}
               isHideZeroTickets={isHideZeroTickets}
+              currentTickets={props.current_mplans}
             />
           </React.Suspense>
         )}
