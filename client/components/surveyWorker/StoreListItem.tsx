@@ -6,22 +6,26 @@ import {
 } from "@reactivated";
 
 interface Props {
-  isHideZeroTickets: boolean;
   store: SurveyWorkerInterfacesIWebhubStore;
   currentTickets: SurveyWorkerInterfacesSqlContentMvmPlan[];
+  filteredTicketIds: Set<string>;
+  isHideZeroTickets: boolean;
 }
 
-export function StoreListItem({ isHideZeroTickets, store, currentTickets }: Props) {
+export function StoreListItem({ store, ...props }: Props) {
   const [isTicketsShown, setIsTicketsShown] = React.useState(false);
 
-  const numPendingTickets = store.current_pending_mplan_ids.length;
+  const numPendingTickets: number = store.current_pending_mplan_ids.filter(
+    (ticketId) => !props.filteredTicketIds.has(ticketId)
+  ).length;
+
+  if (props.isHideZeroTickets && numPendingTickets === 0) {
+    return;
+  }
+
   let numTicketsClassname = "";
   if (numPendingTickets == 0) {
     numTicketsClassname = "text-warning";
-  }
-
-  if (isHideZeroTickets && numPendingTickets == 0) {
-    return;
   }
 
   return (
@@ -37,7 +41,9 @@ export function StoreListItem({ isHideZeroTickets, store, currentTickets }: Prop
           </p>
         </div>
         <div>
-          <small className={"d-block " + numTicketsClassname}>{numPendingTickets} tickets</small>
+          <small className={"d-block " + numTicketsClassname}>
+            {numPendingTickets} {numPendingTickets === 1 ? "ticket" : "tickets"}
+          </small>
           <a
             href={
               "https://www.google.com/maps/place/" +
@@ -53,18 +59,20 @@ export function StoreListItem({ isHideZeroTickets, store, currentTickets }: Prop
       </div>
       {isTicketsShown && (
         <div className="ms-3 alert alert-info">
-          <h5 className="text-dark">Tickets:</h5>
-          {currentTickets.map((ticket) => {
-            if (!store.current_pending_mplan_ids.includes(ticket.ID)) {
-              return;
-            }
-
-            return (
-              <p key={ticket.ID} className="mb-2">
-                {ticket.Name}
-              </p>
-            );
-          })}
+          <h5 className="text-dark">{numPendingTickets} Ticket(s) Pending</h5>
+          <ul className="">
+            {store.current_pending_mplan_ids.map((storeTicketId) => {
+              const ticket = props.currentTickets.find((ticket) => ticket.ID === storeTicketId);
+              if (ticket) {
+                return (
+                  <li key={ticket.ID} className="mb-2">
+                    {ticket.Name}
+                  </li>
+                );
+              }
+            })}
+          </ul>
+          {/* {numPendingTickets === 0 && <p>No pending tickets</p>} */}
         </div>
       )}
     </li>
