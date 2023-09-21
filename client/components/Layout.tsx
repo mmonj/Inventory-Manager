@@ -5,12 +5,18 @@ import { Helmet } from "react-helmet-async";
 
 import { ContribMessages } from "./ContribMessages";
 
+interface IExternalStyles {
+  src: string;
+  integrity?: string;
+}
+
 interface Props {
   title: string;
   children: React.ReactNode;
   navbar: JSX.Element;
   className?: string;
   extraStyles?: string[];
+  extraExternalStyles?: IExternalStyles[];
   excludeBsBodyOverrides?: boolean;
 }
 
@@ -59,7 +65,12 @@ export const Layout = ({ extraStyles = [], excludeBsBodyOverrides = false, ...pr
           />
         )}
 
-        <script defer crossOrigin="anonymous" src={`${djangoContext.STATIC_URL}dist/index.js`} />
+        {/* <link
+          rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossOrigin=""
+        /> */}
         {extraStyles.map((staticBasePath, idx) => (
           <link
             key={idx}
@@ -68,6 +79,28 @@ export const Layout = ({ extraStyles = [], excludeBsBodyOverrides = false, ...pr
             href={djangoContext.STATIC_URL + staticBasePath}
           />
         ))}
+        <style>
+          {`
+          .custom-icon {
+            background-color: red;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+          }
+          `}
+        </style>
+
+        {props.extraExternalStyles?.map((style, idx) => (
+          <link
+            key={idx}
+            rel="stylesheet"
+            href={style.src}
+            integrity={style.integrity}
+            crossOrigin=""
+          />
+        ))}
+
+        <script defer crossOrigin="anonymous" src={`${djangoContext.STATIC_URL}dist/index.js`} />
       </Helmet>
       <header>{props.navbar}</header>
       <main>

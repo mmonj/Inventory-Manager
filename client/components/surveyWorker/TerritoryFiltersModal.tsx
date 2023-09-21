@@ -14,11 +14,6 @@ interface Props {
   currentRepTicketIds: string[];
 }
 
-// interface IFilterSetting {
-//   isSet: boolean;
-//   callback: () => void;
-// }
-
 export function TerritoryFiltersModal({ isShow, setIsShow, ...props }: Props) {
   const toggleShow = () => setIsShow((prev) => !prev);
 
@@ -62,12 +57,12 @@ export function TerritoryFiltersModal({ isShow, setIsShow, ...props }: Props) {
 
   return (
     <>
-      <Modal show={isShow} onHide={toggleShow}>
+      <Modal show={isShow} onHide={toggleShow} backdrop="static">
         <Modal.Header closeButton>
           <Modal.Title>Extra Filters</Modal.Title>
         </Modal.Header>
 
-        <Modal.Body>
+        <Modal.Body style={{ maxHeight: "70vh", overflowY: "scroll" }}>
           <div className="form-check my-2">
             <input
               className="form-check-input"
@@ -82,7 +77,15 @@ export function TerritoryFiltersModal({ isShow, setIsShow, ...props }: Props) {
           </div>
 
           <div className="my-2">
-            <label className="form-label">Filter out tickets: </label>
+            <label className="form-label">Filter out tickets:&nbsp;&nbsp;</label>
+            <button
+              type="button"
+              className="btn btn-secondary p-1"
+              onClick={() => props.setFilteredTicketIds(() => new Set())}
+            >
+              Reset Filtered Tickets
+            </button>
+
             <div className="ps-3">
               {currentRepTickets.map((repTicket) => {
                 return (

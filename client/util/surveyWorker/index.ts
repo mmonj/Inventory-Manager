@@ -1,4 +1,4 @@
-import { reverse } from "@reactivated";
+import { SurveyWorkerInterfacesIWebhubStore, reverse } from "@reactivated";
 
 import { differenceInHours, differenceInMinutes } from "date-fns/esm";
 
@@ -39,4 +39,15 @@ export function getTimeAgo(dateStr: string | null): string {
     return `${hoursDifference} hour(s) ago`;
   }
   return `${minutesDifference} minutes ago`;
+}
+
+export function isHasWebhubStoreNoTickets(
+  store: SurveyWorkerInterfacesIWebhubStore,
+  filteredTicketIds: Set<string>
+) {
+  return (
+    store.current_pending_mplan_ids.every((storeTicketId) =>
+      filteredTicketIds.has(storeTicketId)
+    ) || store.current_pending_mplan_ids.length === 0
+  );
 }

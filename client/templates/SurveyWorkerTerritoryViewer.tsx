@@ -1,22 +1,26 @@
 import React from "react";
 
-import { templates } from "@reactivated";
+import { Context, templates } from "@reactivated";
 
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
 import { StoreListItem } from "@client/components/surveyWorker/StoreListItem";
 import { TerritoryFiltersModal } from "@client/components/surveyWorker/TerritoryFiltersModal";
-import { getTimeAgo } from "@client/util/surveyWorker";
+import { getTimeAgo, isHasWebhubStoreNoTickets } from "@client/util/surveyWorker";
 
 interface IFilterSettings {
   isSet: boolean;
 }
+
+const LazyMap = React.lazy(() => import("@client/components/surveyWorker/MapComponent"));
 
 export default function (props: templates.SurveyWorkerTerritoryViewer) {
   const [selectedRepIdx, setSelectedRepIdx] = React.useState<number>(0);
   const [isHideZeroTickets, setIsHideZeroTickets] = React.useState(false);
   const [isFiltersModalShow, setIsFiltersModalShow] = React.useState(false);
   const [filteredTicketIds, setFilteredTicketIds] = React.useState<Set<string>>(new Set());
+  const [isShowMap, setIsShowMap] = React.useState(false);
+  const djangoContext = React.useContext(Context);
 
   const filterSettings: Record<string, IFilterSettings> = {
     hideZeroTickets: {
@@ -36,25 +40,38 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
 
   let numStoresShown = props.reps_to_store[selectedRepIdx].webhub_stores.length;
   if (isHideZeroTickets) {
-    numStoresShown = props.reps_to_store[selectedRepIdx].webhub_stores.filter(
-      (store) => store.current_pending_mplan_ids.length !== 0
+    numStoresShown -= props.reps_to_store[selectedRepIdx].webhub_stores.filter((store) =>
+      isHasWebhubStoreNoTickets(store, filteredTicketIds)
     ).length;
 
-    if (filteredTicketIds.size !== 0) {
-      console.log("here");
-      numStoresShown -= props.reps_to_store[selectedRepIdx].webhub_stores.filter(
-        (store) =>
-          store.current_pending_mplan_ids.every((storeTicketId) =>
-            filteredTicketIds.has(storeTicketId)
-          ) && store.current_pending_mplan_ids.length !== 0
-      ).length;
-    }
+    // numStoresShown = props.reps_to_store[selectedRepIdx].webhub_stores.filter(
+    //   (store) => store.current_pending_mplan_ids.length !== 0
+    // ).length;
+
+    // if (filteredTicketIds.size !== 0) {
+    //   numStoresShown -= props.reps_to_store[selectedRepIdx].webhub_stores.filter(
+    //     (store) =>
+    //       store.current_pending_mplan_ids.every((storeTicketId) =>
+    //         filteredTicketIds.has(storeTicketId)
+    //       ) && store.current_pending_mplan_ids.length !== 0
+    //   ).length;
+    // }
   }
 
   return (
-    <Layout title="Territory Viewer" navbar={<NavigationBar />}>
+    <Layout
+      title="Territory Viewer"
+      navbar={<NavigationBar />}
+      extraExternalStyles={[
+        {
+          src: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
+          integrity: "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=",
+        },
+      ]}
+    >
       <section className="mw-rem-60 mx-auto p-2 px-3">
         <h1 className="title-color text-center">Territory Viewer</h1>
+
         <div className="my-2">
           <label htmlFor="rep-select" className="form-label">
             Select a Field Rep
@@ -91,6 +108,16 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
           <span className="text-warning mx-3">{numFiltersSet} filter(s) set</span>
         )}
 
+        <button
+          type="button"
+          className="btn btn-primary d-block my-2"
+          onClick={() => setIsShowMap((prev) => !prev)}
+        >
+          <img src={`${djangoContext.STATIC_URL}public/geo-alt-fill.svg`} alt="Next" />
+          &nbsp;&nbsp;
+          {isShowMap == true ? "Hide map" : "Show map"}
+        </button>
+
         <div className="form-check my-2">
           <input
             className="form-check-input"
@@ -104,7 +131,18 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
           </label>
         </div>
 
-        <div className="list-group list-group-numbered">
+        {isShowMap && (
+          <React.Suspense fallback={<div>Loading...</div>}>
+            <LazyMap
+              key={selectedRepIdx}
+              stores={props.reps_to_store[selectedRepIdx].webhub_stores}
+              filteredTicketIds={filteredTicketIds}
+              isHideZeroTickets={isHideZeroTickets}
+            />
+          </React.Suspense>
+        )}
+
+        <div className="list-group list-group-numbered my-1">
           {props.reps_to_store[selectedRepIdx].webhub_stores.map((store) => {
             return (
               <StoreListItem

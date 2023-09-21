@@ -15,3 +15,8 @@ export function areSetsEqual<T>(a: Set<T>, b: Set<T>): boolean {
   }
   return result;
 }
+
+export function extractCoordinates(coordinates: string) {
+  const [longitude, latitude] = coordinates.split(",").map((coord) => parseFloat(coord.trim()));
+  return [longitude, latitude] as const;
+}
