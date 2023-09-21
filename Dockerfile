@@ -38,7 +38,7 @@ RUN if [ "$ENV_TYPE" = "dev" ]; then\
     && npm i \
 ;elif [ "$ENV_TYPE" = "prod" ]; then\
     poetry install --without dev --no-root \
-    && npm ci --omit=dev \
+    && npm i --omit=dev \
 ;fi
 
 # Turns off buffering for easier container logging
