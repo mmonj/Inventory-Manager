@@ -162,10 +162,10 @@ class Store(models.Model):
     )
     date_created = models.DateField(default=timezone.now)
     guid = models.CharField(max_length=150, null=True, blank=True, unique=True)
-    store_guids = models.ManyToManyField(StoreGUID, related_name="stores")
+    # store_guids = models.ManyToManyField(StoreGUID, related_name="stores")
 
     # non-column attribute
-    trailing_number_re = re.compile(r" *-* *[0-9]+ *$", flags=re.I)
+    __trailing_number_re = re.compile(r" *-* *[0-9]+ *$", flags=re.I)
 
     def __str__(self) -> str:
         return f"{self.name}"
@@ -173,7 +173,7 @@ class Store(models.Model):
     def sanitize_name(self) -> None:
         if self.name is None:
             return
-        self.name = re.sub(self.trailing_number_re, "", self.name)
+        self.name = re.sub(self.__trailing_number_re, "", self.name)
 
     def validate_name(self) -> None:
         if self.name is None:
@@ -181,13 +181,13 @@ class Store(models.Model):
 
         self.name = self.name.upper().strip()
 
-        if re.search(self.trailing_number_re, self.name):
-            raise ValidationError(
-                f"Store name must not have a dash or trailing numbers: {self.name}"
-            )
-
         if self.name == "":
             raise ValidationError("Store name cannot be empty")
+
+        # if re.search(self.__trailing_number_re, self.name):
+        #     raise ValidationError(
+        #         f"Store name must not have a dash or trailing numbers: {self.name}"
+        #     )
 
     def validate_guid(self) -> None:
         if self.guid is None:

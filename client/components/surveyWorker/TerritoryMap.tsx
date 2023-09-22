@@ -47,6 +47,39 @@ function getCustomIcon(color: keyof typeof iconUrls) {
   });
 }
 
+function MapPopupTicketList(props: {
+  store: SurveyWorkerInterfacesIWebhubStore;
+  currentTickets: SurveyWorkerInterfacesSqlContentMvmPlan[];
+}) {
+  let totalProjectTimeMins = 0;
+  const thisStoreTickets: SurveyWorkerInterfacesSqlContentMvmPlan[] = [];
+
+  props.store.current_pending_mplan_ids.forEach((storeTicketId) => {
+    const ticket = props.currentTickets.find((ticket) => ticket.ID === storeTicketId);
+    if (ticket) {
+      totalProjectTimeMins += parseInt(ticket.EstimatedTime);
+      thisStoreTickets.push(ticket);
+      return;
+    }
+  });
+
+  return (
+    <>
+      <div className="fw-bold mb-1">
+        {Math.floor(totalProjectTimeMins / 60)} hr {totalProjectTimeMins % 60.0} min
+      </div>
+      <ul className="list-group" style={{ listStyle: "none" }}>
+        {thisStoreTickets.map((ticket) => (
+          <li key={ticket.ID} className="">
+            {trimTicketName(ticket.Name)}{" "}
+            <span className="fw-bold">({ticket.EstimatedTime} min)</span>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 export default function TerritoryMap(props: Props) {
   const [userLocation, setUserLocation] = React.useState<LatLngLiteral | null>(null);
   const djangoContext = React.useContext(Context);
@@ -86,7 +119,7 @@ export default function TerritoryMap(props: Props) {
   return (
     <MapContainer
       center={[mapCenterCoordinates[1], mapCenterCoordinates[0]]}
-      zoom={12.5}
+      zoom={12}
       scrollWheelZoom={true}
       style={{ height: "70vh", marginLeft: "-1rem", marginRight: "-1rem" }}
     >
@@ -130,8 +163,9 @@ export default function TerritoryMap(props: Props) {
               </small>
               <hr />
 
-              <ul className="list-group" style={{ listStyle: "none" }}>
-                {store.current_pending_mplan_ids.map((storeTicketId) => {
+              <MapPopupTicketList currentTickets={props.currentTickets} store={store} />
+
+              {/* {store.current_pending_mplan_ids.map((storeTicketId) => {
                   const ticket = props.currentTickets.find((ticket) => ticket.ID === storeTicketId);
                   if (ticket) {
                     return (
@@ -140,8 +174,7 @@ export default function TerritoryMap(props: Props) {
                       </li>
                     );
                   }
-                })}
-              </ul>
+                })} */}
 
               <a
                 href={

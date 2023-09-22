@@ -17,6 +17,18 @@ interface Props {
 export function StoreListItem({ store, ...props }: Props) {
   const [isTicketsShown, setIsTicketsShown] = React.useState(false);
 
+  let totalProjectTimeMins = 0;
+  const thisStoreTickets: SurveyWorkerInterfacesSqlContentMvmPlan[] = [];
+
+  store.current_pending_mplan_ids.forEach((storeTicketId) => {
+    const ticket = props.currentTickets.find((ticket) => ticket.ID === storeTicketId);
+    if (ticket) {
+      totalProjectTimeMins += parseInt(ticket.EstimatedTime);
+      thisStoreTickets.push(ticket);
+      return;
+    }
+  });
+
   const numPendingTickets: number = store.current_pending_mplan_ids.filter(
     (ticketId) => !props.filteredTicketIds.has(ticketId)
   ).length;
@@ -62,19 +74,19 @@ export function StoreListItem({ store, ...props }: Props) {
       {isTicketsShown && (
         <div className="ms-3 alert alert-info">
           <h5 className="text-dark">{numPendingTickets} Ticket(s) Pending</h5>
+          {totalProjectTimeMins > 0 && (
+            <div className="fw-bold mb-1">
+              {Math.floor(totalProjectTimeMins / 60)} hr {totalProjectTimeMins % 60.0} min
+            </div>
+          )}
           <ul className="">
-            {store.current_pending_mplan_ids.map((storeTicketId) => {
-              const ticket = props.currentTickets.find((ticket) => ticket.ID === storeTicketId);
-              if (ticket) {
-                return (
-                  <li key={ticket.ID} className="mb-2">
-                    {trimTicketName(ticket.Name)}
-                  </li>
-                );
-              }
-            })}
+            {thisStoreTickets.map((ticket) => (
+              <li key={ticket.ID} className="">
+                {trimTicketName(ticket.Name)}{" "}
+                <span className="fw-bold">({ticket.EstimatedTime} min)</span>
+              </li>
+            ))}
           </ul>
-          {/* {numPendingTickets === 0 && <p>No pending tickets</p>} */}
         </div>
       )}
     </li>

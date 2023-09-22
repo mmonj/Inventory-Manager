@@ -20,6 +20,16 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
   const [isShowMap, setIsShowMap] = React.useState(false);
   const djangoContext = React.useContext(Context);
 
+  let totalMinutesOfWork = 0;
+  props.reps_to_store[selectedRepIdx].webhub_stores.forEach((store) => {
+    store.current_pending_mplan_ids.forEach((storeTicketId) => {
+      const ticket = props.current_mplans.find((ticket) => ticket.ID === storeTicketId);
+      if (ticket) {
+        totalMinutesOfWork += parseInt(ticket.EstimatedTime);
+      }
+    });
+  });
+
   const LazyMap = React.lazy(() => import("@client/components/surveyWorker/TerritoryMap"));
 
   const filterSettings: Record<string, IFilterSettings> = {
@@ -43,19 +53,6 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
     numStoresShown -= props.reps_to_store[selectedRepIdx].webhub_stores.filter((store) =>
       isHasWebhubStoreNoTickets(store, filteredTicketIds)
     ).length;
-
-    // numStoresShown = props.reps_to_store[selectedRepIdx].webhub_stores.filter(
-    //   (store) => store.current_pending_mplan_ids.length !== 0
-    // ).length;
-
-    // if (filteredTicketIds.size !== 0) {
-    //   numStoresShown -= props.reps_to_store[selectedRepIdx].webhub_stores.filter(
-    //     (store) =>
-    //       store.current_pending_mplan_ids.every((storeTicketId) =>
-    //         filteredTicketIds.has(storeTicketId)
-    //       ) && store.current_pending_mplan_ids.length !== 0
-    //   ).length;
-    // }
   }
 
   return (
@@ -142,6 +139,10 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
             />
           </React.Suspense>
         )}
+
+        <div className="fw-bold mt-3 mb-2 text-white">
+          {Math.floor(totalMinutesOfWork / 60)} hr {totalMinutesOfWork % 60.0} min
+        </div>
 
         <div className="list-group list-group-numbered my-1">
           {props.reps_to_store[selectedRepIdx].webhub_stores.map((store) => {
