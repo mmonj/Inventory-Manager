@@ -47,10 +47,13 @@ function getCustomIcon(color: keyof typeof iconUrls) {
   });
 }
 
-function MapPopupTicketList(props: {
+function MapPopupContent(props: {
   store: SurveyWorkerInterfacesIWebhubStore;
   currentTickets: SurveyWorkerInterfacesSqlContentMvmPlan[];
 }) {
+  const [clipboardMessage, setClipboardMessage] = React.useState<string | null>(null);
+  const djangoContext = React.useContext(Context);
+
   let totalProjectTimeMins = 0;
   const thisStoreTickets: SurveyWorkerInterfacesSqlContentMvmPlan[] = [];
 
@@ -63,8 +66,48 @@ function MapPopupTicketList(props: {
     }
   });
 
+  function handleCopyAddress() {
+    setClipboardMessage(() => "Address Copied!");
+    setTimeout(() => {
+      setClipboardMessage(() => null);
+    }, 2000);
+
+    void navigator.clipboard.writeText(
+      `${props.store.City}, ${props.store.State} | ${props.store.Address} | ${props.store.Name}`
+    );
+  }
+
   return (
     <>
+      <div className="fw-bold h6">{props.store.Name}</div>
+      <div className="d-flex justify-content-between">
+        <div>
+          <span className="d-block" style={{ fontSize: "1rem" }}>
+            {props.store.Address}
+          </span>
+          <small className="d-block" style={{ fontSize: "0.9rem" }}>
+            {props.store.City}, {props.store.State} {props.store.Zip}
+          </small>
+        </div>
+        <div
+          className="text-center"
+          style={{ height: "2.2rem", width: "2.2rem" }}
+          onClick={handleCopyAddress}
+        >
+          <img
+            src={djangoContext.STATIC_URL + "public/clipboard.svg"}
+            alt="Copy to clipboard"
+            style={{
+              maxHeight: "100%",
+              height: "1.3rem",
+              cursor: "pointer",
+            }}
+          />
+          {clipboardMessage !== null && <span className="text-success">{clipboardMessage}</span>}
+        </div>
+      </div>
+      <hr />
+
       <div className="fw-bold mb-1">
         {Math.floor(totalProjectTimeMins / 60)} hr {totalProjectTimeMins % 60.0} min
       </div>
@@ -76,6 +119,21 @@ function MapPopupTicketList(props: {
           </li>
         ))}
       </ul>
+
+      <a
+        href={
+          "https://www.google.com/maps/place/" +
+          encodeURIComponent(
+            `${props.store.Address} ${props.store.City}, ${props.store.State} ${props.store.Zip}`
+          )
+        }
+        target="_blank"
+        rel="noreferrer"
+        className="badge rounded-pill text-bg-primary d-block mt-3"
+        style={{ fontSize: "0.9rem" }}
+      >
+        Open in Google Maps
+      </a>
     </>
   );
 }
@@ -154,40 +212,7 @@ export default function TerritoryMap(props: Props) {
             icon={getCustomIcon(markerColor)}
           >
             <Popup>
-              <div className="fw-bold h6">{store.Name}</div>
-              <span className="d-block" style={{ fontSize: "1rem" }}>
-                {store.Address}
-              </span>
-              <small className="d-block" style={{ fontSize: "0.9rem" }}>
-                {store.City}, {store.State} {store.Zip}
-              </small>
-              <hr />
-
-              <MapPopupTicketList currentTickets={props.currentTickets} store={store} />
-
-              {/* {store.current_pending_mplan_ids.map((storeTicketId) => {
-                  const ticket = props.currentTickets.find((ticket) => ticket.ID === storeTicketId);
-                  if (ticket) {
-                    return (
-                      <li key={ticket.ID} className="">
-                        {trimTicketName(ticket.Name)}
-                      </li>
-                    );
-                  }
-                })} */}
-
-              <a
-                href={
-                  "https://www.google.com/maps/place/" +
-                  encodeURIComponent(`${store.Address} ${store.City}, ${store.State} ${store.Zip}`)
-                }
-                target="_blank"
-                rel="noreferrer"
-                className="badge rounded-pill text-bg-primary d-block mt-3"
-                style={{ fontSize: "0.9rem" }}
-              >
-                Open in Google Maps
-              </a>
+              <MapPopupContent currentTickets={props.currentTickets} store={store} />
             </Popup>
           </Marker>
         );

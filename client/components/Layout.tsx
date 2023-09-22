@@ -65,12 +65,6 @@ export const Layout = ({ extraStyles = [], excludeBsBodyOverrides = false, ...pr
           />
         )}
 
-        {/* <link
-          rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-          crossOrigin=""
-        /> */}
         {extraStyles.map((staticBasePath, idx) => (
           <link
             key={idx}
@@ -79,16 +73,6 @@ export const Layout = ({ extraStyles = [], excludeBsBodyOverrides = false, ...pr
             href={djangoContext.STATIC_URL + staticBasePath}
           />
         ))}
-        <style>
-          {`
-          .custom-icon {
-            background-color: red;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-          }
-          `}
-        </style>
 
         {props.extraExternalStyles?.map((style, idx) => (
           <link

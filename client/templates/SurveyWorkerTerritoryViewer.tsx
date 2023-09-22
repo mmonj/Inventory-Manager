@@ -141,7 +141,7 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
         )}
 
         <div className="fw-bold mt-3 mb-2 text-white">
-          {Math.floor(totalMinutesOfWork / 60)} hr {totalMinutesOfWork % 60.0} min
+          Total: {Math.floor(totalMinutesOfWork / 60)} hr {totalMinutesOfWork % 60.0} min
         </div>
 
         <div className="list-group list-group-numbered my-1">
