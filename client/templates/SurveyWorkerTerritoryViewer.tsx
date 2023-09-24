@@ -6,6 +6,7 @@ import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
 import { StoreListItem } from "@client/components/surveyWorker/StoreListItem";
 import { TerritoryFiltersModal } from "@client/components/surveyWorker/TerritoryFiltersModal";
+import { initSessionTimeTracker } from "@client/util/commonUtil";
 import { getTimeAgo, isHasWebhubStoreNoTickets } from "@client/util/surveyWorker";
 
 interface IFilterSettings {
@@ -19,6 +20,18 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
   const [filteredTicketIds, setFilteredTicketIds] = React.useState<Set<string>>(new Set());
   const [isShowMap, setIsShowMap] = React.useState(false);
   const djangoContext = React.useContext(Context);
+
+  if (props.reps_to_store.length === 0) {
+    return (
+      <Layout title="Territory Viewer" navbar={<NavigationBar />}>
+        <section className="mw-rem-60 mx-auto p-2 px-3">
+          <div className="alert alert-info display-6 text-center">
+            New Cycle. No Info Syncced yet!
+          </div>
+        </section>
+      </Layout>
+    );
+  }
 
   let totalMinutesOfWork = 0;
   props.reps_to_store[selectedRepIdx].webhub_stores.forEach((store) => {
@@ -54,6 +67,17 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
       isHasWebhubStoreNoTickets(store, filteredTicketIds)
     ).length;
   }
+
+  React.useEffect(() => {
+    const [eventName, callback] = initSessionTimeTracker(
+      djangoContext.template_name + "-timeFirstLoaded",
+      10
+    );
+
+    return () => {
+      document.removeEventListener(eventName, callback);
+    };
+  }, []);
 
   return (
     <Layout

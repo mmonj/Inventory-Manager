@@ -1,6 +1,6 @@
 import React from "react";
 
-import { SurveyWorkerInterfacesICmklaunchStoreInfo, templates } from "@reactivated";
+import { Context, SurveyWorkerInterfacesICmklaunchStoreInfo, templates } from "@reactivated";
 
 import { format } from "date-fns/esm";
 import { AnimatePresence, motion } from "framer-motion";
@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Layout } from "@client/components/Layout";
 import { FieldRepStoreSelector } from "@client/components/StoreSelector";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
+import { initSessionTimeTracker } from "@client/util/commonUtil";
 import { getTimeAgo } from "@client/util/surveyWorker";
 
 interface IStoreGuid extends SurveyWorkerInterfacesICmklaunchStoreInfo {
@@ -17,6 +18,7 @@ interface IStoreGuid extends SurveyWorkerInterfacesICmklaunchStoreInfo {
 export default function (props: templates.SurveyWorkerLauncher) {
   const [selectedStore, setSelectedStore] = React.useState<IStoreGuid | null>(null);
   const [isCmklaunchUrlsShown, setIsCmklaunchUrlsShown] = React.useState(false);
+  const djangoContext = React.useContext(Context);
 
   const slideInVariants = {
     hidden: { x: "130vw" },
@@ -49,6 +51,17 @@ export default function (props: templates.SurveyWorkerLauncher) {
     const hostname = new URL(url).hostname;
     return hostname.substring(hostname.lastIndexOf(".", hostname.lastIndexOf(".") - 1) + 1);
   }
+
+  React.useEffect(() => {
+    const [eventName, callback] = initSessionTimeTracker(
+      djangoContext.template_name + "-timeFirstLoaded",
+      10
+    );
+
+    return () => {
+      document.removeEventListener(eventName, callback);
+    };
+  }, []);
 
   return (
     <Layout title="Survey Launcher" navbar={<NavigationBar />}>

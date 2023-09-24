@@ -63,6 +63,7 @@ export default function (props: templates.StockTrackerScanHistory) {
   return (
     <Layout title="Scan History" navbar={<NavigationBar />}>
       <section className="m-2 px-2 mw-rem-60 mx-auto">
+        <h1 className="title-color text-center">Scan History</h1>
         {chosenStore === null && (
           <FieldRepStoreSelector
             propType="fieldReps"

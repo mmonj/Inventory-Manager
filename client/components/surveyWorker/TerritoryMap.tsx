@@ -90,7 +90,7 @@ function MapPopupContent(props: {
           </small>
         </div>
         <div
-          className="text-center"
+          className="text-center m-2"
           style={{ height: "2.2rem", width: "2.2rem" }}
           onClick={handleCopyAddress}
         >
