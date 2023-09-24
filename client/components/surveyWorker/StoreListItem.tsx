@@ -5,7 +5,7 @@ import {
   SurveyWorkerInterfacesSqlContentMvmPlan,
 } from "@reactivated";
 
-import { trimTicketName } from "@client/util/surveyWorker";
+import { getStoreWorktimeMinutes, trimTicketName } from "@client/util/surveyWorker";
 
 interface Props {
   store: SurveyWorkerInterfacesIWebhubStore;
@@ -17,17 +17,11 @@ interface Props {
 export function StoreListItem({ store, ...props }: Props) {
   const [isTicketsShown, setIsTicketsShown] = React.useState(false);
 
-  let totalProjectTimeMins = 0;
-  const thisStoreTickets: SurveyWorkerInterfacesSqlContentMvmPlan[] = [];
-
-  store.current_pending_mplan_ids.forEach((storeTicketId) => {
-    const ticket = props.currentTickets.find((ticket) => ticket.ID === storeTicketId);
-    if (ticket) {
-      totalProjectTimeMins += parseInt(ticket.EstimatedTime);
-      thisStoreTickets.push(ticket);
-      return;
-    }
-  });
+  const [totalProjectTimeMins, thisStoreTickets] = getStoreWorktimeMinutes(
+    store.current_pending_mplan_ids,
+    props.filteredTicketIds,
+    props.currentTickets
+  );
 
   const numPendingTickets: number = store.current_pending_mplan_ids.filter(
     (ticketId) => !props.filteredTicketIds.has(ticketId)

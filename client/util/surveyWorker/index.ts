@@ -1,4 +1,8 @@
-import { SurveyWorkerInterfacesIWebhubStore, reverse } from "@reactivated";
+import {
+  SurveyWorkerInterfacesIWebhubStore,
+  SurveyWorkerInterfacesSqlContentMvmPlan,
+  reverse,
+} from "@reactivated";
 
 import { differenceInHours, differenceInMinutes } from "date-fns/esm";
 
@@ -64,4 +68,23 @@ export function trimTicketName(input: string): string {
   }
 
   return input;
+}
+
+export function getStoreWorktimeMinutes(
+  currentPendingTicketIds: string[],
+  filteredTicketIds: Set<string>,
+  currentTickets: SurveyWorkerInterfacesSqlContentMvmPlan[]
+) {
+  const thisStoreTickets: SurveyWorkerInterfacesSqlContentMvmPlan[] = [];
+  let totalMinutesOfWork = 0;
+
+  currentPendingTicketIds.forEach((storeTicketId) => {
+    const ticket = currentTickets.find((ticket) => ticket.ID === storeTicketId);
+    if (ticket && !filteredTicketIds.has(ticket.ID)) {
+      totalMinutesOfWork += parseInt(ticket.EstimatedTime);
+      thisStoreTickets.push(ticket);
+    }
+  });
+
+  return [totalMinutesOfWork, thisStoreTickets] as const;
 }

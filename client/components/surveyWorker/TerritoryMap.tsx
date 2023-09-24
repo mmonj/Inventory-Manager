@@ -10,7 +10,11 @@ import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import L, { LatLngLiteral } from "leaflet";
 
 import { extractCoordinates } from "@client/util/commonUtil";
-import { isHasWebhubStoreNoTickets, trimTicketName } from "@client/util/surveyWorker";
+import {
+  getStoreWorktimeMinutes,
+  isHasWebhubStoreNoTickets,
+  trimTicketName,
+} from "@client/util/surveyWorker";
 
 interface Props {
   stores: SurveyWorkerInterfacesIWebhubStore[];
@@ -50,21 +54,16 @@ function getCustomIcon(color: keyof typeof iconUrls) {
 function MapPopupContent(props: {
   store: SurveyWorkerInterfacesIWebhubStore;
   currentTickets: SurveyWorkerInterfacesSqlContentMvmPlan[];
+  filteredTicketIds: Set<string>;
 }) {
   const [clipboardMessage, setClipboardMessage] = React.useState<string | null>(null);
   const djangoContext = React.useContext(Context);
 
-  let totalProjectTimeMins = 0;
-  const thisStoreTickets: SurveyWorkerInterfacesSqlContentMvmPlan[] = [];
-
-  props.store.current_pending_mplan_ids.forEach((storeTicketId) => {
-    const ticket = props.currentTickets.find((ticket) => ticket.ID === storeTicketId);
-    if (ticket) {
-      totalProjectTimeMins += parseInt(ticket.EstimatedTime);
-      thisStoreTickets.push(ticket);
-      return;
-    }
-  });
+  const [totalProjectTimeMins, thisStoreTickets] = getStoreWorktimeMinutes(
+    props.store.current_pending_mplan_ids,
+    props.filteredTicketIds,
+    props.currentTickets
+  );
 
   function handleCopyAddress() {
     setClipboardMessage(() => "Address Copied!");
@@ -212,7 +211,11 @@ export default function TerritoryMap(props: Props) {
             icon={getCustomIcon(markerColor)}
           >
             <Popup>
-              <MapPopupContent currentTickets={props.currentTickets} store={store} />
+              <MapPopupContent
+                currentTickets={props.currentTickets}
+                store={store}
+                filteredTicketIds={props.filteredTicketIds}
+              />
             </Popup>
           </Marker>
         );

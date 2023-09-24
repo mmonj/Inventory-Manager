@@ -7,7 +7,11 @@ import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
 import { StoreListItem } from "@client/components/surveyWorker/StoreListItem";
 import { TerritoryFiltersModal } from "@client/components/surveyWorker/TerritoryFiltersModal";
 import { initSessionTimeTracker } from "@client/util/commonUtil";
-import { getTimeAgo, isHasWebhubStoreNoTickets } from "@client/util/surveyWorker";
+import {
+  getStoreWorktimeMinutes,
+  getTimeAgo,
+  isHasWebhubStoreNoTickets,
+} from "@client/util/surveyWorker";
 
 interface IFilterSettings {
   isSet: boolean;
@@ -35,12 +39,13 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
 
   let totalMinutesOfWork = 0;
   props.reps_to_store[selectedRepIdx].webhub_stores.forEach((store) => {
-    store.current_pending_mplan_ids.forEach((storeTicketId) => {
-      const ticket = props.current_mplans.find((ticket) => ticket.ID === storeTicketId);
-      if (ticket) {
-        totalMinutesOfWork += parseInt(ticket.EstimatedTime);
-      }
-    });
+    const [storeTotalTime] = getStoreWorktimeMinutes(
+      store.current_pending_mplan_ids,
+      filteredTicketIds,
+      props.current_mplans
+    );
+
+    totalMinutesOfWork += storeTotalTime;
   });
 
   const LazyMap = React.lazy(() => import("@client/components/surveyWorker/TerritoryMap"));
