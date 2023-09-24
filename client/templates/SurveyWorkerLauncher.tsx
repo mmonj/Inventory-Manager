@@ -2,7 +2,7 @@ import React from "react";
 
 import { Context, SurveyWorkerInterfacesICmklaunchStoreInfo, templates } from "@reactivated";
 
-import { format } from "date-fns/esm";
+import { format, parse } from "date-fns/esm";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Layout } from "@client/components/Layout";
@@ -58,6 +58,8 @@ export default function (props: templates.SurveyWorkerLauncher) {
       10
     );
 
+    console.log(props.cycle_start_date);
+
     return () => {
       document.removeEventListener(eventName, callback);
     };
@@ -71,8 +73,8 @@ export default function (props: templates.SurveyWorkerLauncher) {
         <div className="alert alert-info">
           <div>
             <strong>Showing Cycle:</strong>{" "}
-            {format(new Date(props.cycle_start_date), "MMM d, yyyy")} -{" "}
-            {format(new Date(props.cycle_end_date), "MMM d, yyyy")}
+            {format(parse(props.cycle_start_date, "yyyy-MM-dd", new Date()), "MMM d, yyyy")} -{" "}
+            {format(parse(props.cycle_end_date, "yyyy-MM-dd", new Date()), "MMM d, yyyy")}
           </div>
           <div>
             <strong>Store List Last Syncced:</strong>{" "}
