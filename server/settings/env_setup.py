@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+TIME_ZONE = os.environ["TZ"]
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Static files (CSS, JavaScript, Images)
@@ -36,5 +38,3 @@ DATABASES = {
         "PORT": os.environ["psql_port"],
     }
 }
-
-TIME_ZONE = os.environ["TZ"]

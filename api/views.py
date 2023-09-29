@@ -137,10 +137,11 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
     if parent_company is None:
         raise DrfNotFound(f"Parent company '{request_data.client_name}' not found")
 
-    sorted_upcs = update_product_record_names(request_data, parent_company)
+    upcs = update_product_record_names(request_data, parent_company)
+
     hash_object = hashlib.sha256()
-    hash_object.update(str(sorted_upcs).encode())
-    upcs_hash = hash_object.hexdigest()
+    hash_object.update(str(sorted(upcs)).encode())
+    sorted_upcs_hash = hash_object.hexdigest()
 
     # initiate worker
     get_external_product_images.delay()
@@ -154,7 +155,8 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
     ).get_or_create(
         store=store,
         parent_company=parent_company,
-        upcs_hash=upcs_hash,
+        upcs_hash=sorted_upcs_hash,
+        upcs_list=upcs,
         work_cycle=current_work_cycle,
     )
 

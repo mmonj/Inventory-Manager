@@ -36,12 +36,28 @@ export function NavigationBar() {
             )}
 
             {djangoContext.user.is_superuser && (
-              <Nav.Link
-                href={reverse("survey_worker:task_adminer")}
-                className={reverse("survey_worker:task_adminer") === currentPath ? "active" : ""}
-              >
-                Task Adminer
-              </Nav.Link>
+              <>
+                <Nav.Link
+                  href={reverse("survey_worker:ticket_submit")}
+                  className={reverse("survey_worker:ticket_submit") === currentPath ? "active" : ""}
+                >
+                  Submit Tickets
+                </Nav.Link>
+                <Nav.Link
+                  href={reverse("survey_worker:rep_sync_data_viewer")}
+                  className={
+                    reverse("survey_worker:rep_sync_data_viewer") === currentPath ? "active" : ""
+                  }
+                >
+                  Rep Sync Data Viewer
+                </Nav.Link>
+                <Nav.Link
+                  href={reverse("survey_worker:task_adminer")}
+                  className={reverse("survey_worker:task_adminer") === currentPath ? "active" : ""}
+                >
+                  Task Adminer
+                </Nav.Link>
+              </>
             )}
 
             {/* {djangoContext.user.is_superuser && <></>} */}

@@ -1,6 +1,7 @@
 import {
   SurveyWorkerInterfacesIWebhubStore,
   SurveyWorkerInterfacesSqlContentMvmPlan,
+  interfaces,
   reverse,
 } from "@reactivated";
 
@@ -87,4 +88,28 @@ export function getStoreWorktimeMinutes(
   });
 
   return [totalMinutesOfWork, thisStoreTickets] as const;
+}
+
+export function getRepHubData(
+  repId: number,
+  dataType: string,
+  csrfToken: string,
+  repDataSubtype: string
+): Promise<ApiResponse<interfaces.IRepSyncDataResp>> {
+  const headers = {
+    "X-CSRFToken": csrfToken,
+    Accept: "application/json",
+  };
+
+  return fetch(
+    reverse("survey_worker:get_rep_sync_data", {
+      field_rep_id: repId,
+      data_type: dataType,
+      rep_data_subtype: repDataSubtype,
+    }),
+    {
+      method: "GET",
+      headers: headers,
+    }
+  );
 }

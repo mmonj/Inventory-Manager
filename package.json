@@ -9,6 +9,7 @@
     "html5-qrcode": "^2.3.8",
     "leaflet": "^1.9.4",
     "react-bootstrap": "^2.8.0",
+    "react-json-view-lite": "^1.0.0",
     "react-leaflet": "^4.2.1",
     "react-select": "^5.7.4",
     "reactivated": "^0.30.2",

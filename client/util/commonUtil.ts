@@ -46,3 +46,18 @@ export function initSessionTimeTracker(keyName: string, hoursThreshold: number) 
 
   return [eventName, handleVisibilityChange] as const;
 }
+
+export function trimStr(str: string, charToTrim: string) {
+  let start = 0,
+    end = str.length;
+
+  while (start < end && str[start] === charToTrim) {
+    ++start;
+  }
+
+  while (end > start && str[end - 1] === charToTrim) {
+    --end;
+  }
+
+  return start > 0 || end < str.length ? str.substring(start, end) : str;
+}

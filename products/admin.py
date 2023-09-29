@@ -111,6 +111,7 @@ class BarcodeSheetAdmin(admin.ModelAdmin[BarcodeSheet]):
     search_fields = ["store__name", "parent_company__short_name"]
     list_display = ["store", "parent_company", "work_cycle", "num_product_additions", "upcs_hash"]
     list_filter = ["parent_company__short_name", "work_cycle"]
+    raw_id_fields = ["product_additions"]
 
     def num_product_additions(self, barcode_sheet: BarcodeSheet) -> int:
         return barcode_sheet.product_additions.count()

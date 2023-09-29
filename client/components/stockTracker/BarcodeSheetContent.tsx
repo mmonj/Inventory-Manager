@@ -70,12 +70,14 @@ export function BarcodeSheetContent(props: Props) {
                     className="barcode-image"
                     alt="Product Barcode"
                   />
-                  <div className="upc-number d-flex justify-content-center">
-                    {product_addition.product.upc_sections.map((upc_section, idx) => (
-                      <span key={idx} className="upc-section mx-1">
-                        {upc_section}
-                      </span>
-                    ))}
+                  <div className="d-flex justify-content-center">
+                    <div className="upc-number">
+                      {product_addition.product.upc_sections.map((upc_section, idx) => (
+                        <span key={idx} className="upc-section mx-1">
+                          {upc_section}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 <div className="product-image-container">

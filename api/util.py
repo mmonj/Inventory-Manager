@@ -57,7 +57,7 @@ def update_product_record_names(
 
     products_with_no_name.bulk_update(products_with_no_name, ["parent_company", "name"])
 
-    return sorted(upcs)
+    return upcs
 
 
 def update_product_additions(

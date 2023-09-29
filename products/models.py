@@ -241,6 +241,7 @@ class BarcodeSheet(models.Model):
     )
     product_additions = models.ManyToManyField(ProductAddition, related_name="barcode_sheets")
     upcs_hash = models.TextField(null=True)
+    upcs_list = models.JSONField(null=True, blank=True)
     datetime_created = models.DateTimeField(default=timezone.now)
     work_cycle = models.ForeignKey(
         WorkCycle, null=True, on_delete=models.SET_NULL, related_name="barcode_sheets"
