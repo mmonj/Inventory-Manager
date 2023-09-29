@@ -10,30 +10,29 @@ from django.http import (
     HttpRequest,
     HttpResponse,
     HttpResponseNotFound,
+    HttpResponseRedirect,
     HttpResponseServerError,
     JsonResponse,
-    HttpResponseRedirect,
 )
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.encoding import iri_to_uri
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
 
 from api.util import validate_structure
-
-from .types import BarcodeSheetInterface, SheetTypeDescriptionInterface
-
-from . import forms, serializers, util, templates
 from products.models import (
-    ProductAddition,
     BarcodeSheet,
     FieldRepresentative,
     PersonnelContact,
+    ProductAddition,
     Store,
 )
 from products.util import import_new_stores
+
+from . import forms, serializers, templates, util
+from .types import BarcodeSheetInterface, SheetTypeDescriptionInterface
 
 logger = logging.getLogger("main_logger")
 
@@ -236,6 +235,14 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
         ).data,
         BarcodeSheetInterface,
     )
+
+    if barcode_sheet.upcs_list is not None:
+        barcode_sheet_data["product_additions"] = sorted(
+            barcode_sheet_data["product_additions"],
+            key=lambda product_addition: barcode_sheet.upcs_list.index(
+                product_addition["product"]["upc"]
+            ),
+        )
 
     num_products = len(barcode_sheet_data["product_additions"])
     barcode_sheet_data["product_additions"] = [
