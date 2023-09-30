@@ -8,7 +8,7 @@ import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
-import { getRepHubData } from "@client/util/surveyWorker";
+import { getRepHubData, getTimeAgo } from "@client/util/surveyWorker";
 
 interface ISelectOption {
   value: number;
@@ -64,7 +64,8 @@ export default function (props: templates.SurveyWorkerRepSyncDataViewer) {
       navbar={<NavigationBar />}
       extraStyles={["styles/react-json-viewer.css"]}
     >
-      <section className="m-3 p-3">
+      <section className="m-3 p-1 mw-rem-90 mx-auto">
+        <h1 className="title-color mb-3">Rep App Sync Data</h1>
         <form className="mb-3" onSubmit={handleDataFetch}>
           <div className="my-1">
             <label className="form-label">Select a field rep</label>
@@ -87,7 +88,7 @@ export default function (props: templates.SurveyWorkerRepSyncDataViewer) {
             </select>
           </div>
           <div className="my-1 mb-2">
-            <label className="form-label">Select the Rep Data type to fetch, if applicable</label>
+            <label className="form-label">Select the data sub-type to fetch, if applicable</label>
             <ReactSelect
               options={repDataSubtypes}
               // value={repDataSubtypes[0]}
@@ -108,11 +109,19 @@ export default function (props: templates.SurveyWorkerRepSyncDataViewer) {
         </form>
 
         {dataFetcher.data !== null && (
-          <JsonView
-            data={dataFetcher.data.data as never}
-            shouldExpandNode={allExpanded}
-            style={darkStyles}
-          />
+          <>
+            <div className="alert alert-info">
+              <h5 className="m-1 my-2 text-dark">{dataFetcher.data.lookup_key}</h5>
+              <span>
+                <b>Last Syncced:</b> {getTimeAgo(dataFetcher.data.datetime_last_syncced)}
+              </span>
+            </div>
+            <JsonView
+              data={dataFetcher.data.data as never}
+              shouldExpandNode={allExpanded}
+              style={darkStyles}
+            />
+          </>
         )}
       </section>
     </Layout>

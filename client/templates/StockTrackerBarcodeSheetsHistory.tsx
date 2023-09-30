@@ -49,7 +49,7 @@ export default function (props: templates.StockTrackerBarcodeSheetsHistory) {
             return (
               <li key={barcode_sheet.pk} className="card collapse show my-2 text-center">
                 <h5 className="card-header">
-                  {barcode_sheet.parent_company?.short_name} - Cycle:{" "}
+                  {barcode_sheet.parent_company?.expanded_name} - Cycle:{" "}
                   {barcode_sheet.work_cycle?.start_date}
                 </h5>
                 <div className="card-body">

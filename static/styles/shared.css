@@ -18,6 +18,30 @@
   max-width: 70rem;
 }
 
+.mw-rem-75 {
+  max-width: 75rem;
+}
+
+.mw-rem-80 {
+  max-width: 80rem;
+}
+
+.mw-rem-85 {
+  max-width: 85rem;
+}
+
+.mw-rem-90 {
+  max-width: 90rem;
+}
+
+.mw-rem-95 {
+  max-width: 95rem;
+}
+
+.mw-rem-100 {
+  max-width: 100rem;
+}
+
 .bg-danger {
   background: rgba(189, 0, 0, 0.3098039216) !important;
 }

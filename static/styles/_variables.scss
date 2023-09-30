@@ -1,6 +1,6 @@
-$font-family: "Roboto Serif", Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans",
-"Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-"Noto Color Emoji";
+$font-family: "Roboto Serif", Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+  "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+  "Segoe UI Symbol", "Noto Color Emoji";
 
 $bg-dark-3: rgb(35, 45, 59);
 $bg-dark-5: rgb(17, 24, 39);
@@ -33,7 +33,7 @@ $border-color-1: rgba(229, 231, 235, 0.164);
 $border-color-2: rgba(229, 231, 235, 0.274);
 $card-border-color-1: $border-color-1;
 $card-bg-1: $bg-dark-3;
-$max-width-rem-values: 50, 55, 60, 65, 70;
+$max-width-rem-values: 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100;
 
 // $border-color: rgb(229, 231, 235);
 // $border-cfg: 1 solid $border-color;

@@ -1,4 +1,5 @@
 from typing import List, NamedTuple, Optional
+
 from reactivated import Pick, template
 
 from products.models import BarcodeSheet, FieldRepresentative
@@ -23,6 +24,7 @@ class StockTrackerBarcodeSheetsHistory(NamedTuple):
             BarcodeSheet,
             "pk",
             "parent_company.short_name",
+            "parent_company.expanded_name",
             "work_cycle.start_date",
             "store.name",
             "datetime_created",

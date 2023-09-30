@@ -225,6 +225,7 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
             "store",
             "parent_company",
             "product_additions",
+            "product_additions__product",
         ),
         id=barcode_sheet_id,
     )

@@ -159,13 +159,13 @@
 */
 
 /* other non-collapsible entries */
-._2bkNM {
+/* ._2bkNM {
   margin-left: 1.6rem;
-}
+} */
 
 /* collapsible entries */
 ._f10Tu {
-  margin-left: -1.05rem;
+  margin-left: -1.1rem;
 }
 
 ._1UmXx::after {
@@ -186,12 +186,13 @@
   background: #1b1c25;
   border-radius: 0.5rem;
   border: 1px solid rgba(255, 255, 255, 0.123);
-  padding: 1rem;
+  padding: 0.5rem;
+  padding-left: 0.7rem;
 }
 
 /* Key color */
 ._2bSDX {
-  color: #78dce8;
+  color: #6cc6d1;
 }
 
 /* string color */

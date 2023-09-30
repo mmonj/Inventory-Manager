@@ -37,6 +37,25 @@
     <div class="col-sm-6">
       <div class="card">
         <div class="card-body">
+          <h5 class="card-title">Submit Tickets</h5>
+          <p class="card-text">Submit Work Tickets</p>
+          <a href="{% url 'survey_worker:ticket_submit' %}" class="btn btn-primary">Go to Submit Tickets</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Rep Sync Data Viewer</h5>
+          <p class="card-text">View Rep Sync Data</p>
+          <a href="{% url 'survey_worker:rep_sync_data_viewer' %}" class="btn btn-primary">Go to Rep Sync Data
+            Viewer</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6">
+      <div class="card">
+        <div class="card-body">
           <h5 class="card-title">Task Adminer</h5>
           <p class="card-text">Administrate RQ Tasks</p>
           <a href="{% url 'survey_worker:task_adminer' %}" class="btn btn-primary">Go to Task Adminer</a>

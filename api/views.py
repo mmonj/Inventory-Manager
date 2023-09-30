@@ -150,18 +150,29 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
     product_additions = update_product_additions(store, request_data)
 
     current_work_cycle = get_current_work_cycle()
-    barcode_sheet, is_new_barcode_sheet = BarcodeSheet.objects.prefetch_related(
-        "product_additions"
-    ).get_or_create(
-        store=store,
-        parent_company=parent_company,
-        upcs_hash=sorted_upcs_hash,
-        upcs_list=upcs,
-        work_cycle=current_work_cycle,
+    barcode_sheet = (
+        BarcodeSheet.objects.prefetch_related("product_additions")
+        .filter(
+            store=store,
+            parent_company=parent_company,
+            upcs_hash=sorted_upcs_hash,
+            work_cycle=current_work_cycle,
+        )
+        .first()
     )
 
-    if is_new_barcode_sheet:
+    if barcode_sheet is None:
+        barcode_sheet = BarcodeSheet.objects.prefetch_related("product_additions").create(
+            store=store,
+            parent_company=parent_company,
+            upcs_hash=sorted_upcs_hash,
+            upcs_list=upcs,
+            work_cycle=current_work_cycle,
+        )
         barcode_sheet.product_additions.add(*product_additions)
+    elif barcode_sheet.upcs_list is None:
+        barcode_sheet.upcs_list = upcs
+        barcode_sheet.save(update_fields=["upcs_list"])
 
     logger.info(
         f"Returning JSON response with {len(product_additions)} product additions to client."
