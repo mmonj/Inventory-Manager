@@ -190,6 +190,7 @@ LOGGING = {
         "worker_handler": {
             "class": "logging.handlers.RotatingFileHandler",
             "filename": LOGS_DIR / "rq_worker.log",
+            "level": "DEBUG",
             "mode": "a",
             "encoding": "utf-8",
             "formatter": "simple",
@@ -208,10 +209,10 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
-        "worker_logger": {
+        "rq.worker": {
             "handlers": ["worker_handler", "console"],
-            "level": "INFO",
-            "propagate": False,
+            "level": "DEBUG",
+            "propagate": True,
         },
         # 'django.db.backends': {
         #     'level': 'DEBUG',

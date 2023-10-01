@@ -22,6 +22,7 @@ export default function (props: templates.SurveyWorkerRepSyncDataViewer) {
 
   const repIdRef = React.useRef<HTMLSelectElement>(null);
   const dataTypeRef = React.useRef<HTMLSelectElement>(null);
+  const isDownloadCheckRef = React.useRef<HTMLInputElement>(null);
 
   type SyncDataType = (typeof props.data_types)[number];
 
@@ -33,6 +34,24 @@ export default function (props: templates.SurveyWorkerRepSyncDataViewer) {
       };
     }
   );
+
+  function downloadData(filename: string, data: unknown) {
+    const blob = new Blob([JSON.stringify(data)], { type: "text/json" });
+    const link = document.createElement("a");
+
+    link.download = filename;
+    link.href = window.URL.createObjectURL(blob);
+    link.dataset.downloadurl = ["text/json", link.download, link.href].join(":");
+
+    const evt = new MouseEvent("click", {
+      view: window,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    link.dispatchEvent(evt);
+    link.remove();
+  }
 
   function handleDataFetch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -55,7 +74,12 @@ export default function (props: templates.SurveyWorkerRepSyncDataViewer) {
         selectedRepSubtype.label
       );
 
-    void dataFetcher.fetchData(callback);
+    void (async () => {
+      const [isSuccess, data] = await dataFetcher.fetchData(callback);
+      if (isSuccess && isDownloadCheckRef.current!.checked) {
+        downloadData(data.lookup_key + ".json", data);
+      }
+    })();
   }
 
   return (
@@ -87,7 +111,7 @@ export default function (props: templates.SurveyWorkerRepSyncDataViewer) {
               ))}
             </select>
           </div>
-          <div className="my-1 mb-2">
+          <div className="my-1">
             <label className="form-label">Select the data sub-type to fetch, if applicable</label>
             <ReactSelect
               options={repDataSubtypes}
@@ -96,6 +120,18 @@ export default function (props: templates.SurveyWorkerRepSyncDataViewer) {
               classNamePrefix="react-select"
               required
             />
+          </div>
+
+          <div className="form-check my-1 mb-2">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              id="set-is-download"
+              ref={isDownloadCheckRef}
+            />
+            <label className="form-check-label" htmlFor="set-is-download">
+              Download data as JSON
+            </label>
           </div>
 
           <ButtonWithSpinner
@@ -108,7 +144,7 @@ export default function (props: templates.SurveyWorkerRepSyncDataViewer) {
           </ButtonWithSpinner>
         </form>
 
-        {dataFetcher.data !== null && (
+        {dataFetcher.data !== null && isDownloadCheckRef.current!.checked === false && (
           <>
             <div className="alert alert-info">
               <h5 className="m-1 my-2 text-dark">{dataFetcher.data.lookup_key}</h5>

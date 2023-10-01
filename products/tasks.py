@@ -29,7 +29,7 @@ IMAGE_HOSTNAME_PREFERENCES = [
 DOMAIN_HOSTNAME_RE = re.compile(r"^((?:http[s]?|ftp)://?)?(?:www\.)?([^:/\s]+)")
 PRODUCT_IMAGE_DIMENSIONS_TARGET = (600, 600)
 
-logger = logging.getLogger("worker_logger")
+logger = logging.getLogger("rq.worker")
 
 # add UPCs to Redis memory store after processing to avoid wasting precious API hits upon future worker calls
 upc_to_fetch_key_template = "upc_to_fetch_{upc}"
