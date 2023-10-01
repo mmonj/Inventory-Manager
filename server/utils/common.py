@@ -6,6 +6,11 @@ from rest_framework.exceptions import ValidationError
 T = TypeVar("T")
 
 
+def cast_type(data: Any, interfaceClass: Type[T]) -> T:
+    temp: T = data
+    return temp
+
+
 def validate_structure(data: Any, interfaceClass: Type[T], is_api: bool = True) -> T:
     try:
         obj = cattrs.structure(data, interfaceClass)

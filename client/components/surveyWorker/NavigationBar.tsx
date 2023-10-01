@@ -38,10 +38,10 @@ export function NavigationBar() {
             {djangoContext.user.is_superuser && (
               <>
                 <Nav.Link
-                  href={reverse("survey_worker:ticket_submit")}
-                  className={reverse("survey_worker:ticket_submit") === currentPath ? "active" : ""}
+                  href={reverse("survey_worker:webhub")}
+                  className={reverse("survey_worker:webhub") === currentPath ? "active" : ""}
                 >
-                  Submit Tickets
+                  WebHub
                 </Nav.Link>
                 <Nav.Link
                   href={reverse("survey_worker:rep_sync_data_viewer")}

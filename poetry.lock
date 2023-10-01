@@ -1494,6 +1494,17 @@ files = [
 types-urllib3 = "*"
 
 [[package]]
+name = "types-simplejson"
+version = "3.19.0.2"
+description = "Typing stubs for simplejson"
+optional = false
+python-versions = "*"
+files = [
+    {file = "types-simplejson-3.19.0.2.tar.gz", hash = "sha256:ebc81f886f89d99d6b80c726518aa2228bc77c26438f18fd81455e4f79f8ee1b"},
+    {file = "types_simplejson-3.19.0.2-py3-none-any.whl", hash = "sha256:8ba093dc7884f59b3e62aed217144085e675a269debc32678fd80e0b43b2b86f"},
+]
+
+[[package]]
 name = "types-urllib3"
 version = "1.26.25.13"
 description = "Typing stubs for urllib3"
@@ -1667,4 +1678,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "9627cf9b45ea0cc47fb9532e5e286b617255aae2e496159fee4d6d5458506a5e"
+content-hash = "5c4da5f5a0f5ffc629278852ae639ed202670a021354d59b6ef08923b1c780cf"

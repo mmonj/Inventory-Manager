@@ -29,6 +29,8 @@ export interface ApiResponse<T> extends Response {
   json: () => Promise<T>;
 }
 
+export type ApiPromise<T> = Promise<ApiResponse<T>>;
+
 export const filteredKeys = ["template_name", "is_hidden", "attrs", "tag"];
 export type FilteredKeysType = (typeof filteredKeys)[number];
 

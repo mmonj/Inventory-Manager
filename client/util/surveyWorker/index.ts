@@ -7,7 +7,7 @@ import {
 
 import { differenceInHours, differenceInMinutes } from "date-fns/esm";
 
-import { ApiResponse } from "@client/types";
+import { ApiPromise, ApiResponse } from "@client/types";
 
 export function getSurveyUrlsUpdateStatus(
   taskType: string,
@@ -112,4 +112,34 @@ export function getRepHubData(
       headers: headers,
     }
   );
+}
+
+export function getLoginState(
+  mvRepDetailId: number,
+  csrfToken: string
+): ApiPromise<interfaces.IWebhubGetLoginState> {
+  const headers = {
+    Accept: "application/json",
+    "X-CSRFToken": csrfToken,
+  };
+
+  return fetch(reverse("survey_worker:get_login_state", { mv_rep_detail_id: mvRepDetailId }), {
+    headers: headers,
+    method: "GET",
+  });
+}
+
+export function getClockinState(
+  mvRepDetailId: number,
+  csrfToken: string
+): ApiPromise<interfaces.IWebhubClockinStateResp> {
+  const headers = {
+    Accept: "application/json",
+    "X-CSRFToken": csrfToken,
+  };
+
+  return fetch(reverse("survey_worker:get_clockin_state", { mv_rep_detail_id: mvRepDetailId }), {
+    headers: headers,
+    method: "GET",
+  });
 }
