@@ -1,0 +1,9 @@
+.webhub-btn-clockin {
+  all: unset;
+  width: 6rem;
+  height: 6rem;
+}
+
+.webhub-btn-clockin:active {
+  transform: scale(0.95);
+}

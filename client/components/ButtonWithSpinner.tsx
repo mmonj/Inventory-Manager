@@ -21,7 +21,12 @@ interface Props {
 
 export function ButtonWithSpinner({ className = "", ...props }: Props) {
   return (
-    <button className={className} type={props.type} onClick={props.onClick}>
+    <button
+      className={className}
+      type={props.type}
+      onClick={props.onClick}
+      disabled={props.fetchState.isLoading}
+    >
       {props.children}{" "}
       {props.fetchState.isLoading && (
         <span>

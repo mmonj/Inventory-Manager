@@ -5,7 +5,7 @@ import { Context, MvRepDetail_146000D320, interfaces, templates } from "@reactiv
 import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
-import { RepWebHub } from "@client/components/surveyWorker/RepWebHub";
+import { RepWebHub } from "@client/components/surveyWorker/WebHub/RepWebHub";
 import { useFetch } from "@client/hooks/useFetch";
 import { getLoginState } from "@client/util/surveyWorker";
 
@@ -39,7 +39,11 @@ export default function (props: templates.SurveyWorkerWebHub) {
   }
 
   return (
-    <Layout title={"WebHub"} navbar={<NavigationBar />}>
+    <Layout
+      title={"WebHub"}
+      navbar={<NavigationBar />}
+      extraStyles={["styles/survey_worker/styles.css"]}
+    >
       <section className="mw-rem-60 mx-auto p-3">
         <form onSubmit={handleCheckLoginState} className="mb-2">
           <label className="form-label">Select a Field Rep</label>
@@ -74,7 +78,9 @@ export default function (props: templates.SurveyWorkerWebHub) {
             {isLoggedInFetcher.data.session_validity_data.statusMessage}
           </div>
         )}
+      </section>
 
+      <section className="mw-rem-60 mx-auto p-3">
         {isLoggedInFetcher.data?.session_validity_data.ok == 1 && (
           <RepWebHub mv_rep_detail={selectedMvRepDetail!} />
         )}
