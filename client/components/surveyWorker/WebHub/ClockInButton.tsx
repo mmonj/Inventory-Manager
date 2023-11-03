@@ -4,7 +4,7 @@ import { Context, interfaces } from "@reactivated";
 
 import { LoadingSpinner } from "@client/components/LoadingSpinner";
 import { useFetch } from "@client/hooks/useFetch";
-import { getClockinState } from "@client/util/surveyWorker";
+import { clock_in, getClockinState } from "@client/util/surveyWorker";
 
 interface Props {
   repId: number;
@@ -44,11 +44,19 @@ export function ClockinButton({ className = "", ...props }: Props) {
     }
   }
 
+  function handleClockin() {
+    navigator.geolocation.getCurrentPosition((position) => {
+      const { latitude, longitude } = position.coords;
+      void clock_in(props.repId, latitude, longitude, djangoContext.csrf_token);
+    });
+  }
+
   return (
     <>
       <div className={className + " " + "text-center"}>
         <button
           type="button"
+          onClick={handleClockin}
           className="mm-unset border rounded p-2"
           style={{ maxHeight: "100%", maxWidth: "100%" }}
         >

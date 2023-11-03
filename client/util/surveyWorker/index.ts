@@ -164,6 +164,8 @@ export function reauthenticateHubUser(
 
 export function clock_in(
   mvRepDetailId: number,
+  latitude: number,
+  longitude: number,
   csrfToken: string
 ): ApiPromise<interfaces.IWebhubReauthenticateResp> {
   const headers = {
@@ -171,9 +173,15 @@ export function clock_in(
     "X-CSRFToken": csrfToken,
   };
 
-  return fetch(reverse("survey_worker:clock_in", { mv_rep_detail_id: mvRepDetailId }), {
+  const payload = {
+    mv_rep_detail_id: mvRepDetailId,
+    longitude: longitude,
+    latitude: latitude,
+  };
+
+  return fetch(reverse("survey_worker:clock_in"), {
     headers: headers,
     method: "POST",
-    body: JSON.stringify({}),
+    body: JSON.stringify(payload),
   });
 }
