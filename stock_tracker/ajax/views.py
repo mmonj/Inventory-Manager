@@ -1,23 +1,23 @@
 import logging
+
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404
-from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.decorators import api_view
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.request import Request as DRFRequest
 from rest_framework.response import Response as DRFResponse
 
 from products.models import Product, ProductAddition, Store
+from server.utils.common import validate_structure
 from stock_tracker import util
-from .interfaces_response import BasicProductAddition
 
 from .interfaces_request import (
     LogProductScanRequest,
-    ProductAdditionUncarryRequest,
     ProductAdditionsGETRequest,
+    ProductAdditionUncarryRequest,
 )
-
-from api.util import validate_structure
+from .interfaces_response import BasicProductAddition
 
 logger = logging.getLogger("main_logger")
 

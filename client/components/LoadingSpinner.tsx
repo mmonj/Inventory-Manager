@@ -4,7 +4,6 @@ import Spinner from "react-bootstrap/Spinner";
 
 interface Props {
   size?: "sm" | undefined;
-  color?: string;
   isBlockElement: boolean;
   className?: string;
   spinnerVariant?:
@@ -20,7 +19,6 @@ interface Props {
 
 export function LoadingSpinner({
   size,
-  color,
   className = "",
   isBlockElement,
   spinnerVariant = "primary",
@@ -29,13 +27,7 @@ export function LoadingSpinner({
 
   return (
     <span className={displayClassName + " " + className}>
-      <Spinner
-        className={color}
-        animation="border"
-        variant={spinnerVariant}
-        role="status"
-        size={size}
-      >
+      <Spinner animation="border" variant={spinnerVariant} role="status" size={size}>
         <span className="visually-hidden">Loading...</span>
       </Spinner>
     </span>

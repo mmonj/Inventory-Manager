@@ -143,3 +143,37 @@ export function getClockinState(
     method: "GET",
   });
 }
+
+export function reauthenticateHubUser(
+  mvRepDetailId: number,
+  csrfToken: string
+): ApiPromise<interfaces.IWebhubReauthenticateResp> {
+  const headers = {
+    Accept: "application/json",
+    "X-CSRFToken": csrfToken,
+  };
+
+  return fetch(
+    reverse("survey_worker:reauthenticate_hub_user", { mv_rep_detail_id: mvRepDetailId }),
+    {
+      headers: headers,
+      method: "GET",
+    }
+  );
+}
+
+export function clock_in(
+  mvRepDetailId: number,
+  csrfToken: string
+): ApiPromise<interfaces.IWebhubReauthenticateResp> {
+  const headers = {
+    Accept: "application/json",
+    "X-CSRFToken": csrfToken,
+  };
+
+  return fetch(reverse("survey_worker:clock_in", { mv_rep_detail_id: mvRepDetailId }), {
+    headers: headers,
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}

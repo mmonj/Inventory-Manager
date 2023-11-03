@@ -1,9 +1,16 @@
-.webhub-btn-clockin {
+.mm-unset {
   all: unset;
-  width: 6rem;
-  height: 6rem;
 }
 
-.webhub-btn-clockin:active {
+.rephub-top-action-elements {
+  width: 8rem;
+  height: 8rem;
+}
+
+.rephub-top-action-elements button:active {
   transform: scale(0.95);
+}
+
+.rephub-main-content {
+  min-width: 12rem;
 }

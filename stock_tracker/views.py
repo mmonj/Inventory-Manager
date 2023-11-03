@@ -21,7 +21,6 @@ from django.utils.encoding import iri_to_uri
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
 
-from api.util import validate_structure
 from products.models import (
     BarcodeSheet,
     FieldRepresentative,
@@ -30,6 +29,7 @@ from products.models import (
     Store,
 )
 from products.util import import_new_stores
+from server.utils.common import validate_structure
 
 from . import forms, serializers, templates, util
 from .types import BarcodeSheetInterface, SheetTypeDescriptionInterface

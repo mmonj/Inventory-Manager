@@ -1,8 +1,6 @@
 import logging
-from typing import Any, List, Optional, Type, TypeVar
+from typing import List, Optional, TypeVar
 
-import cattrs
-from rest_framework.exceptions import ValidationError
 
 from products.models import BrandParentCompany, Product, ProductAddition, Store
 from products.util import get_current_work_cycle, get_num_work_cycles_offset
@@ -99,16 +97,3 @@ def update_product_additions(
             product_addition.save(update_fields=["is_carried"])
 
     return list(product_additions)
-
-
-def validate_structure(data: dict[str, Any], interfaceClass: Type[T]) -> T:
-    try:
-        obj = cattrs.structure(data, interfaceClass)
-    # if missing attribute
-    except cattrs.ClassValidationError as exc:
-        raise ValidationError(cattrs.transform_error(exc))
-    # if attribute is of wrong type
-    except ValueError as exc:
-        raise ValidationError(cattrs.transform_error(exc))
-
-    return obj

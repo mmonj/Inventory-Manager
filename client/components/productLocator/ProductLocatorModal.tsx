@@ -219,7 +219,7 @@ export function ProductLocatorModal({
             <Button type="submit" className="mx-1" variant="primary">
               Submit Changes&nbsp;
               {locUpdateProps.isLoading && (
-                <LoadingSpinner isBlockElement={false} color="text-light" size="sm" />
+                <LoadingSpinner isBlockElement={false} spinnerVariant="light" size="sm" />
               )}
             </Button>
           </div>

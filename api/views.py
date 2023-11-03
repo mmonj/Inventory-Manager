@@ -18,6 +18,7 @@ from products.models import (
 )
 from products.tasks import get_external_product_images
 from products.util import get_current_work_cycle
+from server.utils.common import validate_structure
 
 from .serializers import (
     BarcodeSheetSerializer,
@@ -31,11 +32,7 @@ from .types import (
     IUpdateStoreInfo,
     IUpdateStorePersonnel,
 )
-from .util import (
-    update_product_additions,
-    update_product_record_names,
-    validate_structure,
-)
+from .util import update_product_additions, update_product_record_names
 
 logger = logging.getLogger("main_logger")
 

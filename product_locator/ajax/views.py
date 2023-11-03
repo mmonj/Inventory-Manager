@@ -9,7 +9,7 @@ from rest_framework.exceptions import ValidationError as DrfValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request as DrfRequest
 
-from api.util import validate_structure
+from server.utils.common import validate_structure
 
 from ..models import HomeLocation, Planogram, Product, ProductScanAudit
 from . import interfaces_response
