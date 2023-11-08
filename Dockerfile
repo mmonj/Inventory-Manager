@@ -29,6 +29,7 @@ RUN python -m pip install poetry
 RUN poetry config virtualenvs.create false
 
 COPY pyproject.toml poetry.lock ./
+RUN apt-get update --fix-missing -y
 
 # install dependencies
 ARG ENV_TYPE
