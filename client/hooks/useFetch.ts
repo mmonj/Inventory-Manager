@@ -9,7 +9,10 @@ export function useFetch<T>() {
   const [isError, setIsError] = useState(false);
   const [errorMessages, setErrorMessages] = useState<string[]>([]);
 
-  const fetchData = async (fetchCallback: () => Promise<ApiResponse<T>>) => {
+  const fetchData = async (
+    fetchCallback: () => Promise<ApiResponse<T>>,
+    onSuccess?: () => void
+  ) => {
     setData(() => null);
     setIsLoading(() => true);
     setIsError(() => false);
@@ -29,6 +32,8 @@ export function useFetch<T>() {
         setIsError(() => false);
         setErrorMessages(() => []);
 
+        onSuccess?.();
+
         return [true, data] as const;
       })
       .catch(async function (errorResp: ApiResponse<IHttpError | TNotFoundErrorList | Error>) {
@@ -47,5 +52,9 @@ export function useFetch<T>() {
       });
   };
 
-  return { data, isLoading, isError, errorMessages, fetchData };
+  const setDataProxy = (newData: T) => {
+    setData(() => newData);
+  };
+
+  return { data, isLoading, isError, errorMessages, fetchData, setData: setDataProxy };
 }

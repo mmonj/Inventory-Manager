@@ -7,7 +7,11 @@ import {
 
 import { differenceInHours, differenceInMinutes } from "date-fns/esm";
 
-import { ApiPromise, ApiResponse } from "@client/types";
+import { ApiPromise, ApiResponse, IHttpError, TNotFoundErrorList } from "@client/types";
+
+import { getErrorList } from "../commonUtil";
+
+import { THubModalController } from "./types";
 
 export function getSurveyUrlsUpdateStatus(
   taskType: string,
@@ -164,15 +168,16 @@ export function reauthenticateHubUser(
   );
 }
 
-export function clock_in(
+export function webhubClockIn(
   mvRepDetailId: number,
   latitude: number,
   longitude: number,
   csrfToken: string
-): ApiPromise<interfaces.IWebhubReauthenticateResp> {
+): ApiPromise<interfaces.IWebHubClockInResp> {
   const headers = {
     Accept: "application/json",
     "X-CSRFToken": csrfToken,
+    "Content-Type": "application/json",
   };
 
   const payload = {
@@ -185,5 +190,78 @@ export function clock_in(
     headers: headers,
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export function webhubClockout(mv_rep_detail_id: number, csrfToken: string): Promise<Response> {
+  const headers = {
+    Accept: "application/json",
+    "X-CSRFToken": csrfToken,
+  };
+
+  const payload = {
+    mv_rep_detail_id: mv_rep_detail_id,
+  };
+
+  return fetch(reverse("survey_worker:clock_out"), {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function handleHubModalByFetch<T>(
+  fetchCallback: () => ApiPromise<T>,
+  modalContext: THubModalController,
+  startingMessage: string
+): Promise<void> {
+  modalContext.setStatus((prev) => {
+    return { ...prev, isShow: true, statusMessages: [startingMessage] };
+  });
+
+  return fetchCallback()
+    .then(() => {
+      modalContext.setStatus((prev) => ({ ...prev, errorMessages: [], isShow: false }));
+    })
+    .catch(async (errorResp: ApiResponse<IHttpError | TNotFoundErrorList | Error>) => {
+      if (errorResp instanceof Error) {
+        modalContext.setStatus((prev) => ({
+          ...prev,
+          statusMessages: [errorResp.message.slice(0, 150)],
+        }));
+      } else {
+        const data = await (errorResp as ApiResponse<IHttpError | TNotFoundErrorList>).json();
+        modalContext.setStatus((prev) => ({ ...prev, errorMessages: getErrorList(data) }));
+      }
+
+      setTimeout(() => {
+        modalContext.setStatus((prev) => ({ ...prev, isShow: false }));
+      }, 1000);
+      throw new Error("Error state: handleContextAndFetch");
+    });
+}
+
+type TUseFetch = () => Promise<
+  readonly [false, ApiResponse<Error | IHttpError | TNotFoundErrorList>] | readonly [true, unknown]
+>;
+
+export function handleHubModalByUseFetchHook(
+  callbackForUseFetchHook: TUseFetch,
+  modalContext: THubModalController,
+  startingMessage: string
+): void {
+  modalContext.setStatus((prev) => ({ ...prev, isShow: true, statusMessages: [startingMessage] }));
+  void callbackForUseFetchHook().then(([isSuccess, result]) => {
+    if (isSuccess) {
+      modalContext.setStatus((prev) => ({ ...prev, isShow: false, statusMessages: [] }));
+    } else {
+      if (result instanceof Error) {
+        modalContext.setStatus((prev) => ({ ...prev, errorMessages: [result.message] }));
+      } else {
+        void (result as ApiResponse<IHttpError | TNotFoundErrorList>).json().then((data) => {
+          modalContext.setStatus((prev) => ({ ...prev, errorMessages: getErrorList(data) }));
+        });
+      }
+    }
   });
 }

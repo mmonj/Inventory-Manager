@@ -14,3 +14,13 @@
 .rephub-main-content {
   min-width: 12rem;
 }
+
+.webhub-clock-in-btn {
+  height: 6rem;
+  width: 6rem;
+}
+
+.webhub-clock-in-btn img {
+  max-height: 80%;
+  max-width: 80%;
+}

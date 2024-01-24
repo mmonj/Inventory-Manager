@@ -12,8 +12,9 @@ def cast_type(data: Any, interfaceClass: Type[T]) -> T:
 
 
 def validate_structure(data: Any, interfaceClass: Type[T], is_api: bool = True) -> T:
+    c = cattrs.Converter(forbid_extra_keys=True)
     try:
-        obj = cattrs.structure(data, interfaceClass)
+        obj = c.structure(data, interfaceClass)
     # if missing attribute
     except cattrs.ClassValidationError as exc:
         if is_api:

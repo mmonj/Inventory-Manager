@@ -65,9 +65,9 @@ export function RepHub() {
             <ButtonWithSpinner
               onClick={handleReauthenticate}
               fetchState={reauthenticateFetcher}
-              className="btn btn-secondary d-block"
+              className="btn btn-primary d-block"
               type="button"
-              spinnerVariant="primary"
+              spinnerVariant="light"
             >
               Re-Authenticate
             </ButtonWithSpinner>
