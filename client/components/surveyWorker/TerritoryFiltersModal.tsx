@@ -1,6 +1,6 @@
 import React from "react";
 
-import { SurveyWorkerInterfacesSqlContentMvmPlan } from "@reactivated";
+import { SurveyWorkerInterfacesOnehubModelsMvmPlan } from "@reactivated";
 import { Modal } from "react-bootstrap";
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
   setIsHideZeroTickets: React.Dispatch<React.SetStateAction<boolean>>;
   filteredTicketIds: Set<string>;
   setFilteredTicketIds: React.Dispatch<React.SetStateAction<Set<string>>>;
-  currentTickets: SurveyWorkerInterfacesSqlContentMvmPlan[];
+  currentTickets: SurveyWorkerInterfacesOnehubModelsMvmPlan[];
   currentRepTicketIds: string[];
 }
 

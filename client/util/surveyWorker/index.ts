@@ -1,6 +1,6 @@
 import {
   SurveyWorkerInterfacesIWebhubStore,
-  SurveyWorkerInterfacesSqlContentMvmPlan,
+  SurveyWorkerInterfacesOnehubModelsMvmPlan,
   interfaces,
   reverse,
 } from "@reactivated";
@@ -80,9 +80,9 @@ export function trimTicketName(input: string): string {
 export function getStoreWorktimeMinutes(
   currentPendingTicketIds: string[],
   filteredTicketIds: Set<string>,
-  currentTickets: SurveyWorkerInterfacesSqlContentMvmPlan[]
+  currentTickets: SurveyWorkerInterfacesOnehubModelsMvmPlan[]
 ) {
-  const thisStoreTickets: SurveyWorkerInterfacesSqlContentMvmPlan[] = [];
+  const thisStoreTickets: SurveyWorkerInterfacesOnehubModelsMvmPlan[] = [];
   let totalMinutesOfWork = 0;
 
   currentPendingTicketIds.forEach((storeTicketId) => {

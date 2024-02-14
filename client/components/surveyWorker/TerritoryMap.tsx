@@ -3,7 +3,7 @@ import React from "react";
 import {
   Context,
   SurveyWorkerInterfacesIWebhubStore,
-  SurveyWorkerInterfacesSqlContentMvmPlan,
+  SurveyWorkerInterfacesOnehubModelsMvmPlan,
 } from "@reactivated";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 
@@ -20,7 +20,7 @@ interface Props {
   stores: SurveyWorkerInterfacesIWebhubStore[];
   filteredTicketIds: Set<string>;
   isHideZeroTickets: boolean;
-  currentTickets: SurveyWorkerInterfacesSqlContentMvmPlan[];
+  currentTickets: SurveyWorkerInterfacesOnehubModelsMvmPlan[];
 }
 
 const iconUrls = {
@@ -53,7 +53,7 @@ function getCustomIcon(color: keyof typeof iconUrls) {
 
 function MapPopupContent(props: {
   store: SurveyWorkerInterfacesIWebhubStore;
-  currentTickets: SurveyWorkerInterfacesSqlContentMvmPlan[];
+  currentTickets: SurveyWorkerInterfacesOnehubModelsMvmPlan[];
   filteredTicketIds: Set<string>;
 }) {
   const [clipboardMessage, setClipboardMessage] = React.useState<string | null>(null);

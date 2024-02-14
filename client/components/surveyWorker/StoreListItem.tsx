@@ -2,14 +2,14 @@ import React from "react";
 
 import {
   SurveyWorkerInterfacesIWebhubStore,
-  SurveyWorkerInterfacesSqlContentMvmPlan,
+  SurveyWorkerInterfacesOnehubModelsMvmPlan,
 } from "@reactivated";
 
 import { getStoreWorktimeMinutes, trimTicketName } from "@client/util/surveyWorker";
 
 interface Props {
   store: SurveyWorkerInterfacesIWebhubStore;
-  currentTickets: SurveyWorkerInterfacesSqlContentMvmPlan[];
+  currentTickets: SurveyWorkerInterfacesOnehubModelsMvmPlan[];
   filteredTicketIds: Set<string>;
   isHideZeroTickets: boolean;
 }
