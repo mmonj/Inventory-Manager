@@ -17,8 +17,8 @@ import cattrs
 import django_stubs_ext
 
 # retrieve django settings that are included as environmental variables
-from .env_setup import *  # noqa: F401
-from .redis_queues import *  # noqa: F401
+from .env_setup import *
+from .redis_queues import *
 
 django_stubs_ext.monkeypatch()
 
@@ -224,9 +224,7 @@ LOGGING = {
 
 def structure_generic(value: T, expected_type: Type[T]) -> T:
     if not isinstance(value, expected_type):
-        raise ValueError(
-            f"Value of {repr(value)} has type {type(value)}. Expected {expected_type}."
-        )
+        raise TypeError(f"Value of {value!r} has type {type(value)}. Expected {expected_type}.")
     return value
 
 

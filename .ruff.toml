@@ -57,9 +57,12 @@ ignore = [
     "D200",    # One-line docstring should fit on one line
     "D205",    # 1 blank line required between summary line and description
     "D212",    # Multi-line docstring summary should start at the first line
+    "D213",    # Multi-line docstring summary should start at the second line
     "D400",    # First line should end with a period
     "D401",    # First line of docstring should be in imperative mood
+    "D406",    # Section name should end with a newline
     "D407",    # Missing dashed underline after section
+    "D411",
     "D413",    # Missing blank line after last section
     "D415",    # First line should end with a period, question mark, or exclamation point
     "E402",    # module imports must be at top of file; false positives for local imports

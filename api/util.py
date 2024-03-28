@@ -1,7 +1,6 @@
 import logging
 from typing import List, Optional, TypeVar
 
-
 from products.models import BrandParentCompany, Product, ProductAddition, Store
 from products.util import get_current_work_cycle, get_num_work_cycles_offset
 
@@ -18,7 +17,8 @@ def update_product_record_names(
     Bulk update existing products with product name if they don't contain it
 
     Args:
-        request_json (dict): request json payload received from client
+        request_data (IGetStoreProductAdditions): request json payload received from client
+        parent_company (BrandParentCompany): db record of BrandParentCompany
 
     Returns:
         tuple: tuple<str> of sorted UPC numbers
@@ -39,7 +39,7 @@ def update_product_record_names(
             upc=product_info.upc, name=product_info.name, parent_company=parent_company
         )
         if not temp_product.is_valid_upc():
-            logger.info(f"Invalid UPC {temp_product.upc}. Skipping")
+            logger.info(f"Invalid UPC {temp_product.upc} for '{temp_product.name}'. Skipping")
             continue
         new_products.append(temp_product)
 
