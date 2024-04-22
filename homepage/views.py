@@ -8,10 +8,10 @@ def index(request: HttpRequest) -> HttpResponse:
 
 
 def error404(
-    request: HttpRequest, _exception: Exception, template_name: str = "500.html"  # noqa: ARG001
+    request: HttpRequest, _exception: Exception, template_name: str = "404.html"
 ) -> HttpResponse:
-    return render(request, "_common/error404.html", {})
+    return render(request, template_name, {})
 
 
-def error500(request: HttpRequest, template_name: str = "500.html") -> HttpResponse:  # noqa: ARG001
-    return render(request, "_common/error500.html", {})
+def error500(request: HttpRequest, template_name: str = "500.html") -> HttpResponse:
+    return render(request, template_name, {})
