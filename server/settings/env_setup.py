@@ -28,6 +28,8 @@ CSRF_TRUSTED_ORIGINS = os.environ["DJANGO_CSRF_TRUSTED_ORIGINS"].split()
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024**2
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
