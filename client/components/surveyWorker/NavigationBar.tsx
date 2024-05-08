@@ -57,6 +57,14 @@ export function NavigationBar() {
                 >
                   Task Adminer
                 </Nav.Link>
+                <Nav.Link
+                  href={reverse("survey_worker:manual_cmklaunch_html")}
+                  className={
+                    reverse("survey_worker:manual_cmklaunch_html") === currentPath ? "active" : ""
+                  }
+                >
+                  CMK HTML Manual Form
+                </Nav.Link>
               </>
             )}
 

@@ -13,6 +13,25 @@ import { getErrorList } from "../commonUtil";
 
 import { THubModalController } from "./types";
 
+export function fetchByReactivated<T>(
+  url: string,
+  csrfToken: string,
+  method: string,
+  payloadString: string
+): ApiPromise<T> {
+  const headers = {
+    Accept: "application/json",
+    "X-CSRFToken": csrfToken,
+    "Content-Type": "application/json",
+  };
+
+  return fetch(url, {
+    method: method,
+    body: payloadString,
+    headers: headers,
+  });
+}
+
 export function getSurveyUrlsUpdateStatus(
   taskType: string,
   csrfToken: string,
