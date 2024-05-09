@@ -30,7 +30,7 @@ def get_planogram_locations(request: DRFRequest) -> DrfResponse:
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def get_products_from_latest_scan_audit(request: DRFRequest) -> DrfResponse:
+def get_products_from_latest_scan_audit(_request: DRFRequest) -> DrfResponse:
     scan_audit = ProductScanAudit.objects.prefetch_related("products_in_stock").last()
     if scan_audit is None:
         raise DrfNotFound("No available scan audits")

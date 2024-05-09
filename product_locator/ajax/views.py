@@ -30,7 +30,7 @@ def get_product_location(request: DrfRequest) -> HttpResponse:
     try:
         Product(upc=request_data.upc).clean()
     except ValidationError as ex:
-        raise DrfValidationError(ex.messages)
+        raise DrfValidationError(ex.messages) from ex
 
     product = (
         Product.objects.prefetch_related(
@@ -84,7 +84,7 @@ def add_new_product_location(request: DrfRequest) -> HttpResponse:
         try:
             product = Product.objects.create(upc=request_data.upc, name=request_data.product_name)
         except ValidationError as ex:
-            raise DrfValidationError(ex.messages)
+            raise DrfValidationError(ex.messages) from ex
 
     planogram = Planogram.objects.get(id=request_data.planogram_id)
     location, is_new_location = HomeLocation.objects.select_related("planogram").get_or_create(

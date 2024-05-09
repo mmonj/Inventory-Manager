@@ -19,4 +19,5 @@ urlpatterns = [
         name="update_store_info",
     ),
     path("update_store_personnel/", views.update_store_personnel, name="update_store_personnel"),
+    path("update_cmk_html_src/", views.update_cmk_html_src, name="update_cmk_html_src"),
 ]

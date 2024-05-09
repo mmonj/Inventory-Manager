@@ -4,6 +4,7 @@ import logging
 from django.core.exceptions import ValidationError
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import NotFound as DrfNotFound
+from rest_framework.exceptions import PermissionDenied as DrfPermissionDenied
 from rest_framework.exceptions import ValidationError as DrfValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request as DrfRequest
@@ -19,7 +20,10 @@ from products.models import (
 from products.tasks import get_external_product_images
 from products.util import get_current_work_cycle
 from server.utils.common import validate_structure
+from survey_worker.interfaces import ICmkHtmlSourcesData
+from survey_worker.util import add_cmk_urls_to_db_workcycle, get_current_work_cycle_data
 
+from .interfaces_request import ICmkStoreHtmlData
 from .serializers import (
     BarcodeSheetSerializer,
     FieldRepresentativeSerializer,
@@ -39,8 +43,9 @@ logger = logging.getLogger("main_logger")
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def validate_api_token(request: DrfRequest) -> DrfResponse:
-    """This route is used to check the validity of the client's API token without having to send any specific data.
+def validate_api_token(_request: DrfRequest) -> DrfResponse:
+    """
+    Used to check the validity of the client's API token without having to send any specific data.
     The presence of the @permission_classes decorator will assert the validity of the client's API token
 
     Returns:
@@ -52,7 +57,7 @@ def validate_api_token(request: DrfRequest) -> DrfResponse:
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def get_field_reps(request: DrfRequest) -> DrfResponse:
+def get_field_reps(_request: DrfRequest) -> DrfResponse:
     field_reps = FieldRepresentative.objects.all()
     resp_json = FieldRepresentativeSerializer(field_reps, many=True).data
 
@@ -67,7 +72,7 @@ def update_store_info(request: DrfRequest) -> DrfResponse:
     received_partial_store_address = request_data.partial_store_address
     received_store_guid = request_data.store_guid.upper().strip()
 
-    logger.info(f"Received request data {request_data}")
+    logger.info("Received request data %s", request_data)
     if "" in [received_store_name, received_partial_store_address, received_store_guid]:
         raise DrfValidationError("Empty field value received in payload")
 
@@ -79,7 +84,8 @@ def update_store_info(request: DrfRequest) -> DrfResponse:
 
     if store is None and received_partial_store_address is not None:
         logger.info(
-            f"No store match found. Searching for existing store with partial address: '{received_partial_store_address}'"
+            "No store match found. Searching for existing store with partial address: '%s'",
+            received_partial_store_address,
         )
         store = (
             Store.objects.filter(name__icontains=received_partial_store_address, guid=None)
@@ -92,12 +98,14 @@ def update_store_info(request: DrfRequest) -> DrfResponse:
 
     if store is None:
         logger.info(
-            f"No store match found. Creating new store record for store '{request_data.store_name}', guid '{request_data.store_guid}'"
+            "No store match found. Creating new store record for store '%s', guid '%s'",
+            request_data.store_name,
+            request_data.store_guid,
         )
         try:
             store = Store.objects.create(name=received_store_name, guid=received_store_guid)
         except ValidationError as ex:
-            raise DrfValidationError(ex.messages)
+            raise DrfValidationError(ex.messages) from ex
 
     return DrfResponse(StoreSerializer(store).data)
 
@@ -123,7 +131,7 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
         request.data, IGetStoreProductAdditions
     )
     logger.info(
-        f'Received client name "{request_data.client_name}" for store "{request_data.store_id}"'
+        'Received client name "%s" for store "%s"', request_data.client_name, request_data.store_id
     )
 
     if not request_data.products:
@@ -172,7 +180,7 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
         barcode_sheet.save(update_fields=["upcs_list"])
 
     logger.info(
-        f"Returning JSON response with {len(product_additions)} product additions to client."
+        "Returning JSON response with %d product additions to client.", len(product_additions)
     )
     return DrfResponse(
         BarcodeSheetSerializer(barcode_sheet, context={"work_cycle": current_work_cycle}).data
@@ -197,12 +205,40 @@ def update_store_personnel(request: DrfRequest) -> DrfResponse:
         personnel_contact.save(update_fields=["first_name", "last_name"])
 
         return DrfResponse(PersonnelContactSerializer(personnel_contact).data)
-    else:
-        store = Store.objects.get(pk=request_data.store_id)
-        new_personel_contact = PersonnelContact.objects.create(
-            first_name=request_data.new_personnel_first_name,
-            last_name=request_data.new_personnel_last_name,
-            store=store,
-        )
 
-        return DrfResponse(PersonnelContactSerializer(new_personel_contact).data)
+    store = Store.objects.get(pk=request_data.store_id)
+    new_personel_contact = PersonnelContact.objects.create(
+        first_name=request_data.new_personnel_first_name,
+        last_name=request_data.new_personnel_last_name,
+        store=store,
+    )
+
+    return DrfResponse(PersonnelContactSerializer(new_personel_contact).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def update_cmk_html_src(request: DrfRequest) -> DrfResponse:
+    if request.user.is_authenticated and not request.user.is_superuser:
+        raise DrfPermissionDenied
+
+    request_data = validate_structure(request.data, ICmkStoreHtmlData)
+
+    current_work_cycle_data = get_current_work_cycle_data()
+    cmklaunch_urls_html_sources: list[ICmkHtmlSourcesData] = (
+        current_work_cycle_data.cmklaunch_urls_html_sources
+    )
+
+    add_cmk_urls_to_db_workcycle(current_work_cycle_data, cmklaunch_urls_html_sources)
+
+    for cmk_data in cmklaunch_urls_html_sources:
+        if cmk_data["cmk_url"] == request_data.cmk_url:
+            cmk_data["html_src"] = request_data.html_src
+
+    logger.info(request_data.cmk_url)
+    logger.info(len(request_data.html_src))
+
+    current_work_cycle_data.cmklaunch_urls_html_sources = cmklaunch_urls_html_sources
+    current_work_cycle_data.save(update_fields=["cmklaunch_urls_html_sources"])
+
+    return DrfResponse({"success": True}, status=200)
