@@ -8,7 +8,13 @@ services:
         UID: 1000
     image: inventory-manager-django-dev
     container_name: inventory-manager-dev
-    command: bash
+    command: >
+      bash -c "
+      trap 'echo SIGTERM received, shutting down...; exit' SIGTERM;
+      while true; do
+        sleep 1;
+      done
+      "
     tty: true
     user: "${UID}"
     ports:
