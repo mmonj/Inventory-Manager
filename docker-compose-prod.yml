@@ -9,7 +9,7 @@ services:
     image: mmonj.inventory_manager_django
     container_name: inventory_manager
     command: >
-      bash -c "python manage.py migrate
+      poetry run bash -c "python manage.py migrate
       && python manage.py generate_client_assets
       && python manage.py build
       && python manage.py collectstatic --clear --noinput
@@ -44,7 +44,7 @@ services:
   rq_worker_default:
     image: mmonj.inventory_manager_django
     container_name: inventory-manager-rq-worker-default
-    command: python manage.py rqworker default
+    command: poetry run python manage.py rqworker default
     user: "${UID}"
     volumes:
       - ./:/app
@@ -60,7 +60,7 @@ services:
   rq_worker_onehub_synccer:
     image: mmonj.inventory_manager_django
     container_name: inventory-manager-rq-worker-onehub-synccer
-    command: python manage.py rqworker onehub_synccer
+    command: poetry run python manage.py rqworker onehub_synccer
     user: "${UID}"
     volumes:
       - ./:/app
@@ -76,7 +76,7 @@ services:
   rq_scheduler:
     image: mmonj.inventory_manager_django
     container_name: inventory-manager-rq-scheduler
-    command: rqscheduler -H redis -p 6379 --db 0
+    command: poetry run rqscheduler -H redis -p 6379 --db 0
     user: "${UID}"
     volumes:
       - ./:/app

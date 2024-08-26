@@ -44,7 +44,7 @@ services:
   rq_worker_default:
     image: inventory-manager-django-dev
     container_name: inventory-manager-rq-worker-default
-    command: python manage.py rqworker default
+    command: poetry run python manage.py rqworker default
     user: "${UID}"
     volumes:
       - ./:/app
@@ -57,7 +57,7 @@ services:
   rq_worker_onehub_synccer:
     image: inventory-manager-django-dev
     container_name: inventory-manager-rq-worker-onehub-synccer
-    command: python manage.py rqworker onehub_synccer
+    command: poetry run python manage.py rqworker onehub_synccer
     user: "${UID}"
     volumes:
       - ./:/app
@@ -70,8 +70,7 @@ services:
   rq_scheduler:
     image: inventory-manager-django-dev
     container_name: inventory-manager-rq-scheduler
-    # command: rqscheduler -H $REDIS_HOST -p 6379 --db 0
-    command: ["sh", "-c", "rqscheduler -H redis -p 6379 --db 0"]
+    command: poetry run rqscheduler -H redis -p 6379 --db 0
     user: "${UID}"
     volumes:
       - ./:/app
