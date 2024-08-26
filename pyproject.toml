@@ -37,12 +37,12 @@ rq-scheduler = "^0.13.1"
 [tool.poetry.group.dev.dependencies]
 isort = "5.10.1"
 flake8 = "^6.0.0"
-mypy = "^1.3.0"
 djangorestframework-stubs = "^3.14.1"
 types-pillow = "^10.0.0.2"
 types-redis = "^4.6.0.3"
 types-beautifulsoup4 = "^4.12.0.6"
 types-simplejson = "^3.19.0.2"
+ruff = "^0.6.2"
 
 [build-system]
 requires = ["poetry-core"]
