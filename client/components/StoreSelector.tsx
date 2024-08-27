@@ -83,7 +83,7 @@ function StoreSelector({ stores, selectedStore, setSelectedStore }: StoreSelecto
   return (
     <div id="store-select-container" className="my-1 mb-3">
       <label htmlFor="store-select" className="form-label">
-        Select a store
+        Select a store ({stores.length} listed)
       </label>
 
       <Select
@@ -194,7 +194,6 @@ export function FieldRepStoreSelector({
           selectedStore={selectedStore}
           setSelectedStore={setSelectedStore}
         />
-        <div className="small">{listedStores.length} stores</div>
       </fieldset>
       {isHandleSubmissionWithoutButton == false && (
         <button type="submit" className="btn btn-primary col-12 my-2 d-block">
