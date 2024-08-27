@@ -26,14 +26,8 @@ export default function (props: templates.SurveyWorkerLauncher) {
     exit: { x: "-130vw" },
   };
 
-  const cmklaunchStores = props.cmk_stores_refresh_data.stores.map(
-    (store, idx): IStoreGuid => ({
-      pk: idx,
-      ...store,
-    })
-  );
-
   function handleStoreSubmission(fakePk: string) {
+    const cmklaunchStores = props.cmk_rep_stores_list.flatMap((rep) => rep.stores);
     setSelectedStore(() => cmklaunchStores.find((store) => store.pk === parseInt(fakePk)) ?? null);
   }
 
@@ -77,8 +71,7 @@ export default function (props: templates.SurveyWorkerLauncher) {
             {format(parse(props.cycle_end_date, "yyyy-MM-dd", new Date()), "MMM d, yyyy")}
           </div>
           <div>
-            <strong>Store List Last Syncced:</strong>{" "}
-            {getTimeAgo(props.cmk_stores_refresh_data.datetime_last_refreshed)}
+            <strong>Store List Last Syncced:</strong> {getTimeAgo(props.datetime_last_refreshed)}
           </div>
           <div>
             <strong>Cmklaunch URLs Pooled:</strong> {props.cmklaunch_urls.length}{" "}
@@ -113,8 +106,8 @@ export default function (props: templates.SurveyWorkerLauncher) {
         </div>
 
         <FieldRepStoreSelector
-          propType="stores"
-          stores={cmklaunchStores}
+          propType="fieldReps"
+          field_reps={props.cmk_rep_stores_list}
           submitButtonText="Search for Surveys"
           handleStoreSubmission={handleStoreSubmission}
           isHandleSubmissionWithoutButton={true}
