@@ -47,6 +47,21 @@ export function initSessionTimeTracker(keyName: string, hoursThreshold: number) 
   return [eventName, handleVisibilityChange] as const;
 }
 
+export function isGreaterThanXHoursAgo(dateString: string | null, hours: number): boolean {
+  if (dateString === null) {
+    console.log("dateString is null. Returning default false");
+    return false;
+  }
+
+  const inputDate = new Date(dateString);
+  const currentDate = new Date();
+
+  const timeDifference = currentDate.getTime() - inputDate.getTime();
+  const hoursInMilliseconds = hours * 60 * 60 * 1000;
+
+  return timeDifference > hoursInMilliseconds;
+}
+
 export function trimStr(str: string, charToTrim: string) {
   let start = 0,
     end = str.length;
