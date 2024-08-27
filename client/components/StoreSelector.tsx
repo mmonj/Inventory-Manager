@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import Select from "react-select";
+import Select, { ActionMeta, SingleValue } from "react-select";
+
+import { FilterOptionOption } from "react-select/dist/declarations/src/filters";
 
 import { IFieldRep, IStore } from "@client/templates/StockTrackerScanner";
 
@@ -13,8 +15,8 @@ type BaseProps = {
 
 type StoreSelectorProps = {
   stores: IStore[];
-  selectedStore: StoreSelectOption | null;
-  setSelectedStore: React.Dispatch<React.SetStateAction<StoreSelectOption | null>>;
+  selectedStore: TSelectOption | null;
+  setSelectedStore: React.Dispatch<React.SetStateAction<TSelectOption | null>>;
 };
 
 type Props = BaseProps &
@@ -29,18 +31,52 @@ type Props = BaseProps &
       }
   );
 
-interface StoreSelectOption {
+interface TSelectOption {
   value: number;
   label: string;
 }
 
+function filterOption(option: FilterOptionOption<TSelectOption>, inputValue: string): boolean {
+  const searchWords = inputValue
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(function (word) {
+      return word.length > 0;
+    });
+
+  return searchWords.every((word) => {
+    return option.label.toLowerCase().includes(word);
+  });
+}
+
 function StoreSelector({ stores, selectedStore, setSelectedStore }: StoreSelectorProps) {
-  const options: StoreSelectOption[] = stores
+  const [searchInput, setSearchInput] = useState<string>("");
+
+  const options: TSelectOption[] = stores
     .map((store) => ({
       value: store.pk,
-      label: store.name ?? "_error: Null store name",
+      label: store.name ?? "_error: Store name is null",
     }))
     .sort((a, b) => a.label.localeCompare(b.label));
+
+  function handleInputChange(
+    inputValue: SingleValue<TSelectOption>,
+    _actionMeta: ActionMeta<TSelectOption>
+  ): void {
+    if (inputValue) {
+      setSearchInput(inputValue.label);
+      setSelectedStore(inputValue);
+    }
+  }
+
+  useEffect(
+    function () {
+      if (searchInput) {
+        document.querySelector(".react-select__menu")?.scrollTo();
+      }
+    },
+    [searchInput]
+  );
 
   return (
     <div id="store-select-container" className="my-1 mb-3">
@@ -50,10 +86,11 @@ function StoreSelector({ stores, selectedStore, setSelectedStore }: StoreSelecto
 
       <Select
         required={true}
+        filterOption={filterOption}
         menuShouldScrollIntoView={true}
         placeholder="Select a store"
         value={selectedStore}
-        onChange={setSelectedStore}
+        onChange={handleInputChange}
         options={options}
         classNamePrefix="react-select"
       />
@@ -66,7 +103,7 @@ export function FieldRepStoreSelector({
   ...props
 }: Props) {
   const [listedStores, setListedStores] = useState<IStore[]>([]);
-  const [selectedStore, setSelectedStore] = useState<StoreSelectOption | null>(null);
+  const [selectedStore, setSelectedStore] = useState<TSelectOption | null>(null);
   const fieldRepRef = useRef<HTMLSelectElement>(null);
 
   React.useEffect(() => {
