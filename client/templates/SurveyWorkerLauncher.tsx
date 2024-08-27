@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Context, SurveyWorkerInterfacesICmklaunchStoreInfo, templates } from "@reactivated";
+import { SurveyWorkerInterfacesICmklaunchStoreInfo, templates } from "@reactivated";
 
 import { format, parse } from "date-fns/esm";
 import { AnimatePresence, motion } from "framer-motion";
@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Layout } from "@client/components/Layout";
 import { FieldRepStoreSelector } from "@client/components/StoreSelector";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
-import { initSessionTimeTracker } from "@client/util/commonUtil";
+import { isGreaterThanXHoursAgo } from "@client/util/commonUtil";
 import { getTimeAgo } from "@client/util/surveyWorker";
 
 interface IStoreGuid extends SurveyWorkerInterfacesICmklaunchStoreInfo {
@@ -18,7 +18,13 @@ interface IStoreGuid extends SurveyWorkerInterfacesICmklaunchStoreInfo {
 export default function (props: templates.SurveyWorkerLauncher) {
   const [selectedStore, setSelectedStore] = React.useState<IStoreGuid | null>(null);
   const [isCmklaunchUrlsShown, setIsCmklaunchUrlsShown] = React.useState(false);
-  const djangoContext = React.useContext(Context);
+
+  const maxHoursStaleContent = 8;
+
+  const isTimeToRefresh = isGreaterThanXHoursAgo(
+    props.datetime_last_refreshed,
+    maxHoursStaleContent
+  );
 
   const slideInVariants = {
     hidden: { x: "130vw" },
@@ -46,22 +52,20 @@ export default function (props: templates.SurveyWorkerLauncher) {
     return hostname.substring(hostname.lastIndexOf(".", hostname.lastIndexOf(".") - 1) + 1);
   }
 
-  React.useEffect(() => {
-    const [eventName, callback] = initSessionTimeTracker(
-      djangoContext.template_name + "-timeFirstLoaded",
-      10
-    );
-
-    console.log(props.cycle_start_date);
-
-    return () => {
-      document.removeEventListener(eventName, callback);
-    };
-  }, []);
-
   return (
     <Layout title="Survey Launcher" navbar={<NavigationBar />}>
       <section className="mw-rem-60 mx-auto p-2 px-3">
+        {isTimeToRefresh === true && (
+          <div className="alert alert-warning fw-bold">
+            It has been more than {maxHoursStaleContent} hour(s) since you last refreshed this page.
+            <button
+              className="btn btn-secondary d-block my-2"
+              onClick={() => window.location.reload()}
+            >
+              Refresh
+            </button>
+          </div>
+        )}
         <h1 className="title-color text-center p-2">Survey Launcher</h1>
 
         <div className="alert alert-info">
