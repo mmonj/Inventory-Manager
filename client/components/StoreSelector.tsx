@@ -6,6 +6,8 @@ import { FilterOptionOption } from "react-select/dist/declarations/src/filters";
 
 import { IFieldRep, IStore } from "@client/templates/StockTrackerScanner";
 
+const LOCALSTORAGE_LAST_REP_ID_VIEWED_KEY = "SurveyLauncherLastRepViewed";
+
 type BaseProps = {
   handleStoreSubmission: (storePk: string) => void;
   submitButtonText?: string;
@@ -116,15 +118,33 @@ export function FieldRepStoreSelector({
 
   function onFieldRepChange() {
     if (props.propType !== "fieldReps") return;
-    setSelectedStore(() => null);
+    if (fieldRepRef.current === null) throw new Error("fieldRepRef is null");
 
-    const fieldRepPk = fieldRepRef.current?.value;
+    setSelectedStore(() => null);
+    localStorage.setItem(LOCALSTORAGE_LAST_REP_ID_VIEWED_KEY, fieldRepRef.current.value);
+
+    const fieldRepPk = fieldRepRef.current.value;
     if (fieldRepPk === undefined) throw new Error("Field Rep Pk is undefined");
 
     const fieldRep = props.field_reps.find((field_rep) => field_rep.pk === parseInt(fieldRepPk));
 
     if (fieldRep === undefined) throw new Error(`Field Rep pk "${fieldRepPk}" not found`);
     setListedStores(() => fieldRep.stores);
+  }
+
+  function restoreFromLocalstorage() {
+    if (props.propType !== "fieldReps") return;
+
+    const lastRepIdViewed = localStorage.getItem(LOCALSTORAGE_LAST_REP_ID_VIEWED_KEY);
+    if (lastRepIdViewed === null) return;
+
+    const fieldRepData = props.field_reps.find(
+      (fieldRepData) => fieldRepData.pk === Number.parseInt(lastRepIdViewed)
+    );
+    if (fieldRepData === undefined) return;
+    if (fieldRepRef.current === null) return;
+
+    fieldRepRef.current.value = fieldRepData.pk.toString();
   }
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -136,6 +156,8 @@ export function FieldRepStoreSelector({
   }
 
   useEffect(() => {
+    restoreFromLocalstorage();
+
     if (props.propType === "stores") {
       setListedStores(() => props.stores);
     } else {
@@ -172,6 +194,7 @@ export function FieldRepStoreSelector({
           selectedStore={selectedStore}
           setSelectedStore={setSelectedStore}
         />
+        <div className="small">{listedStores.length} stores</div>
       </fieldset>
       {isHandleSubmissionWithoutButton == false && (
         <button type="submit" className="btn btn-primary col-12 my-2 d-block">
