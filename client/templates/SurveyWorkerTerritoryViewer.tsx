@@ -114,7 +114,12 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
             id="rep-select"
             className="form-select"
             value={selectedRepIdx}
-            onChange={(e) => setSelectedRepIdx(() => parseInt(e.target.value))}
+            onChange={(e) => {
+              setSelectedRepIdx(() => parseInt(e.target.value));
+              setShownWebhubStores(
+                () => props.reps_to_store[parseInt(e.target.value)].webhub_stores
+              );
+            }}
           >
             {props.reps_to_store.map((repStoreData, idx) => (
               <option key={repStoreData.rep_id} value={idx}>
