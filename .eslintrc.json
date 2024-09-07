@@ -1,7 +1,7 @@
 {
     "extends": ["./node_modules/reactivated/dist/eslintrc.js"],
     "rules": {
-        "unused-imports/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+        "unused-imports/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" ,  "varsIgnorePattern": "^_"}],
         "@typescript-eslint/no-use-before-define": "off"
       }
 }
