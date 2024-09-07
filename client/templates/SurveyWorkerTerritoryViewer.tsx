@@ -180,9 +180,6 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
         )}
 
         <div className="my-2">
-          <label htmlFor="filter-stores" className="form-label">
-            Filter by Store:
-          </label>
           <input
             type="text"
             id="filter-stores"
