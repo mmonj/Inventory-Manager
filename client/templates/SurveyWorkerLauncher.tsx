@@ -18,13 +18,11 @@ interface IStoreGuid extends SurveyWorkerInterfacesICmklaunchStoreInfo {
 export default function (props: templates.SurveyWorkerLauncher) {
   const [selectedStore, setSelectedStore] = React.useState<IStoreGuid | null>(null);
   const [isCmklaunchUrlsShown, setIsCmklaunchUrlsShown] = React.useState(false);
+  const [timeLoaded, _setTimeLoaded] = React.useState(Date.now());
 
   const maxHoursStaleContent = 8;
 
-  const isTimeToRefresh = isGreaterThanXHoursAgo(
-    props.datetime_last_refreshed,
-    maxHoursStaleContent
-  );
+  const isTimeToRefresh = isGreaterThanXHoursAgo(timeLoaded, maxHoursStaleContent);
 
   const slideInVariants = {
     hidden: { x: "130vw" },
