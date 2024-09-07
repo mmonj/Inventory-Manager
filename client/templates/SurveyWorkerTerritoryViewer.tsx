@@ -6,7 +6,6 @@ import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
 import { StoreListItem } from "@client/components/surveyWorker/StoreListItem";
 import { TerritoryFiltersModal } from "@client/components/surveyWorker/TerritoryFiltersModal";
-import { initSessionTimeTracker } from "@client/util/commonUtil";
 import {
   getStoreWorktimeMinutes,
   getTimeAgo,
@@ -22,7 +21,12 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
   const [isHideZeroTickets, setIsHideZeroTickets] = React.useState(false);
   const [isFiltersModalShow, setIsFiltersModalShow] = React.useState(false);
   const [filteredTicketIds, setFilteredTicketIds] = React.useState<Set<string>>(new Set());
+  const [shownWebhubStores, setShownWebhubStores] = React.useState(
+    props.reps_to_store[selectedRepIdx].webhub_stores
+  );
+  const [storeFilterValue, setStoreFilterValue] = React.useState("");
   const [isShowMap, setIsShowMap] = React.useState(false);
+
   const djangoContext = React.useContext(Context);
 
   if (props.reps_to_store.length === 0) {
@@ -38,7 +42,7 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
   }
 
   let totalMinutesOfWork = 0;
-  props.reps_to_store[selectedRepIdx].webhub_stores.forEach((store) => {
+  shownWebhubStores.forEach((store) => {
     const [storeTotalTime] = getStoreWorktimeMinutes(
       store.current_pending_mplan_ids,
       filteredTicketIds,
@@ -66,23 +70,26 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
     (setting) => setting.isSet === true
   ).length;
 
-  let numStoresShown = props.reps_to_store[selectedRepIdx].webhub_stores.length;
+  let numStoresShown = shownWebhubStores.length;
   if (isHideZeroTickets) {
-    numStoresShown -= props.reps_to_store[selectedRepIdx].webhub_stores.filter((store) =>
+    numStoresShown -= shownWebhubStores.filter((store) =>
       isHasWebhubStoreNoTickets(store, filteredTicketIds)
     ).length;
   }
 
   React.useEffect(() => {
-    const [eventName, callback] = initSessionTimeTracker(
-      djangoContext.template_name + "-timeFirstLoaded",
-      10
-    );
+    const timeoutVal = setTimeout(() => {
+      const filteredStores = props.reps_to_store[selectedRepIdx].webhub_stores.filter((store) => {
+        const fullStoreName = `${store.City}, ${store.State} | ${store.Address} | ${store.Name}`;
+        return fullStoreName.toLowerCase().includes(storeFilterValue.toLowerCase());
+      });
+      setShownWebhubStores(() => filteredStores);
+    }, 300);
 
     return () => {
-      document.removeEventListener(eventName, callback);
+      clearTimeout(timeoutVal);
     };
-  }, []);
+  }, [storeFilterValue]);
 
   return (
     <Layout
@@ -119,6 +126,9 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
 
         <h4 className="mt-3">{props.reps_to_store[selectedRepIdx].rep_name}&apos;s territory</h4>
         <h6 className="">{numStoresShown} stores shown</h6>
+        <div className="fw-bold my-1 mb-3 text-white">
+          Total: {Math.floor(totalMinutesOfWork / 60)} hr {totalMinutesOfWork % 60.0} min
+        </div>
         <h6 className="mb-3">
           Last Syncced: {getTimeAgo(props.reps_to_store[selectedRepIdx].last_syncced)}
         </h6>
@@ -161,7 +171,7 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
           <React.Suspense fallback={<div>Loading...</div>}>
             <LazyMap
               key={selectedRepIdx}
-              stores={props.reps_to_store[selectedRepIdx].webhub_stores}
+              stores={shownWebhubStores}
               filteredTicketIds={filteredTicketIds}
               isHideZeroTickets={isHideZeroTickets}
               currentTickets={props.current_mplans}
@@ -169,12 +179,22 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
           </React.Suspense>
         )}
 
-        <div className="fw-bold mt-3 mb-2 text-white">
-          Total: {Math.floor(totalMinutesOfWork / 60)} hr {totalMinutesOfWork % 60.0} min
+        <div className="my-2">
+          <label htmlFor="filter-stores" className="form-label">
+            Filter by Store:
+          </label>
+          <input
+            type="text"
+            id="filter-stores"
+            className="form-control"
+            placeholder="Filter by Store"
+            value={storeFilterValue}
+            onChange={(e) => setStoreFilterValue(() => e.target.value)}
+          />
         </div>
 
         <div className="list-group list-group-numbered my-1">
-          {props.reps_to_store[selectedRepIdx].webhub_stores.map((store) => {
+          {shownWebhubStores.map((store) => {
             return (
               <StoreListItem
                 key={store.ID}
