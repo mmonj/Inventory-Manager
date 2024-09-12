@@ -21,9 +21,9 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
   const [isHideZeroTickets, setIsHideZeroTickets] = React.useState(false);
   const [isFiltersModalShow, setIsFiltersModalShow] = React.useState(false);
   const [filteredTicketIds, setFilteredTicketIds] = React.useState<Set<string>>(new Set());
-  const [shownWebhubStores, setShownWebhubStores] = React.useState(
-    props.reps_to_store[selectedRepIdx].webhub_stores
-  );
+  const [shownWebhubStores, setShownWebhubStores] = React.useState<
+    templates.SurveyWorkerTerritoryViewer["reps_to_store"][number]["webhub_stores"]
+  >([]);
   const [storeFilterValue, setStoreFilterValue] = React.useState("");
   const [isShowMap, setIsShowMap] = React.useState(false);
 
@@ -90,6 +90,10 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
       clearTimeout(timeoutVal);
     };
   }, [storeFilterValue]);
+
+  React.useEffect(() => {
+    setShownWebhubStores(() => props.reps_to_store[selectedRepIdx].webhub_stores);
+  }, []);
 
   return (
     <Layout
