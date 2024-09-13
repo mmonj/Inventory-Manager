@@ -146,9 +146,9 @@ export default function TerritoryMap(props: Props) {
   const primaryStore = props.stores.find(
     (store) => !isHasWebhubStoreNoTickets(store, props.filteredTicketIds)
   );
-  const mapCenterCoordinates = extractCoordinates(
-    primaryStore?.GeoCenter ?? props.stores[0].GeoCenter
-  );
+
+  const firstStoreGeocenter = primaryStore?.GeoCenter ?? "-73.917601, 40.739255";
+  const mapCenterCoordinates = extractCoordinates(firstStoreGeocenter);
 
   const userLocationIcon = getUserLocationIcon(
     djangoContext.STATIC_URL + "public/user-location-icon.png"
