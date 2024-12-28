@@ -12,33 +12,31 @@ class WorkCycle(models.Model):
     start_date = models.DateField(default=timezone.now)
     end_date = models.DateField(default=timezone.now)
 
-    def __str__(self) -> str:
-        return f"{self.start_date} to {self.end_date}"
-
     class Meta:
         db_table = "work_cycles"
-        unique_together = ["start_date", "end_date"]
+        unique_together = ("start_date", "end_date")
+
+    def __str__(self) -> str:
+        return f"{self.start_date} to {self.end_date}"
 
 
 class FieldRepresentative(models.Model):
     name = models.CharField(max_length=255)
     work_email = models.EmailField(max_length=255, unique=True)
 
+    class Meta:
+        db_table = "field_representatives"
+
     def __str__(self) -> str:
         return f"{self.name}; {self.work_email}"
-
-    # string for debugging
-    def _strd(self) -> str:
-        return (
-            f"FieldRepresentative(name={ repr(self.name) }, work_email={ repr(self.work_email) })"
-        )
 
     def save(self, *args: Any, **kwargs: Any) -> None:
         self.full_clean()
         super().save(*args, **kwargs)
 
-    class Meta:
-        db_table = "field_representatives"
+    # string for debugging
+    def _strd(self) -> str:
+        return f"FieldRepresentative(name={ self.name !r}, work_email={ self.work_email !r})"
 
 
 class BrandParentCompany(models.Model):
@@ -48,15 +46,15 @@ class BrandParentCompany(models.Model):
         null=True, blank=True, upload_to="products/images/brand_logos"
     )
 
+    class Meta:
+        db_table = "brand_parent_companies"
+
     def __str__(self) -> str:
         return self.expanded_name or self.short_name or "--"
 
     # string for debugging
     def _strd(self) -> str:
-        return f"BrandParentCompany(short_name={ repr(self.short_name) }, expanded_name={ repr(self.expanded_name) })"
-
-    class Meta:
-        db_table = "brand_parent_companies"
+        return f"BrandParentCompany(short_name={ self.short_name !r}, expanded_name={ self.expanded_name !r})"
 
 
 def product_image_upload_location(instance: "Product", filename: str) -> str:
@@ -83,12 +81,19 @@ class Product(models.Model):
     item_image = models.ImageField(null=True, blank=True, upload_to=product_image_upload_location)
     date_added = models.DateField(default=timezone.now)
 
+    class Meta:
+        db_table = "products"
+
     def __str__(self) -> str:
         return f"{self.upc} - {self.parent_company} - {self.name}"
 
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(*args, **kwargs)
+
     # string for debugging
     def _strd(self) -> str:
-        return f"Product(upc={ repr(self.upc) }, name={ repr(self.name) }, parent_company={ self.parent_company })"
+        return f"Product(upc={ self.upc !r}, name={ self.name !r}, parent_company={ self.parent_company })"
 
     def is_valid_upc(self) -> bool:
         # return self.upc.isnumeric() and len(self.upc) == 12 and gs1.validate(self.upc)
@@ -110,13 +115,6 @@ class Product(models.Model):
             )
         super().clean(*args, **kwargs)
 
-    def save(self, *args: Any, **kwargs: Any) -> None:
-        self.full_clean()
-        super().save(*args, **kwargs)
-
-    class Meta:
-        db_table = "products"
-
 
 class PersonnelContact(models.Model):
     first_name = models.CharField(max_length=255, null=True)
@@ -125,6 +123,9 @@ class PersonnelContact(models.Model):
         "Store", null=True, blank=True, on_delete=models.CASCADE, related_name="contacts"
     )
 
+    class Meta:
+        db_table = "personnel_contacts"
+
     def __str__(self) -> str:
         if not self.first_name and not self.last_name:
             return "<Blank>"
@@ -132,16 +133,16 @@ class PersonnelContact(models.Model):
 
     # string for debugging
     def _strd(self) -> str:
-        return f"PersonnelContact(first_name={ repr(self.first_name) }, \
-            last_name={ repr(self.last_name) }, store={ repr(self.store) })"
-
-    class Meta:
-        db_table = "personnel_contacts"
+        return f"PersonnelContact(first_name={ self.first_name !r}, \
+            last_name={ self.last_name !r}, store={ self.store !r})"
 
 
 class StoreGUID(models.Model):
     value = models.CharField(max_length=255, unique=True)
     date_created = models.DateField(default=timezone.now)
+
+    def __str__(self) -> str:
+        return self.value
 
     def clean(self, *args: Any, **kwargs: Any) -> None:
         if not self.value:
@@ -150,9 +151,6 @@ class StoreGUID(models.Model):
         self.value = self.value.upper().strip()
 
         super().clean(*args, **kwargs)
-
-    def __str__(self) -> str:
-        return self.value
 
 
 class Store(models.Model):
@@ -165,10 +163,17 @@ class Store(models.Model):
     # store_guids = models.ManyToManyField(StoreGUID, related_name="stores")
 
     # non-column attribute
-    __trailing_number_re = re.compile(r" *-* *[0-9]+ *$", flags=re.I)
+    __trailing_number_re = re.compile(r" *-* *[0-9]+ *$", flags=re.IGNORECASE)
+
+    class Meta:
+        db_table = "stores"
 
     def __str__(self) -> str:
         return f"{self.name}"
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def sanitize_name(self) -> None:
         if self.name is None:
@@ -201,13 +206,6 @@ class Store(models.Model):
 
         super().clean(*args, **kwargs)
 
-    def save(self, *args: Any, **kwargs: Any) -> None:
-        self.full_clean()
-        super().save(*args, **kwargs)
-
-    class Meta:
-        db_table = "stores"
-
 
 class ProductAddition(models.Model):
     product = models.ForeignKey(
@@ -219,19 +217,19 @@ class ProductAddition(models.Model):
     is_carried = models.BooleanField(default=False)
     date_ordered = models.DateField(null=True, blank=True)
 
-    def update_date_scanned(self) -> None:
-        self.date_last_scanned = timezone.now()
+    class Meta:
+        unique_together = ("store", "product")
+        db_table = "product_additions"
 
     def __str__(self) -> str:
         return f"{self.product.upc}; Carried {self.is_carried}; Store {self.store}"
 
+    def update_date_scanned(self) -> None:
+        self.date_last_scanned = timezone.now()
+
     def _strd(self) -> str:
         return f"ProductAddition(store={self.store}, product={self.product}, date_added={self.date_added}, \
             date_last_scanned={self.date_last_scanned}, is_carried={self.is_carried})"
-
-    class Meta:
-        unique_together = ["store", "product"]
-        db_table = "product_additions"
 
 
 class BarcodeSheet(models.Model):
@@ -249,7 +247,7 @@ class BarcodeSheet(models.Model):
 
     class Meta:
         db_table = "barcode_sheets"
-        unique_together = ["store", "parent_company", "work_cycle", "upcs_hash"]
+        unique_together = ("store", "parent_company", "work_cycle", "upcs_hash")
 
     def __str__(self) -> str:
         return f"Barcode Sheet: {self.work_cycle}: {self.parent_company} {self.store.name}"
