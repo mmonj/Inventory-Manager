@@ -2,6 +2,9 @@ import React from "react";
 
 import { Context, templates } from "@reactivated";
 
+import { faTimes } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
 import { StoreListItem } from "@client/components/surveyWorker/StoreListItem";
@@ -189,14 +192,26 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
         )}
 
         <div className="my-2">
-          <input
-            type="text"
-            id="filter-stores"
-            className="form-control"
-            placeholder="Filter by Store"
-            value={storeFilterValue}
-            onChange={(e) => setStoreFilterValue(() => e.target.value)}
-          />
+          <div className="input-group">
+            <input
+              type="text"
+              id="filter-stores"
+              className="form-control"
+              placeholder="Filter by Store"
+              value={storeFilterValue}
+              onChange={(e) => setStoreFilterValue(() => e.target.value)}
+            />
+            {storeFilterValue !== "" && (
+              <button
+                type="button"
+                className="btn bg-transparent"
+                style={{ marginLeft: "-40px", zIndex: "100" }}
+                onClick={() => setStoreFilterValue("")}
+              >
+                <FontAwesomeIcon icon={faTimes} color={"#d9d9d9"} />
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="list-group list-group-numbered my-1">
