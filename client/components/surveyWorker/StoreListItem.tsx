@@ -18,8 +18,6 @@ interface Props {
 }
 
 export function StoreListItem({ store, ...props }: Props) {
-  const [isTicketsShown, setIsTicketsShown] = React.useState(false);
-
   const [totalProjectTimeMins, thisStoreTickets] = getStoreWorktimeMinutes(
     store.current_pending_mplan_ids,
     props.filteredTicketIds,
