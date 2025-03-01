@@ -1,6 +1,6 @@
 import React from "react";
 
-import { SurveyWorkerInterfacesICmklaunchStoreInfo, templates } from "@reactivated";
+import { Context, SurveyWorkerInterfacesICmklaunchStoreInfo, templates } from "@reactivated";
 
 import { format, parse } from "date-fns/esm";
 import { AnimatePresence, motion } from "framer-motion";
@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Layout } from "@client/components/Layout";
 import { FieldRepStoreSelector } from "@client/components/StoreSelector";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
-import { isGreaterThanXHoursAgo } from "@client/util/commonUtil";
+import { initSessionTimeTracker } from "@client/util/commonUtil";
 import { getTimeAgo } from "@client/util/surveyWorker";
 
 interface IStoreGuid extends SurveyWorkerInterfacesICmklaunchStoreInfo {
@@ -18,11 +18,7 @@ interface IStoreGuid extends SurveyWorkerInterfacesICmklaunchStoreInfo {
 export default function (props: templates.SurveyWorkerLauncher) {
   const [selectedStore, setSelectedStore] = React.useState<IStoreGuid | null>(null);
   const [isCmklaunchUrlsShown, setIsCmklaunchUrlsShown] = React.useState(false);
-  const [timeLoaded, _setTimeLoaded] = React.useState(Date.now());
-
-  const maxHoursStaleContent = 8;
-
-  const isTimeToRefresh = isGreaterThanXHoursAgo(timeLoaded, maxHoursStaleContent);
+  const djangoContext = React.useContext(Context);
 
   const slideInVariants = {
     hidden: { x: "130vw" },
@@ -30,8 +26,14 @@ export default function (props: templates.SurveyWorkerLauncher) {
     exit: { x: "-130vw" },
   };
 
+  const cmklaunchStores = props.cmk_stores_refresh_data.stores.map(
+    (store, idx): IStoreGuid => ({
+      pk: idx,
+      ...store,
+    })
+  );
+
   function handleStoreSubmission(fakePk: string) {
-    const cmklaunchStores = props.cmk_rep_stores_list.flatMap((rep) => rep.stores);
     setSelectedStore(() => cmklaunchStores.find((store) => store.pk === parseInt(fakePk)) ?? null);
   }
 
@@ -50,20 +52,22 @@ export default function (props: templates.SurveyWorkerLauncher) {
     return hostname.substring(hostname.lastIndexOf(".", hostname.lastIndexOf(".") - 1) + 1);
   }
 
+  React.useEffect(() => {
+    const [eventName, callback] = initSessionTimeTracker(
+      djangoContext.template_name + "-timeFirstLoaded",
+      10
+    );
+
+    console.log(props.cycle_start_date);
+
+    return () => {
+      document.removeEventListener(eventName, callback);
+    };
+  }, []);
+
   return (
     <Layout title="Survey Launcher" navbar={<NavigationBar />}>
       <section className="mw-rem-60 mx-auto p-2 px-3">
-        {isTimeToRefresh === true && (
-          <div className="alert alert-warning fw-bold">
-            It has been more than {maxHoursStaleContent} hour(s) since you last refreshed this page.
-            <button
-              className="btn btn-secondary d-block my-2"
-              onClick={() => window.location.reload()}
-            >
-              Refresh
-            </button>
-          </div>
-        )}
         <h1 className="title-color text-center p-2">Survey Launcher</h1>
 
         <div className="alert alert-info">
@@ -73,7 +77,8 @@ export default function (props: templates.SurveyWorkerLauncher) {
             {format(parse(props.cycle_end_date, "yyyy-MM-dd", new Date()), "MMM d, yyyy")}
           </div>
           <div>
-            <strong>Store List Last Syncced:</strong> {getTimeAgo(props.datetime_last_refreshed)}
+            <strong>Store List Last Syncced:</strong>{" "}
+            {getTimeAgo(props.cmk_stores_refresh_data.datetime_last_refreshed)}
           </div>
           <div>
             <strong>Cmklaunch URLs Pooled:</strong> {props.cmklaunch_urls.length}{" "}
@@ -108,8 +113,8 @@ export default function (props: templates.SurveyWorkerLauncher) {
         </div>
 
         <FieldRepStoreSelector
-          propType="fieldReps"
-          field_reps={props.cmk_rep_stores_list}
+          propType="stores"
+          stores={cmklaunchStores}
           submitButtonText="Search for Surveys"
           handleStoreSubmission={handleStoreSubmission}
           isHandleSubmissionWithoutButton={true}
