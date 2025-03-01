@@ -137,11 +137,7 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
         </div>
 
         <h4 className="mt-3">{props.reps_to_store[selectedRepIdx].rep_name}&apos;s territory</h4>
-        <h6 className="">{numStoresShown} stores shown</h6>
-        <div className="fw-bold my-1 mb-3 text-white">
-          Total: {Math.floor(totalMinutesOfWork / 60)} hr {totalMinutesOfWork % 60.0} min
-        </div>
-        <h6 className="mb-3">
+        <h6 className="mb-3 fw-normal">
           Last Syncced: {getTimeAgo(props.reps_to_store[selectedRepIdx].last_syncced)}
         </h6>
 
@@ -190,6 +186,14 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
             />
           </React.Suspense>
         )}
+
+        <div className="mt-3">
+          <span className="fw-bold">{numStoresShown} stores shown</span>
+        </div>
+        <div className="mb-3">
+          <span className="fw-bold">Total Work Hours: </span> {Math.floor(totalMinutesOfWork / 60)}
+          hr {totalMinutesOfWork % 60.0} min
+        </div>
 
         <div className="my-2">
           <div className="input-group">

@@ -52,6 +52,11 @@ export function StoreListItem({ store, ...props }: Props) {
           <small className={"d-block " + numTicketsClassname}>
             {numPendingTickets} {numPendingTickets === 1 ? "ticket" : "tickets"}
           </small>
+          {numPendingTickets !== 0 && (
+            <small className="d-block">
+              {Math.floor(totalProjectTimeMins / 60)}hr {totalProjectTimeMins % 60.0}min
+            </small>
+          )}
           <a
             href={
               "https://www.google.com/maps/place/" +
@@ -66,7 +71,7 @@ export function StoreListItem({ store, ...props }: Props) {
         </div>
       </div>
       {isTicketsShown && (
-        <div className="ms-3 alert alert-info">
+        <div className="alert alert-info">
           <h5 className="text-dark">{numPendingTickets} Ticket(s) Pending</h5>
           {totalProjectTimeMins > 0 && (
             <div className="fw-bold mb-1">
