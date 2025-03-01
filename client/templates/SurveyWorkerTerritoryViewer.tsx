@@ -7,6 +7,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
+import {
+  IStoreModalData,
+  StoreDetailsModal,
+} from "@client/components/surveyWorker/StoreDetailsModal";
 import { StoreListItem } from "@client/components/surveyWorker/StoreListItem";
 import { TerritoryFiltersModal } from "@client/components/surveyWorker/TerritoryFiltersModal";
 import {
@@ -29,6 +33,7 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
   >([]);
   const [storeFilterValue, setStoreFilterValue] = React.useState("");
   const [isShowMap, setIsShowMap] = React.useState(false);
+  const [storeModalData, setStoreModalData] = React.useState<IStoreModalData | null>(null);
 
   const djangoContext = React.useContext(Context);
 
@@ -176,7 +181,7 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
         </div>
 
         {isShowMap && (
-          <React.Suspense fallback={<div>Loading...</div>}>
+          <React.Suspense fallback={<div>Loading Map...</div>}>
             <LazyMap
               key={selectedRepIdx}
               stores={shownWebhubStores}
@@ -227,10 +232,13 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
                 currentTickets={props.current_mplans}
                 filteredTicketIds={filteredTicketIds}
                 isHideZeroTickets={isHideZeroTickets}
+                setStoreModalData={setStoreModalData}
               />
             );
           })}
         </div>
+
+        <StoreDetailsModal storeData={storeModalData} setStoreData={setStoreModalData} />
 
         <TerritoryFiltersModal
           isShow={isFiltersModalShow}

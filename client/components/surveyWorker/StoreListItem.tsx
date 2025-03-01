@@ -5,13 +5,16 @@ import {
   SurveyWorkerInterfacesOnehubModelsMvmPlan,
 } from "@reactivated";
 
-import { getStoreWorktimeMinutes, trimTicketName } from "@client/util/surveyWorker";
+import { getStoreWorktimeMinutes } from "@client/util/surveyWorker";
+
+import { IStoreModalData } from "./StoreDetailsModal";
 
 interface Props {
   store: SurveyWorkerInterfacesIWebhubStore;
   currentTickets: SurveyWorkerInterfacesOnehubModelsMvmPlan[];
   filteredTicketIds: Set<string>;
   isHideZeroTickets: boolean;
+  setStoreModalData: React.Dispatch<React.SetStateAction<IStoreModalData | null>>;
 }
 
 export function StoreListItem({ store, ...props }: Props) {
@@ -36,10 +39,18 @@ export function StoreListItem({ store, ...props }: Props) {
     numTicketsClassname = "text-warning";
   }
 
+  function handleShowStoreDetails() {
+    props.setStoreModalData({
+      store: store,
+      storeTickets: thisStoreTickets,
+      totalProjectTimeMins: totalProjectTimeMins,
+    });
+  }
+
   return (
     <li>
       <div className="list-group-item d-flex justify-content-between align-items-start">
-        <div className="mx-2 me-3 w-100" onClick={() => setIsTicketsShown((prev) => !prev)}>
+        <div className="mx-2 me-3 w-100" onClick={handleShowStoreDetails}>
           <div className="fw-bold">{store.Name}</div>
           <p className="content-for-list-item my-1">
             <span className="d-block">{store.Address}</span>
@@ -54,7 +65,7 @@ export function StoreListItem({ store, ...props }: Props) {
           </small>
           {numPendingTickets !== 0 && (
             <small className="d-block">
-              {Math.floor(totalProjectTimeMins / 60)}hr {totalProjectTimeMins % 60.0}min
+              {Math.floor(totalProjectTimeMins / 60)} hr {totalProjectTimeMins % 60.0} min
             </small>
           )}
           <a
@@ -70,24 +81,6 @@ export function StoreListItem({ store, ...props }: Props) {
           </a>
         </div>
       </div>
-      {isTicketsShown && (
-        <div className="alert alert-info">
-          <h5 className="text-dark">{numPendingTickets} Ticket(s) Pending</h5>
-          {totalProjectTimeMins > 0 && (
-            <div className="fw-bold mb-1">
-              {Math.floor(totalProjectTimeMins / 60)} hr {totalProjectTimeMins % 60.0} min
-            </div>
-          )}
-          <ul className="">
-            {thisStoreTickets.map((ticket) => (
-              <li key={ticket.ID} className="">
-                {trimTicketName(ticket.Name)}{" "}
-                <span className="fw-bold">({ticket.EstimatedTime} min)</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </li>
   );
 }
