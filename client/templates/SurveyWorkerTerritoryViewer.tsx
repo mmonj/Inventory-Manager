@@ -196,7 +196,7 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
           <span className="fw-bold">{numStoresShown} stores shown</span>
         </div>
         <div className="mb-3">
-          <span className="fw-bold">Total Work Hours: </span> {Math.floor(totalMinutesOfWork / 60)}
+          <span className="fw-bold">Total Work Hours: </span> {Math.floor(totalMinutesOfWork / 60)}{" "}
           hr {totalMinutesOfWork % 60.0} min
         </div>
 
