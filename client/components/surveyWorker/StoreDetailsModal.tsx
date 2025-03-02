@@ -36,10 +36,6 @@ export function StoreDetailsModal({ storeData, setStoreData, surveyLauncherData 
   const [clipboardMessage, setClipboardMessage] = useState<string | null>(null);
 
   const ticketDescriptor = storeData?.storeTickets.length === 1 ? "Ticket" : "Ticket(s)";
-  let numTicketsClassname = "";
-  if (storeData?.storeTickets.length == 0) {
-    numTicketsClassname = "text-danger";
-  }
 
   function handleClose() {
     setStoreData(null);
@@ -101,7 +97,7 @@ export function StoreDetailsModal({ storeData, setStoreData, surveyLauncherData 
                     {storeData.totalProjectTimeMins % 60.0} min
                   </div>
                 )}
-                <div className={"fw-bold mb-2 " + numTicketsClassname}>
+                <div className={"fw-bold mb-2"}>
                   {storeData.storeTickets.length} {ticketDescriptor} Pending
                 </div>
                 <div style={LISTING_STYLE}>
@@ -113,11 +109,14 @@ export function StoreDetailsModal({ storeData, setStoreData, surveyLauncherData 
                       </li>
                     ))}
                   </ul>
-                  {storeData.storeTickets.length === 0 && <div>No tickets to show</div>}
+                  {storeData.storeTickets.length === 0 && (
+                    <div className="text-danger">No tickets to show</div>
+                  )}
                 </div>
               </div>
               <div className="cmklaunch-store-info">
                 <SurveyDetails
+                  isNumTicketsZero={storeData.storeTickets.length === 0}
                   storeGuid={storeData.store.MVID}
                   surveyLauncherData={surveyLauncherData}
                 />
@@ -136,9 +135,11 @@ export function StoreDetailsModal({ storeData, setStoreData, surveyLauncherData 
 }
 
 function SurveyDetails({
+  isNumTicketsZero,
   surveyLauncherData,
   storeGuid,
 }: {
+  isNumTicketsZero: boolean;
   storeGuid: string;
   surveyLauncherData: SurveyWorkerTemplatesSurveyWorkerTerritoryViewer["survey_launcher_data"];
 }) {
@@ -151,9 +152,16 @@ function SurveyDetails({
   );
 
   function launchLinks() {
-    surveys.forEach((survey) => {
-      window.open(survey.url, "_blank", "noopener,noreferrer");
-    });
+    if (isNumTicketsZero && surveys.length > 0) {
+      const userResp = confirm(
+        "Continue with opening survey URLs?\n\nNote: Having no tickets available and having surveys available could either mean: you missed submitting some surveys \
+        or this is not your store anymore (sometimes stores remain perpetually in your territory but with zero tickets)"
+      );
+
+      if (!userResp) return;
+    }
+
+    surveys.forEach((survey) => window.open(survey.url, "_blank", "noopener,noreferrer"));
   }
 
   function getDomainName(url: string): string {
@@ -187,7 +195,7 @@ function SurveyDetails({
                 </li>
               ))}
             </ul>
-            {surveys.length === 0 && <div>No surveys to show</div>}
+            {surveys.length === 0 && <div className="text-danger">No surveys to show</div>}
           </div>
         </div>
         {surveys.length !== 0 && (
