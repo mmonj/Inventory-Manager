@@ -56,6 +56,11 @@ export const Layout = ({ extraStyles = [], excludeBsBodyOverrides = false, ...pr
           type="text/css"
           href={`${djangoContext.STATIC_URL}styles/shared.css`}
         />
+        <link
+          rel="stylesheet"
+          type="text/css"
+          href={`${djangoContext.STATIC_URL}styles/survey_worker/styles.css`}
+        />
 
         {!excludeBsBodyOverrides && (
           <link
