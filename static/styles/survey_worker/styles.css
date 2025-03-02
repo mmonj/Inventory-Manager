@@ -24,3 +24,11 @@
   max-height: 80%;
   max-width: 80%;
 }
+
+.copy-address:active {
+  transform: scale(0.85);
+}
+
+.copy-address:hover {
+  cursor: pointer;
+}
