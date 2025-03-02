@@ -16,14 +16,16 @@ export function NavigationBar() {
           <Nav className="me-auto mb-2 mb-lg-0">
             {djangoContext.user.is_authenticated && (
               <>
-                <Nav.Link
-                  href={reverse("survey_worker:survey_launcher")}
-                  className={
-                    reverse("survey_worker:survey_launcher") === currentPath ? "active" : ""
-                  }
-                >
-                  Survey Launcher
-                </Nav.Link>
+                {djangoContext.global_settings?.is_survey_launcher_enabled === true && (
+                  <Nav.Link
+                    href={reverse("survey_worker:survey_launcher")}
+                    className={
+                      reverse("survey_worker:survey_launcher") === currentPath ? "active" : ""
+                    }
+                  >
+                    Survey Launcher
+                  </Nav.Link>
+                )}
                 <Nav.Link
                   href={reverse("survey_worker:territory_viewer")}
                   className={
