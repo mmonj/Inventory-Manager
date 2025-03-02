@@ -4,6 +4,7 @@ import { Context, templates } from "@reactivated";
 
 import { faTimes } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { format, parse } from "date-fns/esm";
 
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
@@ -29,15 +30,16 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
   const [isFiltersModalShow, setIsFiltersModalShow] = React.useState(false);
   const [filteredTicketIds, setFilteredTicketIds] = React.useState<Set<string>>(new Set());
   const [shownWebhubStores, setShownWebhubStores] = React.useState<
-    templates.SurveyWorkerTerritoryViewer["reps_to_store"][number]["webhub_stores"]
+    templates.SurveyWorkerTerritoryViewer["rep_stores"][number]["webhub_stores"]
   >([]);
   const [storeFilterValue, setStoreFilterValue] = React.useState("");
   const [isShowMap, setIsShowMap] = React.useState(false);
   const [storeModalData, setStoreModalData] = React.useState<IStoreModalData | null>(null);
+  const [isCmklaunchUrlsShown, setIsCmklaunchUrlsShown] = React.useState(false);
 
   const djangoContext = React.useContext(Context);
 
-  if (props.reps_to_store.length === 0) {
+  if (props.rep_stores.length === 0) {
     return (
       <Layout title="Territory Viewer" navbar={<NavigationBar />}>
         <section className="mw-rem-60 mx-auto p-2 px-3">
@@ -69,7 +71,7 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
     filterTicketIds: {
       isSet:
         filteredTicketIds.size > 0 &&
-        props.reps_to_store[selectedRepIdx].current_pending_mplan_ids.some((repTicketId) =>
+        props.rep_stores[selectedRepIdx].current_pending_mplan_ids.some((repTicketId) =>
           filteredTicketIds.has(repTicketId)
         ),
     },
@@ -85,9 +87,13 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
     ).length;
   }
 
+  function toggleShowOriginalCmklaunchUrls() {
+    setIsCmklaunchUrlsShown((prev) => !prev);
+  }
+
   React.useEffect(() => {
     const timeoutVal = setTimeout(() => {
-      const filteredStores = props.reps_to_store[selectedRepIdx].webhub_stores.filter((store) => {
+      const filteredStores = props.rep_stores[selectedRepIdx].webhub_stores.filter((store) => {
         const fullStoreName = `${store.City}, ${store.State} | ${store.Address} | ${store.Name}`;
         return fullStoreName.toLowerCase().includes(storeFilterValue.toLowerCase());
       });
@@ -100,7 +106,7 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
   }, [storeFilterValue]);
 
   React.useEffect(() => {
-    setShownWebhubStores(() => props.reps_to_store[selectedRepIdx].webhub_stores);
+    setShownWebhubStores(() => props.rep_stores[selectedRepIdx].webhub_stores);
   }, []);
 
   return (
@@ -115,36 +121,97 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
       ]}
     >
       <section className="mw-rem-60 mx-auto p-2 px-3">
-        <h1 className="title-color text-center">Territory Viewer</h1>
+        <h1 className="text-center my-2 mb-4">Territory Viewer</h1>
 
-        <div className="my-2">
-          <label htmlFor="rep-select" className="form-label">
-            Select a Field Rep
-          </label>
-          <select
-            name="rep-select"
-            id="rep-select"
-            className="form-select"
-            value={selectedRepIdx}
-            onChange={(e) => {
-              setSelectedRepIdx(() => parseInt(e.target.value));
-              setShownWebhubStores(
-                () => props.reps_to_store[parseInt(e.target.value)].webhub_stores
-              );
-            }}
-          >
-            {props.reps_to_store.map((repStoreData, idx) => (
-              <option key={repStoreData.rep_id} value={idx}>
-                {repStoreData.rep_name}
-              </option>
-            ))}
-          </select>
+        <div className="alert alert-info">
+          <div className="survey-launcher-info mb-4">
+            <div className="h3 fw-bold text-decoration-underline">Survey Launcher Info</div>
+            <div>
+              <strong>Showing Cycle:</strong>{" "}
+              {format(
+                parse(props.survey_launcher_data.cycle_start_date, "yyyy-MM-dd", new Date()),
+                "MMM d, yyyy"
+              )}
+            </div>
+            <div>
+              <strong>Survey URLs Last Syncced:</strong>{" "}
+              {getTimeAgo(
+                props.survey_launcher_data.cmk_stores_refresh_data.datetime_last_refreshed
+              )}
+            </div>
+            <div>
+              <strong>Cmklaunch URL Pool:</strong>{" "}
+              {props.survey_launcher_data.cmklaunch_urls.length}{" "}
+              <button
+                onClick={toggleShowOriginalCmklaunchUrls}
+                type="button"
+                className="btn btn-secondary py-0 px-1"
+              >
+                {!isCmklaunchUrlsShown ? "Show" : "Hide"}
+              </button>
+            </div>
+
+            {isCmklaunchUrlsShown && (
+              <div className="mt-2 p-2 border border-secondary rounded">
+                <h5 className="text-dark">Original Cmklaunch URLs</h5>
+                {props.survey_launcher_data.cmklaunch_urls.map((cmklaunchUrl, idx) => (
+                  <a
+                    key={idx}
+                    href={cmklaunchUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="d-block text-secondary py-1"
+                    style={{
+                      overflow: "auto",
+                    }}
+                  >
+                    {cmklaunchUrl}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="territory-info mb-4">
+            <div className="h3 fw-bold text-decoration-underline">
+              {props.rep_stores[selectedRepIdx].rep_name}&apos;s territory
+            </div>
+            <div>
+              <strong>Total Work Hours: </strong>
+              {Math.floor(totalMinutesOfWork / 60)} hr {totalMinutesOfWork % 60.0} min
+            </div>
+            <div>
+              <strong>Last Syncced</strong>:{" "}
+              {getTimeAgo(props.rep_stores[selectedRepIdx].last_syncced)}
+            </div>
+            <div className="mb-3">
+              <strong>{numStoresShown} stores shown</strong>
+            </div>
+
+            <div>
+              <label htmlFor="rep-select" className="form-label fw-semibold">
+                Select a Field Rep
+              </label>
+              <select
+                name="rep-select"
+                id="rep-select"
+                className="form-select"
+                value={selectedRepIdx}
+                onChange={(e) => {
+                  setSelectedRepIdx(() => parseInt(e.target.value));
+                  setShownWebhubStores(
+                    () => props.rep_stores[parseInt(e.target.value)].webhub_stores
+                  );
+                }}
+              >
+                {props.rep_stores.map((repStoreData, idx) => (
+                  <option key={repStoreData.rep_id} value={idx}>
+                    {repStoreData.rep_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
-
-        <h4 className="mt-3">{props.reps_to_store[selectedRepIdx].rep_name}&apos;s territory</h4>
-        <h6 className="mb-3 fw-normal">
-          Last Syncced: {getTimeAgo(props.reps_to_store[selectedRepIdx].last_syncced)}
-        </h6>
 
         <button
           type="button"
@@ -192,14 +259,6 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
           </React.Suspense>
         )}
 
-        <div className="mt-3">
-          <span className="fw-bold">{numStoresShown} stores shown</span>
-        </div>
-        <div className="mb-3">
-          <span className="fw-bold">Total Work Hours: </span> {Math.floor(totalMinutesOfWork / 60)}{" "}
-          hr {totalMinutesOfWork % 60.0} min
-        </div>
-
         <div className="my-2">
           <div className="input-group">
             <input
@@ -238,7 +297,11 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
           })}
         </div>
 
-        <StoreDetailsModal storeData={storeModalData} setStoreData={setStoreModalData} />
+        <StoreDetailsModal
+          storeData={storeModalData}
+          setStoreData={setStoreModalData}
+          surveyLauncherData={props.survey_launcher_data}
+        />
 
         <TerritoryFiltersModal
           isShow={isFiltersModalShow}
@@ -248,7 +311,7 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
           filteredTicketIds={filteredTicketIds}
           setFilteredTicketIds={setFilteredTicketIds}
           currentTickets={props.current_mplans}
-          currentRepTicketIds={props.reps_to_store[selectedRepIdx].current_pending_mplan_ids}
+          currentRepTicketIds={props.rep_stores[selectedRepIdx].current_pending_mplan_ids}
         />
       </section>
     </Layout>
