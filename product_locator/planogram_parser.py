@@ -35,22 +35,23 @@ def parse_data(planogram_text_dump: str, request: HttpRequest) -> list[IImported
     lines_not_matched: list[str] = []
 
     for line in planogram_text_dump.strip().split("\n"):
-        match = ITEM_ATTRIBUTES_RE.search(line)
-        if not match:
+        matches = ITEM_ATTRIBUTES_RE.finditer(line)
+        if not matches:
             lines_not_matched.append(line)
             continue
 
-        name: str = match.group(1)
-        upc: str = match.group(2)
-        location: str = match.group(3)
+        for match in matches:
+            name: str = match.group(1)
+            upc: str = match.group(2)
+            location: str = match.group(3)
 
-        product_list.append(
-            {
-                "upc": upc.strip(),
-                "name": name.strip(),
-                "location": fix_location_ocr_inaccuracies(location.strip()),
-            }
-        )
+            product_list.append(
+                {
+                    "upc": upc.strip(),
+                    "name": name.strip(),
+                    "location": fix_location_ocr_inaccuracies(location.strip()),
+                }
+            )
 
     for line in lines_not_matched:
         logger.info(f"Regex was not matched on line: '{line}'")
