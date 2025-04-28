@@ -1,15 +1,15 @@
 import React from "react";
 
-import { MvRepDetail_146000D320 } from "@reactivated";
+import { MvRepDetail_3A2416Df6E } from "@reactivated";
 import { useNavigate } from "react-router-dom";
 
 interface Props {
-  mv_reps_detail: MvRepDetail_146000D320[];
+  mv_reps_detail: MvRepDetail_3A2416Df6E[];
 }
 
 export function RepPicker(props: Props) {
   const [selectedMvRepDetail, setSelectedMvRepDetail] =
-    React.useState<MvRepDetail_146000D320 | null>(null);
+    React.useState<MvRepDetail_3A2416Df6E | null>(null);
   const navigate = useNavigate();
 
   function handleSelectedMvrepDetailChange(event: React.ChangeEvent<HTMLSelectElement>) {

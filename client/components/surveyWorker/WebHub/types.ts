@@ -1,5 +1,5 @@
-import { MvRepDetail_146000D320 } from "@reactivated";
+import { MvRepDetail_3A2416Df6E } from "@reactivated";
 
 export interface RepHubRouteProps {
-  mv_rep_detail: MvRepDetail_146000D320;
+  mv_rep_detail: MvRepDetail_3A2416Df6E;
 }
