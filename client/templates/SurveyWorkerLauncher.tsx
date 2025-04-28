@@ -1,6 +1,10 @@
 import React from "react";
 
-import { Context, SurveyWorkerInterfacesICmklaunchStoreInfo, templates } from "@reactivated";
+import {
+  Context,
+  SurveyWorkerOnehubTypedefsInterfacesICmklaunchStoreInfo,
+  templates,
+} from "@reactivated";
 
 import { format, parse } from "date-fns/esm";
 import { AnimatePresence, motion } from "framer-motion";
@@ -11,7 +15,7 @@ import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
 import { initSessionTimeTracker } from "@client/util/commonUtil";
 import { getTimeAgo } from "@client/util/surveyWorker";
 
-interface IStoreGuid extends SurveyWorkerInterfacesICmklaunchStoreInfo {
+interface IStoreGuid extends SurveyWorkerOnehubTypedefsInterfacesICmklaunchStoreInfo {
   pk: number;
 }
 

@@ -1,5 +1,6 @@
 import hashlib
 import logging
+from typing import TYPE_CHECKING
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import NotFound as DrfNotFound
@@ -19,8 +20,7 @@ from products.models import (
 from products.tasks import get_external_product_images
 from products.util import get_current_work_cycle
 from server.utils.common import validate_structure
-from survey_worker.interfaces import ICmkHtmlSourcesData
-from survey_worker.util import add_cmk_urls_to_db_workcycle, get_current_work_cycle_data
+from survey_worker.onehub.util import add_cmk_urls_to_db_workcycle, get_current_work_cycle_data
 
 from .interfaces_request import ICmkStoreHtmlData
 from .serializers import (
@@ -35,6 +35,9 @@ from .types import (
     IUpdateStorePersonnel,
 )
 from .util import update_product_additions, update_product_record_names
+
+if TYPE_CHECKING:
+    from survey_worker.onehub.typedefs.interfaces import ICmkHtmlSourcesData
 
 logger = logging.getLogger("main_logger")
 

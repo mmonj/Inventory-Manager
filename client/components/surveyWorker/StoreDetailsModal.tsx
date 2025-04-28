@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 
 import {
-  SurveyWorkerInterfacesICmklaunchStoreData,
-  SurveyWorkerInterfacesIWebhubStore,
-  SurveyWorkerInterfacesOnehubModelsMvmPlan,
-  SurveyWorkerTemplatesSurveyWorkerTerritoryViewer,
+  SurveyWorkerOnehubTemplatesSurveyWorkerTerritoryViewer,
+  SurveyWorkerOnehubTypedefsInterfacesICmklaunchStoreData,
+  SurveyWorkerOnehubTypedefsInterfacesIWebhubStore,
+  SurveyWorkerOnehubTypedefsInterfacesOnehubModelsMvmPlan,
 } from "@reactivated";
 import { Button, Modal } from "react-bootstrap";
 
@@ -21,15 +21,15 @@ const LISTING_STYLE = {
 };
 
 export interface IStoreModalData {
-  store: SurveyWorkerInterfacesIWebhubStore;
-  storeTickets: SurveyWorkerInterfacesOnehubModelsMvmPlan[];
+  store: SurveyWorkerOnehubTypedefsInterfacesIWebhubStore;
+  storeTickets: SurveyWorkerOnehubTypedefsInterfacesOnehubModelsMvmPlan[];
   totalProjectTimeMins: number;
 }
 
 interface Props {
   storeData: IStoreModalData | null;
   setStoreData: React.Dispatch<React.SetStateAction<IStoreModalData | null>>;
-  surveyLauncherData: SurveyWorkerTemplatesSurveyWorkerTerritoryViewer["survey_launcher_data"];
+  surveyLauncherData: SurveyWorkerOnehubTemplatesSurveyWorkerTerritoryViewer["survey_launcher_data"];
 }
 
 export function StoreDetailsModal({ storeData, setStoreData, surveyLauncherData }: Props) {
@@ -41,7 +41,7 @@ export function StoreDetailsModal({ storeData, setStoreData, surveyLauncherData 
     setStoreData(null);
   }
 
-  function handleCopyAddress(storeDetails: SurveyWorkerInterfacesIWebhubStore) {
+  function handleCopyAddress(storeDetails: SurveyWorkerOnehubTypedefsInterfacesIWebhubStore) {
     setClipboardMessage(() => "Address Copied!");
     setTimeout(() => {
       setClipboardMessage(() => null);
@@ -141,11 +141,11 @@ function SurveyDetails({
 }: {
   isNumTicketsZero: boolean;
   storeGuid: string;
-  surveyLauncherData: SurveyWorkerTemplatesSurveyWorkerTerritoryViewer["survey_launcher_data"];
+  surveyLauncherData: SurveyWorkerOnehubTemplatesSurveyWorkerTerritoryViewer["survey_launcher_data"];
 }) {
   const cmklaunchStore = surveyLauncherData.cmk_stores_refresh_data.stores_surveys_map[
     storeGuid
-  ] as SurveyWorkerInterfacesICmklaunchStoreData | undefined;
+  ] as SurveyWorkerOnehubTypedefsInterfacesICmklaunchStoreData | undefined;
 
   const surveys = Object.values(cmklaunchStore?.surveys_by_client ?? {}).sort((s1, s2) =>
     s1.category.localeCompare(s2.category)

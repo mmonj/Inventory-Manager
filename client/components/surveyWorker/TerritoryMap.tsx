@@ -2,8 +2,8 @@ import React from "react";
 
 import {
   Context,
-  SurveyWorkerInterfacesIWebhubStore,
-  SurveyWorkerInterfacesOnehubModelsMvmPlan,
+  SurveyWorkerOnehubTypedefsInterfacesIWebhubStore,
+  SurveyWorkerOnehubTypedefsInterfacesOnehubModelsMvmPlan,
 } from "@reactivated";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 
@@ -17,10 +17,10 @@ import {
 } from "@client/util/surveyWorker";
 
 interface Props {
-  stores: SurveyWorkerInterfacesIWebhubStore[];
+  stores: SurveyWorkerOnehubTypedefsInterfacesIWebhubStore[];
   filteredTicketIds: Set<string>;
   isHideZeroTickets: boolean;
-  currentTickets: SurveyWorkerInterfacesOnehubModelsMvmPlan[];
+  currentTickets: SurveyWorkerOnehubTypedefsInterfacesOnehubModelsMvmPlan[];
 }
 
 const iconUrls = {
@@ -52,8 +52,8 @@ function getCustomIcon(color: keyof typeof iconUrls) {
 }
 
 function MapPopupContent(props: {
-  store: SurveyWorkerInterfacesIWebhubStore;
-  currentTickets: SurveyWorkerInterfacesOnehubModelsMvmPlan[];
+  store: SurveyWorkerOnehubTypedefsInterfacesIWebhubStore;
+  currentTickets: SurveyWorkerOnehubTypedefsInterfacesOnehubModelsMvmPlan[];
   filteredTicketIds: Set<string>;
 }) {
   const [clipboardMessage, setClipboardMessage] = React.useState<string | null>(null);

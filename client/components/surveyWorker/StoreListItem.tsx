@@ -1,8 +1,8 @@
 import React from "react";
 
 import {
-  SurveyWorkerInterfacesIWebhubStore,
-  SurveyWorkerInterfacesOnehubModelsMvmPlan,
+  SurveyWorkerOnehubTypedefsInterfacesIWebhubStore,
+  SurveyWorkerOnehubTypedefsInterfacesOnehubModelsMvmPlan,
 } from "@reactivated";
 
 import { getStoreWorktimeMinutes } from "@client/util/surveyWorker";
@@ -10,8 +10,8 @@ import { getStoreWorktimeMinutes } from "@client/util/surveyWorker";
 import { IStoreModalData } from "./StoreDetailsModal";
 
 interface Props {
-  store: SurveyWorkerInterfacesIWebhubStore;
-  currentTickets: SurveyWorkerInterfacesOnehubModelsMvmPlan[];
+  store: SurveyWorkerOnehubTypedefsInterfacesIWebhubStore;
+  currentTickets: SurveyWorkerOnehubTypedefsInterfacesOnehubModelsMvmPlan[];
   filteredTicketIds: Set<string>;
   isHideZeroTickets: boolean;
   setStoreModalData: React.Dispatch<React.SetStateAction<IStoreModalData | null>>;

@@ -81,4 +81,5 @@ ignore = [
     "FIX002",  # too verbose descriptions of todos
     "UP007",   # non-pep604-annotation (prefer | operator for Unions)
     "UP006",   # non-pep585-annotation (eg. prefer list over List)
+    "FA100",   #Add `from __future__ import annotations` to simplify `...`
 ]

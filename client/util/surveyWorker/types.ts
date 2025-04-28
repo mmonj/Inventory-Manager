@@ -1,6 +1,6 @@
-import { SurveyWorkerTemplatesSurveyWorkerTaskAdminer } from "@reactivated";
+import { SurveyWorkerOnehubTemplatesSurveyWorkerTaskAdminer } from "@reactivated";
 
-export type TaskTypeType = SurveyWorkerTemplatesSurveyWorkerTaskAdminer["task_types"][number];
+export type TaskTypeType = SurveyWorkerOnehubTemplatesSurveyWorkerTaskAdminer["task_types"][number];
 export type THubModalState = {
   isShow: boolean;
   statusMessages: string[];
