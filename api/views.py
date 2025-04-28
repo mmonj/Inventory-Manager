@@ -1,7 +1,6 @@
 import hashlib
 import logging
 
-from django.core.exceptions import ValidationError
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import NotFound as DrfNotFound
 from rest_framework.exceptions import PermissionDenied as DrfPermissionDenied
@@ -33,7 +32,6 @@ from .serializers import (
 from .types import (
     IGetStoreProductAdditions,
     IUpdateStoreFieldRep,
-    IUpdateStoreInfo,
     IUpdateStorePersonnel,
 )
 from .util import update_product_additions, update_product_record_names
@@ -62,52 +60,6 @@ def get_field_reps(_request: DrfRequest) -> DrfResponse:
     resp_json = FieldRepresentativeSerializer(field_reps, many=True).data
 
     return DrfResponse(resp_json)
-
-
-@api_view(["POST"])
-def update_store_info(request: DrfRequest) -> DrfResponse:
-    request_data: IUpdateStoreInfo = validate_structure(request.data, IUpdateStoreInfo)
-
-    received_store_name = request_data.store_name
-    received_partial_store_address = request_data.partial_store_address
-    received_store_guid = request_data.store_guid.upper().strip()
-
-    logger.info("Received request data %s", request_data)
-    if "" in [received_store_name, received_partial_store_address, received_store_guid]:
-        raise DrfValidationError("Empty field value received in payload")
-
-    store = (
-        Store.objects.filter(guid=received_store_guid)
-        .prefetch_related("field_representative", "contacts")
-        .first()
-    )
-
-    if store is None and received_partial_store_address is not None:
-        logger.info(
-            "No store match found. Searching for existing store with partial address: '%s'",
-            received_partial_store_address,
-        )
-        store = (
-            Store.objects.filter(name__icontains=received_partial_store_address, guid=None)
-            .prefetch_related("field_representative", "contacts")
-            .first()
-        )
-        if store is not None:
-            store.guid = received_store_guid
-            store.save(update_fields=["guid"])
-
-    if store is None:
-        logger.info(
-            "No store match found. Creating new store record for store '%s', guid '%s'",
-            request_data.store_name,
-            request_data.store_guid,
-        )
-        try:
-            store = Store.objects.create(name=received_store_name, guid=received_store_guid)
-        except ValidationError as ex:
-            raise DrfValidationError(ex.messages) from ex
-
-    return DrfResponse(StoreSerializer(store).data)
 
 
 @api_view(["PUT"])
