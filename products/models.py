@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import requests
 from checkdigit import gs1
@@ -10,7 +10,10 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
-from .types import TParsedAddress
+from server.utils.typedefs import TFailure, TResult, TSuccess
+
+if TYPE_CHECKING:
+    from .types import TParsedAddress
 
 
 class WorkCycle(models.Model):
@@ -214,7 +217,7 @@ class Store(models.Model):
         super().clean(*args, **kwargs)
 
     @staticmethod
-    def parse_us_address(raw_address: str) -> TParsedAddress:
+    def parse_us_address(raw_address: str) -> TResult[TParsedAddress, ValueError]:
         try:
             import usaddress  # type: ignore [import]
 
@@ -229,20 +232,24 @@ class Store(models.Model):
             address_1 = " ".join(address_1.split())
 
             if address_1.strip() == "":
-                raise ValueError(f"Parsed address had no valid address_1 part: {raw_address!r}")
+                return TFailure(
+                    ValueError(f"Parsed address had no valid address_1 part: {raw_address!r}")
+                )
 
-            return {
-                "address_1": address_1,
-                "city": tagged.get("PlaceName", "").title(),
-                "state": tagged.get("StateName", "").upper(),
-                "zip_code": tagged.get("ZipCode", ""),
-            }
+            return TSuccess(
+                {
+                    "address_1": address_1,
+                    "city": tagged.get("PlaceName", "").title(),
+                    "state": tagged.get("StateName", "").upper(),
+                    "zip_code": tagged.get("ZipCode", ""),
+                }
+            )
 
-        except usaddress.RepeatedLabelError as ex:
-            raise ValueError(f"Could not reliably parse address {raw_address!r}") from ex
+        except usaddress.RepeatedLabelError:
+            return TFailure(ValueError(f"Could not reliably parse address {raw_address!r}"))
 
     @staticmethod
-    def geocode_address(address: str | TParsedAddress) -> tuple[float, float]:
+    def geocode_address(address: str | TParsedAddress) -> TResult[tuple[float, float], ValueError]:
         if isinstance(address, dict):
             address_parts = [
                 address["address_1"],
@@ -268,28 +275,36 @@ class Store(models.Model):
         data = response.json()
 
         if not data:
-            raise ValueError(f"No geocoding result for address: {address_payload!r}")
+            return TFailure(ValueError(f"No geocoding result for address: {address_payload!r}"))
 
         lat = float(data[0]["lat"])
         lon = float(data[0]["lon"])
-        return lat, lon
+        return TSuccess((lat, lon))
 
     @staticmethod
-    def filter_by_geolocation(raw_address: str) -> models.QuerySet[Store]:
-        """
-        Geocode the raw address and find possible matching stores nearby (~500 feet range).
-        """
-        lat, lon = Store.geocode_address(raw_address)
+    def filter_by_geolocation(
+        raw_address: str, prefetch_related: list[str] | None = None
+    ) -> TResult[models.QuerySet[Store], ValueError]:
+        if prefetch_related is None:
+            prefetch_related = []
+
+        coordinates_result = Store.geocode_address(raw_address)
+        if not coordinates_result.ok:
+            return TFailure(coordinates_result.err)
+
+        lat, lon = coordinates_result.value
 
         degree_offset = 0.0004  # about 40 meters
 
-        return Store.objects.filter(
-            latitude__isnull=False,
-            longitude__isnull=False,
-            latitude__gte=lat - degree_offset,
-            latitude__lte=lat + degree_offset,
-            longitude__gte=lon - degree_offset,
-            longitude__lte=lon + degree_offset,
+        return TSuccess(
+            Store.objects.filter(
+                latitude__isnull=False,
+                longitude__isnull=False,
+                latitude__gte=lat - degree_offset,
+                latitude__lte=lat + degree_offset,
+                longitude__gte=lon - degree_offset,
+                longitude__lte=lon + degree_offset,
+            ).prefetch_related(*prefetch_related)
         )
 
 
