@@ -1,11 +1,16 @@
+from __future__ import annotations
+
 import re
 from pathlib import Path
 from typing import Any
 
+import requests
 from checkdigit import gs1
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
+
+from .types import TParsedAddress
 
 
 class WorkCycle(models.Model):
@@ -154,15 +159,24 @@ class StoreGUID(models.Model):
 
 
 class Store(models.Model):
-    name = models.CharField(max_length=255, null=True, unique=True)
+    name = models.CharField(max_length=255, blank=True, db_index=True)
     field_representative = models.ForeignKey(
-        FieldRepresentative, null=True, blank=True, on_delete=models.SET_NULL, related_name="stores"
+        "FieldRepresentative",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="stores",
     )
     date_created = models.DateField(default=timezone.now)
-    guid = models.CharField(max_length=150, null=True, blank=True, unique=True)
-    # store_guids = models.ManyToManyField(StoreGUID, related_name="stores")
+    guid = models.CharField(max_length=150, blank=True, default="")
+    site_id = models.CharField(max_length=150, blank=True, default="", db_index=True)
+    address_1 = models.CharField(max_length=100, blank=True, default="")
+    city = models.CharField(max_length=50, blank=True, default="")
+    state = models.CharField(max_length=20, blank=True, default="")
+    zip_code = models.CharField(max_length=20, blank=True, default="")
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
 
-    # non-column attribute
     __trailing_number_re = re.compile(r" *-* *[0-9]+ *$", flags=re.IGNORECASE)
 
     class Meta:
@@ -189,22 +203,94 @@ class Store(models.Model):
         if self.name == "":
             raise ValidationError("Store name cannot be empty")
 
-        # if re.search(self.__trailing_number_re, self.name):
-        #     raise ValidationError(
-        #         f"Store name must not have a dash or trailing numbers: {self.name}"
-        #     )
-
     def validate_guid(self) -> None:
         if self.guid is None:
             return
-
         self.guid = self.guid.upper().strip()
 
     def clean(self, *args: Any, **kwargs: Any) -> None:
         self.validate_name()
         self.validate_guid()
-
         super().clean(*args, **kwargs)
+
+    @staticmethod
+    def parse_us_address(raw_address: str) -> TParsedAddress:
+        try:
+            import usaddress  # type: ignore [import]
+
+            tagged, _ = usaddress.tag(raw_address)
+            street_items = [
+                tagged.get("AddressNumber", "").upper(),
+                tagged.get("StreetNamePreType", "").upper(),
+                tagged.get("StreetName", "").upper(),
+                tagged.get("StreetNamePostType", "").upper(),
+            ]
+            address_1 = " ".join(street_items).strip()
+            address_1 = " ".join(address_1.split())
+
+            if address_1.strip() == "":
+                raise ValueError(f"Parsed address had no valid address_1 part: {raw_address!r}")
+
+            return {
+                "address_1": address_1,
+                "city": tagged.get("PlaceName", "").title(),
+                "state": tagged.get("StateName", "").upper(),
+                "zip_code": tagged.get("ZipCode", ""),
+            }
+
+        except usaddress.RepeatedLabelError as ex:
+            raise ValueError(f"Could not reliably parse address {raw_address!r}") from ex
+
+    @staticmethod
+    def geocode_address(address: str | TParsedAddress) -> tuple[float, float]:
+        if isinstance(address, dict):
+            address_parts = [
+                address["address_1"],
+                address["city"],
+                address["state"],
+                address["zip_code"],
+            ]
+            address_payload = ", ".join(part for part in address_parts if part).strip()
+        else:
+            address_payload = address
+
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {
+            "q": address_payload,
+            "format": "json",
+            "limit": "1",
+        }
+
+        response = requests.get(
+            url, params=params, headers={"User-Agent": "store-import-script"}, timeout=20
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        if not data:
+            raise ValueError(f"No geocoding result for address: {address_payload!r}")
+
+        lat = float(data[0]["lat"])
+        lon = float(data[0]["lon"])
+        return lat, lon
+
+    @staticmethod
+    def filter_by_geolocation(raw_address: str) -> models.QuerySet[Store]:
+        """
+        Geocode the raw address and find possible matching stores nearby (~500 feet range).
+        """
+        lat, lon = Store.geocode_address(raw_address)
+
+        degree_offset = 0.0004  # about 40 meters
+
+        return Store.objects.filter(
+            latitude__isnull=False,
+            longitude__isnull=False,
+            latitude__gte=lat - degree_offset,
+            latitude__lte=lat + degree_offset,
+            longitude__gte=lon - degree_offset,
+            longitude__lte=lon + degree_offset,
+        )
 
 
 class ProductAddition(models.Model):

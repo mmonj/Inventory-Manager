@@ -62,3 +62,10 @@ class IUpcItemDbData(TypedDict):
     total: int
     offset: int
     items: List[IUpcItemDbItem]
+
+
+class TParsedAddress(TypedDict):
+    address_1: str
+    city: str
+    state: str
+    zip_code: str
