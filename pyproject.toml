@@ -32,6 +32,8 @@ beautifulsoup4 = "^4.12.2"
 sqlparse = "^0.4.4"
 sql-metadata = "^2.8.0"
 rq-scheduler = "^0.13.1"
+setuptools = "^78.1.0"
+usaddress = "^0.5.13"
 
 
 [tool.poetry.group.dev.dependencies]
