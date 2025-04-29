@@ -56,6 +56,7 @@ ignore = [
     "D106",    # Missing docstring in public nested class
     "D107",    # Missing docstring in __init__
     "D200",    # One-line docstring should fit on one line
+    "D202",    # No blank lines allowed after function docstring (found 1)
     "D205",    # 1 blank line required between summary line and description
     "D212",    # Multi-line docstring summary should start at the first line
     "D213",    # Multi-line docstring summary should start at the second line
@@ -70,6 +71,7 @@ ignore = [
     "E501",    # line too long
     "F403",    # undefined-local-with-import-star; mypy analyzes undefined names for wildcards.
     "F821",    # undefined-name; Reactivated uses literals inside Pick that get flagged as missing variable/names.
+    "FA100",   # Add `from __future__ import annotations` to simplify `...`
     "EM",      # f-/format/literal strings passed to exceptions
     "ERA001",  # lingering commented-out code
     "PLR0913", # too-many-arguments
@@ -81,5 +83,4 @@ ignore = [
     "FIX002",  # too verbose descriptions of todos
     "UP007",   # non-pep604-annotation (prefer | operator for Unions)
     "UP006",   # non-pep585-annotation (eg. prefer list over List)
-    "FA100",   #Add `from __future__ import annotations` to simplify `...`
 ]
