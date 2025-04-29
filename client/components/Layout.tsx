@@ -92,7 +92,7 @@ export const Layout = ({ extraStyles = [], excludeBsBodyOverrides = false, ...pr
         <script defer crossOrigin="anonymous" src={`${djangoContext.STATIC_URL}dist/index.js`} />
       </Helmet>
       <header>{props.navbar}</header>
-      <main>
+      <main className={props.className}>
         <ContribMessages />
         {props.children}
       </main>

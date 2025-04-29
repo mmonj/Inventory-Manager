@@ -3,9 +3,29 @@ import React from "react";
 import { Context, reverse } from "@reactivated";
 import { Container, Nav, Navbar } from "react-bootstrap";
 
+import { NavLink } from "../NavLink";
+
+interface TLink {
+  text: string;
+  href: string;
+}
+
+function getLink(name: string, path: string) {
+  return {
+    text: name,
+    href: path,
+  } satisfies TLink;
+}
+
 export function NavigationBar() {
   const djangoContext = React.useContext(Context);
   const currentPath = djangoContext.request.path;
+
+  const privilegedLinks: TLink[] = [
+    getLink("Admin", reverse("survey_worker:qt_admin")),
+    getLink("View Login Sessions", reverse("survey_worker:qt_view_login_sessions")),
+  ];
+  const nonPrivilegedLinks: TLink[] = [];
 
   return (
     <Navbar expand="lg" className="bg-body-tertiary bg-blue-theme border-bottom px-2">
@@ -16,61 +36,23 @@ export function NavigationBar() {
           <Nav className="me-auto mb-2 mb-lg-0">
             {djangoContext.user.is_authenticated && (
               <>
-                {djangoContext.global_settings?.is_survey_launcher_enabled === true && (
-                  <Nav.Link
-                    href={reverse("survey_worker:survey_launcher")}
-                    className={
-                      reverse("survey_worker:survey_launcher") === currentPath ? "active" : ""
-                    }
-                  >
-                    Survey Launcher
-                  </Nav.Link>
-                )}
-                <Nav.Link
-                  href={reverse("survey_worker:territory_viewer")}
-                  className={
-                    reverse("survey_worker:territory_viewer") === currentPath ? "active" : ""
-                  }
-                >
-                  Territory Viewer
-                </Nav.Link>
+                {nonPrivilegedLinks.map((link, idx) => (
+                  <NavLink key={idx} href={link.href}>
+                    {link.text}
+                  </NavLink>
+                ))}
               </>
             )}
 
             {djangoContext.user.is_superuser && (
               <>
-                <Nav.Link
-                  href={reverse("survey_worker:webhub")}
-                  className={reverse("survey_worker:webhub") === currentPath ? "active" : ""}
-                >
-                  WebHub
-                </Nav.Link>
-                <Nav.Link
-                  href={reverse("survey_worker:rep_sync_data_viewer")}
-                  className={
-                    reverse("survey_worker:rep_sync_data_viewer") === currentPath ? "active" : ""
-                  }
-                >
-                  Rep Sync Data Viewer
-                </Nav.Link>
-                <Nav.Link
-                  href={reverse("survey_worker:task_adminer")}
-                  className={reverse("survey_worker:task_adminer") === currentPath ? "active" : ""}
-                >
-                  Task Adminer
-                </Nav.Link>
-                <Nav.Link
-                  href={reverse("survey_worker:manual_cmklaunch_html")}
-                  className={
-                    reverse("survey_worker:manual_cmklaunch_html") === currentPath ? "active" : ""
-                  }
-                >
-                  CMK HTML Manual Form
-                </Nav.Link>
+                {privilegedLinks.map((link, idx) => (
+                  <NavLink key={idx} href={link.href}>
+                    {link.text}
+                  </NavLink>
+                ))}
               </>
             )}
-
-            {/* {djangoContext.user.is_superuser && <></>} */}
           </Nav>
 
           <Nav className="mb-2 mb-lg-0">
