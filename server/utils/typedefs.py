@@ -32,7 +32,7 @@ class CommonModel(models.Model):
         abstract = True
 
 
-class StaffRequest(HttpRequest):
+class AuthenticatedRequest(HttpRequest):
     user: User
 
 
