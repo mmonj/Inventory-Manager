@@ -56,3 +56,8 @@ def validation_hook_generic(value: T, expected_type: Type[T]) -> T:
     if not isinstance(value, expected_type):
         raise TypeError(f"Value of {value!r} has type {type(value)}. Expected {expected_type}.")
     return value
+
+
+def get_degree_offset_from_meters(meters: float) -> float:
+    meters_per_degree = 111_320.0
+    return meters / meters_per_degree
