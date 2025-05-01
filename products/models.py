@@ -172,7 +172,7 @@ class Store(models.Model):
     )
     date_created = models.DateField(default=timezone.now)
     guid = models.CharField(max_length=150, blank=True, default="")
-    site_id = models.CharField(max_length=150, blank=True, default="", db_index=True)
+    site_id = models.IntegerField(blank=True, null=True, default=None, db_index=True)
     address_1 = models.CharField(max_length=100, blank=True, default="")
     city = models.CharField(max_length=50, blank=True, default="")
     state = models.CharField(max_length=20, blank=True, default="")
@@ -186,6 +186,8 @@ class Store(models.Model):
         db_table = "stores"
 
     def __str__(self) -> str:
+        if self.name == "":
+            return f"guid: {self.guid}"
         return f"{self.name}"
 
     def save(self, *args: Any, **kwargs: Any) -> None:
@@ -306,6 +308,26 @@ class Store(models.Model):
                 longitude__lte=lon + degree_offset,
             ).prefetch_related(*prefetch_related)
         )
+
+    @staticmethod
+    def filter_by_lat_lon_bounds(
+        latitude: float,
+        longitude: float,
+        prefetch_related: list[str] | None = None,
+    ) -> models.QuerySet[Store]:
+        if prefetch_related is None:
+            prefetch_related = []
+
+        degree_offset = 0.0004  # ~40 meters
+
+        return Store.objects.filter(
+            latitude__isnull=False,
+            longitude__isnull=False,
+            latitude__gte=latitude - degree_offset,
+            latitude__lte=latitude + degree_offset,
+            longitude__gte=longitude - degree_offset,
+            longitude__lte=longitude + degree_offset,
+        ).prefetch_related(*prefetch_related)
 
 
 class ProductAddition(models.Model):
