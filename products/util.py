@@ -8,6 +8,7 @@ from typing import Any, Generator, List, Optional, Set
 import pytz
 from django.core.exceptions import ValidationError
 from django.core.files import File
+from django.utils import timezone as dj_timezone
 
 from .models import (
     BrandParentCompany,
@@ -139,7 +140,7 @@ def import_products(
 
 
 def import_distribution_data(
-    stores_distribution_data: dict[str, dict[str, ImportedProductStockData]]
+    stores_distribution_data: dict[str, dict[str, ImportedProductStockData]],
 ) -> None:
     for idx, (store_name, store_distribution_data) in enumerate(stores_distribution_data.items()):
         len1 = len(stores_distribution_data)
@@ -272,7 +273,7 @@ def get_product_count(
 
 
 def get_product_additions_count(
-    stores_distribution_data: dict[str, dict[str, ImportedProductStockData]]
+    stores_distribution_data: dict[str, dict[str, ImportedProductStockData]],
 ) -> int:
     product_addition_set = set()
     for store_name, store_data in stores_distribution_data.items():
@@ -315,18 +316,28 @@ def get_current_work_cycle() -> WorkCycle:
     Returns:
         products.WorkCycle: latest products.WorkCycle instance
     """
-    today_date = date.today()
-    latest_work_cycle = WorkCycle.objects.latest("end_date")
+    today_date = dj_timezone.now().date()
+    latest_work_cycle = WorkCycle.objects.order_by("-end_date").first()
+    if latest_work_cycle is None:
+        raise ValueError("No latest work cycle available")
+
+    if latest_work_cycle.start_date > today_date:
+        raise ValueError(f"Latest work cycle is in the future: {latest_work_cycle}")
 
     if is_date_within_work_cycle(today_date, latest_work_cycle):
         return latest_work_cycle
 
     num_cycles_offset = get_num_work_cycles_offset(today_date, latest_work_cycle)
 
-    new_work_cycle = WorkCycle(
-        start_date=latest_work_cycle.start_date + (num_cycles_offset * WORK_CYCLE_TIME_SPAN),
-        end_date=latest_work_cycle.end_date + (num_cycles_offset * WORK_CYCLE_TIME_SPAN),
-    )
+    new_work_cycles: list[WorkCycle] = []
+    for offset in range(1, num_cycles_offset + 1):
+        new_work_cycle = WorkCycle(
+            start_date=latest_work_cycle.start_date + (offset * WORK_CYCLE_TIME_SPAN),
+            end_date=latest_work_cycle.end_date + (offset * WORK_CYCLE_TIME_SPAN),
+        )
 
-    new_work_cycle.save()
-    return new_work_cycle
+        new_work_cycles.append(new_work_cycle)
+
+    new_work_cycles = WorkCycle.objects.bulk_create(new_work_cycles)
+
+    return new_work_cycles[-1]
