@@ -68,3 +68,9 @@ export function trimStr(str: string, charToTrim: string) {
 
   return start > 0 || end < str.length ? str.substring(start, end) : str;
 }
+
+export function buildUrlFromFormData(basePath: string, formData: FormData) {
+  const url = new URL(basePath, window.location.origin);
+  url.search = new URLSearchParams([...formData.entries()] as [string, string][]).toString();
+  return url.toString();
+}

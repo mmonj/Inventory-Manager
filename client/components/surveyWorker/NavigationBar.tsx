@@ -24,6 +24,7 @@ export function NavigationBar() {
   const privilegedLinks: TLink[] = [
     getLink("Admin", reverse("survey_worker:qt_admin")),
     getLink("View Login Sessions", reverse("survey_worker:qt_view_login_sessions")),
+    getLink("View Qt Schedules", reverse("survey_worker:qt_view_schedules")),
   ];
   const nonPrivilegedLinks: TLink[] = [];
 
