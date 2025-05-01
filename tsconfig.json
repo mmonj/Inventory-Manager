@@ -17,9 +17,6 @@
             "@reactivated": [
                 "node_modules/_reactivated"
             ],
-            "@reactivated/*": [
-                "node_modules/_reactivated/*"
-            ],
             "@static/*": [
                 "static/*"
             ]
