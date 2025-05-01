@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
+from server.utils.common import get_degree_offset_from_meters
 from server.utils.typedefs import TFailure, TResult, TSuccess
 
 if TYPE_CHECKING:
@@ -296,29 +297,19 @@ class Store(models.Model):
 
         lat, lon = coordinates_result.value
 
-        degree_offset = 0.0004  # about 40 meters
-
-        return TSuccess(
-            Store.objects.filter(
-                latitude__isnull=False,
-                longitude__isnull=False,
-                latitude__gte=lat - degree_offset,
-                latitude__lte=lat + degree_offset,
-                longitude__gte=lon - degree_offset,
-                longitude__lte=lon + degree_offset,
-            ).prefetch_related(*prefetch_related)
-        )
+        return TSuccess(Store.filter_by_lat_lon_bounds(lat, lon, 40, prefetch_related))
 
     @staticmethod
     def filter_by_lat_lon_bounds(
         latitude: float,
         longitude: float,
+        meters_offset: float = 40.0,
         prefetch_related: list[str] | None = None,
     ) -> models.QuerySet[Store]:
         if prefetch_related is None:
             prefetch_related = []
 
-        degree_offset = 0.0004  # ~40 meters
+        degree_offset = get_degree_offset_from_meters(meters_offset)
 
         return Store.objects.filter(
             latitude__isnull=False,
