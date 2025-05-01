@@ -1,6 +1,9 @@
 from typing import Any, Type, TypeVar  # noqa: UP035
 
 import cattrs
+import requests
+from requests import Session
+from requests.adapters import HTTPAdapter, Retry
 from rest_framework.exceptions import ValidationError
 
 T = TypeVar("T")
@@ -61,3 +64,21 @@ def validation_hook_generic(value: T, expected_type: Type[T]) -> T:
 def get_degree_offset_from_meters(meters: float) -> float:
     meters_per_degree = 111_320.0
     return meters / meters_per_degree
+
+
+def get_http_retrier(num_retries: int = 3, backoff_factor: float = 0.1) -> Session:
+    session = requests.Session()
+    session.headers.update(
+        {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
+        }
+    )
+
+    retry_strategy = Retry(
+        total=num_retries, backoff_factor=backoff_factor, status_forcelist=[500, 502, 503, 504]
+    )
+
+    session.mount("http://", HTTPAdapter(max_retries=retry_strategy))
+    session.mount("https://", HTTPAdapter(max_retries=retry_strategy))
+
+    return session
