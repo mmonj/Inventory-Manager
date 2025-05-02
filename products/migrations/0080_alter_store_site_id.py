@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='store',
             name='site_id',
-            field=models.IntegerField(blank=True, db_index=True, default=''),
+            field=models.IntegerField(blank=True, db_index=True, default=None, null=True),
         ),
     ]

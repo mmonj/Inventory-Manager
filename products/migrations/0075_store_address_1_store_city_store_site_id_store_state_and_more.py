@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='store',
             name='site_id',
-            field=models.CharField(blank=True, db_index=True, default='', max_length=150),
+            field=models.IntegerField(db_index=True, default=None, null=True),
         ),
         migrations.AddField(
             model_name='store',
