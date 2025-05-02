@@ -21,7 +21,6 @@ export function useFetch<T>() {
     return fetchCallback()
       .then((resp) => {
         if (!resp.ok) {
-          console.log("here1");
           throw resp;
         }
 
