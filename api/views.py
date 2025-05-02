@@ -21,6 +21,7 @@ from products.tasks import get_external_product_images
 from products.util import get_current_work_cycle
 from server.utils.common import validate_structure
 from survey_worker.onehub.util import add_cmk_urls_to_db_workcycle, get_current_work_cycle_data
+from survey_worker.qtrax.models import QtStoreJobLink
 
 from .interfaces_request import ICmkStoreHtmlData
 from .serializers import (
@@ -85,17 +86,28 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
     request_data: IGetStoreProductAdditions = validate_structure(
         request.data, IGetStoreProductAdditions
     )
-    logger.info(
-        'Received client name "%s" for store "%s"', request_data.client_name, request_data.store_id
+    logger.info('Received product additions request for SOID "%s"', request_data.soid)
+
+    service_order = (
+        QtStoreJobLink.objects.filter(soid=request_data.soid)
+        .prefetch_related("store", "job")
+        .first()
     )
+    if service_order is None:
+        raise DrfNotFound(f"Service order {request_data.soid=} not found")
+
+    store = service_order.store
+    qt_job = service_order.job
+
+    parent_company = BrandParentCompany.objects.filter(
+        expanded_name=qt_job.data["JobClient"]
+    ).first()
 
     if not request_data.products:
         logger.info("Received 0 products from request payload.")
         raise DrfValidationError("Form contains 0 products")
-
-    parent_company = BrandParentCompany.objects.filter(short_name=request_data.client_name).first()
     if parent_company is None:
-        raise DrfNotFound(f"Parent company '{request_data.client_name}' not found")
+        raise DrfNotFound(f"Parent company from soid '{request_data.soid}' not found")
 
     upcs = update_product_record_names(request_data, parent_company)
 
@@ -106,7 +118,6 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
     # initiate worker
     get_external_product_images.delay()
 
-    store = Store.objects.get(pk=request_data.store_id)
     product_additions = update_product_additions(store, request_data)
 
     current_work_cycle = get_current_work_cycle()
