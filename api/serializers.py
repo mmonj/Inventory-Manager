@@ -1,12 +1,14 @@
 from typing import Optional
+
 from rest_framework import serializers
+
 from products.models import (
-    Product,
-    ProductAddition,
+    BarcodeSheet,
     FieldRepresentative,
     PersonnelContact,
+    Product,
+    ProductAddition,
     Store,
-    BarcodeSheet,
     WorkCycle,
 )
 from products.util import get_num_work_cycles_offset
@@ -15,7 +17,7 @@ from products.util import get_num_work_cycles_offset
 class ProductSerializer(serializers.ModelSerializer[Product]):
     class Meta:
         model = Product
-        fields = ["upc", "name"]
+        fields = ("upc", "name")
 
 
 class ProductAdditionSerializer(serializers.ModelSerializer[ProductAddition]):
@@ -25,7 +27,7 @@ class ProductAdditionSerializer(serializers.ModelSerializer[ProductAddition]):
 
     class Meta:
         model = ProductAddition
-        fields = ["product", "is_carried", "is_new", "num_work_cycles_since_order"]
+        fields = ("product", "is_carried", "is_new", "num_work_cycles_since_order")
 
     def get_is_new(self, product_addition: ProductAddition) -> bool:
         work_cycle: WorkCycle = self.context["work_cycle"]
@@ -44,13 +46,13 @@ class ProductAdditionSerializer(serializers.ModelSerializer[ProductAddition]):
 class PersonnelContactSerializer(serializers.ModelSerializer[PersonnelContact]):
     class Meta:
         model = PersonnelContact
-        fields = ["id", "first_name", "last_name"]
+        fields = ("id", "first_name", "last_name")
 
 
 class FieldRepresentativeSerializer(serializers.ModelSerializer[FieldRepresentative]):
     class Meta:
         model = FieldRepresentative
-        fields = ["id", "name", "work_email"]
+        fields = ("id", "name", "work_email")
 
 
 class StoreSerializer(serializers.ModelSerializer[Store]):
@@ -59,7 +61,7 @@ class StoreSerializer(serializers.ModelSerializer[Store]):
 
     class Meta:
         model = Store
-        fields = ["id", "name", "contacts", "field_representative"]
+        fields = ("id", "name", "contacts", "field_representative")
 
 
 class BarcodeSheetSerializer(serializers.ModelSerializer[BarcodeSheet]):
@@ -68,16 +70,8 @@ class BarcodeSheetSerializer(serializers.ModelSerializer[BarcodeSheet]):
 
     class Meta:
         model = BarcodeSheet
-        fields = [
-            "barcode_sheet_id",
-            "datetime_created",
-            "product_additions",
-        ]
-        read_only_fields = [
-            "barcode_sheet_id",
-            "datetime_created",
-            "product_additions",
-        ]
+        fields = ("barcode_sheet_id", "datetime_created", "product_additions")
+        read_only_fields = ("barcode_sheet_id", "datetime_created", "product_additions")
 
     def get_barcode_sheet_id(self, barcode_sheet: BarcodeSheet) -> int:
         return barcode_sheet.pk
