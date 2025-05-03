@@ -100,8 +100,10 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
     qt_job = service_order.job
 
     parent_company = BrandParentCompany.objects.filter(
-        expanded_name=qt_job.data["JobClient"]
+        canonical_name=qt_job.data["JobClient"]
     ).first()
+    if parent_company is None:
+        raise DrfNotFound(f"Parent company '{qt_job.data['JobClient']}' not found in db")
 
     if not request_data.products:
         logger.info("Received 0 products from request payload.")

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from attr import frozen
 
@@ -16,9 +16,8 @@ class IProduct:
 
 @frozen
 class IGetStoreProductAdditions:
-    store_id: int
-    client_name: str
-    products: List[IProduct]
+    soid: int
+    products: list[IProduct]
 
 
 @frozen
