@@ -51,6 +51,7 @@ class FieldRepresentative(models.Model):
 class BrandParentCompany(models.Model):
     short_name = models.CharField(max_length=50, unique=True, null=True)
     expanded_name = models.CharField(max_length=50, null=True, blank=True)
+    canonical_name = models.CharField(max_length=100, blank=True, default="")
     third_party_logo = models.ImageField(
         null=True, blank=True, upload_to="products/images/brand_logos"
     )
