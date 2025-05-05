@@ -1,5 +1,7 @@
 from typing import List, TypedDict
 
+UPC_A_LENGTH = 12
+
 
 class ImportedFieldRepInfo(TypedDict):
     work_email: str

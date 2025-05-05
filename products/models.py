@@ -6,12 +6,15 @@ from typing import TYPE_CHECKING, Any
 
 import requests
 from checkdigit import gs1
+from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
 from server.utils.common import get_degree_offset_from_meters
 from server.utils.typedefs import TFailure, TResult, TSuccess
+
+from .types import UPC_A_LENGTH
 
 if TYPE_CHECKING:
     from .types import TParsedAddress
@@ -56,6 +59,13 @@ class BrandParentCompany(models.Model):
         null=True, blank=True, upload_to="products/images/brand_logos"
     )
 
+    default_upc_prefixes = ArrayField(
+        base_field=models.CharField(max_length=1),
+        default=list,
+        blank=True,
+        verbose_name="UPC prefix digit(s)",
+    )
+
     class Meta:
         db_table = "brand_parent_companies"
 
@@ -83,7 +93,7 @@ def product_image_upload_location(instance: "Product", filename: str) -> str:
 
 
 class Product(models.Model):
-    upc = models.CharField(max_length=12, unique=True)
+    upc = models.CharField(max_length=UPC_A_LENGTH, unique=True)
     name = models.CharField(max_length=255, null=True, blank=True)
     parent_company = models.ForeignKey(
         BrandParentCompany, null=True, blank=True, on_delete=models.SET_NULL, related_name="upcs"
@@ -106,7 +116,7 @@ class Product(models.Model):
         return f"Product(upc={ self.upc !r}, name={ self.name !r}, parent_company={ self.parent_company })"
 
     def is_valid_upc(self) -> bool:
-        # return self.upc.isnumeric() and len(self.upc) == 12 and gs1.validate(self.upc)
+        # return self.upc.isnumeric() and len(self.upc) == UPC_A_LENGTH and gs1.validate(self.upc)
         try:
             self.clean()
             return True
@@ -116,14 +126,53 @@ class Product(models.Model):
     def clean(self, *args: Any, **kwargs: Any) -> None:
         if self.upc is None or not self.upc.isnumeric():
             raise ValidationError("UPC number be numeric")
-        if len(self.upc) != 12:
-            raise ValidationError("UPC number must be 12 digits")
+        if len(self.upc) != UPC_A_LENGTH:
+            raise ValidationError(f"UPC number must be {UPC_A_LENGTH} digits")
         if not gs1.validate(self.upc):
             expected_check_digit = gs1.calculate(self.upc[:11])
             raise ValidationError(
                 f"The UPC number is invalid. Expected a check digit of {expected_check_digit}"
             )
         super().clean(*args, **kwargs)
+
+
+class UpcCorrection(models.Model):
+    parent_company = models.ForeignKey(
+        BrandParentCompany, on_delete=models.CASCADE, related_name="upc_corrections"
+    )
+    bad_upc = models.CharField(max_length=20, db_index=True)
+    actual_upc = models.CharField(max_length=UPC_A_LENGTH)
+
+    class Meta:
+        unique_together = ("parent_company", "bad_upc")
+        db_table = "upc_corrections"
+
+    def __str__(self) -> str:
+        return f"UPC Correction for {self.parent_company.short_name}"
+
+    def clean(self) -> None:
+        super().clean()
+
+        if not self.actual_upc or len(self.actual_upc) != UPC_A_LENGTH:
+            raise ValidationError(
+                f"Actual UPC is missing or invalid length (should be {UPC_A_LENGTH})"
+            )
+
+        allowed_prefixes = self.parent_company.default_upc_prefixes or []
+        actual_prefix = self.actual_upc[0]
+
+        if actual_prefix not in allowed_prefixes:
+            raise ValidationError(
+                f"Actual UPC {self.actual_upc!r} does not start with an allowed prefix "
+                f"for {self.parent_company.short_name or self.parent_company.id}: "
+                f"{allowed_prefixes}"
+            )
+
+        expected_check_digit = gs1.missing(self.actual_upc[:11] + "?")
+        if not gs1.validate(self.actual_upc):
+            raise ValidationError(
+                f"Bad check digit. Expected {expected_check_digit}, got {self.actual_upc[-1]}"
+            )
 
 
 class PersonnelContact(models.Model):

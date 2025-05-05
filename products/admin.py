@@ -14,6 +14,7 @@ from .models import (
     ProductAddition,
     Store,
     StoreGUID,
+    UpcCorrection,
     WorkCycle,
 )
 
@@ -22,8 +23,27 @@ class FieldRepresentativeAdmin(admin.ModelAdmin[FieldRepresentative]):
     list_display = ("name", "work_email")
 
 
+class UpcCorrectionInline(admin.TabularInline[UpcCorrection, BrandParentCompany]):
+    model = UpcCorrection
+    extra = 1  # how many empty forms to show
+    fields = ("bad_upc", "actual_upc")
+    show_change_link = True
+
+
 class BrandParentCompanyAdmin(admin.ModelAdmin[BrandParentCompany]):
-    list_display = ("short_name", "expanded_name", "canonical_name", "third_party_logo")
+    list_display = (
+        "short_name",
+        "expanded_name",
+        "canonical_name",
+        "third_party_logo",
+        "display_upc_prefixes",
+    )
+    inlines = (UpcCorrectionInline,)
+
+    def display_upc_prefixes(self, obj: BrandParentCompany) -> str:
+        return ", ".join(obj.default_upc_prefixes or [])
+
+    setattr(display_upc_prefixes, "short_description", "UPC prefix digit(s)")
 
 
 class ProductAdmin(admin.ModelAdmin[Product]):
