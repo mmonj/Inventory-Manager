@@ -19,6 +19,7 @@ from products.models import (
 )
 from products.tasks import get_external_product_images
 from products.util import get_current_work_cycle
+from products.util.upc import get_normalized_upc
 from server.utils.common import validate_structure
 from survey_worker.onehub.util import add_cmk_urls_to_db_workcycle, get_current_work_cycle_data
 from survey_worker.qtrax.models import QtStoreJobLink
@@ -32,10 +33,11 @@ from .serializers import (
 )
 from .types import (
     IGetStoreProductAdditions,
+    IProduct,
     IUpdateStoreFieldRep,
     IUpdateStorePersonnel,
 )
-from .util import update_product_additions, update_product_record_names
+from .util import update_product_additions
 
 if TYPE_CHECKING:
     from survey_worker.onehub.typedefs.interfaces import ICmkHtmlSourcesData
@@ -108,19 +110,30 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
     if not request_data.products:
         logger.info("Received 0 products from request payload.")
         raise DrfValidationError("Form contains 0 products")
-    if parent_company is None:
-        raise DrfNotFound(f"Parent company from soid '{request_data.soid}' not found")
 
-    upcs = update_product_record_names(request_data, parent_company)
+    normalized_upcs: list[str] = []
+    requested_products: list[IProduct] = []
+    upc_to_trunc_upcs_map: dict[str, str] = {}
+
+    for product in request_data.products:
+        upc = get_normalized_upc(product.trunc_upc, parent_company)
+
+        if upc is not None:
+            upc_to_trunc_upcs_map[upc] = product.trunc_upc
+            normalized_upcs.append(upc)
+
+            requested_products.append(
+                IProduct(trunc_upc=upc, name=product.name),
+            )
 
     hash_object = hashlib.sha256()
-    hash_object.update(str(sorted(upcs)).encode())
+    hash_object.update(str(sorted(normalized_upcs)).encode())
     sorted_upcs_hash = hash_object.hexdigest()
 
     # initiate worker
     get_external_product_images.delay()
 
-    product_additions = update_product_additions(store, request_data)
+    product_additions = update_product_additions(store, requested_products)
 
     current_work_cycle = get_current_work_cycle()
     barcode_sheet = (
@@ -134,24 +147,31 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
         .first()
     )
 
-    if barcode_sheet is None:
+    if barcode_sheet is None and len(requested_products) != 0:
         barcode_sheet = BarcodeSheet.objects.prefetch_related("product_additions").create(
             store=store,
             parent_company=parent_company,
             upcs_hash=sorted_upcs_hash,
-            upcs_list=upcs,
+            upcs_list=normalized_upcs,
             work_cycle=current_work_cycle,
         )
         barcode_sheet.product_additions.add(*product_additions)
-    elif barcode_sheet.upcs_list is None:
-        barcode_sheet.upcs_list = upcs
+    elif barcode_sheet is not None and barcode_sheet.upcs_list is None:
+        barcode_sheet.upcs_list = normalized_upcs
         barcode_sheet.save(update_fields=["upcs_list"])
 
     logger.info(
         "Returning JSON response with %d product additions to client.", len(product_additions)
     )
+
     return DrfResponse(
-        BarcodeSheetSerializer(barcode_sheet, context={"work_cycle": current_work_cycle}).data
+        BarcodeSheetSerializer(
+            barcode_sheet,
+            context={
+                "work_cycle": current_work_cycle,
+                "upc_to_trunc_upcs_map": upc_to_trunc_upcs_map,
+            },
+        ).data
     )
 
 

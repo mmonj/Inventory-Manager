@@ -26,17 +26,17 @@ def update_product_record_names(
 
     def get_product_name(upc: str, products: List[IProduct]) -> Optional[str]:
         for product_info in products:
-            if product_info.upc == upc:
+            if product_info.trunc_upc == upc:
                 return product_info.name
         return None
 
-    upcs = [p.upc for p in request_data.products]
+    upcs = [p.trunc_upc for p in request_data.products]
 
     # bulk create products
     new_products = []
     for product_info in request_data.products:
         temp_product = Product(
-            upc=product_info.upc, name=product_info.name, parent_company=parent_company
+            upc=product_info.trunc_upc, name=product_info.name, parent_company=parent_company
         )
         if not temp_product.is_valid_upc():
             logger.info(f"Invalid UPC {temp_product.upc} for '{temp_product.name}'. Skipping")
@@ -59,25 +59,22 @@ def update_product_record_names(
 
 
 def update_product_additions(
-    store: Store, request_data: IGetStoreProductAdditions
+    store: Store, requested_products: list[IProduct]
 ) -> List[ProductAddition]:
     """Bulk create ProductAddition records if they don't already exist
 
     Args:
         store (products.Store): products.Store instance
-        request_json (dict): request json payload received from client
+        requested_products (list[IProduct]): list of received (from requester) products with normalized upcs
 
     Returns:
         list: list of products.ProductAddition that match the UPCs present in request_json
     """
-    upcs = [p.upc for p in request_data.products]
+    upcs = [p.trunc_upc for p in requested_products]
     products = Product.objects.filter(upc__in=upcs)
-    new_product_additions: list[ProductAddition] = []
+    new_product_additions = [ProductAddition(store=store, product=p) for p in products]
 
-    for product in products:
-        new_product_additions.append(ProductAddition(store=store, product=product))
-
-    logger.info(f"Bulk creating {len(new_product_additions)} product additions")
+    logger.info("Bulk creating %s product additions", len(new_product_additions))
     ProductAddition.objects.bulk_create(new_product_additions, ignore_conflicts=True)
 
     product_additions = ProductAddition.objects.filter(

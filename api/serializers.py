@@ -1,5 +1,6 @@
 from typing import Optional
 
+from django.urls import reverse
 from rest_framework import serializers
 
 from products.models import (
@@ -15,9 +16,16 @@ from products.util import get_num_work_cycles_offset
 
 
 class ProductSerializer(serializers.ModelSerializer[Product]):
+    requested_upc = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = Product
-        fields = ("upc", "name")
+        fields = ("upc", "name", "requested_upc")
+        read_only_fields = ("upc", "name", "requested_upc")
+
+    def get_requested_upc(self, product: Product) -> str:
+        upc_to_trunc_upcs_map = self.context["upc_to_trunc_upcs_map"]
+        return upc_to_trunc_upcs_map[product.upc]  # type: ignore [no-any-return]
 
 
 class ProductAdditionSerializer(serializers.ModelSerializer[ProductAddition]):
@@ -66,12 +74,24 @@ class StoreSerializer(serializers.ModelSerializer[Store]):
 
 class BarcodeSheetSerializer(serializers.ModelSerializer[BarcodeSheet]):
     product_additions = ProductAdditionSerializer(many=True)
-    barcode_sheet_id = serializers.SerializerMethodField(read_only=True)
+    barcode_sheet_path = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = BarcodeSheet
-        fields = ("barcode_sheet_id", "datetime_created", "product_additions")
-        read_only_fields = ("barcode_sheet_id", "datetime_created", "product_additions")
+        fields = (
+            "barcode_sheet_path",
+            "datetime_created",
+            "product_additions",
+        )
+        read_only_fields = (
+            "barcode_sheet_path",
+            "datetime_created",
+            "product_additions",
+        )
 
-    def get_barcode_sheet_id(self, barcode_sheet: BarcodeSheet) -> int:
-        return barcode_sheet.pk
+    def get_barcode_sheet_path(self, barcode_sheet: Optional[BarcodeSheet]) -> Optional[str]:
+        if barcode_sheet is None:
+            return None
+        return reverse(
+            "stock_tracker:get_barcode_sheet", kwargs={"barcode_sheet_id": barcode_sheet.id}
+        )

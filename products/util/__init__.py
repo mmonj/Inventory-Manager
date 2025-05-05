@@ -3,14 +3,14 @@ import zipfile
 from datetime import date, datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Generator, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Optional, Set
 
 import pytz
 from django.core.exceptions import ValidationError
 from django.core.files import File
 from django.utils import timezone as dj_timezone
 
-from .models import (
+from ..models import (
     BrandParentCompany,
     FieldRepresentative,
     PersonnelContact,
@@ -19,13 +19,16 @@ from .models import (
     Store,
     WorkCycle,
 )
-from .types import (
+from ..types import (
     BasicStoreInfo,
     ImportedFieldRepInfo,
     ImportedProductInfo,
     ImportedProductStockData,
     ImportedStoreData,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 logger = logging.getLogger("main_logger")
 
@@ -179,8 +182,8 @@ def import_distribution_data(
         )
 
 
-def get_product_from_queryset(products: List[Product], upc: str) -> Optional[Product]:
-    result: List[Product] = list(filter(lambda p: p.upc == upc, products))
+def get_product_from_queryset(products: list[Product], upc: str) -> Optional[Product]:
+    result: list[Product] = list(filter(lambda p: p.upc == upc, products))
     if not result:
         return None
     return result[0]
@@ -190,6 +193,7 @@ def get_missing_products(upcs_batch: list[str], products: list[Product]) -> list
     """Determines which UPCs in `upcs_batch` are not present in `products`
 
     Args:
+        upcs_batch (list[str]): _
         products (list): List of `Product`
 
     Returns:
