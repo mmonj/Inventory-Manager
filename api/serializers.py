@@ -1,6 +1,5 @@
 from typing import Optional
 
-from django.urls import reverse
 from rest_framework import serializers
 
 from products.models import (
@@ -74,24 +73,22 @@ class StoreSerializer(serializers.ModelSerializer[Store]):
 
 class BarcodeSheetSerializer(serializers.ModelSerializer[BarcodeSheet]):
     product_additions = ProductAdditionSerializer(many=True)
-    barcode_sheet_path = serializers.SerializerMethodField(read_only=True)
+    barcode_sheet_id = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = BarcodeSheet
         fields = (
-            "barcode_sheet_path",
+            "barcode_sheet_id",
             "datetime_created",
             "product_additions",
         )
         read_only_fields = (
-            "barcode_sheet_path",
+            "barcode_sheet_id",
             "datetime_created",
             "product_additions",
         )
 
-    def get_barcode_sheet_path(self, barcode_sheet: Optional[BarcodeSheet]) -> Optional[str]:
+    def get_barcode_sheet_id(self, barcode_sheet: Optional[BarcodeSheet]) -> Optional[int]:
         if barcode_sheet is None:
             return None
-        return reverse(
-            "stock_tracker:get_barcode_sheet", kwargs={"barcode_sheet_id": barcode_sheet.id}
-        )
+        return barcode_sheet.id
