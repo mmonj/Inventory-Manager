@@ -26,7 +26,9 @@ export function NavigationBar() {
     getLink("View Login Sessions", reverse("survey_worker:qt_view_login_sessions")),
     getLink("View Qt Schedules", reverse("survey_worker:qt_view_schedules")),
   ];
-  const nonPrivilegedLinks: TLink[] = [];
+  const nonPrivilegedLinks: TLink[] = [
+    getLink("Territory Viewer", reverse("survey_worker:qt_view_territory")),
+  ];
 
   return (
     <Navbar expand="lg" className="bg-body-tertiary bg-blue-theme border-bottom px-2">
