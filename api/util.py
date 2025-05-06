@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional, TypeVar
+from typing import Optional, TypeVar
 
 from products.models import BrandParentCompany, Product, ProductAddition, Store
 from products.util import get_current_work_cycle, get_num_work_cycles_offset
@@ -24,7 +24,7 @@ def update_product_record_names(
         tuple: tuple<str> of sorted UPC numbers
     """
 
-    def get_product_name(upc: str, products: List[IProduct]) -> Optional[str]:
+    def get_product_name(upc: str, products: list[IProduct]) -> Optional[str]:
         for product_info in products:
             if product_info.trunc_upc == upc:
                 return product_info.name
@@ -39,11 +39,11 @@ def update_product_record_names(
             upc=product_info.trunc_upc, name=product_info.name, parent_company=parent_company
         )
         if not temp_product.is_valid_upc():
-            logger.info(f"Invalid UPC {temp_product.upc} for '{temp_product.name}'. Skipping")
+            logger.info("Invalid UPC %s for '%s'. Skipping", temp_product.upc, temp_product.name)
             continue
         new_products.append(temp_product)
 
-    logger.info(f"Bulk creating {len(new_products)} products")
+    logger.info("Bulk creating %s products", len(new_products))
     Product.objects.bulk_create(new_products, ignore_conflicts=True)
 
     # bulk update products with no name
@@ -60,7 +60,7 @@ def update_product_record_names(
 
 def update_product_additions(
     store: Store, requested_products: list[IProduct]
-) -> List[ProductAddition]:
+) -> list[ProductAddition]:
     """Bulk create ProductAddition records if they don't already exist
 
     Args:
