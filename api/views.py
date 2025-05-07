@@ -117,14 +117,15 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
 
     for product in request_data.products:
         upc = get_normalized_upc(product.trunc_upc, parent_company)
+        if upc is None:
+            continue
 
-        if upc is not None:
-            upc_to_trunc_upcs_map[upc] = product.trunc_upc
-            normalized_upcs.append(upc)
+        upc_to_trunc_upcs_map[upc] = product.trunc_upc
+        normalized_upcs.append(upc)
 
-            requested_products.append(
-                IProduct(trunc_upc=upc, name=product.name),
-            )
+        requested_products.append(
+            IProduct(trunc_upc=upc, name=product.name),
+        )
 
     hash_object = hashlib.sha256()
     hash_object.update(str(sorted(normalized_upcs)).encode())
@@ -133,7 +134,7 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
     # initiate worker
     get_external_product_images.delay()
 
-    product_additions = update_product_additions(store, requested_products)
+    product_additions = update_product_additions(store, parent_company, normalized_upcs)
 
     current_work_cycle = get_current_work_cycle()
     barcode_sheet = (
@@ -147,8 +148,8 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
         .first()
     )
 
-    if barcode_sheet is None and len(requested_products) != 0:
-        barcode_sheet = BarcodeSheet.objects.prefetch_related("product_additions").create(
+    if barcode_sheet is None and len(product_additions) != 0:
+        barcode_sheet = BarcodeSheet.objects.create(
             store=store,
             parent_company=parent_company,
             upcs_hash=sorted_upcs_hash,

@@ -59,26 +59,27 @@ def update_product_record_names(
 
 
 def update_product_additions(
-    store: Store, requested_products: list[IProduct]
+    store: Store, parent_company: BrandParentCompany, normalized_upcs: list[str]
 ) -> list[ProductAddition]:
     """Bulk create ProductAddition records if they don't already exist
 
     Args:
         store (products.Store): products.Store instance
-        requested_products (list[IProduct]): list of received (from requester) products with normalized upcs
+        parent_company (BrandParentCompany): Parent Company record
+        normalized_upcs (list[str]): list of full (proper 12-digit) UPC numbers
 
     Returns:
         list: list of products.ProductAddition that match the UPCs present in request_json
     """
-    upcs = [p.trunc_upc for p in requested_products]
-    products = Product.objects.filter(upc__in=upcs)
+
+    products = Product.objects.filter(upc__in=normalized_upcs, parent_company=parent_company).all()
     new_product_additions = [ProductAddition(store=store, product=p) for p in products]
 
     logger.info("Bulk creating %s product additions", len(new_product_additions))
     ProductAddition.objects.bulk_create(new_product_additions, ignore_conflicts=True)
 
     product_additions = ProductAddition.objects.filter(
-        store=store, product__upc__in=upcs
+        store=store, product__upc__in=normalized_upcs
     ).select_related("store", "product")
 
     for product_addition in product_additions:
