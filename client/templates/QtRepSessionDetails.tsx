@@ -31,13 +31,22 @@ export default function Template(props: templates.QtRepSessionDetails) {
               <React.Fragment key={session.id}>
                 <h3 className="mb-1">Session Data for {session.rep_detail.username}</h3>
                 <p className="my-1">
-                  Session Last Updated: {format(new Date(session.logged_in_datetime), "PPpp")}
+                  Session Last Updated:{" "}
+                  {session.logged_in_datetime !== null
+                    ? format(new Date(session.logged_in_datetime), "PPpp")
+                    : "Never"}
                 </p>
-                <JsonView
-                  data={session.session_data}
-                  shouldExpandNode={() => true}
-                  style={darkStyles}
-                />
+                {session.session_data !== null && (
+                  <JsonView
+                    data={session.session_data}
+                    shouldExpandNode={() => true}
+                    style={darkStyles}
+                  />
+                )}
+
+                {session.session_data === null && (
+                  <p className="alert alert-warning">No Session Data Available</p>
+                )}
               </React.Fragment>
             ))}
           </Stack>

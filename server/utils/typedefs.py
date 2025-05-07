@@ -1,9 +1,15 @@
 from dataclasses import dataclass
-from typing import Generic, Literal, TypeVar, Union
+from typing import Dict, Generic, Literal, TypedDict, TypeVar, Union  # noqa: UP035
 
 from django.contrib.auth.models import User
 from django.db import models
 from django.http import HttpRequest
+
+
+class TSessionData(TypedDict):
+    cookies: Dict[str, str]
+    headers: Dict[str, str]
+
 
 T = TypeVar("T")
 E = TypeVar("E")

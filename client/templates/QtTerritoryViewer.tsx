@@ -35,12 +35,6 @@ export default function (props: templates.QtTerritoryViewer) {
     groupedByStore[siteId].jobs.push(so);
   }
 
-  const mapStores = Object.values(groupedByStore).map(({ address }) => ({
-    lat: address.Latitude,
-    lng: address.Longitude,
-    name: address.StoreName,
-  }));
-
   return (
     <Layout
       navbar={<NavigationBar />}

@@ -4,7 +4,10 @@ import cattrs
 import requests
 from requests import Session
 from requests.adapters import HTTPAdapter, Retry
+from requests.utils import cookiejar_from_dict, dict_from_cookiejar
 from rest_framework.exceptions import ValidationError
+
+from .typedefs import TSessionData
 
 T = TypeVar("T")
 
@@ -81,4 +84,18 @@ def get_http_retrier(num_retries: int = 3, backoff_factor: float = 0.1) -> Sessi
     session.mount("http://", HTTPAdapter(max_retries=retry_strategy))
     session.mount("https://", HTTPAdapter(max_retries=retry_strategy))
 
+    return session
+
+
+def session_object_to_session_dict(session: Session) -> TSessionData:
+    return {
+        "headers": dict(session.headers),  # type: ignore [arg-type]
+        "cookies": dict_from_cookiejar(session.cookies),  # type: ignore [no-untyped-call]
+    }
+
+
+def session_dict_to_session_object(data: TSessionData) -> Session:
+    session = Session()
+    session.headers.update(data.get("headers", {}))
+    session.cookies = cookiejar_from_dict(data.get("cookies", {}))  # type: ignore [no-untyped-call]
     return session
