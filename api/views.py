@@ -29,6 +29,7 @@ from .serializers import (
     BarcodeSheetSerializer,
     FieldRepresentativeSerializer,
     PersonnelContactSerializer,
+    ServiceOrderSerializer,
     StoreSerializer,
 )
 from .types import (
@@ -177,6 +178,7 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def update_store_personnel(request: DrfRequest) -> DrfResponse:
     request_data: IUpdateStorePersonnel = validate_structure(request.data, IUpdateStorePersonnel)
 
@@ -231,3 +233,21 @@ def update_cmk_html_src(request: DrfRequest) -> DrfResponse:
     current_work_cycle_data.save(update_fields=["cmklaunch_urls_html_sources"])
 
     return DrfResponse({"success": True}, status=200)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_service_order_info(_request: DrfRequest, soid: int) -> DrfResponse:
+    logger.info("Received soid %s", soid)
+
+    service_order = (
+        QtStoreJobLink.objects.filter(soid=soid).prefetch_related("store", "job").first()
+    )
+    if service_order is None:
+        raise DrfNotFound(f"QtStoreJobLink with service order {soid=} not found")
+
+    return DrfResponse(
+        ServiceOrderSerializer(
+            service_order, context={"estimated_time": service_order.job.data["EstimatedTime"]}
+        ).data
+    )

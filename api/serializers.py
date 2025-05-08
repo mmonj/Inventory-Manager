@@ -1,5 +1,6 @@
 from typing import Optional
 
+import cattrs
 from rest_framework import serializers
 
 from products.models import (
@@ -12,6 +13,7 @@ from products.models import (
     WorkCycle,
 )
 from products.util import get_num_work_cycles_offset
+from survey_worker.qtrax.models import QtStoreJobLink
 
 
 class ProductSerializer(serializers.ModelSerializer[Product]):
@@ -64,11 +66,23 @@ class FieldRepresentativeSerializer(serializers.ModelSerializer[FieldRepresentat
 
 class StoreSerializer(serializers.ModelSerializer[Store]):
     contacts = PersonnelContactSerializer(many=True)
-    field_representative = FieldRepresentativeSerializer()
 
     class Meta:
         model = Store
-        fields = ("id", "name", "contacts", "field_representative")
+        fields = ("id", "name", "contacts")
+
+
+class ServiceOrderSerializer(serializers.ModelSerializer[QtStoreJobLink]):
+    store = StoreSerializer()
+    estimated_time = serializers.SerializerMethodField()
+
+    class Meta:
+        model = QtStoreJobLink
+        fields = ("estimated_time", "store")
+        read_only_fields = ("estimated_time", "store")
+
+    def get_estimated_time(self, _job: QtStoreJobLink) -> float:
+        return cattrs.structure(self.context["estimated_time"], float)
 
 
 class BarcodeSheetSerializer(serializers.ModelSerializer[BarcodeSheet]):

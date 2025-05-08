@@ -16,4 +16,9 @@ urlpatterns = [
     path("update_store_field_rep/", views.update_store_field_rep, name="update_store_field_rep"),
     path("update_store_personnel/", views.update_store_personnel, name="update_store_personnel"),
     path("update_cmk_html_src/", views.update_cmk_html_src, name="update_cmk_html_src"),
+    path(
+        "get_service_order_info/<int:soid>/",
+        views.get_service_order_info,
+        name="get_service_order_info",
+    ),
 ]
