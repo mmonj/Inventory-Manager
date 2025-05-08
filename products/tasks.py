@@ -49,7 +49,7 @@ def get_external_product_images() -> None:
         date_added__gt=yesterday_date, item_image=""
     )
 
-    logger.info(f"Found {latest_products_with_no_image.count()} recent products with no image set")
+    logger.info("Found %s recent products with no image set", latest_products_with_no_image.count())
 
     products_to_fetch_image: list[Product] = [
         product
@@ -57,14 +57,14 @@ def get_external_product_images() -> None:
         if not redis_client.exists(upc_to_fetch_key_template.format(upc=product.upc))
     ]
 
-    logger.info(f"Fetching data from API for {len(products_to_fetch_image)} products")
+    logger.info("Fetching data from API for %s products", len(products_to_fetch_image))
     fetch_product_data(products_to_fetch_image)
     logger.info("Finished searching for products\n")
 
 
 def add_upcs_to_redis_store(*upcs: str) -> None:
     for upc in upcs:
-        logger.info(f"Adding {upc} to redis store")
+        logger.info("Adding %s to redis store", upc)
         upc_to_fetch_key = upc_to_fetch_key_template.format(upc=upc)
         redis_client.set(upc_to_fetch_key, 1)
         redis_client.expire(upc_to_fetch_key, timedelta(days=1))
@@ -78,17 +78,21 @@ def fetch_product_data(products_to_fetch_image: list[Product]) -> None:
         upc_pair = [p.upc for p in products]
 
         endpoint_url = PRODUCT_LOOKUP_ENDPOINT.format(upc_lookup_str=",".join(upc_pair))
-        logger.info(f"Fetching data from API for UPC pair {upc_pair} at endpoint: {endpoint_url}")
-        resp: requests.Response = requests.get(endpoint_url)
+        logger.info(
+            "Fetching data from API for UPC pair %s at endpoint: %s", upc_pair, endpoint_url
+        )
+        resp: requests.Response = requests.get(endpoint_url, timeout=15)
 
         if resp.status_code == 429:
-            logger.info("Rate limit has been hit. Waiting 60 seconds")
+            logger.error("Rate limit has been hit. Waiting 60 seconds")
             time.sleep(61)
             continue
         if not resp.ok:
-            logger.info(
-                f"Status code {resp.status_code} received on lookup for UPC pair {upc_pair}. \
-                        Response text: {resp.text}"
+            logger.error(
+                "Bad response: Status code %s received on lookup for UPC pair %s. Response text: %s",
+                resp.status_code,
+                upc_pair,
+                resp.text,
             )
             break
 
@@ -96,12 +100,12 @@ def fetch_product_data(products_to_fetch_image: list[Product]) -> None:
         items = data["items"]
         if not items:
             add_upcs_to_redis_store(*upc_pair)
-            logger.info(
-                f'Response json did not have "items" info in response for UPC pair {upc_pair}'
+            logger.error(
+                "Response json did not have 'items' info in response for UPC pair %s", upc_pair
             )
             continue
 
-        logger.info(f"Handling product data response for UPC pair: {upc_pair}")
+        logger.info("Handling product data response for UPC pair: %s", upc_pair)
         handle_product_data_response(products, items)
 
         # API is limited to 6 requests per minute
@@ -114,21 +118,23 @@ def handle_product_data_response(products: list[Product], items: list[IUpcItemDb
     for product in products:
         product_data = next((d for d in items if d.get("upc") == product.upc), None)
         if not product_data:
-            logger.info(f"No product data was returned by API for UPC: {product.upc}")
+            logger.info("No product data was returned by API for UPC: %s", product.upc)
             continue
 
         product_image_urls = product_data["images"]
         if not product_image_urls:
-            logger.info(f"No images available for {product} in lookup data")
+            logger.info("No images available for %s in lookup data", product)
             continue
 
-        logger.info(f"Processing UPC {product.upc} image URL list: {product_image_urls}")
+        logger.info("Processing UPC %s image URL list: %s", product.upc, product_image_urls)
         product_image_urls = reorder_images_based_on_preferences(product_image_urls)
         for product_image_url in product_image_urls:
             success = download_image(product, product_image_url)
             if success:
                 logger.info(
-                    f"Downloaded image successfully for {product.upc}. Image URL: {product_image_url}"
+                    "Downloaded image successfully for %s. Image URL: %s",
+                    product.upc,
+                    product_image_url,
                 )
                 break
         add_upcs_to_redis_store(product.upc)
@@ -144,19 +150,22 @@ def download_image(product: Product, product_image_url: str) -> bool:
     Returns:
         bool: Indicates whether downloading from URL and processing of image was successful
     """
-    logger.info(f'Attempting to download "{product.upc}" product image from "{product_image_url}"')
+    logger.info(
+        "Attempting to download '%s' product image from '%s'", product.upc, product_image_url
+    )
     try:
-        resp = requests.get(product_image_url)
+        resp = requests.get(product_image_url, timeout=15)
         if not resp.ok:
-            logger.info(
-                f"Bad response when fetching image URL content: Status Code: {resp.status_code}"
+            logger.error(
+                "Bad response when fetching image URL content: Status Code: %s", resp.status_code
             )
             return False
 
         product_image = trim_and_resize_image(Image.open(BytesIO(resp.content)))
         if product_image is None:
-            logger.info(
-                f"Trim and resize attempt returned None for {product_image_url}. Moving to next product image URL"
+            logger.error(
+                "Trim and resize attempt returned None for %s. Moving to next product image URL",
+                product_image_url,
             )
             return False
 
@@ -165,9 +174,9 @@ def download_image(product: Product, product_image_url: str) -> bool:
 
         # filename 'random_image' will be ignored, file extension will be used to save to Product ImageField
         product.item_image.save("random_name.jpg", File(buffer), save=True)
-    except Exception as e:
+    except Exception:
         logger.exception(
-            f"Exception occurred while retrieving/processing product image URL {product_image_url}: {e}"
+            "Exception occurred while retrieving/processing product image URL %s", product_image_url
         )
         return False
 
@@ -182,7 +191,7 @@ def reorder_images_based_on_preferences(product_image_urls: list[str]) -> list[s
         for image_url in product_image_urls:
             hostname_match = DOMAIN_HOSTNAME_RE.search(image_url)
             if hostname_match is None:
-                logger.error(f"No DOMAIN_HOSTNAME_RE match found in url {image_url}")
+                logger.error("No DOMAIN_HOSTNAME_RE match found in url %s", image_url)
                 continue
 
             hostname = hostname_match.group(2)
@@ -205,8 +214,7 @@ def trim_and_resize_image(img: Image.Image) -> Optional[Image.Image]:
         bbox = diff.getbbox()
         if bbox:
             img = img.crop(bbox)
-            img = ImageOps.expand(img, border=10, fill=(255, 255, 255))
-            return img
+            return ImageOps.expand(img, border=10, fill=(255, 255, 255))
 
         return None
 
