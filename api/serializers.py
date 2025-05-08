@@ -15,16 +15,16 @@ from products.util import get_num_work_cycles_offset
 
 
 class ProductSerializer(serializers.ModelSerializer[Product]):
-    requested_upc = serializers.SerializerMethodField(read_only=True)
+    raw_upc = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Product
-        fields = ("upc", "name", "requested_upc")
-        read_only_fields = ("upc", "name", "requested_upc")
+        fields = ("upc", "name", "raw_upc")
+        read_only_fields = ("upc", "name", "raw_upc")
 
-    def get_requested_upc(self, product: Product) -> str:
-        upc_to_trunc_upcs_map = self.context["upc_to_trunc_upcs_map"]
-        return upc_to_trunc_upcs_map[product.upc]  # type: ignore [no-any-return]
+    def get_raw_upc(self, product: Product) -> str:
+        upc_to_raw_upcs_map = self.context["upc_to_raw_upcs_map"]
+        return upc_to_raw_upcs_map[product.upc]  # type: ignore [no-any-return]
 
 
 class ProductAdditionSerializer(serializers.ModelSerializer[ProductAddition]):

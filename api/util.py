@@ -26,17 +26,17 @@ def update_product_record_names(
 
     def get_product_name(upc: str, products: list[IProduct]) -> Optional[str]:
         for product_info in products:
-            if product_info.trunc_upc == upc:
+            if product_info.raw_upc == upc:
                 return product_info.name
         return None
 
-    upcs = [p.trunc_upc for p in request_data.products]
+    upcs = [p.raw_upc for p in request_data.products]
 
     # bulk create products
     new_products = []
     for product_info in request_data.products:
         temp_product = Product(
-            upc=product_info.trunc_upc, name=product_info.name, parent_company=parent_company
+            upc=product_info.raw_upc, name=product_info.name, parent_company=parent_company
         )
         if not temp_product.is_valid_upc():
             logger.info("Invalid UPC %s for '%s'. Skipping", temp_product.upc, temp_product.name)

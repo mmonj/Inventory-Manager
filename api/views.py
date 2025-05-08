@@ -113,18 +113,18 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
 
     normalized_upcs: list[str] = []
     requested_products: list[IProduct] = []
-    upc_to_trunc_upcs_map: dict[str, str] = {}
+    upc_to_raw_upcs_map: dict[str, str] = {}
 
     for product in request_data.products:
-        upc = get_normalized_upc(product.trunc_upc, parent_company)
+        upc = get_normalized_upc(product.raw_upc, parent_company)
         if upc is None:
             continue
 
-        upc_to_trunc_upcs_map[upc] = product.trunc_upc
+        upc_to_raw_upcs_map[upc] = product.raw_upc
         normalized_upcs.append(upc)
 
         requested_products.append(
-            IProduct(trunc_upc=upc, name=product.name),
+            IProduct(raw_upc=upc, name=product.name),
         )
 
     hash_object = hashlib.sha256()
@@ -170,7 +170,7 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
             barcode_sheet,
             context={
                 "work_cycle": current_work_cycle,
-                "upc_to_trunc_upcs_map": upc_to_trunc_upcs_map,
+                "upc_to_raw_upcs_map": upc_to_raw_upcs_map,
             },
         ).data
     )

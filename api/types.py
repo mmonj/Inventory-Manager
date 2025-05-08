@@ -10,7 +10,7 @@ class IGetStoreFromSOId:
 
 @frozen
 class IProduct:
-    trunc_upc: str  # potentially truncated UPC
+    raw_upc: str  # potentially truncated UPC
     name: str
 
 
