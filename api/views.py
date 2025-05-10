@@ -35,10 +35,11 @@ from .serializers import (
 from .types import (
     IGetStoreProductAdditions,
     IProduct,
+    IRawProduct,
     IUpdateStoreFieldRep,
     IUpdateStorePersonnel,
 )
-from .util import update_product_additions
+from .util import update_product_additions, update_product_record_names
 
 if TYPE_CHECKING:
     from survey_worker.onehub.typedefs.interfaces import ICmkHtmlSourcesData
@@ -112,30 +113,35 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
         logger.info("Received 0 products from request payload.")
         raise DrfValidationError("Form contains 0 products")
 
-    normalized_upcs: list[str] = []
-    requested_products: list[IProduct] = []
+    requested_products: list[IRawProduct] = []
     upc_to_raw_upcs_map: dict[str, str] = {}
+
+    normalized_products: list[IProduct] = []
 
     for product in request_data.products:
         upc = get_normalized_upc(product.raw_upc, parent_company)
         if upc is None:
+            logger.info("Could not find normalized upc for raw upc = '%s'", product.raw_upc)
             continue
 
         upc_to_raw_upcs_map[upc] = product.raw_upc
-        normalized_upcs.append(upc)
+        normalized_products.append(IProduct(upc=upc, name=product.name))
 
         requested_products.append(
-            IProduct(raw_upc=upc, name=product.name),
+            IRawProduct(raw_upc=upc, name=product.name),
         )
 
+    normalized_upcs = [f.upc for f in normalized_products]
     hash_object = hashlib.sha256()
     hash_object.update(str(sorted(normalized_upcs)).encode())
     sorted_upcs_hash = hash_object.hexdigest()
 
     # initiate worker
-    get_external_product_images.delay()
 
+    update_product_record_names(normalized_products, parent_company)
     product_additions = update_product_additions(store, parent_company, normalized_upcs)
+
+    get_external_product_images.delay()
 
     current_work_cycle = get_current_work_cycle()
     barcode_sheet = (

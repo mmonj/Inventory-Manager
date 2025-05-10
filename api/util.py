@@ -1,17 +1,20 @@
 import logging
 from typing import Optional, TypeVar
 
+from django.db.models import Q
+
 from products.models import BrandParentCompany, Product, ProductAddition, Store
 from products.util import get_current_work_cycle, get_num_work_cycles_offset
+from server.utils.common import bulk_create_and_get
 
-from .types import IGetStoreProductAdditions, IProduct
+from .types import IProduct
 
 logger = logging.getLogger("main_logger")
 T = TypeVar("T")
 
 
 def update_product_record_names(
-    request_data: IGetStoreProductAdditions, parent_company: BrandParentCompany
+    normalized_products: list[IProduct], parent_company: BrandParentCompany
 ) -> list[str]:
     """Bulk create products if they don't already exist.
     Bulk update existing products with product name if they don't contain it
@@ -26,17 +29,17 @@ def update_product_record_names(
 
     def get_product_name(upc: str, products: list[IProduct]) -> Optional[str]:
         for product_info in products:
-            if product_info.raw_upc == upc:
+            if product_info.upc == upc:
                 return product_info.name
         return None
 
-    upcs = [p.raw_upc for p in request_data.products]
+    upcs = [p.upc for p in normalized_products]
 
     # bulk create products
-    new_products = []
-    for product_info in request_data.products:
+    new_products: list[Product] = []
+    for product_info in normalized_products:
         temp_product = Product(
-            upc=product_info.raw_upc, name=product_info.name, parent_company=parent_company
+            upc=product_info.upc, name=product_info.name, parent_company=parent_company
         )
         if not temp_product.is_valid_upc():
             logger.info("Invalid UPC %s for '%s'. Skipping", temp_product.upc, temp_product.name)
@@ -44,14 +47,15 @@ def update_product_record_names(
         new_products.append(temp_product)
 
     logger.info("Bulk creating %s products", len(new_products))
-    Product.objects.bulk_create(new_products, ignore_conflicts=True)
+
+    new_products = list(bulk_create_and_get(Product, new_products, fields=["upc"]))
 
     # bulk update products with no name
-    products_with_no_name = Product.objects.filter(upc__in=upcs, name=None)
+    products_with_no_name = Product.objects.filter(Q(name__isnull=True) | Q(name=""), upc__in=upcs)
 
     for product in products_with_no_name:
         product.parent_company = parent_company
-        product.name = get_product_name(product.upc, request_data.products)
+        product.name = get_product_name(product.upc, normalized_products)
 
     products_with_no_name.bulk_update(products_with_no_name, ["parent_company", "name"])
 

@@ -9,15 +9,21 @@ class IGetStoreFromSOId:
 
 
 @frozen
-class IProduct:
+class IRawProduct:
     raw_upc: str  # potentially truncated UPC
+    name: str
+
+
+@frozen
+class IProduct:
+    upc: str
     name: str
 
 
 @frozen
 class IGetStoreProductAdditions:
     soid: int
-    products: list[IProduct]
+    products: list[IRawProduct]
 
 
 @frozen
