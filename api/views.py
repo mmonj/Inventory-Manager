@@ -109,6 +109,8 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
     if parent_company is None:
         raise DrfNotFound(f"Parent company '{qt_job.data['JobClient']}' not found in db")
 
+    logger.info("Resolved SOID to store '%s' and client '%s'", store, parent_company)
+
     if not request_data.products:
         logger.info("Received 0 products from request payload.")
         raise DrfValidationError("Form contains 0 products")
@@ -252,8 +254,16 @@ def get_service_order_info(_request: DrfRequest, soid: int) -> DrfResponse:
     if service_order is None:
         raise DrfNotFound(f"QtStoreJobLink with service order {soid=} not found")
 
+    parent_company = BrandParentCompany.objects.get(
+        canonical_name=service_order.job.data["JobClient"]
+    )
+
     return DrfResponse(
         ServiceOrderSerializer(
-            service_order, context={"estimated_time": service_order.job.data["EstimatedTime"]}
+            service_order,
+            context={
+                "estimated_time": service_order.job.data["EstimatedTime"],
+                "client_name": parent_company.expanded_name,
+            },
         ).data
     )

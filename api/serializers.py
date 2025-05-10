@@ -1,6 +1,7 @@
 from typing import Optional
 
 import cattrs
+from django.utils import timezone
 from rest_framework import serializers
 
 from products.models import (
@@ -66,23 +67,32 @@ class FieldRepresentativeSerializer(serializers.ModelSerializer[FieldRepresentat
 
 class StoreSerializer(serializers.ModelSerializer[Store]):
     contacts = PersonnelContactSerializer(many=True)
+    num_days_ago_first_seen = serializers.SerializerMethodField()
 
     class Meta:
         model = Store
-        fields = ("id", "name", "contacts")
+        fields = ("id", "name", "contacts", "num_days_ago_first_seen")
+
+    def get_num_days_ago_first_seen(self, store: Store) -> int:
+        time_since_store_creation = timezone.now().date() - store.date_created
+        return time_since_store_creation.days
 
 
 class ServiceOrderSerializer(serializers.ModelSerializer[QtStoreJobLink]):
     store = StoreSerializer()
     estimated_time = serializers.SerializerMethodField()
+    client_name = serializers.SerializerMethodField()
 
     class Meta:
         model = QtStoreJobLink
-        fields = ("estimated_time", "store")
-        read_only_fields = ("estimated_time", "store")
+        fields = ("estimated_time", "store", "client_name")
+        read_only_fields = ("estimated_time", "store", "client_name")
 
-    def get_estimated_time(self, _job: QtStoreJobLink) -> float:
+    def get_estimated_time(self, _service_order: QtStoreJobLink) -> float:
         return cattrs.structure(self.context["estimated_time"], float)
+
+    def get_client_name(self, _service_order: QtStoreJobLink) -> str:
+        return cattrs.structure(self.context["client_name"], str)
 
 
 class BarcodeSheetSerializer(serializers.ModelSerializer[BarcodeSheet]):
