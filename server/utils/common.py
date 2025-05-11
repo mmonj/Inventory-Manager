@@ -125,11 +125,11 @@ def bulk_create_and_get(
     Returns:
         QuerySet[models.Model]: The successfully inserted records with primary keys.
     """
-    model_class.objects.bulk_create(items, batch_size=batch_size, ignore_conflicts=True)  # type: ignore [attr-defined]
+    model_class.objects.bulk_create(items, batch_size=batch_size, ignore_conflicts=True)
 
     filter_criteria = _get_filter_criteria(items, fields)
 
-    return model_class.objects.filter(**filter_criteria)  # type: ignore [no-any-return, attr-defined]
+    return model_class.objects.filter(**filter_criteria)
 
 
 def atomic_get_or_create(instance: TModel, *, fields: list[str]) -> tuple[TModel, TIsNewRecord]:
@@ -141,7 +141,7 @@ def atomic_get_or_create(instance: TModel, *, fields: list[str]) -> tuple[TModel
             return instance, True
     except IntegrityError:
         filter_criteria = _get_filter_criteria([instance], fields)
-        return model_class.objects.get(**filter_criteria), False  # type: ignore [attr-defined]
+        return model_class.objects.get(**filter_criteria), False
 
 
 def _get_filter_criteria(items: list[T], unique_fieldnames: list[str]) -> dict[str, Any]:

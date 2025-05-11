@@ -73,7 +73,7 @@ class StoreGuidAdmin(admin.ModelAdmin[StoreGUID]):
 
 
 class StoreAdmin(admin.ModelAdmin[Store]):
-    search_fields = ("name", "guid")
+    search_fields = ("name", "guid", "site_id")
     list_display = (
         "name",
         "date_created",
