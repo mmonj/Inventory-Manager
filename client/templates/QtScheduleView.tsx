@@ -3,6 +3,7 @@ import React from "react";
 import { Context, interfaces, reverse, templates } from "@reactivated";
 import { JsonView, darkStyles } from "react-json-view-lite";
 
+import { format } from "date-fns/esm";
 import Form from "react-bootstrap/Form";
 
 import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
@@ -117,6 +118,10 @@ export default function Template(props: templates.QtScheduleView) {
       {fetchRepSchedule.data && downloadCheckboxRef.current?.checked !== true && (
         <div className="mt-4">
           <h4>Schedule Data for {fetchRepSchedule.data.rep_sync_data.rep_detail.username}</h4>
+          <div>
+            Modified:{" "}
+            {format(new Date(fetchRepSchedule.data.rep_sync_data.datetime_modified), "PPPpp")}
+          </div>
           {fetchRepSchedule.data.rep_sync_data.schedule == null ? (
             <div>No data (null data) for this user</div>
           ) : (
