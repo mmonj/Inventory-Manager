@@ -14,7 +14,7 @@ from products.models import (
     WorkCycle,
 )
 from products.util import get_num_work_cycles_offset
-from survey_worker.qtrax.models import QtStoreJobLink
+from survey_worker.qtrax.models import QtServiceOrder
 
 
 class ProductSerializer(serializers.ModelSerializer[Product]):
@@ -78,20 +78,20 @@ class StoreSerializer(serializers.ModelSerializer[Store]):
         return time_since_store_creation.days
 
 
-class ServiceOrderSerializer(serializers.ModelSerializer[QtStoreJobLink]):
+class ServiceOrderSerializer(serializers.ModelSerializer[QtServiceOrder]):
     store = StoreSerializer()
     estimated_time = serializers.SerializerMethodField()
     client_name = serializers.SerializerMethodField()
 
     class Meta:
-        model = QtStoreJobLink
+        model = QtServiceOrder
         fields = ("estimated_time", "store", "client_name")
         read_only_fields = ("estimated_time", "store", "client_name")
 
-    def get_estimated_time(self, _service_order: QtStoreJobLink) -> float:
+    def get_estimated_time(self, _service_order: QtServiceOrder) -> float:
         return cattrs.structure(self.context["estimated_time"], float)
 
-    def get_client_name(self, _service_order: QtStoreJobLink) -> str:
+    def get_client_name(self, _service_order: QtServiceOrder) -> str:
         return cattrs.structure(self.context["client_name"], str)
 
 

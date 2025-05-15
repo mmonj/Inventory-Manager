@@ -22,7 +22,7 @@ from products.util import get_current_work_cycle
 from products.util.upc import get_normalized_upc
 from server.utils.common import validate_structure
 from survey_worker.onehub.util import add_cmk_urls_to_db_workcycle, get_current_work_cycle_data
-from survey_worker.qtrax.models import QtStoreJobLink
+from survey_worker.qtrax.models import QtServiceOrder
 
 from .interfaces_request import ICmkStoreHtmlData
 from .serializers import (
@@ -93,7 +93,7 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
     logger.info('Received product additions request for SOID "%s"', request_data.soid)
 
     service_order = (
-        QtStoreJobLink.objects.filter(soid=request_data.soid)
+        QtServiceOrder.objects.filter(soid=request_data.soid)
         .prefetch_related("store", "job")
         .first()
     )
@@ -249,7 +249,7 @@ def get_service_order_info(_request: DrfRequest, soid: int) -> DrfResponse:
     logger.info("Received soid %s", soid)
 
     service_order = (
-        QtStoreJobLink.objects.filter(soid=soid).prefetch_related("store", "job").first()
+        QtServiceOrder.objects.filter(soid=soid).prefetch_related("store", "job").first()
     )
     if service_order is None:
         raise DrfNotFound(f"QtStoreJobLink with service order {soid=} not found")
