@@ -223,7 +223,7 @@ class Store(models.Model):
     )
     date_created = models.DateField(default=timezone.now)
     guid = models.CharField(max_length=150, blank=True, default="")
-    site_id = models.IntegerField(blank=True, null=True, default=None, db_index=True)
+    site_id = models.IntegerField(blank=True, null=True, default=None, unique=True)
     address_1 = models.CharField(max_length=100, blank=True, default="")
     city = models.CharField(max_length=50, blank=True, default="")
     state = models.CharField(max_length=20, blank=True, default="")

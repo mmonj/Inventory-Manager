@@ -78,6 +78,7 @@ class StoreAdmin(admin.ModelAdmin[Store]):
         "name",
         "date_created",
         "guid",
+        "site_id",
         "get_personnel_contact_first_name",
         "get_personnel_contact_last_name",
         "get_field_representative",
