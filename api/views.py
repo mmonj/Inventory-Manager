@@ -252,7 +252,7 @@ def get_service_order_info(_request: DrfRequest, soid: int) -> DrfResponse:
         QtServiceOrder.objects.filter(soid=soid).prefetch_related("store", "job").first()
     )
     if service_order is None:
-        raise DrfNotFound(f"QtStoreJobLink with service order {soid=} not found")
+        raise DrfNotFound(f"QtServiceOrder with service order {soid=} not found")
 
     parent_company = BrandParentCompany.objects.get(
         canonical_name=service_order.job.data["JobClient"]
