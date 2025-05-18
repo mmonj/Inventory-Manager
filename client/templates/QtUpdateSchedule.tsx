@@ -13,7 +13,7 @@ export default function Template(props: templates.QtUpdateSchedule) {
         <CSRFToken />
         <div className="mb-3">
           <select className="form-select" name="rep_id" required>
-            <option value="" disabled={true}>
+            <option value="" selected disabled>
               Select Rep
             </option>
             {props.reps.map((rep) => (
@@ -32,6 +32,7 @@ export default function Template(props: templates.QtUpdateSchedule) {
             className="form-control"
             id="schedule-data"
             name="schedule_data"
+            rows={15}
             required
           ></textarea>
         </div>
