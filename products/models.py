@@ -12,7 +12,7 @@ from django.db import models
 from django.utils import timezone
 
 from server.utils.common import get_degree_offset_from_meters
-from server.utils.typedefs import TFailure, TResult, TSuccess
+from server.utils.typedefs import CommonModel, TFailure, TResult, TSuccess
 
 from .types import UPC_A_LENGTH
 
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from .types import TParsedAddress
 
 
-class WorkCycle(models.Model):
+class WorkCycle(CommonModel):
     start_date = models.DateField(default=timezone.now)
     end_date = models.DateField(default=timezone.now)
 
@@ -32,7 +32,7 @@ class WorkCycle(models.Model):
         return f"{self.start_date} to {self.end_date}"
 
 
-class FieldRepresentative(models.Model):
+class FieldRepresentative(CommonModel):
     name = models.CharField(max_length=255)
     work_email = models.EmailField(max_length=255, unique=True)
 
@@ -51,7 +51,7 @@ class FieldRepresentative(models.Model):
         return f"FieldRepresentative(name={ self.name !r}, work_email={ self.work_email !r})"
 
 
-class BrandParentCompany(models.Model):
+class BrandParentCompany(CommonModel):
     short_name = models.CharField(max_length=50, unique=True, null=True)
     expanded_name = models.CharField(max_length=50, null=True, blank=True)
     canonical_name = models.CharField(max_length=100, blank=True, default="")
@@ -125,7 +125,7 @@ class Product(models.Model):
 
     def clean(self, *args: Any, **kwargs: Any) -> None:
         if self.upc is None or not self.upc.isnumeric():
-            raise ValidationError("UPC number be numeric")
+            raise ValidationError("UPC number must be numeric")
         if len(self.upc) != UPC_A_LENGTH:
             raise ValidationError(f"UPC number must be {UPC_A_LENGTH} digits")
         if not gs1.validate(self.upc):
@@ -136,7 +136,18 @@ class Product(models.Model):
         super().clean(*args, **kwargs)
 
 
-class UpcCorrection(models.Model):
+class PrefixMapping(CommonModel):
+    """Mapping of UPC prefixes to product names (starts with)"""
+
+    prefix = models.CharField(max_length=1)
+    product_name_regex = models.CharField(max_length=255, blank=True, default="")
+
+    parent_company = models.ForeignKey(
+        BrandParentCompany, on_delete=models.CASCADE, related_name="prefix_mappings"
+    )
+
+
+class UpcCorrection(CommonModel):
     parent_company = models.ForeignKey(
         BrandParentCompany, on_delete=models.CASCADE, related_name="upc_corrections"
     )
@@ -175,7 +186,7 @@ class UpcCorrection(models.Model):
             )
 
 
-class PersonnelContact(models.Model):
+class PersonnelContact(CommonModel):
     first_name = models.CharField(max_length=255, null=True)
     last_name = models.CharField(max_length=255, null=True)
     store = models.ForeignKey(

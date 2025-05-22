@@ -122,7 +122,7 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
     normalized_products: list[IProduct] = []
 
     for product in request_data.products:
-        upc = get_valid_upc(product.raw_upc, parent_company)
+        upc = get_valid_upc(product.raw_upc, product.name, parent_company)
         if upc is None:
             logger.info("Could not find normalized upc for raw upc = '%s'", product.raw_upc)
             continue

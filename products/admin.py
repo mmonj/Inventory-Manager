@@ -10,6 +10,7 @@ from .models import (
     BrandParentCompany,
     FieldRepresentative,
     PersonnelContact,
+    PrefixMapping,
     Product,
     ProductAddition,
     Store,
@@ -30,6 +31,13 @@ class UpcCorrectionInline(admin.TabularInline[UpcCorrection, BrandParentCompany]
     show_change_link = True
 
 
+class PrefixMappingInline(admin.TabularInline[PrefixMapping, BrandParentCompany]):
+    model = PrefixMapping
+    extra = 1  # how many empty forms to show
+    fields = ("product_name_regex", "prefix")
+    show_change_link = True
+
+
 class BrandParentCompanyAdmin(admin.ModelAdmin[BrandParentCompany]):
     list_display = (
         "short_name",
@@ -38,7 +46,7 @@ class BrandParentCompanyAdmin(admin.ModelAdmin[BrandParentCompany]):
         "third_party_logo",
         "display_upc_prefixes",
     )
-    inlines = (UpcCorrectionInline,)
+    inlines = (UpcCorrectionInline, PrefixMappingInline)
 
     def display_upc_prefixes(self, obj: BrandParentCompany) -> str:
         return ", ".join(obj.default_upc_prefixes or [])
