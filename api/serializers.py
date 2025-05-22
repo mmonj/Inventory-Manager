@@ -18,14 +18,14 @@ from survey_worker.qtrax.models import QtServiceOrder
 
 
 class ProductSerializer(serializers.ModelSerializer[Product]):
-    raw_upc = serializers.SerializerMethodField(read_only=True)
+    raw_upcs = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Product
-        fields = ("upc", "name", "raw_upc")
-        read_only_fields = ("upc", "name", "raw_upc")
+        fields = ("upc", "name", "raw_upcs")
+        read_only_fields = ("upc", "name", "raw_upcs")
 
-    def get_raw_upc(self, product: Product) -> str:
+    def get_raw_upcs(self, product: Product) -> list[str]:
         upc_to_raw_upcs_map = self.context["upc_to_raw_upcs_map"]
         return upc_to_raw_upcs_map[product.upc]  # type: ignore [no-any-return]
 

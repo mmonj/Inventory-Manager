@@ -64,8 +64,13 @@ export default function TerritoryMap({ groupedByStore }: Props) {
             <div>
               <strong>{group.address.StoreName}</strong>
               <br />
-              {group.address.StreetAddress}, {group.address.City}, {group.address.State}{" "}
-              {group.address.PostalCode}
+              <div>
+                {group.address.StreetAddress}, {group.address.City}, {group.address.State}{" "}
+                {group.address.PostalCode}
+              </div>
+              <div>
+                {group.address.Latitude}, {group.address.Longitude}
+              </div>
               <ul className="mt-2 mb-0 ps-3">
                 {group.jobs.map((job, jIdx) => (
                   <li key={jIdx}>

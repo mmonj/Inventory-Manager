@@ -1,5 +1,6 @@
 import hashlib
 import logging
+from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from rest_framework.decorators import api_view, permission_classes
@@ -19,7 +20,7 @@ from products.models import (
 )
 from products.tasks import get_external_product_images
 from products.util import get_current_work_cycle
-from products.util.upc import get_normalized_upc
+from products.util.upc import get_valid_upc
 from server.utils.common import validate_structure
 from survey_worker.onehub.util import add_cmk_urls_to_db_workcycle, get_current_work_cycle_data
 from survey_worker.qtrax.models import QtServiceOrder
@@ -116,17 +117,17 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
         raise DrfValidationError("Form contains 0 products")
 
     requested_products: list[IRawProduct] = []
-    upc_to_raw_upcs_map: dict[str, str] = {}
+    upc_to_raw_upcs_map: dict[str, list[str]] = defaultdict(list)
 
     normalized_products: list[IProduct] = []
 
     for product in request_data.products:
-        upc = get_normalized_upc(product.raw_upc, parent_company)
+        upc = get_valid_upc(product.raw_upc, parent_company)
         if upc is None:
             logger.info("Could not find normalized upc for raw upc = '%s'", product.raw_upc)
             continue
 
-        upc_to_raw_upcs_map[upc] = product.raw_upc
+        upc_to_raw_upcs_map[upc].append(product.raw_upc)
         normalized_products.append(IProduct(upc=upc, name=product.name))
 
         requested_products.append(
@@ -138,11 +139,10 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
     hash_object.update(str(sorted(normalized_upcs)).encode())
     sorted_upcs_hash = hash_object.hexdigest()
 
-    # initiate worker
-
     update_product_record_names(normalized_products, parent_company)
     product_additions = update_product_additions(store, parent_company, normalized_upcs)
 
+    # initiate worker
     get_external_product_images.delay()
 
     current_work_cycle = get_current_work_cycle()

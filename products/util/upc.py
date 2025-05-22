@@ -1,9 +1,12 @@
+import logging
 from typing import Optional
 
 from checkdigit import gs1
 
 from ..models import BrandParentCompany
 from ..types import UPC_A_LENGTH
+
+logger = logging.getLogger("main_logger")
 
 
 def get_check_digit(upc_without_check: str) -> str:
@@ -27,17 +30,21 @@ def get_check_digit(upc_without_check: str) -> str:
     # return str((10 - (total % 10)) % 10)
 
 
-def get_upc_from_length11(trunc_upc: str, upc_prefixes: list[str]) -> Optional[str]:
+def get_upc_from_length11(trunc_upc: str, upc_prefixes: tuple[str, ...]) -> Optional[str]:
+    candidate_upc: Optional[str]
     for prefix in upc_prefixes:
         candidate_upc = prefix + trunc_upc
         if gs1.validate(candidate_upc):
             return candidate_upc
 
     candidate_upc = trunc_upc + get_check_digit(trunc_upc)
-    return candidate_upc if gs1.validate(candidate_upc) else None
+    if not candidate_upc.startswith(upc_prefixes):
+        candidate_upc = get_upc_from_length10(trunc_upc[0:-1], upc_prefixes)
+
+    return candidate_upc
 
 
-def get_upc_from_length10(trunc_upc: str, upc_prefixes: list[str]) -> Optional[str]:
+def get_upc_from_length10(trunc_upc: str, upc_prefixes: tuple[str, ...]) -> Optional[str]:
     for prefix in upc_prefixes:
         length11_upc = prefix + trunc_upc
         candidate_upc = length11_upc + get_check_digit(length11_upc)
@@ -46,27 +53,41 @@ def get_upc_from_length10(trunc_upc: str, upc_prefixes: list[str]) -> Optional[s
     return None
 
 
-def get_normalized_upc(raw_upc: str, company: BrandParentCompany) -> Optional[str]:  # noqa: PLR0911
+def _final_upc_normalization(
+    candidate_upc: Optional[str], upc_prefixes: tuple[str, ...]
+) -> Optional[str]:
+    if candidate_upc is None or len(candidate_upc) == 0:
+        return None
+
+    if not candidate_upc.startswith(upc_prefixes):
+        return None
+
+    return candidate_upc
+
+
+def get_valid_upc(raw_upc: str, company: BrandParentCompany) -> Optional[str]:
     raw_upc = raw_upc.strip()
 
-    # 1. Check for known corrections
-    corrected_upc = (
+    upc_from_preset_upc_corrections = (
         company.upc_corrections.filter(bad_upc=raw_upc).values_list("actual_upc", flat=True).first()
     )
-    if corrected_upc is not None:
-        return corrected_upc
+    if upc_from_preset_upc_corrections is not None:
+        return upc_from_preset_upc_corrections
+
+    upc_prefixes = tuple(company.default_upc_prefixes)
 
     if len(raw_upc) == UPC_A_LENGTH and gs1.validate(raw_upc):
-        return raw_upc
+        return _final_upc_normalization(raw_upc, upc_prefixes)
 
-    upc_prefixes = company.default_upc_prefixes
     if len(upc_prefixes) == 0:
         return None
 
     if len(raw_upc) == 11:  # noqa: PLR2004
-        return get_upc_from_length11(raw_upc, upc_prefixes)
+        upc = get_upc_from_length11(raw_upc, upc_prefixes)
+        return _final_upc_normalization(upc, upc_prefixes)
 
     if len(raw_upc) == 10:  # noqa: PLR2004
-        return get_upc_from_length10(raw_upc, upc_prefixes)
+        upc = get_upc_from_length10(raw_upc, upc_prefixes)
+        return _final_upc_normalization(upc, upc_prefixes)
 
     return None
