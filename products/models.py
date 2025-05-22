@@ -124,6 +124,10 @@ class Product(models.Model):
             return False
 
     def clean(self, *args: Any, **kwargs: Any) -> None:
+        if not self.parent_company:
+            raise ValidationError("Parent company is required")
+
+        # Validate UPC format
         if self.upc is None or not self.upc.isnumeric():
             raise ValidationError("UPC number must be numeric")
         if len(self.upc) != UPC_A_LENGTH:
@@ -133,6 +137,40 @@ class Product(models.Model):
             raise ValidationError(
                 f"The UPC number is invalid. Expected a check digit of {expected_check_digit}"
             )
+
+        # Validate UPC prefix using default prefixes list
+        allowed_prefixes = self.parent_company.default_upc_prefixes or []
+        if len(allowed_prefixes) == 0:
+            raise ValidationError(
+                f"Parent company {self.parent_company.short_name or self.parent_company.id} has no allowed UPC prefixes"
+            )
+
+        upc_prefix = self.upc[0]
+        if upc_prefix not in allowed_prefixes:
+            raise ValidationError(
+                f"UPC prefix {upc_prefix} is not allowed for the parent company "
+                f"{self.parent_company.short_name or self.parent_company.id}. "
+                f"Allowed prefixes: {allowed_prefixes}"
+            )
+
+        # validate UPC prefix using PrefixMapping
+        prefix_mappings = self.parent_company.prefix_mappings.all()
+        matching_mapping: PrefixMapping | None = None
+
+        for mapping in prefix_mappings:
+            if mapping.product_name_regex and re.match(
+                mapping.product_name_regex, self.name or "", re.IGNORECASE
+            ):
+                matching_mapping = mapping
+                break
+
+        if matching_mapping:
+            upc_prefix = self.upc[0]
+            if upc_prefix != matching_mapping.prefix:
+                raise ValidationError(
+                    f"Expected UPC prefix {matching_mapping.prefix} for product name {self.name!r}, but got {upc_prefix}"
+                )
+
         super().clean(*args, **kwargs)
 
 
@@ -140,7 +178,7 @@ class PrefixMapping(CommonModel):
     """Mapping of UPC prefixes to product names (starts with)"""
 
     prefix = models.CharField(max_length=1)
-    product_name_regex = models.CharField(max_length=255, blank=True, default="")
+    product_name_regex = models.CharField(max_length=255)
 
     parent_company = models.ForeignKey(
         BrandParentCompany, on_delete=models.CASCADE, related_name="prefix_mappings"

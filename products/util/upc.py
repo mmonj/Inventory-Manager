@@ -25,18 +25,16 @@ def get_check_digit(upc_without_check: str) -> str:
 
 
 def get_upc_from_length11(trunc_upc: str, upc_prefixes: tuple[str, ...]) -> Optional[str]:
-    candidate_upc: Optional[str]
-    for prefix in upc_prefixes:
-        candidate_upc = prefix + trunc_upc
+    if trunc_upc[0] not in upc_prefixes:
+        for prefix in upc_prefixes:
+            candidate_upc = prefix + trunc_upc
 
-        if gs1.validate(candidate_upc):
-            return candidate_upc
+            if gs1.validate(candidate_upc):
+                return candidate_upc
+    else:
+        return trunc_upc + get_check_digit(trunc_upc)
 
-    candidate_upc = trunc_upc + get_check_digit(trunc_upc)
-    if not candidate_upc.startswith(upc_prefixes):
-        candidate_upc = get_upc_from_length10(trunc_upc[0:-1], upc_prefixes)
-
-    return candidate_upc
+    return None
 
 
 def get_upc_from_length10(trunc_upc: str, upc_prefixes: tuple[str, ...]) -> Optional[str]:
