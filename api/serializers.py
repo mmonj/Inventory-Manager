@@ -98,17 +98,20 @@ class ServiceOrderSerializer(serializers.ModelSerializer[QtServiceOrder]):
 class BarcodeSheetSerializer(serializers.ModelSerializer[BarcodeSheet]):
     product_additions = ProductAdditionSerializer(many=True)
     barcode_sheet_id = serializers.SerializerMethodField(read_only=True)
+    client_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = BarcodeSheet
         fields = (
             "barcode_sheet_id",
             "datetime_created",
+            "client_name",
             "product_additions",
         )
         read_only_fields = (
             "barcode_sheet_id",
             "datetime_created",
+            "client_name",
             "product_additions",
         )
 
@@ -116,3 +119,8 @@ class BarcodeSheetSerializer(serializers.ModelSerializer[BarcodeSheet]):
         if barcode_sheet is None:
             return None
         return barcode_sheet.id
+
+    def get_client_name(self, barcode_sheet: Optional[BarcodeSheet]) -> Optional[str]:
+        if barcode_sheet is None or barcode_sheet.parent_company is None:
+            return None
+        return barcode_sheet.parent_company.canonical_name
