@@ -108,14 +108,11 @@ def get_valid_upc(raw_upc: str, product_name: str, company: BrandParentCompany) 
     if main_prefix is not None:
         upc_prefixes = (main_prefix, *upc_prefixes)
 
-    candidate_upc: Optional[str] = None
+    candidate_upc: Optional[str] = raw_upc
+
     if len(raw_upc) == UPC_A_LENGTH and main_prefix is not None:
         if raw_upc.startswith(upc_prefixes):
             candidate_upc = raw_upc
-        elif len(raw_upc) == UPC_A_LENGTH + 1 and raw_upc[0] == "0":
-            candidate_upc = raw_upc[1:]
-        elif len(raw_upc) == UPC_A_LENGTH + 2 and raw_upc[0:2] == "00":
-            candidate_upc = raw_upc[2:]
 
         candidate_upc = _validate_upc(raw_upc, upc_prefixes, main_prefix)
         if candidate_upc is None and raw_upc[0] != main_prefix and raw_upc[1] == main_prefix:
@@ -124,6 +121,10 @@ def get_valid_upc(raw_upc: str, product_name: str, company: BrandParentCompany) 
         elif candidate_upc is None and raw_upc[0] != main_prefix:
             candidate_upc = get_upc_from_length10(raw_upc, (main_prefix,))
             candidate_upc = _validate_upc(candidate_upc, upc_prefixes, main_prefix)
+    elif len(raw_upc) == UPC_A_LENGTH + 1 and raw_upc[0] == "0":
+        candidate_upc = raw_upc[1:]
+    elif len(raw_upc) == UPC_A_LENGTH + 2 and raw_upc[0:2] == "00":
+        candidate_upc = raw_upc[2:]
 
     if len(raw_upc) == 11:  # noqa: PLR2004
         candidate_upc = get_upc_from_length11(raw_upc, upc_prefixes)
@@ -132,4 +133,4 @@ def get_valid_upc(raw_upc: str, product_name: str, company: BrandParentCompany) 
         candidate_upc = get_upc_from_length10(raw_upc, upc_prefixes)
         candidate_upc = _validate_upc(candidate_upc, upc_prefixes, main_prefix)
 
-    return candidate_upc
+    return _validate_upc(candidate_upc, upc_prefixes, main_prefix)
