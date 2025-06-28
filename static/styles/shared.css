@@ -153,4 +153,12 @@
 }
 .react-select__group {
   padding: 0 !important;
+}
+
+.accordion-button {
+  background-color: transparent;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: rgba(173, 206, 251, 0.13);
 }/*# sourceMappingURL=shared.css.map */

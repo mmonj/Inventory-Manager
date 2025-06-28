@@ -28,7 +28,7 @@ export function NavigationBar() {
     getLink("Update Qt Schedule", reverse("survey_worker:qt_update_schedule")),
   ];
   const nonPrivilegedLinks: TLink[] = [
-    getLink("Territory Viewer", reverse("survey_worker:qt_view_territory")),
+    getLink("Territory Viewer", reverse("survey_worker:qt_territory_viewer")),
   ];
 
   return (

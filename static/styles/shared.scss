@@ -132,3 +132,11 @@
     padding: 0 !important;
   }
 }
+
+.accordion-button {
+  background-color: transparent;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: rgb(173 206 251 / 13%);
+}

@@ -13,62 +13,56 @@
 {% block body_main %}
 <section class="my-4 mw-rem-60 mx-auto px-2">
   <div class="row">
-
+    <!-- qt_territory_viewer -->
     <div class="col-sm-6">
       <div class="card">
         <div class="card-body">
-          <h5 class="card-title">Survey Launcher</h5>
-          <p class="card-text">Launch survey forms by store lookup</p>
-          <a href="{% url 'survey_worker:survey_launcher' %}" class="btn btn-primary">Go to Survey Launcher</a>
-        </div>
-      </div>
-    </div>
-    <div class="col-sm-6">
-      <div class="card">
-        <div class="card-body">
-          <h5 class="card-title">Territory Viewer</h5>
-          <p class="card-text">View Territory: Stores and tickets</p>
-          <a href="{% url 'survey_worker:territory_viewer' %}" class="btn btn-primary">Go to Territory Viewer</a>
+          <h5 class="card-title">View Qt Territory</h5>
+          <p class="card-text">Launch Qt Territory</p>
+          <a href="{% url 'survey_worker:qt_territory_viewer' %}" class="btn btn-primary">Go to Qt Territory</a>
         </div>
       </div>
     </div>
 
     {% if user.is_superuser %}
+    <!-- qt_admin -->
     <div class="col-sm-6">
       <div class="card">
         <div class="card-body">
-          <h5 class="card-title">WebHub</h5>
-          <p class="card-text">Submit Work Tickets</p>
-          <a href="{% url 'survey_worker:webhub' %}" class="btn btn-primary">Go to WebHub</a>
+          <h5 class="card-title">Qt Admin</h5>
+          <p class="card-text">Manage Qt Territories</p>
+          <a href="{% url 'survey_worker:qt_admin' %}" class="btn btn-primary">Go to Qt Admin</a>
         </div>
       </div>
     </div>
+    <!-- qt_view_login_sessions -->
     <div class="col-sm-6">
       <div class="card">
         <div class="card-body">
-          <h5 class="card-title">Rep Sync Data Viewer</h5>
-          <p class="card-text">View Rep Sync Data</p>
-          <a href="{% url 'survey_worker:rep_sync_data_viewer' %}" class="btn btn-primary">Go to Rep Sync Data
-            Viewer</a>
+          <h5 class="card-title">View Login Sessions</h5>
+          <p class="card-text">View active login sessions</p>
+          <a href="{% url 'survey_worker:qt_view_login_sessions' %}" class="btn btn-primary">Go to View Login
+            Sessions</a>
         </div>
       </div>
     </div>
+    <!-- qt_view_schedules -->
     <div class="col-sm-6">
       <div class="card">
         <div class="card-body">
-          <h5 class="card-title">Task Adminer</h5>
-          <p class="card-text">Administrate RQ Tasks</p>
-          <a href="{% url 'survey_worker:task_adminer' %}" class="btn btn-primary">Go to Task Adminer</a>
+          <h5 class="card-title">View Schedules</h5>
+          <p class="card-text">View and manage schedules</p>
+          <a href="{% url 'survey_worker:qt_view_schedules' %}" class="btn btn-primary">Go to View Schedules</a>
         </div>
       </div>
     </div>
+    <!-- qt_update_schedule -->
     <div class="col-sm-6">
       <div class="card">
         <div class="card-body">
-          <h5 class="card-title">CMK HTML Manual Form</h5>
-          <p class="card-text">Update CMK HTML Manually</p>
-          <a href="{% url 'survey_worker:manual_cmklaunch_html' %}" class="btn btn-primary">Go to CMK HTML Manual
-            Form</a>
+          <h5 class="card-title">Update Schedule</h5>
+          <p class="card-text">Update schedules for Qt Territories</p>
+          <a href="{% url 'survey_worker:qt_update_schedule' %}" class="btn btn-primary">Go to Update Schedule</a>
         </div>
       </div>
     </div>

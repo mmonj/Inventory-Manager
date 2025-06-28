@@ -1,8 +1,12 @@
+from collections.abc import Callable
 from typing import Any, Optional, Type, TypeVar  # noqa: UP035
 
 import cattrs
 import requests
 from django.db import IntegrityError, models, transaction
+from django.http import HttpRequest, HttpResponse
+from django.shortcuts import redirect
+from django.urls import reverse
 from requests import Session
 from requests.adapters import HTTPAdapter, Retry
 from requests.utils import cookiejar_from_dict, dict_from_cookiejar
@@ -163,3 +167,16 @@ def _get_filter_criteria(items: list[T], unique_fieldnames: list[str]) -> dict[s
 
         filter_criteria[f"{field}__in"] = filter_values
     return filter_criteria
+
+
+def conditional_redirect(
+    view_func: Callable[..., HttpResponse],
+    target_name: str,
+    should_redirect: Callable[[HttpRequest], bool],
+) -> Callable[[HttpRequest, Any, Any], HttpResponse]:
+    def _wrapped_view(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        if should_redirect(request):
+            return redirect(reverse(target_name))
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped_view
