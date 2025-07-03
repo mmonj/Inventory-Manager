@@ -9,7 +9,7 @@ import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { getSurveyUrlsUpdateStatus } from "@client/util/surveyWorker";
 
-export default function (props: templates.SurveyWorkerTaskAdminer) {
+export function Template(props: templates.SurveyWorkerTaskAdminer) {
   const workerTasksFetch = useFetch<{ detail: string }>();
   const djangoContext = React.useContext(Context);
 

@@ -33,10 +33,10 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024**2
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.environ["psql_db_name"],
-        "USER": os.environ["psql_username"],
-        "PASSWORD": os.environ["psql_password"],
-        "HOST": os.environ["psql_host"],
-        "PORT": os.environ["psql_port"],
+        "NAME": os.environ["PSQL_DB_NAME"],
+        "USER": os.environ["PSQL_USERNAME"],
+        "PASSWORD": os.environ["PSQL_PASSWORD"],
+        "HOST": os.environ["PSQL_HOST"],
+        "PORT": os.environ["PSQL_PORT"],
     }
 }

@@ -11,3 +11,6 @@ static/dist/index.js
 static/dist/index.js.map
 collected/
 static/dist/*
+*.env
+*.env.*
+!*.env.example

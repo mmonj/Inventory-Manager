@@ -15,7 +15,7 @@ interface ISelectOption {
   label: string;
 }
 
-export default function (props: templates.SurveyWorkerRepSyncDataViewer) {
+export function Template(props: templates.SurveyWorkerRepSyncDataViewer) {
   const dataFetcher = useFetch<interfaces.IRepSyncDataResp>();
   const [selectedRepSubtype, setselectedRepSubtype] = React.useState<ISelectOption | null>(null);
   const djangoContext = React.useContext(Context);

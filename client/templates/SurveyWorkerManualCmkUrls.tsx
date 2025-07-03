@@ -5,7 +5,7 @@ import { CSRFToken, reverse, templates } from "@reactivated";
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
 
-export default function (props: templates.SurveyWorkerManualCmkUrls) {
+export function Template(props: templates.SurveyWorkerManualCmkUrls) {
   const ulElementRef = React.useRef<HTMLUListElement>(null);
 
   if (props.message !== "") {

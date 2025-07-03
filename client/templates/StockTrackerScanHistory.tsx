@@ -14,7 +14,7 @@ import { BasicProductAddition } from "@client/util/stockTracker/ajaxInterfaces";
 
 import { IStore } from "./StockTrackerScanner";
 
-export default function (props: templates.StockTrackerScanHistory) {
+export function Template(props: templates.StockTrackerScanHistory) {
   const djangoContext = React.useContext(Context);
   const [chosenStore, setChosenStore] = useState<IStore | null>(null);
   const [productAdditions, setProductAdditions] = useState<BasicProductAddition[]>([]);

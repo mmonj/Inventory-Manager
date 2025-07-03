@@ -5,7 +5,7 @@ import { CSRFToken, reverse, templates } from "@reactivated";
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
 
-export default function Template(props: templates.QtUpdateSchedule) {
+export function Template(props: templates.QtUpdateSchedule) {
   return (
     <Layout title="Update Schedule" className="mw-rem-60 mx-auto px-2" navbar={<NavigationBar />}>
       <h1 className="text-center">Update Schedule</h1>

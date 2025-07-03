@@ -9,8 +9,8 @@ import redis
 import requests
 from django.conf import settings
 from django.core.files import File
-from django_rq import job  # type: ignore [import]
 from PIL import Image, ImageChops, ImageOps
+from scheduler import job
 
 from .models import Product
 from .types import IUpcItemDbData, IUpcItemDbItem
@@ -41,7 +41,7 @@ redis_client = redis.Redis(
 )
 
 
-@job  # type:ignore [misc]
+@job()  # type: ignore [misc]
 def get_external_product_images() -> None:
     logger.info("Received job to fetch product images from API")
     yesterday_date = datetime.now().date() - timedelta(days=1)

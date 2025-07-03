@@ -6,7 +6,7 @@ import {
   templates,
 } from "@reactivated";
 
-import { format, parse } from "date-fns/esm";
+import { format, parse } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Layout } from "@client/components/Layout";
@@ -19,7 +19,7 @@ interface IStoreGuid extends SurveyWorkerOnehubTypedefsInterfacesICmklaunchStore
   pk: number;
 }
 
-export default function (props: templates.SurveyWorkerLauncher) {
+export function Template(props: templates.SurveyWorkerLauncher) {
   const [selectedStore, setSelectedStore] = React.useState<IStoreGuid | null>(null);
   const [isCmklaunchUrlsShown, setIsCmklaunchUrlsShown] = React.useState(false);
   const djangoContext = React.useContext(Context);
@@ -133,7 +133,7 @@ export default function (props: templates.SurveyWorkerLauncher) {
               animate="visible"
               exit="exit"
               variants={slideInVariants}
-              transition={{ type: "bounce", stiffness: 60, damping: 20, duration: 0.4 }}
+              transition={{ type: "spring", stiffness: 60, damping: 20 }}
             >
               <h5 className="mb-3" style={{ color: "unset" }}>
                 Available surveys for store <span className="fw-bold">{selectedStore.name}</span>

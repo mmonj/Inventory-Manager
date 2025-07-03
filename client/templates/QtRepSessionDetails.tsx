@@ -4,7 +4,7 @@ import React from "react";
 import { templates } from "@reactivated";
 import { JsonView, darkStyles } from "react-json-view-lite";
 
-import { format } from "date-fns/esm";
+import { format } from "date-fns";
 import Container from "react-bootstrap/Container";
 import Stack from "react-bootstrap/Stack";
 
@@ -12,7 +12,7 @@ import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
 
 import { Layout } from "../components/Layout";
 
-export default function Template(props: templates.QtRepSessionDetails) {
+export function Template(props: templates.QtRepSessionDetails) {
   return (
     <Layout
       title="Rep Session Details"

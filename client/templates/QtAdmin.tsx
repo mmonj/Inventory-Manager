@@ -11,7 +11,7 @@ import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
 import { Layout } from "../components/Layout";
 import { useFetch } from "../hooks/useFetch";
 
-export default function Template(props: templates.QtAdmin) {
+export function Template(props: templates.QtAdmin) {
   const context = React.useContext(Context);
   const forceFetchSession = useFetch<interfaces.QtLoginSessionRefetch>();
 

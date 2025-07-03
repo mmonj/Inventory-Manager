@@ -8,7 +8,7 @@ import { BarcodeSheetHeader } from "@client/components/stockTracker/BarcodeSheet
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { BarcodeSheetSchema } from "@client/types";
 
-export default (props: templates.StockTrackerBarcodeSheet) => {
+export function Template(props: templates.StockTrackerBarcodeSheet) {
   const [isEditMode, setIsEditMode] = useState(false);
 
   BarcodeSheetSchema.parse(props);
@@ -24,4 +24,4 @@ export default (props: templates.StockTrackerBarcodeSheet) => {
       <BarcodeSheetContent {...props} isEditMode={isEditMode} />
     </Layout>
   );
-};
+}

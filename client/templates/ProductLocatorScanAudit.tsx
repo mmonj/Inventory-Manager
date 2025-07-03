@@ -10,7 +10,7 @@ import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { createNewScanAudit, postToScanAudit } from "@client/util/productLocator";
 
-export default function (props: templates.ProductLocatorScanAudit) {
+export function Template(props: templates.ProductLocatorScanAudit) {
   const [scannedUpcs, setScannedUpcs] = React.useState<string[]>([]);
   const [selectedScanAuditId, setSelectedScanAuditId] = React.useState<number | null>(null);
   const createNewScanAuditFetch = useFetch<interfaces.IScanAuditCreation>();

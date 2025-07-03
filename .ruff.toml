@@ -32,7 +32,7 @@ exclude = [
 line-length = 100
 indent-width = 4
 
-target-version = "py39"
+target-version = "py312"
 
 [lint]
 select = [
@@ -81,6 +81,5 @@ ignore = [
     "TD002",   # require author in TODO comments
     "TD003",   # require referencing an issue URL/number in next line
     "FIX002",  # too verbose descriptions of todos
-    "UP007",   # non-pep604-annotation (prefer | operator for Unions)
-    "UP006",   # non-pep585-annotation (eg. prefer list over List)
+    "UP047",   # non-pep695-annotation (eg. prefer T over TypeVar('T'))
 ]
