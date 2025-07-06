@@ -211,7 +211,7 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
-        "rq.worker": {
+        "scheduler": {
             "handlers": ["worker_handler", "console"],
             "level": "DEBUG",
             "propagate": True,
@@ -244,14 +244,6 @@ SCHEDULER_CONFIG = SchedulerConfiguration(
     DEFAULT_JOB_MONITORING_INTERVAL=30,  # The interval to monitor jobs in seconds.
     SCHEDULER_FALLBACK_PERIOD_SECS=120,  # Period (secs) to wait before requiring to reacquire locks
 )
-
-# REDIS_URL = "redis://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB}".format(
-#     USERNAME=os.environ["REDIS_USERNAME"],
-#     PASSWORD=os.environ["REDIS_PASSWORD"],
-#     HOST=os.environ["REDIS_HOST"],
-#     PORT=os.environ["REDIS_PORT"],
-#     DB=os.environ["REDIS_DB"],
-# )
 
 SCHEDULER_QUEUES: dict[str, QueueConfiguration] = {
     "default": QueueConfiguration(

@@ -374,7 +374,7 @@ wheels = [
 ]
 
 [[package]]
-name = "inventorymanager"
+name = "inventory-manager"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

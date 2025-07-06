@@ -297,7 +297,7 @@ def get_product_additions_count(
 
 
 def is_date_within_work_cycle(date_in_question: date, work_cycle: WorkCycle) -> bool:
-    return work_cycle.start_date <= date_in_question and date_in_question <= work_cycle.end_date
+    return work_cycle.start_date <= date_in_question <= work_cycle.end_date
 
 
 def get_num_work_cycles_offset(date_in_question: date, work_cycle: WorkCycle) -> int:
