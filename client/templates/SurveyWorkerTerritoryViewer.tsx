@@ -39,6 +39,24 @@ export function Template(props: templates.SurveyWorkerTerritoryViewer) {
 
   const djangoContext = React.useContext(Context);
 
+  React.useEffect(() => {
+    const timeoutVal = setTimeout(() => {
+      const filteredStores = props.rep_stores[selectedRepIdx].webhub_stores.filter((store) => {
+        const fullStoreName = `${store.City}, ${store.State} | ${store.Address} | ${store.Name}`;
+        return fullStoreName.toLowerCase().includes(storeFilterValue.toLowerCase());
+      });
+      setShownWebhubStores(() => filteredStores);
+    }, 300);
+
+    return () => {
+      clearTimeout(timeoutVal);
+    };
+  }, [storeFilterValue]);
+
+  React.useEffect(() => {
+    setShownWebhubStores(() => props.rep_stores[selectedRepIdx].webhub_stores);
+  }, []);
+
   if (props.rep_stores.length === 0) {
     return (
       <Layout title="Territory Viewer" navbar={<NavigationBar />}>
@@ -90,24 +108,6 @@ export function Template(props: templates.SurveyWorkerTerritoryViewer) {
   function toggleShowOriginalCmklaunchUrls() {
     setIsCmklaunchUrlsShown((prev) => !prev);
   }
-
-  React.useEffect(() => {
-    const timeoutVal = setTimeout(() => {
-      const filteredStores = props.rep_stores[selectedRepIdx].webhub_stores.filter((store) => {
-        const fullStoreName = `${store.City}, ${store.State} | ${store.Address} | ${store.Name}`;
-        return fullStoreName.toLowerCase().includes(storeFilterValue.toLowerCase());
-      });
-      setShownWebhubStores(() => filteredStores);
-    }, 300);
-
-    return () => {
-      clearTimeout(timeoutVal);
-    };
-  }, [storeFilterValue]);
-
-  React.useEffect(() => {
-    setShownWebhubStores(() => props.rep_stores[selectedRepIdx].webhub_stores);
-  }, []);
 
   return (
     <Layout

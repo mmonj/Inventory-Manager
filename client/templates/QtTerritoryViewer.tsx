@@ -17,6 +17,14 @@ import { formatDateRange } from "@client/util/qtSurveyWorker/scheduleUtils";
 
 const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMap"));
 
+type TGroupedStoreRecord = Record<
+  number,
+  {
+    address: SurveyWorkerQtraxWebsiteTypedefsAddress;
+    jobs: SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[];
+  }
+>;
+
 export function Template(props: templates.QtTerritoryViewer) {
   const [selectedRepDetailId, setSelectedRepDetailId] = useState<number | null>(
     props.rep_sync_datalist[0]?.id ?? null
@@ -24,15 +32,7 @@ export function Template(props: templates.QtTerritoryViewer) {
   const [showMap, setShowMap] = useState(false);
   const [storeFilterValue, setStoreFilterValue] = useState("");
   const [selectedDueDate, setSelectedDueDate] = useState<string>("");
-  const [filteredStores, setFilteredStores] = useState<
-    Record<
-      number,
-      {
-        address: SurveyWorkerQtraxWebsiteTypedefsAddress;
-        jobs: SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[];
-      }
-    >
-  >({});
+  const [filteredStores, setFilteredStores] = useState<TGroupedStoreRecord>({});
   const djangoContext = React.useContext(Context);
 
   const selectedRepData = props.rep_sync_datalist.find((r) => r.id === selectedRepDetailId);
@@ -59,22 +59,19 @@ export function Template(props: templates.QtTerritoryViewer) {
   }, [uniqueDueDates]);
 
   // group stores
-  const groupedByStore: Record<
-    number,
-    {
-      address: SurveyWorkerQtraxWebsiteTypedefsAddress;
-      jobs: SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[];
-    }
-  > = {};
-  for (const so of serviceOrders) {
-    const siteId = so.Address.SiteId;
+  const groupedByStore = React.useMemo(() => {
+    const _groupedByStore: TGroupedStoreRecord = {};
 
-    // if (groupedByStore[siteId] === undefined) {
-    if (!(siteId in groupedByStore)) {
-      groupedByStore[siteId] = { address: so.Address, jobs: [] };
+    for (const so of serviceOrders) {
+      const siteId = so.Address.SiteId;
+      if (!(siteId in _groupedByStore)) {
+        _groupedByStore[siteId] = { address: so.Address, jobs: [] };
+      }
+      _groupedByStore[siteId].jobs.push(so);
     }
-    groupedByStore[siteId].jobs.push(so);
-  }
+
+    return _groupedByStore;
+  }, [serviceOrders]);
 
   let totalWorkHours = 0;
   Object.values(filteredStores).forEach(({ jobs }) => {
@@ -86,7 +83,7 @@ export function Template(props: templates.QtTerritoryViewer) {
   // filter stores
   useEffect(() => {
     const timeoutVal = setTimeout(() => {
-      const filtered: typeof groupedByStore = {};
+      const filtered: TGroupedStoreRecord = {};
 
       Object.entries(groupedByStore).forEach(([siteId, storeData]) => {
         // filter by store name + address
@@ -298,7 +295,7 @@ export function Template(props: templates.QtTerritoryViewer) {
               <Accordion.Body>
                 <ul className="list-group list-group-flush">
                   {jobs.map((job, jobIndex) => (
-                    <li key={jobIndex} className="list-group-item list-group-item-info">
+                    <li key={jobIndex} className="list-group-item">
                       <strong>Description:</strong> {job.ServiceOrderDescription}
                       <br />
                       <strong>Estimated Time:</strong> {job.EstimatedTime.toFixed(2)} hrs
