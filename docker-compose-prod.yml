@@ -47,7 +47,7 @@ services:
   rq_worker_default:
     image: mmonj.inventory_manager_django
     container_name: inventory-manager-rq-worker-default
-    command: uv run python manage.py rqworker default
+    command: poetry run python manage.py rqworker default
     user: "${UID}"
     volumes:
       - ./:/app
