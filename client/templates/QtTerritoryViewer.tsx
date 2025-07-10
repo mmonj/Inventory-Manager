@@ -1,19 +1,18 @@
 import React, { Suspense, lazy, useEffect, useState } from "react";
 
 import {
-  Context,
   SurveyWorkerQtraxWebsiteTypedefsAddress,
   SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
   templates,
 } from "@reactivated";
-import { Accordion, Dropdown, DropdownButton, Modal } from "react-bootstrap";
+import { Accordion } from "react-bootstrap";
 
 import { faTimes } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
-import { formatDateRange } from "@client/util/qtSurveyWorker/scheduleUtils";
+import { formatDateRange, formatJobTime } from "@client/util/qtSurveyWorker/scheduleUtils";
 
 const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMap"));
 
@@ -23,7 +22,6 @@ export function Template(props: templates.QtTerritoryViewer) {
   );
   const [showMap, setShowMap] = useState(false);
   const [storeFilterValue, setStoreFilterValue] = useState("");
-  const [selectedDueDate, setSelectedDueDate] = useState<string>("");
   const [filteredStores, setFilteredStores] = useState<
     Record<
       number,
@@ -33,32 +31,11 @@ export function Template(props: templates.QtTerritoryViewer) {
       }
     >
   >({});
-  const djangoContext = React.useContext(Context);
 
   const selectedRepData = props.rep_sync_datalist.find((r) => r.id === selectedRepDetailId);
   const serviceOrders = selectedRepData?.schedule?.ServiceOrders ?? [];
 
-  // get unique due dates and sort them
-  const uniqueDueDates = React.useMemo(() => {
-    const dates = serviceOrders
-      .map((so) => so.DateScheduleRangeEndOriginal)
-      .filter((date): date is string => Boolean(date))
-      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-
-    return [...new Set(dates)];
-  }, [serviceOrders]);
-
-  // track if initial date already set to avoid overriding user selection
-  const initialDateSet = React.useRef(false);
-
-  React.useEffect(() => {
-    if (uniqueDueDates.length > 0 && !initialDateSet.current) {
-      setSelectedDueDate(uniqueDueDates[0]); // Set to earliest date
-      initialDateSet.current = true;
-    }
-  }, [uniqueDueDates]);
-
-  // group stores
+  // Group stores
   const groupedByStore: Record<
     number,
     {
@@ -68,7 +45,6 @@ export function Template(props: templates.QtTerritoryViewer) {
   > = {};
   for (const so of serviceOrders) {
     const siteId = so.Address.SiteId;
-
     // if (groupedByStore[siteId] === undefined) {
     if (!(siteId in groupedByStore)) {
       groupedByStore[siteId] = { address: so.Address, jobs: [] };
@@ -76,61 +52,28 @@ export function Template(props: templates.QtTerritoryViewer) {
     groupedByStore[siteId].jobs.push(so);
   }
 
-  let totalWorkHours = 0;
-  Object.values(filteredStores).forEach(({ jobs }) => {
-    jobs.forEach((job) => {
-      totalWorkHours += job.EstimatedTime;
-    });
-  });
-
-  // filter stores
+  // Filter stores effect with debounce
   useEffect(() => {
     const timeoutVal = setTimeout(() => {
-      const filtered: typeof groupedByStore = {};
-
-      Object.entries(groupedByStore).forEach(([siteId, storeData]) => {
-        // filter by store name + address
-        const fullStoreName = `${storeData.address.City}, ${storeData.address.State} | ${storeData.address.StreetAddress} | ${storeData.address.StoreName}`;
-        const matchesStoreFilter = fullStoreName
-          .toLowerCase()
-          .includes(storeFilterValue.toLowerCase());
-
-        // filter by due date
-        const matchesDueDate =
-          selectedDueDate === ""
-            ? true // If no due date selected, show all
-            : storeData.jobs.some((job) => {
-                const jobDueDate = job.DateScheduleRangeEndOriginal;
-                if (!jobDueDate) return false;
-
-                return new Date(jobDueDate) <= new Date(selectedDueDate);
-              });
-
-        // only include if both filters match
-        if (matchesStoreFilter && matchesDueDate) {
-          filtered[Number(siteId)] = {
-            address: storeData.address,
-            jobs: storeData.jobs.filter((job) => {
-              // if a due date is selected, only include jobs on or before that date
-              if (selectedDueDate !== "" && job.DateScheduleRangeEndOriginal) {
-                return new Date(job.DateScheduleRangeEndOriginal) <= new Date(selectedDueDate);
-              }
-              return true;
-            }),
-          };
-        }
-      });
+      const filtered = Object.entries(groupedByStore).reduce(
+        (acc, [siteId, storeData]) => {
+          const fullStoreName = `${storeData.address.City}, ${storeData.address.State} | ${storeData.address.StreetAddress} | ${storeData.address.StoreName}`;
+          if (fullStoreName.toLowerCase().includes(storeFilterValue.toLowerCase())) {
+            acc[Number(siteId)] = storeData;
+          }
+          return acc;
+        },
+        {} as typeof groupedByStore
+      );
 
       setFilteredStores(filtered);
     }, 300);
 
     return () => clearTimeout(timeoutVal);
-  }, [storeFilterValue, groupedByStore, selectedDueDate]);
+  }, [storeFilterValue, groupedByStore]);
 
   useEffect(() => {
     setFilteredStores(groupedByStore);
-    // reset the initial date flag when rep changes
-    initialDateSet.current = false;
   }, [selectedRepDetailId]);
 
   if (props.rep_sync_datalist.length === 0) {
@@ -159,77 +102,32 @@ export function Template(props: templates.QtTerritoryViewer) {
 
         <div className="mb-4">
           <div className="mb-3">
-            <label className="form-label fw-semibold">Field Representative:</label>
-            <DropdownButton
+            <label htmlFor="rep-select" className="form-label fw-semibold">
+              Select Representative:
+            </label>
+            <select
               id="rep-select"
-              title={selectedRepData?.rep_detail.username ?? "Select Representative"}
-              variant="secondary"
-              className="w-100"
+              className="form-select"
+              value={selectedRepDetailId ?? undefined}
+              onChange={(e) => setSelectedRepDetailId(Number(e.target.value))}
             >
               {props.rep_sync_datalist.map((rep) => (
-                <Dropdown.Item
-                  key={rep.id}
-                  onClick={() => {
-                    setStoreFilterValue("");
-                    setSelectedRepDetailId(rep.id);
-                  }}
-                  active={selectedRepDetailId === rep.id}
-                >
+                <option key={rep.id} value={rep.id}>
                   {rep.rep_detail.username}
-                </Dropdown.Item>
+                </option>
               ))}
-            </DropdownButton>
+            </select>
           </div>
 
           <div>
             <strong>{Object.keys(filteredStores).length} stores shown</strong>
           </div>
-          <div>
-            <strong>Total Work Hours: </strong>
-            {totalWorkHours.toFixed(2)} hrs
-          </div>
         </div>
 
         <div className="mb-3">
           <button className="btn btn-primary" onClick={() => setShowMap((prev) => !prev)}>
-            <img src={`${djangoContext.STATIC_URL}public/geo-alt-fill.svg`} alt="Map" />
-            &nbsp;&nbsp;
             {showMap ? "Hide Map" : "Show Map"}
           </button>
-        </div>
-
-        <div className="mb-2">
-          <label className="form-label fw-semibold">Show Tickets due by:</label>
-          <DropdownButton
-            id="due-date-select"
-            title={
-              selectedDueDate === "" ? "All Dates" : new Date(selectedDueDate).toLocaleDateString()
-            }
-            variant="secondary"
-            className="w-100"
-          >
-            <Dropdown.Item
-              onClick={() => {
-                initialDateSet.current = true;
-                setSelectedDueDate("");
-              }}
-              active={selectedDueDate === ""}
-            >
-              All Dates
-            </Dropdown.Item>
-            {uniqueDueDates.map((date) => (
-              <Dropdown.Item
-                key={date}
-                onClick={() => {
-                  initialDateSet.current = true;
-                  setSelectedDueDate(date);
-                }}
-                active={selectedDueDate === date}
-              >
-                {new Date(date).toLocaleDateString()}
-              </Dropdown.Item>
-            ))}
-          </DropdownButton>
         </div>
 
         <div className="mb-3">
@@ -255,30 +153,14 @@ export function Template(props: templates.QtTerritoryViewer) {
           </div>
         </div>
 
-        {/* territory map */}
-        {selectedRepDetailId !== null && (
-          <Modal
-            show={showMap}
-            onHide={() => setShowMap(false)}
-            backdrop="static"
-            size="lg"
-            aria-labelledby="map-modal"
-            centered
-          >
-            <Modal.Header closeButton>
-              <Modal.Title id="map-modal">
-                Territory Map: {selectedRepData?.rep_detail.username ?? "Unknown Rep"}
-              </Modal.Title>
-            </Modal.Header>
-            <Modal.Body className="p-0" style={{ height: "70vh" }}>
-              <Suspense fallback={<div>Loading map...</div>}>
-                <TerritoryMap groupedByStore={filteredStores} />
-              </Suspense>
-            </Modal.Body>
-          </Modal>
+        {showMap && (
+          <div className="mb-4" style={{ height: "500px" }}>
+            <Suspense fallback={<div>Loading map...</div>}>
+              <TerritoryMap groupedByStore={filteredStores} />
+            </Suspense>
+          </div>
         )}
 
-        {/* store list */}
         <Accordion className="list-group list-group-flush">
           {Object.values(filteredStores).map(({ address, jobs }) => (
             <Accordion.Item
@@ -292,7 +174,7 @@ export function Template(props: templates.QtTerritoryViewer) {
                   <p className="mb-1 text-secondary">
                     {address.StreetAddress}, {address.City}, {address.State} {address.PostalCode}
                   </p>
-                  <small className="text-muted">{jobs.length} tickets</small>
+                  <small className="text-muted">{jobs.length} jobs</small>
                 </div>
               </Accordion.Header>
               <Accordion.Body>
@@ -301,7 +183,7 @@ export function Template(props: templates.QtTerritoryViewer) {
                     <li key={jobIndex} className="list-group-item list-group-item-info">
                       <strong>Description:</strong> {job.ServiceOrderDescription}
                       <br />
-                      <strong>Estimated Time:</strong> {job.EstimatedTime.toFixed(2)} hrs
+                      <strong>Estimated Time:</strong> {formatJobTime(job.EstimatedTime)}
                       <br />
                       <strong>Date Range:</strong>{" "}
                       {formatDateRange(
