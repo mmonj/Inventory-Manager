@@ -10,13 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.1/ref/settings/
 """
 
-import os
 from pathlib import Path
-from typing import TypeVar
+from typing import Type, TypeVar
 
 import cattrs
 import django_stubs_ext
-from scheduler.types import Broker, QueueConfiguration, SchedulerConfiguration
 
 # retrieve django settings that are included as environmental variables
 from .env_setup import *
@@ -58,8 +56,8 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "corsheaders",
     "django_cleanup.apps.CleanupConfig",
+    "django_rq",
     "reactivated",
-    "scheduler",
 ]
 
 MIDDLEWARE = [
@@ -223,52 +221,8 @@ LOGGING = {
     },
 }
 
-SCHEDULER_CONFIG = SchedulerConfiguration(
-    EXECUTIONS_IN_PAGE=20,
-    SCHEDULER_INTERVAL=10,
-    BROKER=Broker.REDIS,
-    CALLBACK_TIMEOUT=60,  # Callback timeout in seconds (success/failure/stopped)
-    # Default values, can be overriden per task/job
-    DEFAULT_SUCCESS_TTL=10 * 60,  # Time To Live (TTL) in seconds to keep successful job results
-    DEFAULT_FAILURE_TTL=365
-    * 24
-    * 60
-    * 60,  # Time To Live (TTL) in seconds to keep job failure information
-    DEFAULT_JOB_TTL=10 * 60,  # Time To Live (TTL) in seconds to keep job information
-    DEFAULT_JOB_TIMEOUT=5 * 60,  # timeout (seconds) for a job
-    # General configuration values
-    DEFAULT_WORKER_TTL=10
-    * 60,  # Time To Live (TTL) in seconds to keep worker information after last heartbeat
-    DEFAULT_MAINTENANCE_TASK_INTERVAL=10
-    * 60,  # The interval to run maintenance tasks in seconds. 10 minutes.
-    DEFAULT_JOB_MONITORING_INTERVAL=30,  # The interval to monitor jobs in seconds.
-    SCHEDULER_FALLBACK_PERIOD_SECS=120,  # Period (secs) to wait before requiring to reacquire locks
-)
 
-# REDIS_URL = "redis://{USERNAME}:{PASSWORD}@{HOST}:{PORT}/{DB}".format(
-#     USERNAME=os.environ["REDIS_USERNAME"],
-#     PASSWORD=os.environ["REDIS_PASSWORD"],
-#     HOST=os.environ["REDIS_HOST"],
-#     PORT=os.environ["REDIS_PORT"],
-#     DB=os.environ["REDIS_DB"],
-# )
-
-SCHEDULER_QUEUES: dict[str, QueueConfiguration] = {
-    "default": QueueConfiguration(
-        HOST=os.environ["REDIS_HOST"],
-        PORT=int(os.environ["REDIS_PORT"]),
-        USERNAME=os.environ["REDIS_USERNAME"],
-        PASSWORD=os.environ["REDIS_PASSWORD"],
-        DB=int(os.environ["REDIS_DB"]),
-        # CONNECTION_KWARGS={  # Eventual additional Broker connection arguments
-        #     "ssl_cert_reqs": "required",
-        #     "ssl": True,
-        # },
-    ),
-}
-
-
-def structure_generic(value: T, expected_type: type[T]) -> T:
+def structure_generic(value: T, expected_type: Type[T]) -> T:
     if not isinstance(value, expected_type):
         raise TypeError(f"Value of {value!r} has type {type(value)}. Expected {expected_type}.")
     return value

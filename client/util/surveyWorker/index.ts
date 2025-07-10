@@ -5,7 +5,7 @@ import {
   reverse,
 } from "@reactivated";
 
-import { differenceInHours, differenceInMinutes } from "date-fns";
+import { differenceInHours, differenceInMinutes } from "date-fns/esm";
 
 import { ApiPromise, ApiResponse, IHttpError, TNotFoundErrorList } from "@client/types";
 

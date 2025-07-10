@@ -6,7 +6,7 @@ import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { StoreManagerFieldset } from "@client/components/stockTracker/StoreManagerFieldset";
 
-export function Template(props: templates.StocktrackerStoreManagerNames) {
+export default function (props: templates.StocktrackerStoreManagerNames) {
   const [currentRepStores, setCurrentRepStores] = useState<
     FieldRepresentative_3Ba5E2A106["stores"]
   >([]);
@@ -30,8 +30,7 @@ export function Template(props: templates.StocktrackerStoreManagerNames) {
         <form
           id="manager-names-form"
           action={reverse("stock_tracker:get_manager_names")}
-          method="POST"
-        >
+          method="POST">
           <CSRFToken />
 
           <fieldset>
@@ -44,8 +43,7 @@ export function Template(props: templates.StocktrackerStoreManagerNames) {
               <select
                 value={fieldRepPk}
                 onChange={(event) => setFieldRepPk(() => parseInt(event.target.value))}
-                className="form-select"
-              >
+                className="form-select">
                 {props.field_reps.map((field_rep) => {
                   return (
                     <option key={field_rep.pk} value={field_rep.pk}>
@@ -68,8 +66,7 @@ export function Template(props: templates.StocktrackerStoreManagerNames) {
               Submit
               <div
                 className="spinner-border spinner-border-sm text-light visually-hidden"
-                role="status"
-              >
+                role="status">
                 <span className="visually-hidden">Loading...</span>
               </div>
             </button>

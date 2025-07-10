@@ -321,7 +321,7 @@ class Store(models.Model):
     @staticmethod
     def parse_us_address(raw_address: str) -> TResult[TParsedAddress, ValueError]:
         try:
-            import usaddress  # type: ignore [import-untyped]  # noqa: PLC0415
+            import usaddress  # type: ignore [import]
 
             tagged, _ = usaddress.tag(raw_address)
             street_items = [

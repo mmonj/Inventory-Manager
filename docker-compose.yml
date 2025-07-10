@@ -1,3 +1,4 @@
+version: "3"
 services:
   django_app:
     build:
@@ -18,12 +19,11 @@ services:
     user: "${UID}"
     ports:
       - 8001:8000
-    volumes: # order is important: ignored (unmounted) volumes are listed before the bind mount
-      - inv-mngr-node_modules:/app/node_modules
-      - inv-mngr-venv:/app/.venv
+    volumes:
+      - /app/node_modules
       - ./:/app
     env_file:
-      - .env.dev
+      - dev.env
     restart: unless-stopped
 
   # redis-overcommit-on-host
@@ -37,27 +37,45 @@ services:
   redis:
     image: redis
     container_name: redis-inventory-manager
-    command: bash -c "redis-server --port $$REDIS_PORT --requirepass $$REDIS_PASSWORD"
-    env_file:
-      - .env.dev
     restart: unless-stopped
     depends_on:
       - django_app
 
-  scheduler_worker_default:
+  rq_worker_default:
     image: inventory-manager-django-dev
-    container_name: inventory-manager-scheduler-worker-default
-    command: uv run python manage.py scheduler_worker
+    container_name: inventory-manager-rq-worker-default
+    command: poetry run python manage.py rqworker default
     user: "${UID}"
     volumes:
-      - inv-mngr-venv:/app/.venv
       - ./:/app
     env_file:
-      - .env.dev
+      - dev.env
     restart: unless-stopped
     depends_on:
       - django_app
 
-volumes:
-  inv-mngr-node_modules:
-  inv-mngr-venv:
+  rq_worker_onehub_synccer:
+    image: inventory-manager-django-dev
+    container_name: inventory-manager-rq-worker-onehub-synccer
+    command: poetry run python manage.py rqworker onehub_synccer
+    user: "${UID}"
+    volumes:
+      - ./:/app
+    env_file:
+      - dev.env
+    restart: unless-stopped
+    depends_on:
+      - django_app
+
+  rq_scheduler:
+    image: inventory-manager-django-dev
+    container_name: inventory-manager-rq-scheduler
+    command: poetry run rqscheduler -H redis -p 6379 --db 0
+    user: "${UID}"
+    volumes:
+      - ./:/app
+    env_file:
+      - dev.env
+    restart: unless-stopped
+    depends_on:
+      - django_app

@@ -14,7 +14,7 @@ import { ProductLocatorModal } from "@client/components/productLocator/ProductLo
 import { useFetch } from "@client/hooks/useFetch";
 import { getProductLocation } from "@client/util/productLocator";
 
-export function Template(props: templates.ProductLocatorIndex) {
+export default (props: templates.ProductLocatorIndex) => {
   const [store, setStore] = useState<StoreD7Ddec6B39 | null>(null);
   const [scannedUpc, setScannedUpc] = useState("");
   const [modalShow, setModalShow] = useState(false);
@@ -160,4 +160,4 @@ export function Template(props: templates.ProductLocatorIndex) {
       </section>
     </Layout>
   );
-}
+};

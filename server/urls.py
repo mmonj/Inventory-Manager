@@ -21,12 +21,13 @@ from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("django-rq/", include("django_rq.urls")),
     path("", include("homepage.urls")),
     path("api/", include("api.urls")),
     path("logger/", include("stock_tracker.urls")),
     path("product_locator/", include("product_locator.urls")),
     path("survey_worker/", include("survey_worker.urls")),
-    path("scheduler/", include("scheduler.urls")),
+    path("django-rq/", include("django_rq.urls")),
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
 ]
 

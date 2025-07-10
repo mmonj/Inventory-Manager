@@ -1,8 +1,9 @@
-import React, { type JSX } from "react";
+import React from "react";
 
 import { Context } from "@reactivated";
+import { Helmet } from "react-helmet-async";
 
-import { ContribMessages } from "@client/components/ContribMessages";
+import { ContribMessages } from "./ContribMessages";
 
 interface IExternalStyles {
   src: string;
@@ -23,8 +24,8 @@ export const Layout = ({ extraStyles = [], excludeBsBodyOverrides = false, ...pr
   const djangoContext = React.useContext(Context);
 
   return (
-    <html>
-      <head>
+    <>
+      <Helmet>
         <meta charSet="utf-8" />
         <title>{props.title}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -89,14 +90,12 @@ export const Layout = ({ extraStyles = [], excludeBsBodyOverrides = false, ...pr
         ))}
 
         <script defer crossOrigin="anonymous" src={`${djangoContext.STATIC_URL}dist/index.js`} />
-      </head>
-      <body>
-        <header>{props.navbar}</header>
-        <main className={props.className}>
-          <ContribMessages />
-          {props.children}
-        </main>
-      </body>
-    </html>
+      </Helmet>
+      <header>{props.navbar}</header>
+      <main className={props.className}>
+        <ContribMessages />
+        {props.children}
+      </main>
+    </>
   );
 };

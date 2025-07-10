@@ -16,7 +16,7 @@ import { formatDateRange, formatJobTime } from "@client/util/qtSurveyWorker/sche
 
 const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMap"));
 
-export function Template(props: templates.QtTerritoryViewer) {
+export default function (props: templates.QtTerritoryViewer) {
   const [selectedRepDetailId, setSelectedRepDetailId] = useState<number | null>(
     props.rep_sync_datalist[0]?.id ?? null
   );
@@ -45,8 +45,7 @@ export function Template(props: templates.QtTerritoryViewer) {
   > = {};
   for (const so of serviceOrders) {
     const siteId = so.Address.SiteId;
-    // if (groupedByStore[siteId] === undefined) {
-    if (!(siteId in groupedByStore)) {
+    if (groupedByStore[siteId] === undefined) {
       groupedByStore[siteId] = { address: so.Address, jobs: [] };
     }
     groupedByStore[siteId].jobs.push(so);
@@ -55,16 +54,13 @@ export function Template(props: templates.QtTerritoryViewer) {
   // Filter stores effect with debounce
   useEffect(() => {
     const timeoutVal = setTimeout(() => {
-      const filtered = Object.entries(groupedByStore).reduce(
-        (acc, [siteId, storeData]) => {
-          const fullStoreName = `${storeData.address.City}, ${storeData.address.State} | ${storeData.address.StreetAddress} | ${storeData.address.StoreName}`;
-          if (fullStoreName.toLowerCase().includes(storeFilterValue.toLowerCase())) {
-            acc[Number(siteId)] = storeData;
-          }
-          return acc;
-        },
-        {} as typeof groupedByStore
-      );
+      const filtered = Object.entries(groupedByStore).reduce((acc, [siteId, storeData]) => {
+        const fullStoreName = `${storeData.address.City}, ${storeData.address.State} | ${storeData.address.StreetAddress} | ${storeData.address.StoreName}`;
+        if (fullStoreName.toLowerCase().includes(storeFilterValue.toLowerCase())) {
+          acc[Number(siteId)] = storeData;
+        }
+        return acc;
+      }, {} as typeof groupedByStore);
 
       setFilteredStores(filtered);
     }, 300);

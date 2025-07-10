@@ -4,7 +4,7 @@ import { Context, templates } from "@reactivated";
 
 import { faTimes } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { format, parse } from "date-fns";
+import { format, parse } from "date-fns/esm";
 
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
@@ -24,7 +24,7 @@ interface IFilterSettings {
   isSet: boolean;
 }
 
-export function Template(props: templates.SurveyWorkerTerritoryViewer) {
+export default function (props: templates.SurveyWorkerTerritoryViewer) {
   const [selectedRepIdx, setSelectedRepIdx] = React.useState<number>(0);
   const [isHideZeroTickets, setIsHideZeroTickets] = React.useState(false);
   const [isFiltersModalShow, setIsFiltersModalShow] = React.useState(false);

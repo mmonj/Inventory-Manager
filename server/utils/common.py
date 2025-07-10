@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import Any, Optional, Type, TypeVar  # noqa: UP035
 
 import cattrs
 import requests
@@ -20,12 +20,12 @@ TModel = TypeVar("TModel", bound=models.Model)
 TIsNewRecord = bool
 
 
-def cast_type(data: Any, _interface_class: type[T]) -> T:
+def cast_type(data: Any, _interface_class: Type[T]) -> T:
     temp: T = data
     return temp
 
 
-def validate_structure(data: Any, interface_class: type[T], is_api: bool = True) -> T:
+def validate_structure(data: Any, interface_class: Type[T], is_api: bool = True) -> T:
     c = cattrs.Converter(forbid_extra_keys=True)
     try:
         obj = c.structure(data, interface_class)
@@ -43,7 +43,7 @@ def validate_structure(data: Any, interface_class: type[T], is_api: bool = True)
     return obj
 
 
-def validate_only_struct_keys(data: Any, interface_class: type[T]) -> T:
+def validate_only_struct_keys(data: Any, interface_class: Type[T]) -> T:
     missing_keys: list[str] = []
     extra_keys: list[str] = []
 
@@ -66,7 +66,7 @@ def validate_only_struct_keys(data: Any, interface_class: type[T]) -> T:
     return data  # type: ignore [no-any-return]
 
 
-def validation_hook_generic(value: T, expected_type: type[T]) -> T:
+def validation_hook_generic(value: T, expected_type: Type[T]) -> T:
     if not isinstance(value, expected_type):
         raise TypeError(f"Value of {value!r} has type {type(value)}. Expected {expected_type}.")
     return value
@@ -110,11 +110,11 @@ def session_dict_to_session_object(data: TSessionData) -> Session:
 
 
 def bulk_create_and_get(
-    model_class: type[TModel],
+    model_class: Type[TModel],
     items: list[TModel],
     *,
     fields: list[str],
-    batch_size: int | None = None,
+    batch_size: Optional[int] = None,
 ) -> models.QuerySet[TModel]:
     """
     Bulk creates items in the database with ignore_conflicts=True and
@@ -129,15 +129,15 @@ def bulk_create_and_get(
     Returns:
         QuerySet[models.Model]: The successfully inserted records with primary keys.
     """
-    model_class.objects.bulk_create(items, batch_size=batch_size, ignore_conflicts=True)  # type: ignore [attr-defined]
+    model_class.objects.bulk_create(items, batch_size=batch_size, ignore_conflicts=True)
 
     filter_criteria = _get_filter_criteria(items, fields)
 
-    return model_class.objects.filter(**filter_criteria)  # type: ignore [attr-defined, no-any-return]
+    return model_class.objects.filter(**filter_criteria)
 
 
 def atomic_get_or_create(instance: TModel, *, fields: list[str]) -> tuple[TModel, TIsNewRecord]:
-    model_class: type[TModel] = type(instance)
+    model_class: Type[TModel] = type(instance)
 
     try:
         with transaction.atomic():
@@ -145,7 +145,7 @@ def atomic_get_or_create(instance: TModel, *, fields: list[str]) -> tuple[TModel
             return instance, True
     except IntegrityError:
         filter_criteria = _get_filter_criteria([instance], fields)
-        return model_class.objects.get(**filter_criteria), False  # type: ignore [attr-defined]
+        return model_class.objects.get(**filter_criteria), False
 
 
 def _get_filter_criteria(items: list[T], unique_fieldnames: list[str]) -> dict[str, Any]:

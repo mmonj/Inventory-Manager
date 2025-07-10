@@ -3,7 +3,7 @@ import React from "react";
 import { Context, interfaces, reverse, templates } from "@reactivated";
 import { JsonView, darkStyles } from "react-json-view-lite";
 
-import { format } from "date-fns";
+import { format } from "date-fns/esm";
 import Form from "react-bootstrap/Form";
 
 import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
@@ -13,7 +13,7 @@ import { buildUrlFromFormData } from "@client/util/commonUtil";
 import { Layout } from "../components/Layout";
 import { useFetch } from "../hooks/useFetch";
 
-export function Template(props: templates.QtScheduleView) {
+export default function Template(props: templates.QtScheduleView) {
   const context = React.useContext(Context);
   const fetchRepSchedule = useFetch<interfaces.QtViewRepDetail>();
 

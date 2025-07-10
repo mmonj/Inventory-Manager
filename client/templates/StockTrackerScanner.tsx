@@ -25,7 +25,7 @@ export interface IFieldRep {
   stores: IStore[];
 }
 
-export function Template(props: templates.StockTrackerScanner) {
+export default function (props: templates.StockTrackerScanner) {
   const [productAdditions, setProductAdditions] = useState<BasicProductAddition[]>([]);
   const [store, setStore] = useState<IStore | null>(null);
   const { isError, isLoading, errorMessages, fetchData } = useFetch<BasicProductAddition>();
