@@ -57,7 +57,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "django_cleanup.apps.CleanupConfig",
     "django_rq",
-    "reactivated",
+    "reactivated",  # goes last
 ]
 
 MIDDLEWARE = [

@@ -1,11 +1,10 @@
-version: "3"
 services:
   django_app:
     build:
       context: .
       args:
-        ENV_TYPE: prod
-        UID: 1000
+        DEV: "${DEV}"
+        UID: "${UID}"
     image: mmonj.inventory_manager_django
     container_name: inventory_manager
     command: >
@@ -19,7 +18,7 @@ services:
       - /app/node_modules
       - ./:/app
     env_file:
-      - prod.env
+      - .env.prod
     restart: always
     networks:
       - caddy_net
@@ -49,7 +48,7 @@ services:
     volumes:
       - ./:/app
     env_file:
-      - prod.env
+      - .env.prod
     restart: unless-stopped
     networks:
       - caddy_net
@@ -65,7 +64,7 @@ services:
     volumes:
       - ./:/app
     env_file:
-      - prod.env
+      - .env.prod
     restart: unless-stopped
     networks:
       - caddy_net
@@ -81,7 +80,7 @@ services:
     volumes:
       - ./:/app
     env_file:
-      - prod.env
+      - .env.prod
     restart: unless-stopped
     networks:
       - caddy_net

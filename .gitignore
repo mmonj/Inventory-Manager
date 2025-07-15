@@ -2,6 +2,8 @@ __pycache__
 *.sqlite3
 *.sqlite3-journal
 *.env
+.env.*
+!.env.example
 log_files/*
 /staticfiles/**
 /media/**

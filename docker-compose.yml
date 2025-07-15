@@ -1,11 +1,10 @@
-version: "3"
 services:
   django_app:
     build:
       context: .
       args:
-        ENV_TYPE: dev
-        UID: 1000
+        DEV: "${DEV}"
+        UID: "${UID}"
     image: inventory-manager-django-dev
     container_name: inventory-manager-dev
     command: >
@@ -23,7 +22,7 @@ services:
       - /app/node_modules
       - ./:/app
     env_file:
-      - dev.env
+      - .env.dev
     restart: unless-stopped
 
   # redis-overcommit-on-host
@@ -49,7 +48,7 @@ services:
     volumes:
       - ./:/app
     env_file:
-      - dev.env
+      - .env.dev
     restart: unless-stopped
     depends_on:
       - django_app
@@ -62,7 +61,7 @@ services:
     volumes:
       - ./:/app
     env_file:
-      - dev.env
+      - .env.dev
     restart: unless-stopped
     depends_on:
       - django_app
@@ -75,7 +74,7 @@ services:
     volumes:
       - ./:/app
     env_file:
-      - dev.env
+      - .env.dev
     restart: unless-stopped
     depends_on:
       - django_app
