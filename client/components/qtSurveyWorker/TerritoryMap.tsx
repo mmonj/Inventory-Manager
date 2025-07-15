@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useContext, useState } from "react";
 
 import {
+  Context,
   SurveyWorkerQtraxWebsiteTypedefsAddress,
   SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
 } from "@reactivated";
@@ -25,6 +26,89 @@ function getCustomIcon(color: keyof typeof iconUrls) {
   });
 }
 
+function MapPopupContent({
+  group,
+}: {
+  group: {
+    address: SurveyWorkerQtraxWebsiteTypedefsAddress;
+    jobs: SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[];
+  };
+}) {
+  const [clipboardMessage, setClipboardMessage] = useState<string | null>(null);
+  const djangoContext = useContext(Context);
+
+  function handleCopyAddress() {
+    setClipboardMessage("Address Copied!");
+    setTimeout(() => {
+      setClipboardMessage(null);
+    }, 2000);
+
+    void navigator.clipboard.writeText(
+      `${group.address.City}, ${group.address.State} | ${group.address.StreetAddress} | ${group.address.StoreName}`
+    );
+  }
+
+  return (
+    <div>
+      <div className="fw-bold h6">{group.address.StoreName}</div>
+      <div className="d-flex justify-content-between">
+        <div>
+          <span className="d-block" style={{ fontSize: "1rem" }}>
+            {group.address.StreetAddress}
+          </span>
+          <small className="d-block" style={{ fontSize: "0.9rem" }}>
+            {group.address.City}, {group.address.State} {group.address.PostalCode}
+          </small>
+        </div>
+        <div
+          className="text-center m-2"
+          style={{ height: "2.2rem", width: "2.2rem" }}
+          onClick={handleCopyAddress}
+        >
+          <img
+            src={djangoContext.STATIC_URL + "public/clipboard.svg"}
+            alt="Copy to clipboard"
+            style={{
+              maxHeight: "100%",
+              height: "1.3rem",
+              cursor: "pointer",
+            }}
+          />
+          {clipboardMessage !== null && <span className="text-success">{clipboardMessage}</span>}
+        </div>
+      </div>
+      <hr />
+
+      <div className="fw-bold mb-1">
+        Total Time: {group.jobs.reduce((acc, job) => acc + job.EstimatedTime, 0).toFixed(2)} hrs
+      </div>
+
+      <ul className="list-group" style={{ listStyle: "none" }}>
+        {group.jobs.map((job, jIdx) => (
+          <li key={jIdx}>
+            {job.ServiceOrderDescription} <span className="fw-bold">({job.EstimatedTime} hrs)</span>
+          </li>
+        ))}
+      </ul>
+
+      <a
+        href={
+          "https://www.google.com/maps/place/" +
+          encodeURIComponent(
+            `${group.address.StreetAddress} ${group.address.City}, ${group.address.State} ${group.address.PostalCode}`
+          )
+        }
+        target="_blank"
+        rel="noreferrer"
+        className="badge rounded-pill text-bg-primary d-block mt-3"
+        style={{ fontSize: "0.9rem" }}
+      >
+        Open in Google Maps
+      </a>
+    </div>
+  );
+}
+
 interface Props {
   groupedByStore: Record<
     number,
@@ -41,6 +125,7 @@ export default function TerritoryMap({ groupedByStore }: Props) {
   );
 
   const defaultCenter: LatLngLiteral =
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     validEntries[0] !== undefined
       ? {
           lat: validEntries[0][1].address.Latitude,
@@ -61,24 +146,7 @@ export default function TerritoryMap({ groupedByStore }: Props) {
           icon={getCustomIcon("green")}
         >
           <Popup>
-            <div>
-              <strong>{group.address.StoreName}</strong>
-              <br />
-              <div>
-                {group.address.StreetAddress}, {group.address.City}, {group.address.State}{" "}
-                {group.address.PostalCode}
-              </div>
-              <div>
-                {group.address.Latitude}, {group.address.Longitude}
-              </div>
-              <ul className="mt-2 mb-0 ps-3">
-                {group.jobs.map((job, jIdx) => (
-                  <li key={jIdx}>
-                    {job.ServiceOrderDescription} ({job.EstimatedTime} min)
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <MapPopupContent group={group} />
           </Popup>
         </Marker>
       ))}
