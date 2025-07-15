@@ -10,7 +10,7 @@ import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { Select, Textarea } from "@client/components/widgets";
 
-export default (props: templates.ProductLocatorAddNewProducts) => {
+export default function Template(props: templates.ProductLocatorAddNewProducts) {
   const [selectValue, setSelectValue] = useState(props.form.fields.planogram_pk.widget.value);
   const [textValue, setTextValue] = useState(props.form.fields.planogram_text_dump.widget.value);
   const form = useForm({ form: props.form });
@@ -51,7 +51,8 @@ export default (props: templates.ProductLocatorAddNewProducts) => {
         <form
           id="store-plano-selector-form"
           action={reverse("product_locator:add_new_products")}
-          method="POST">
+          method="POST"
+        >
           <CSRFToken />
           <fieldset>
             <legend className="mb-3">Planogram Data</legend>
@@ -96,4 +97,4 @@ export default (props: templates.ProductLocatorAddNewProducts) => {
       </section>
     </Layout>
   );
-};
+}

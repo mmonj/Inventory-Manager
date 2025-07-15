@@ -24,7 +24,7 @@ interface IFilterSettings {
   isSet: boolean;
 }
 
-export default function (props: templates.SurveyWorkerTerritoryViewer) {
+export default function Template (props: templates.SurveyWorkerTerritoryViewer) {
   const [selectedRepIdx, setSelectedRepIdx] = React.useState<number>(0);
   const [isHideZeroTickets, setIsHideZeroTickets] = React.useState(false);
   const [isFiltersModalShow, setIsFiltersModalShow] = React.useState(false);
@@ -38,6 +38,24 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
   const [isCmklaunchUrlsShown, setIsCmklaunchUrlsShown] = React.useState(false);
 
   const djangoContext = React.useContext(Context);
+
+  React.useEffect(() => {
+    const timeoutVal = setTimeout(() => {
+      const filteredStores = props.rep_stores[selectedRepIdx].webhub_stores.filter((store) => {
+        const fullStoreName = `${store.City}, ${store.State} | ${store.Address} | ${store.Name}`;
+        return fullStoreName.toLowerCase().includes(storeFilterValue.toLowerCase());
+      });
+      setShownWebhubStores(() => filteredStores);
+    }, 300);
+
+    return () => {
+      clearTimeout(timeoutVal);
+    };
+  }, [storeFilterValue]);
+
+  React.useEffect(() => {
+    setShownWebhubStores(() => props.rep_stores[selectedRepIdx].webhub_stores);
+  }, []);
 
   if (props.rep_stores.length === 0) {
     return (
@@ -90,24 +108,6 @@ export default function (props: templates.SurveyWorkerTerritoryViewer) {
   function toggleShowOriginalCmklaunchUrls() {
     setIsCmklaunchUrlsShown((prev) => !prev);
   }
-
-  React.useEffect(() => {
-    const timeoutVal = setTimeout(() => {
-      const filteredStores = props.rep_stores[selectedRepIdx].webhub_stores.filter((store) => {
-        const fullStoreName = `${store.City}, ${store.State} | ${store.Address} | ${store.Name}`;
-        return fullStoreName.toLowerCase().includes(storeFilterValue.toLowerCase());
-      });
-      setShownWebhubStores(() => filteredStores);
-    }, 300);
-
-    return () => {
-      clearTimeout(timeoutVal);
-    };
-  }, [storeFilterValue]);
-
-  React.useEffect(() => {
-    setShownWebhubStores(() => props.rep_stores[selectedRepIdx].webhub_stores);
-  }, []);
 
   return (
     <Layout

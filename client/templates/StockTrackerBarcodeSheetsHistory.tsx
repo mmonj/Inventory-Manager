@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 
-export default function (props: templates.StockTrackerBarcodeSheetsHistory) {
+export default function Template(props: templates.StockTrackerBarcodeSheetsHistory) {
   let currentFieldRepName: string | null = null;
   props.field_representatives.forEach((field_rep) => {
     if (field_rep.pk === props.current_field_rep_id) {

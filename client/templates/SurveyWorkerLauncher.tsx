@@ -19,7 +19,7 @@ interface IStoreGuid extends SurveyWorkerOnehubTypedefsInterfacesICmklaunchStore
   pk: number;
 }
 
-export default function (props: templates.SurveyWorkerLauncher) {
+export default function Template(props: templates.SurveyWorkerLauncher) {
   const [selectedStore, setSelectedStore] = React.useState<IStoreGuid | null>(null);
   const [isCmklaunchUrlsShown, setIsCmklaunchUrlsShown] = React.useState(false);
   const djangoContext = React.useContext(Context);

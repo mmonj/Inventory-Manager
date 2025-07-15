@@ -9,6 +9,8 @@ import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 
 import L, { LatLngLiteral } from "leaflet";
 
+import { getFormattedEstimatedTime } from "@client/util/commonUtil";
+
 const iconUrls = {
   green:
     "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
@@ -48,6 +50,11 @@ function MapPopupContent({
     );
   }
 
+  let totalHours = 0;
+  for (const job of group.jobs) {
+    totalHours += job.EstimatedTime;
+  }
+
   return (
     <div>
       <div className="fw-bold h6">{group.address.StoreName}</div>
@@ -79,14 +86,13 @@ function MapPopupContent({
       </div>
       <hr />
 
-      <div className="fw-bold mb-1">
-        Total Time: {group.jobs.reduce((acc, job) => acc + job.EstimatedTime, 0).toFixed(2)} hrs
-      </div>
+      <div className="fw-bold mb-1">Total Time: {getFormattedEstimatedTime(totalHours)}</div>
 
       <ul className="list-group" style={{ listStyle: "none" }}>
         {group.jobs.map((job, jIdx) => (
           <li key={jIdx}>
-            {job.ServiceOrderDescription} <span className="fw-bold">({job.EstimatedTime} hrs)</span>
+            {job.ServiceOrderDescription}{" "}
+            <span className="fw-bold">({getFormattedEstimatedTime(job.EstimatedTime)})</span>
           </li>
         ))}
       </ul>

@@ -6,14 +6,14 @@ import {
   SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
   templates,
 } from "@reactivated";
-import { Accordion, Dropdown, DropdownButton, Modal } from "react-bootstrap";
+import { Dropdown, DropdownButton, Modal } from "react-bootstrap";
 
 import { faTimes } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { Layout } from "@client/components/Layout";
+import { StoreList } from "@client/components/qtSurveyWorker/StoreList";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
-import { formatDateRange } from "@client/util/qtSurveyWorker/scheduleUtils";
 
 const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMap"));
 
@@ -158,7 +158,7 @@ export default function Template(props: templates.QtTerritoryViewer) {
       ]}
     >
       <div className="container mt-4">
-        <h2 className="mb-4">Survey Worker Territory Viewer</h2>
+        <h2 className="mb-4">Territory Viewer</h2>
 
         <div className="mb-4">
           <div className="mb-3">
@@ -186,6 +186,12 @@ export default function Template(props: templates.QtTerritoryViewer) {
 
           <div>
             <strong>{Object.keys(filteredStores).length} stores shown</strong>
+            <div className="text-secondary">
+              Last updated:{" "}
+              {selectedRepData
+                ? new Date(selectedRepData.datetime_modified).toLocaleString()
+                : "N/A"}
+            </div>
           </div>
           <div>
             <strong>Total Work Hours: </strong>
@@ -282,42 +288,7 @@ export default function Template(props: templates.QtTerritoryViewer) {
         )}
 
         {/* store list */}
-        <Accordion className="list-group list-group-flush">
-          {Object.values(filteredStores).map(({ address, jobs }) => (
-            <Accordion.Item
-              key={address.SiteId}
-              eventKey={address.SiteId.toString()}
-              className="list-group-item"
-            >
-              <Accordion.Header>
-                <div>
-                  <h5 className="mb-1">{address.StoreName || "(Unnamed Store)"}</h5>
-                  <p className="mb-1 text-secondary">
-                    {address.StreetAddress}, {address.City}, {address.State} {address.PostalCode}
-                  </p>
-                  <small className="text-muted">{jobs.length} tickets</small>
-                </div>
-              </Accordion.Header>
-              <Accordion.Body>
-                <ul className="list-group list-group-flush">
-                  {jobs.map((job, jobIndex) => (
-                    <li key={jobIndex} className="list-group-item">
-                      <strong>Description:</strong> {job.ServiceOrderDescription}
-                      <br />
-                      <strong>Estimated Time:</strong> {job.EstimatedTime.toFixed(2)} hrs
-                      <br />
-                      <strong>Date Range:</strong>{" "}
-                      {formatDateRange(
-                        job.DateScheduleRangeStartOriginal,
-                        job.DateScheduleRangeEndOriginal
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </Accordion.Body>
-            </Accordion.Item>
-          ))}
-        </Accordion>
+        <StoreList groupedByStore={filteredStores} />
       </div>
     </Layout>
   );

@@ -11,7 +11,7 @@ import { RepPicker } from "@client/components/surveyWorker/WebHub/RepPicker";
 import { HubModalController, defaultModalState } from "@client/util/surveyWorker/context";
 import { THubModalState } from "@client/util/surveyWorker/types";
 
-export default function (props: templates.SurveyWorkerWebHub) {
+export default function Template(props: templates.SurveyWorkerWebHub) {
   const [isRender, setIsRender] = React.useState(false);
   const [modalStatus, setModalStatus] = React.useState<THubModalState>(defaultModalState);
 

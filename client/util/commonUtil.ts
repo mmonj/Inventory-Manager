@@ -74,3 +74,21 @@ export function buildUrlFromFormData(basePath: string, formData: FormData) {
   url.search = new URLSearchParams([...formData.entries()] as [string, string][]).toString();
   return url.toString();
 }
+
+/**
+ * Formats estimated time in hours to a human-readable string.
+ * If less than 1 hour, returns minutes; otherwise, returns hours and minutes.
+ */
+export function getFormattedEstimatedTime(estimatedtimeHours: number): string {
+  if (estimatedtimeHours < 1) {
+    return `${Math.floor(estimatedtimeHours * 60)} min`;
+  } else {
+    const hours = Math.floor(estimatedtimeHours);
+    const minutes = Math.round((estimatedtimeHours - hours) * 60);
+    if (minutes <= 2) {
+      return `${hours} hr`;
+    }
+
+    return `${hours} hr ${minutes} min`;
+  }
+}
