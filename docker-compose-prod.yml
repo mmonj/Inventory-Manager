@@ -5,8 +5,8 @@ services:
       args:
         DEV: "${DEV}"
         UID: "${UID}"
-    image: mmonj.inventory_manager_django
-    container_name: inventory_manager
+    image: mmonj.inventory-manager-django-prod
+    container_name: inventory-manager-prod
     command: >
       poetry run bash -c "python manage.py migrate
       && python manage.py generate_client_assets
@@ -26,6 +26,7 @@ services:
   # redis-overcommit-on-host
   redis-overcommit:
     build: https://github.com/bkuhl/redis-overcommit-on-host.git
+    container_name: redis-overcommit-prod
     restart: "no"
     privileged: true
     volumes:
@@ -33,7 +34,7 @@ services:
 
   redis:
     image: redis
-    container_name: redis-inventory-manager
+    container_name: redis-inventory-manager-prod
     restart: unless-stopped
     networks:
       - caddy_net
@@ -41,8 +42,8 @@ services:
       - django_app
 
   rq_worker_default:
-    image: mmonj.inventory_manager_django
-    container_name: inventory-manager-rq-worker-default
+    image: mmonj.inventory-manager-django-prod
+    container_name: inventory-manager-rq-worker-default-prod
     command: poetry run python manage.py rqworker default
     user: "${UID}"
     volumes:
@@ -57,8 +58,8 @@ services:
       - redis
 
   rq_worker_onehub_synccer:
-    image: mmonj.inventory_manager_django
-    container_name: inventory-manager-rq-worker-onehub-synccer
+    image: mmonj.inventory-manager-django-prod
+    container_name: inventory-manager-rq-worker-onehub-synccer-prod
     command: poetry run python manage.py rqworker onehub_synccer
     user: "${UID}"
     volumes:
@@ -73,8 +74,8 @@ services:
       - redis
 
   rq_scheduler:
-    image: mmonj.inventory_manager_django
-    container_name: inventory-manager-rq-scheduler
+    image: mmonj.inventory-manager-django-prod
+    container_name: inventory-manager-rq-scheduler-prod
     command: poetry run rqscheduler -H redis -p 6379 --db 0
     user: "${UID}"
     volumes:

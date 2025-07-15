@@ -5,7 +5,7 @@ services:
       args:
         DEV: "${DEV}"
         UID: "${UID}"
-    image: inventory-manager-django-dev
+    image: inventory-manager-dev
     container_name: inventory-manager-dev
     command: >
       bash -c "
@@ -28,6 +28,7 @@ services:
   # redis-overcommit-on-host
   redis-overcommit:
     build: https://github.com/bkuhl/redis-overcommit-on-host.git
+    container_name: redis-overcommit-dev
     restart: "no"
     privileged: true
     volumes:
@@ -35,14 +36,14 @@ services:
 
   redis:
     image: redis
-    container_name: redis-inventory-manager
+    container_name: redis-inventory-manager-dev
     restart: unless-stopped
     depends_on:
       - django_app
 
   rq_worker_default:
     image: inventory-manager-django-dev
-    container_name: inventory-manager-rq-worker-default
+    container_name: inventory-manager-rq-worker-default-dev
     command: poetry run python manage.py rqworker default
     user: "${UID}"
     volumes:
@@ -55,7 +56,7 @@ services:
 
   rq_worker_onehub_synccer:
     image: inventory-manager-django-dev
-    container_name: inventory-manager-rq-worker-onehub-synccer
+    container_name: inventory-manager-rq-worker-onehub-synccer-dev
     command: poetry run python manage.py rqworker onehub_synccer
     user: "${UID}"
     volumes:
@@ -68,7 +69,7 @@ services:
 
   rq_scheduler:
     image: inventory-manager-django-dev
-    container_name: inventory-manager-rq-scheduler
+    container_name: inventory-manager-rq-scheduler-dev
     command: poetry run rqscheduler -H redis -p 6379 --db 0
     user: "${UID}"
     volumes:
