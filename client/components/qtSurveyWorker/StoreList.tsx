@@ -46,7 +46,7 @@ export function StoreList({ groupedByStore }: Props) {
             <Accordion.Body className="p-0">
               <ul className="list-group list-group-flush alert alert-info rounded-1 p-3 position-relative">
                 <a
-                  href={`https://www.google.com/maps/place/${address.MapLink}`}
+                  href={`https://www.google.com/maps/search/?api=1&query=${address.MapLink}`}
                   target="_blank"
                   rel="noreferrer"
                   className="position-absolute top-0 end-0 mt-2 me-2 text-primary"

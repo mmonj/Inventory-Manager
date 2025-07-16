@@ -88,7 +88,7 @@ function MapPopupContent({
 
       <div className="fw-bold mb-1">Total Time: {getFormattedEstimatedTime(totalHours)}</div>
 
-      <ul className="list-group" style={{ listStyle: "none" }}>
+      <ul className="list-group list-unstyled">
         {group.jobs.map((job, jIdx) => (
           <li key={jIdx}>
             {job.ServiceOrderDescription}{" "}
@@ -98,12 +98,7 @@ function MapPopupContent({
       </ul>
 
       <a
-        href={
-          "https://www.google.com/maps/place/" +
-          encodeURIComponent(
-            `${group.address.StreetAddress} ${group.address.City}, ${group.address.State} ${group.address.PostalCode}`
-          )
-        }
+        href={`https://www.google.com/maps/search/?api=1&query=${group.address.MapLink}`}
         target="_blank"
         rel="noreferrer"
         className="badge rounded-pill text-bg-primary d-block mt-3"

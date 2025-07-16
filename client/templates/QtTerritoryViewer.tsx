@@ -275,8 +275,8 @@ export default function Template(props: templates.QtTerritoryViewer) {
             centered
           >
             <Modal.Header closeButton>
-              <Modal.Title id="map-modal">
-                Territory Map: {selectedRepData?.rep_detail.username ?? "Unknown Rep"}
+              <Modal.Title id="map-modal" className="w-75 text-truncate">
+                Map: {selectedRepData?.rep_detail.username ?? "Unknown Rep"}
               </Modal.Title>
             </Modal.Header>
             <Modal.Body className="p-0" style={{ height: "70vh" }}>
