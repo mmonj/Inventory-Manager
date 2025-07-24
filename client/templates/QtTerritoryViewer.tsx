@@ -136,6 +136,18 @@ export default function Template(props: templates.QtTerritoryViewer) {
     initialDateSet.current = false;
   }, [selectedRepDetailId]);
 
+  // load last selected representative ID on mount
+  useEffect(() => {
+    const lastSelectedRepId = localStorage.getItem("lastSelectedRepId");
+    if (lastSelectedRepId !== null && lastSelectedRepId !== "") {
+      const storedId = parseInt(lastSelectedRepId);
+
+      if (!isNaN(storedId) && props.rep_sync_datalist.some((rep) => rep.id === storedId)) {
+        setSelectedRepDetailId(storedId);
+      }
+    }
+  }, []);
+
   if (props.rep_sync_datalist.length === 0) {
     return (
       <Layout title="Territory Viewer" navbar={<NavigationBar />}>
@@ -149,6 +161,8 @@ export default function Template(props: templates.QtTerritoryViewer) {
   function handleRepChange(repId: number) {
     setStoreFilterValue("");
     setSelectedRepDetailId(repId);
+
+    localStorage.setItem("lastSelectedRepId", repId.toString());
   }
 
   return (
