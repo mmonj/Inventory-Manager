@@ -146,6 +146,11 @@ export default function Template(props: templates.QtTerritoryViewer) {
     );
   }
 
+  function handleRepChange(repId: number) {
+    setStoreFilterValue("");
+    setSelectedRepDetailId(repId);
+  }
+
   return (
     <Layout
       navbar={<NavigationBar />}
@@ -172,10 +177,7 @@ export default function Template(props: templates.QtTerritoryViewer) {
               {props.rep_sync_datalist.map((rep) => (
                 <Dropdown.Item
                   key={rep.id}
-                  onClick={() => {
-                    setStoreFilterValue("");
-                    setSelectedRepDetailId(rep.id);
-                  }}
+                  onClick={() => handleRepChange(rep.id)}
                   active={selectedRepDetailId === rep.id}
                 >
                   {rep.rep_detail.username}
