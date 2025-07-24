@@ -1,4 +1,5 @@
 import logging
+from typing import TYPE_CHECKING
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -12,7 +13,9 @@ from product_locator import templates
 from . import planogram_parser, util
 from .forms import PlanogramForm
 from .models import Planogram, ProductScanAudit, Store
-from .types import IImportedProductInfo
+
+if TYPE_CHECKING:
+    from .types import IImportedProductInfo
 
 logger = logging.getLogger("main_logger")
 
@@ -37,24 +40,44 @@ def add_new_products(request: HttpRequest) -> HttpResponse:
     # if POST
     received_form = PlanogramForm(request.POST)
     if not received_form.is_valid():
+        messages.error(request, "Invalid form submission.")
         return templates.ProductLocatorAddNewProducts(form=received_form).render(request)
 
     planogram: Planogram = received_form.cleaned_data["planogram_pk"]
     planogram_text_dump: str = received_form.cleaned_data["planogram_text_dump"]
+    is_reset_planogram: bool = received_form.cleaned_data["is_reset_planogram"]
+    logger.info("is_reset_planogram: %s", is_reset_planogram)
+
+    if not planogram_text_dump:
+        messages.error(request, "You have submitted an empty planogram text dump.")
+        return templates.ProductLocatorAddNewProducts(form=received_form).render(request)
 
     product_list: list[IImportedProductInfo] = planogram_parser.parse_data(
         planogram_text_dump, request
     )
-    logger.info(f"{len(product_list)} parsed from user input")
+    logger.info("%s parsed from user input", len(product_list))
 
     if not product_list:
         messages.error(request, "You have submitted data that resulted in 0 items being parsed.")
         return templates.ProductLocatorAddNewProducts(form=received_form).render(request)
 
-    num_products_added = util.add_location_records(product_list, planogram, request)
+    num_products_added, locations_that_are_updating = util.add_location_records(
+        product_list, planogram, is_reset_planogram, request
+    )
+
+    if len(locations_that_are_updating) > 0:
+        messages.warning(
+            request,
+            f"The following locations have changed: {', '.join(loc.name for loc in locations_that_are_updating)}",
+        )
+
+    if planogram.store is None:
+        messages.error(request, "The selected planogram does not have an associated store.")
+        return templates.ProductLocatorAddNewProducts(form=received_form).render(request)
 
     messages.success(
-        request, f"Submitted {num_products_added} out of {len(product_list)} items successfully"
+        request,
+        f"Submitted {num_products_added} out of {len(product_list)} items successfully to store {planogram.store.name}",
     )
     return redirect("product_locator:add_new_products")
 

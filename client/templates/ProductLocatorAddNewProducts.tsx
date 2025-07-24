@@ -89,6 +89,24 @@ export default function Template(props: templates.ProductLocatorAddNewProducts) 
                 </Alert>
               )}
             </div>
+            <div>
+              <div className="form-check mb-3">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="is-reset-planogram"
+                  name="is_reset_planogram"
+                  defaultChecked={props.form.fields.is_reset_planogram.widget.value}
+                />
+                <label className="form-check-label" htmlFor="is-reset-planogram">
+                  Reset Planogram
+                </label>
+              </div>
+              <p>
+                <strong>Note:</strong> This action is intended for planogram resets and will remove
+                all existing products from the selected planogram.
+              </p>
+            </div>
             <button type="submit" className="btn btn-primary col-12 my-2">
               Submit
             </button>
