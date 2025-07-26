@@ -66,6 +66,9 @@ function MapPopupContent({
           <small className="d-block" style={{ fontSize: "0.9rem" }}>
             {group.address.City}, {group.address.State} {group.address.PostalCode}
           </small>
+          <small>
+            {group.address.Latitude}, {group.address.Longitude}
+          </small>
         </div>
         <div
           className="text-center m-2"
