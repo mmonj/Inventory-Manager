@@ -9,7 +9,7 @@ import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 
 import L, { LatLngLiteral } from "leaflet";
 
-import { getFormattedEstimatedTime } from "@client/util/commonUtil";
+import { getFormattedEstimatedTime, titleCase } from "@client/util/commonUtil";
 
 const iconUrls = {
   green:
@@ -29,9 +29,9 @@ function getCustomIcon(color: keyof typeof iconUrls) {
 }
 
 function MapPopupContent({
-  group,
+  locationGroup,
 }: {
-  group: {
+  locationGroup: {
     address: SurveyWorkerQtraxWebsiteTypedefsAddress;
     jobs: SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[];
   };
@@ -46,28 +46,58 @@ function MapPopupContent({
     }, 2000);
 
     void navigator.clipboard.writeText(
-      `${group.address.City}, ${group.address.State} | ${group.address.StreetAddress} | ${group.address.StoreName}`
+      `${locationGroup.address.City}, ${locationGroup.address.State} | ${locationGroup.address.StreetAddress} | ${locationGroup.address.StoreName}`
     );
   }
 
   let totalHours = 0;
-  for (const job of group.jobs) {
+  for (const job of locationGroup.jobs) {
     totalHours += job.EstimatedTime;
   }
 
+  // group jobs by due date
+  const jobsByDueDate: Record<string, SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[]> =
+    React.useMemo(() => {
+      const _jobsByDueDate: Record<string, SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[]> = {};
+      for (const job of locationGroup.jobs) {
+        const dueDate = job.DateScheduleRangeEndOriginal || "No Due Date";
+        if (!(dueDate in _jobsByDueDate)) {
+          _jobsByDueDate[dueDate] = [];
+        }
+        _jobsByDueDate[dueDate].push(job);
+      }
+
+      // sort jobs by ServiceOrderDescription
+      for (const [dueDate, jobs] of Object.entries(_jobsByDueDate)) {
+        _jobsByDueDate[dueDate] = jobs.sort((a, b) =>
+          a.ServiceOrderDescription.localeCompare(b.ServiceOrderDescription)
+        );
+      }
+
+      return _jobsByDueDate;
+    }, [locationGroup.jobs]);
+
+  // Sort due dates
+  const sortedDueDates = Object.keys(jobsByDueDate).sort((a, b) => {
+    if (a === "No Due Date") return 1;
+    if (b === "No Due Date") return -1;
+    return new Date(a).getTime() - new Date(b).getTime();
+  });
+
   return (
     <div>
-      <div className="fw-bold h6">{group.address.StoreName}</div>
+      <div className="fw-bold h6">{locationGroup.address.StoreName}</div>
       <div className="d-flex justify-content-between">
         <div>
           <span className="d-block" style={{ fontSize: "1rem" }}>
-            {group.address.StreetAddress}
+            {locationGroup.address.StreetAddress}
           </span>
           <small className="d-block" style={{ fontSize: "0.9rem" }}>
-            {group.address.City}, {group.address.State} {group.address.PostalCode}
+            {locationGroup.address.City}, {locationGroup.address.State}{" "}
+            {locationGroup.address.PostalCode}
           </small>
           <small>
-            {group.address.Latitude}, {group.address.Longitude}
+            {locationGroup.address.Latitude}, {locationGroup.address.Longitude}
           </small>
         </div>
         <div
@@ -89,19 +119,39 @@ function MapPopupContent({
       </div>
       <hr />
 
-      <div className="fw-bold mb-1">Total Time: {getFormattedEstimatedTime(totalHours)}</div>
+      <div className="fw-bold mb-2" style={{ fontSize: "0.9rem" }}>
+        Total Time: {getFormattedEstimatedTime(totalHours)}
+      </div>
 
-      <ul className="list-group list-unstyled">
-        {group.jobs.map((job, jIdx) => (
-          <li key={jIdx}>
-            {job.ServiceOrderDescription}{" "}
-            <span className="fw-bold">({getFormattedEstimatedTime(job.EstimatedTime)})</span>
-          </li>
+      <div>
+        {sortedDueDates.map((dueDate, idx) => (
+          <React.Fragment key={dueDate}>
+            <div className="mb-3">
+              <div className="fw-bold mb-1">
+                {dueDate === "No Due Date"
+                  ? "No Due Date"
+                  : `Due Date: ${new Date(dueDate).toLocaleDateString()}`}
+              </div>
+              <ul className="ps-1">
+                {jobsByDueDate[dueDate].map((job) => (
+                  <li key={job.JobId} className="d-flex justify-content-between align-items-start">
+                    <span style={{ flex: 1, marginRight: "8px" }}>
+                      {titleCase(job.ServiceOrderDescription)}
+                    </span>
+                    <span className="fw-bold text-nowrap">
+                      ({getFormattedEstimatedTime(job.EstimatedTime)})
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {idx < sortedDueDates.length - 1 && <hr className="my-2" />}
+          </React.Fragment>
         ))}
-      </ul>
+      </div>
 
       <a
-        href={`https://www.google.com/maps/search/?api=1&query=${group.address.MapLink}`}
+        href={`https://www.google.com/maps/search/?api=1&query=${locationGroup.address.MapLink}`}
         target="_blank"
         rel="noreferrer"
         className="badge rounded-pill text-bg-primary d-block mt-3"
@@ -138,7 +188,7 @@ export default function TerritoryMap({ groupedByStore }: Props) {
       : { lat: 40.7, lng: -73.9 };
 
   return (
-    <MapContainer center={defaultCenter} zoom={10} style={{ height: "100%", width: "100%" }}>
+    <MapContainer center={defaultCenter} zoom={12} style={{ height: "100%", width: "100%" }}>
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution="© OpenStreetMap contributors"
@@ -150,7 +200,7 @@ export default function TerritoryMap({ groupedByStore }: Props) {
           icon={getCustomIcon("green")}
         >
           <Popup>
-            <MapPopupContent group={group} />
+            <MapPopupContent locationGroup={group} />
           </Popup>
         </Marker>
       ))}

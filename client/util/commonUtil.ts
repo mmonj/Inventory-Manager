@@ -92,3 +92,11 @@ export function getFormattedEstimatedTime(estimatedtimeHours: number): string {
     return `${hours} hr ${minutes} min`;
   }
 }
+
+export function titleCase(text: string): string {
+  return text
+    .toLowerCase()
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
