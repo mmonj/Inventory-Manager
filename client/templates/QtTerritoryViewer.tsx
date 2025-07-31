@@ -57,13 +57,6 @@ export default function Template(props: templates.QtTerritoryViewer) {
   // track if initial date already set to avoid overriding user selection
   const initialDateSet = React.useRef(false);
 
-  React.useEffect(() => {
-    if (uniqueDueDates.length > 0 && !initialDateSet.current) {
-      setSelectedDueDate(uniqueDueDates[0]); // Set to earliest date
-      initialDateSet.current = true;
-    }
-  }, [uniqueDueDates]);
-
   // group stores
   const groupedByStore = React.useMemo(() => {
     const _groupedByStore: TGroupedStoreRecord = {};

@@ -148,7 +148,7 @@ REST_FRAMEWORK = {
     ],
 }
 
-CORS_URLS_REGEX = r"^/(api|product_locator/api)/.*$"
+CORS_URLS_REGEX = r"^/(api|product_locator/api|survey_worker/api)/.*$"
 CORS_ALLOW_ALL_ORIGINS = True
 
 LOGGING = {

@@ -1,3 +1,5 @@
+import { SurveyWorkerQtraxWebsiteTypedefsAddress } from "@reactivated";
+
 import { IHttpError, TNotFoundErrorList } from "@client/types";
 
 export function getErrorList(data: IHttpError | TNotFoundErrorList): string[] {
@@ -99,4 +101,16 @@ export function titleCase(text: string): string {
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+}
+
+export function reformatServiceOrderDescription(description: string): string {
+  const regex = / *(C&s)? *(\dx )?C\d+b? *$/i;
+
+  return titleCase(description.replace(regex, "")).trim();
+}
+
+export function encodeQtAddress(address: SurveyWorkerQtraxWebsiteTypedefsAddress) {
+  return encodeURIComponent(
+    `${address.StreetAddress} ${address.City} ${address.State} ${address.PostalCode}`
+  );
 }

@@ -9,7 +9,11 @@ import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 
 import L, { LatLngLiteral } from "leaflet";
 
-import { getFormattedEstimatedTime, titleCase } from "@client/util/commonUtil";
+import {
+  encodeQtAddress,
+  getFormattedEstimatedTime,
+  reformatServiceOrderDescription,
+} from "@client/util/commonUtil";
 
 const iconUrls = {
   green:
@@ -117,7 +121,8 @@ function MapPopupContent({
           {clipboardMessage !== null && <span className="text-success">{clipboardMessage}</span>}
         </div>
       </div>
-      <hr />
+
+      <hr className="my-2" />
 
       <div className="fw-bold mb-2" style={{ fontSize: "0.9rem" }}>
         Total Time: {getFormattedEstimatedTime(totalHours)}
@@ -136,7 +141,7 @@ function MapPopupContent({
                 {jobsByDueDate[dueDate].map((job) => (
                   <li key={job.JobId} className="d-flex justify-content-between align-items-start">
                     <span style={{ flex: 1, marginRight: "8px" }}>
-                      {titleCase(job.ServiceOrderDescription)}
+                      {reformatServiceOrderDescription(job.ServiceOrderDescription)}
                     </span>
                     <span className="fw-bold text-nowrap">
                       ({getFormattedEstimatedTime(job.EstimatedTime)})
@@ -151,7 +156,10 @@ function MapPopupContent({
       </div>
 
       <a
-        href={`https://www.google.com/maps/search/?api=1&query=${locationGroup.address.MapLink}`}
+        href={
+          "https://www.google.com/maps/search/?api=1&query=" +
+          encodeQtAddress(locationGroup.address)
+        }
         target="_blank"
         rel="noreferrer"
         className="badge rounded-pill text-bg-primary d-block mt-3"
