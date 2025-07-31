@@ -1,9 +1,22 @@
 import React, { useEffect, useState } from "react";
 
-import { templates } from "@reactivated";
-import { Alert, Badge, Button, Card, Col, Collapse, Form, InputGroup, Row } from "react-bootstrap";
+import { reverse, templates } from "@reactivated";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Col,
+  Collapse,
+  Dropdown,
+  DropdownButton,
+  Form,
+  InputGroup,
+  Row,
+} from "react-bootstrap";
 
 import { Layout } from "@client/components/Layout";
+import { Pagination } from "@client/components/Pagination";
 import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
 
 function getMessageTypeVariant(messageType: string): string {
@@ -36,18 +49,16 @@ export default function Template(props: templates.QtAutofillLogs) {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const filteredLogs = props.logs
-    .filter((log) => {
-      const matchesType = filterType === "all" || log.message_type === filterType;
-      const matchesSearch =
-        debouncedSearchTerm === "" ||
-        log.message.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        log.service_order.store.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        log.service_order.soid.toString().includes(debouncedSearchTerm.toLowerCase());
+  const filteredLogs = props.logs.filter((log) => {
+    const matchesType = filterType === "all" || log.message_type === filterType;
+    const matchesSearch =
+      debouncedSearchTerm === "" ||
+      log.message.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      log.service_order.store.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      log.service_order.soid.toString().includes(debouncedSearchTerm.toLowerCase());
 
-      return matchesType && matchesSearch;
-    })
-    .sort((a, b) => b.id - a.id); // Sort by ID descending (largest first)
+    return matchesType && matchesSearch;
+  });
 
   function toggleLogExpansion(logId: number) {
     const newExpanded = new Set(expandedLogs);
@@ -57,6 +68,22 @@ export default function Template(props: templates.QtAutofillLogs) {
       newExpanded.add(logId);
     }
     setExpandedLogs(newExpanded);
+  }
+
+  function handleSoidSearch(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const soid = formData.get("soid") as string;
+
+    if (soid.trim()) {
+      const url = `${reverse("survey_worker:qt_view_autofill_logs")}?soid=${encodeURIComponent(
+        soid.trim()
+      )}`;
+      window.location.href = url;
+    } else {
+      // if empty, go to base URL (show all logs)
+      window.location.href = reverse("survey_worker:qt_view_autofill_logs");
+    }
   }
 
   const logCounts = {
@@ -117,26 +144,49 @@ export default function Template(props: templates.QtAutofillLogs) {
         </Col>
       </Row>
 
+      {/* server-side SOID search */}
+      <Card className="mb-4">
+        <Card.Body>
+          <form onSubmit={handleSoidSearch}>
+            <Row>
+              <Col md={8}>
+                <Form.Group className="mb-2">
+                  <Form.Label>
+                    <strong>Search by Service Order ID (Server-side)</strong>
+                  </Form.Label>
+                  <InputGroup>
+                    <Form.Control
+                      type="text"
+                      name="soid"
+                      placeholder="Enter Service Order ID to search on server..."
+                    />
+                    <Button type="submit" variant="primary">
+                      Search
+                    </Button>
+                  </InputGroup>
+                </Form.Group>
+              </Col>
+              <Col md={4} className="d-flex align-items-end">
+                <Button
+                  variant="outline-secondary"
+                  onClick={() =>
+                    (window.location.href = reverse("survey_worker:qt_view_autofill_logs"))
+                  }
+                >
+                  Show All Logs
+                </Button>
+              </Col>
+            </Row>
+          </form>
+        </Card.Body>
+      </Card>
+
       {/* Filters */}
       <Card className="mb-4">
         <Card.Body>
           <Row>
             <Col md={6}>
-              <Form.Group>
-                <Form.Label>
-                  <strong>Filter by Message Type</strong>
-                </Form.Label>
-                <Form.Select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-                  <option value="all">All Types</option>
-                  <option value="info">Info</option>
-                  <option value="warning">Warning</option>
-                  <option value="error">Error</option>
-                  <option value="exception">Exception</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group>
+              <Form.Group className="mb-2">
                 <Form.Label>
                   <strong>Search Logs</strong>
                 </Form.Label>
@@ -157,11 +207,35 @@ export default function Template(props: templates.QtAutofillLogs) {
                 </InputGroup>
               </Form.Group>
             </Col>
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label>
+                  <strong>Filter by Message Type</strong>
+                </Form.Label>
+                <DropdownButton
+                  id="message-type-filter"
+                  title={
+                    filterType === "all"
+                      ? "All Types"
+                      : filterType.charAt(0).toUpperCase() + filterType.slice(1)
+                  }
+                  variant="outline-secondary"
+                >
+                  <Dropdown.Item onClick={() => setFilterType("all")}>All Types</Dropdown.Item>
+                  <Dropdown.Item onClick={() => setFilterType("info")}>Info</Dropdown.Item>
+                  <Dropdown.Item onClick={() => setFilterType("warning")}>Warning</Dropdown.Item>
+                  <Dropdown.Item onClick={() => setFilterType("error")}>Error</Dropdown.Item>
+                  <Dropdown.Item onClick={() => setFilterType("exception")}>
+                    Exception
+                  </Dropdown.Item>
+                </DropdownButton>
+              </Form.Group>
+            </Col>
           </Row>
         </Card.Body>
       </Card>
 
-      {/* Logs List */}
+      {/* logs list */}
       {filteredLogs.length === 0 ? (
         <Alert variant="info" className="text-center">
           <h5 className="text-dark">No logs found</h5>
@@ -203,8 +277,7 @@ export default function Template(props: templates.QtAutofillLogs) {
                     </Col>
                     <Col md={6} className="text-end">
                       <small className="text-muted">
-                        <strong>Created:</strong>{" "}
-                        {new Date(log.datetime_created as string).toLocaleString()}
+                        <strong>Created:</strong> {new Date(log.datetime_created).toLocaleString()}
                       </small>
                     </Col>
                   </Row>
@@ -245,6 +318,8 @@ export default function Template(props: templates.QtAutofillLogs) {
           ))}
         </div>
       )}
+
+      <Pagination {...props.page_obj} />
     </Layout>
   );
 }
