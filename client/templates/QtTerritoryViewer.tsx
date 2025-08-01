@@ -85,9 +85,14 @@ export default function Template(props: templates.QtTerritoryViewer) {
       const filtered: TGroupedStoreRecord = {};
 
       Object.entries(groupedByStore).forEach(([siteId, storeData]) => {
-        // filter by store name + address
+        // filter by store name + address + job descriptions
         const fullStoreName = `${storeData.address.City}, ${storeData.address.State} | ${storeData.address.StreetAddress} | ${storeData.address.StoreName}`;
-        const matchesStoreFilter = fullStoreName
+        const jobDescriptions = storeData.jobs
+          .map((job) => job.ServiceOrderDescription || "")
+          .join(" ");
+        const searchableText = `${fullStoreName} ${jobDescriptions}`;
+
+        const matchesStoreFilter = searchableText
           .toLowerCase()
           .includes(storeFilterValue.toLowerCase());
 
@@ -256,7 +261,7 @@ export default function Template(props: templates.QtTerritoryViewer) {
               type="text"
               id="filter-stores"
               className="form-control"
-              placeholder="Filter by Store"
+              placeholder="Filter by Store + Address + Job Descriptions"
               value={storeFilterValue}
               onChange={(e) => setStoreFilterValue(e.target.value)}
             />

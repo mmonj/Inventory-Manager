@@ -169,6 +169,7 @@ export default function Template(props: templates.QtAutofillLogs) {
               <Col md={4} className="d-flex align-items-end">
                 <Button
                   variant="outline-secondary"
+                  className="mb-2"
                   onClick={() =>
                     (window.location.href = reverse("survey_worker:qt_view_autofill_logs"))
                   }
