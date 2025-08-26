@@ -5,7 +5,7 @@ services:
       args:
         DEV: "${DEV}"
         UID: "${UID}"
-    image: inventory-manager-dev
+    image: inventory-manager-django-dev
     container_name: inventory-manager-dev
     command: >
       bash -c "
