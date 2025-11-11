@@ -13,3 +13,6 @@ static/dist/index.js
 static/dist/index.js.map
 collected/
 static/dist/*
+*-docker-compose.sh
+*.css.map
+*.css

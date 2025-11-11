@@ -6,12 +6,12 @@ import { Context, interfaces, reverse, templates } from "@reactivated";
 import Form from "react-bootstrap/Form";
 
 import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
-import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
+import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
 
 import { Layout } from "../components/Layout";
 import { useFetch } from "../hooks/useFetch";
 
-export default function Template(props: templates.QtAdmin) {
+export function Template(props: templates.QtAdmin) {
   const context = React.useContext(Context);
   const forceFetchSession = useFetch<interfaces.QtLoginSessionRefetch>();
 
@@ -27,13 +27,18 @@ export default function Template(props: templates.QtAdmin) {
     }
 
     const [isSuccess, result] = await forceFetchSession.fetchData(() =>
-      fetch(reverse("survey_worker:qt_force_fetch_login_session", { rep_id: repId }), {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": context.csrf_token,
-          Accept: "application/json",
-        },
-      })
+      fetch(
+        reverse("survey_worker:qt_force_fetch_login_session", {
+          rep_id: repId,
+        }),
+        {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": context.csrf_token,
+            Accept: "application/json",
+          },
+        }
+      )
     );
 
     if (isSuccess) {
@@ -44,7 +49,11 @@ export default function Template(props: templates.QtAdmin) {
   }
 
   return (
-    <Layout title="Admin Panel" navbar={<NavigationBar />} className="mw-rem-60 mx-auto px-2">
+    <Layout
+      title="Admin Panel"
+      navbar={<NavigationBar />}
+      className="mw-rem-60 mx-auto px-2"
+    >
       <h1 className="my-4">Force Fetch Login Session</h1>
 
       <Form className="d-flex flex-column gap-3" onSubmit={onSubmit}>

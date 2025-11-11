@@ -1,10 +1,14 @@
 import React from "react";
 
+import { Accordion, Badge, Button, Card } from "react-bootstrap";
+
 import {
   SurveyWorkerQtraxWebsiteTypedefsAddress,
   SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
 } from "@reactivated";
-import { Accordion } from "react-bootstrap";
+
+import { faClock, faExternalLinkAlt, faMapMarkerAlt } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { encodeQtAddress, getFormattedEstimatedTime } from "@client/util/commonUtil";
 import { formatDateRange } from "@client/util/qtSurveyWorker/scheduleUtils";
@@ -20,82 +24,129 @@ interface Props {
 }
 
 export function StoreList({ groupedByStore }: Props) {
-  return (
-    <Accordion className="list-group list-group-flush">
-      {Object.values(groupedByStore).map(({ address, jobs }) => {
-        let totalHours = 0;
-        for (const job of jobs) {
-          totalHours += job.EstimatedTime;
-        }
+  const storeCount = Object.keys(groupedByStore).length;
 
-        return (
-          <Accordion.Item
-            key={address.SiteId}
-            eventKey={address.SiteId.toString()}
-            className="list-group-item"
-          >
-            <Accordion.Header>
-              <div>
-                <h5 className="mb-1">{address.StoreName || "(Unnamed Store)"}</h5>
-                <p className="mb-1 text-secondary">
-                  {address.StreetAddress}, {address.City}, {address.State} {address.PostalCode}
-                </p>
-                <small className="text-muted">{jobs.length} tickets</small>
-              </div>
-            </Accordion.Header>
-            <Accordion.Body className="p-0">
-              <ul className="list-group list-group-flush alert alert-info rounded-1 p-3 position-relative">
-                <a
-                  href={
-                    "https://www.google.com/maps/search/?api=1&query=" + encodeQtAddress(address)
-                  }
-                  target="_blank"
-                  rel="noreferrer"
-                  className="position-absolute top-0 end-0 mt-2 me-2 text-primary"
-                  title="Open in Google Maps"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="26"
-                    height="26"
-                    fill="currentColor"
-                    className="bi bi-sign-turn-right-fill"
-                    viewBox="0 0 16 16"
+  if (storeCount === 0) {
+    return (
+      <Card className="shadow-sm border-0 text-center py-5">
+        <Card.Body>
+          <div className="mb-3">
+            <i className="fs-1">🏪</i>
+          </div>
+          <h4 className="mb-2">No Stores Found</h4>
+          <p className="text-muted">Try adjusting your filters to see more results.</p>
+        </Card.Body>
+      </Card>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-3">
+        <h3 className="h5 text-secondary">
+          Store List{" "}
+          <Badge bg="secondary" pill>
+            {storeCount}
+          </Badge>
+        </h3>
+      </div>
+
+      <Accordion>
+        {Object.values(groupedByStore).map(({ address, jobs }) => {
+          let totalHours = 0;
+          for (const job of jobs) {
+            totalHours += job.EstimatedTime;
+          }
+
+          return (
+            <Accordion.Item
+              key={address.SiteId}
+              eventKey={address.SiteId.toString()}
+              className="mb-3 border-0 shadow-sm"
+            >
+              <Accordion.Header className="bg-white">
+                <div className="w-100 pe-3">
+                  <div className="d-flex justify-content-between align-items-start mb-2">
+                    <h5 className="mb-0 text-primary fw-bold">
+                      {address.StoreName || "(Unnamed Store)"}
+                    </h5>
+                    <Badge bg="primary" pill className="ms-2">
+                      {jobs.length} {jobs.length === 1 ? "ticket" : "tickets"}
+                    </Badge>
+                  </div>
+                  <div className="d-flex align-items-center text-muted small mb-1">
+                    <FontAwesomeIcon icon={faMapMarkerAlt} className="me-2" />
+                    <span>
+                      {address.StreetAddress}, {address.City}, {address.State} {address.PostalCode}
+                    </span>
+                  </div>
+                  <div className="d-flex align-items-center text-muted small">
+                    <FontAwesomeIcon icon={faClock} className="me-2" />
+                    <span>
+                      Total Time: <strong>{getFormattedEstimatedTime(totalHours)}</strong>
+                    </span>
+                  </div>
+                </div>
+              </Accordion.Header>
+              <Accordion.Body className="bg-light">
+                <div className="mb-3 d-flex justify-content-end">
+                  <Button
+                    href={
+                      "https://www.google.com/maps/search/?api=1&query=" + encodeQtAddress(address)
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    variant="outline-primary"
+                    size="sm"
                   >
-                    <path d="M9.05.435c-.58-.58-1.52-.58-2.1 0L.436 6.95c-.58.58-.58 1.519 0 2.098l6.516 6.516c.58.58 1.519.58 2.098 0l6.516-6.516c.58-.58.58-1.519 0-2.098zM9 8.466V7H7.5A1.5 1.5 0 0 0 6 8.5V11H5V8.5A2.5 2.5 0 0 1 7.5 6H9V4.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L9.41 8.658A.25.25 0 0 1 9 8.466" />
-                  </svg>
-                </a>
-                <li className="list-unstyled mb-3">
-                  <strong>Total Estimated Time: {getFormattedEstimatedTime(totalHours)}</strong>
-                </li>
-                {jobs.map((job, jobIndex) => (
-                  <React.Fragment key={jobIndex}>
-                    <li className="list-unstyled">
-                      <div>
-                        <b>SOID:</b> {job.ServiceOrderId}
-                      </div>
-                      <div>
-                        <b>Description:</b> {job.ServiceOrderDescription}
-                      </div>
-                      <div>
-                        <b>Estimated Time:</b> {getFormattedEstimatedTime(job.EstimatedTime)}
-                      </div>
-                      <div>
-                        <b>Date Range:</b>{" "}
-                        {formatDateRange(
-                          job.DateScheduleRangeStartOriginal,
-                          job.DateScheduleRangeEndOriginal
-                        )}
-                      </div>
-                    </li>
-                    {jobIndex < jobs.length - 1 && <hr />}
-                  </React.Fragment>
-                ))}
-              </ul>
-            </Accordion.Body>
-          </Accordion.Item>
-        );
-      })}
-    </Accordion>
+                    <FontAwesomeIcon icon={faExternalLinkAlt} className="me-1" />
+                    Open in Maps
+                  </Button>
+                </div>
+
+                <div>
+                  {jobs.map((job, jobIndex) => (
+                    <Card key={jobIndex} className="mb-3 border-0 shadow-sm">
+                      <Card.Body className="p-3">
+                        <div className="row g-2">
+                          <div className="col-md-6">
+                            <div className="mb-2">
+                              <small className="text-muted d-block">Service Order ID</small>
+                              <span className="fw-semibold">{job.ServiceOrderId}</span>
+                            </div>
+                            <div className="mb-2">
+                              <small className="text-muted d-block">Description</small>
+                              <span>{job.ServiceOrderDescription}</span>
+                            </div>
+                          </div>
+                          <div className="col-md-6">
+                            <div className="mb-2">
+                              <small className="text-muted d-block">Estimated Time</small>
+                              <Badge bg="success" className="fw-normal">
+                                <FontAwesomeIcon icon={faClock} className="me-1" />
+                                {getFormattedEstimatedTime(job.EstimatedTime)}
+                              </Badge>
+                            </div>
+                            <div className="mb-2">
+                              <small className="text-muted d-block">Date Range</small>
+                              <span className="text-secondary">
+                                {formatDateRange(
+                                  job.DateScheduleRangeStartOriginal,
+                                  job.DateScheduleRangeEndOriginal
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  ))}
+                </div>
+              </Accordion.Body>
+            </Accordion.Item>
+          );
+        })}
+      </Accordion>
+    </div>
   );
 }

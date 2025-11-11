@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 
-import { Context, StoreD7Ddec6B39, interfaces, reverse, templates } from "@reactivated";
-
 import Alert from "react-bootstrap/Alert";
 import Button from "react-bootstrap/Button";
+
+import { Context, StoreD7Ddec6B39, interfaces, reverse, templates } from "@reactivated";
 
 import { BarcodeScanner } from "@client/components/BarcodeScanner";
 import { Layout } from "@client/components/Layout";
@@ -14,7 +14,7 @@ import { ProductLocatorModal } from "@client/components/productLocator/ProductLo
 import { useFetch } from "@client/hooks/useFetch";
 import { getProductLocation } from "@client/util/productLocator";
 
-export default function Template(props: templates.ProductLocatorIndex) {
+export function Template(props: templates.ProductLocatorIndex) {
   const [store, setStore] = useState<StoreD7Ddec6B39 | null>(null);
   const [scannedUpc, setScannedUpc] = useState("");
   const [modalShow, setModalShow] = useState(false);
@@ -67,7 +67,7 @@ export default function Template(props: templates.ProductLocatorIndex) {
         {!!store && (
           <section id="scanner-container" className="mw-rem-60 mx-auto">
             <div id="scanner-store-indicator" className="p-2">
-              <h5 className="card-title text-center title-color">{store.name}</h5>
+              <h5 className="card-title text-center">{store.name}</h5>
             </div>
 
             <BarcodeScanner {...{ scanSuccessCallback, scanErrorCallback }} />

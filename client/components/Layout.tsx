@@ -1,9 +1,8 @@
-import React from "react";
+import React, { type JSX } from "react";
 
 import { Context } from "@reactivated";
-import { Helmet } from "react-helmet-async";
 
-import { ContribMessages } from "./ContribMessages";
+import { ContribMessages } from "@client/components/ContribMessages";
 
 interface IExternalStyles {
   src: string;
@@ -17,39 +16,30 @@ interface Props {
   className?: string;
   extraStyles?: string[];
   extraExternalStyles?: IExternalStyles[];
-  excludeBsBodyOverrides?: boolean;
+  bsTheme?: "light" | "dark";
 }
 
-export const Layout = ({ extraStyles = [], excludeBsBodyOverrides = false, ...props }: Props) => {
+export function Layout({ bsTheme = "light", extraStyles = [], ...props }: Props) {
   const djangoContext = React.useContext(Context);
 
   return (
-    <>
-      <Helmet>
-        <meta charSet="utf-8" />
+    <html lang="en" data-bs-theme={bsTheme}>
+      <head>
+        <meta charSet="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
         <title>{props.title}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+
         <link
           rel="icon"
           type="image/x-icon"
           href={`${djangoContext.STATIC_URL}public/favicon.png`}
         />
-        <link
-          rel="stylesheet"
-          type="text/css"
-          href={`${djangoContext.STATIC_URL}admin/css/fonts.css`}
-        />
-        <link
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
-          rel="stylesheet"
-          integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65"
-          crossOrigin="anonymous"
-        ></link>
 
         <link
           rel="stylesheet"
           type="text/css"
-          href={`${djangoContext.STATIC_URL}styles/bs-navbar-overrides.css`}
+          href={`${djangoContext.STATIC_URL}styles/bs-dark/bootstrap.css`}
         />
         <link
           rel="stylesheet"
@@ -61,14 +51,6 @@ export const Layout = ({ extraStyles = [], excludeBsBodyOverrides = false, ...pr
           type="text/css"
           href={`${djangoContext.STATIC_URL}styles/survey_worker/styles.css`}
         />
-
-        {!excludeBsBodyOverrides && (
-          <link
-            rel="stylesheet"
-            type="text/css"
-            href={`${djangoContext.STATIC_URL}styles/bs-overrides.css`}
-          />
-        )}
 
         {extraStyles.map((staticBasePath, idx) => (
           <link
@@ -88,14 +70,14 @@ export const Layout = ({ extraStyles = [], excludeBsBodyOverrides = false, ...pr
             crossOrigin=""
           />
         ))}
-
-        <script defer crossOrigin="anonymous" src={`${djangoContext.STATIC_URL}dist/index.js`} />
-      </Helmet>
-      <header>{props.navbar}</header>
-      <main className={props.className}>
-        <ContribMessages />
-        {props.children}
-      </main>
-    </>
+      </head>
+      <body>
+        <header>{props.navbar}</header>
+        <main className={props.className}>
+          <ContribMessages />
+          {props.children}
+        </main>
+      </body>
+    </html>
   );
-};
+}

@@ -1,18 +1,19 @@
 // client/templates/QtRepSessionDetails.tsx
 import React from "react";
 
-import { templates } from "@reactivated";
-import { JsonView, darkStyles } from "react-json-view-lite";
-
-import { format } from "date-fns/esm";
 import Container from "react-bootstrap/Container";
 import Stack from "react-bootstrap/Stack";
+import { JsonView, darkStyles } from "react-json-view-lite";
 
-import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
+import { templates } from "@reactivated";
+
+import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
+
+import { format } from "date-fns";
 
 import { Layout } from "../components/Layout";
 
-export default function Template(props: templates.QtRepSessionDetails) {
+export function Template(props: templates.QtRepSessionDetails) {
   return (
     <Layout
       title="Rep Session Details"

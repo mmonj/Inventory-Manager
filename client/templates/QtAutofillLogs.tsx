@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 
-import { reverse, templates } from "@reactivated";
 import {
   Alert,
   Badge,
@@ -15,9 +14,11 @@ import {
   Row,
 } from "react-bootstrap";
 
+import { reverse, templates } from "@reactivated";
+
 import { Layout } from "@client/components/Layout";
 import { Pagination } from "@client/components/Pagination";
-import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
+import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
 
 function getMessageTypeVariant(messageType: string): string {
   switch (messageType.toLowerCase()) {
@@ -34,7 +35,7 @@ function getMessageTypeVariant(messageType: string): string {
   }
 }
 
-export default function Template(props: templates.QtAutofillLogs) {
+export function Template(props: templates.QtAutofillLogs) {
   const [filterType, setFilterType] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");

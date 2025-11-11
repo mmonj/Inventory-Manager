@@ -1,19 +1,20 @@
 import React from "react";
 
-import { Context, interfaces, reverse, templates } from "@reactivated";
+import Form from "react-bootstrap/Form";
 import { JsonView, darkStyles } from "react-json-view-lite";
 
-import { format } from "date-fns/esm";
-import Form from "react-bootstrap/Form";
+import { Context, interfaces, reverse, templates } from "@reactivated";
 
 import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
-import { NavigationBar } from "@client/components/surveyWorker/NavigationBar";
+import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
 import { buildUrlFromFormData } from "@client/util/commonUtil";
+
+import { format } from "date-fns";
 
 import { Layout } from "../components/Layout";
 import { useFetch } from "../hooks/useFetch";
 
-export default function Template(props: templates.QtScheduleView) {
+export function Template(props: templates.QtScheduleView) {
   const context = React.useContext(Context);
   const fetchRepSchedule = useFetch<interfaces.QtViewRepDetail>();
 
@@ -33,7 +34,9 @@ export default function Template(props: templates.QtScheduleView) {
     }
 
     const formData = new FormData(form);
-    const baseUrl = reverse("survey_worker:qt_view_rep_schedule", { rep_id: repId });
+    const baseUrl = reverse("survey_worker:qt_view_rep_schedule", {
+      rep_id: repId,
+    });
     const fetchUrl = buildUrlFromFormData(baseUrl, formData);
 
     const [isSuccess, result] = await fetchRepSchedule.fetchData(() =>
@@ -51,8 +54,8 @@ export default function Template(props: templates.QtScheduleView) {
       return;
     }
 
-    const downloadCheckbox = form.querySelector("#download-checkbox") as HTMLInputElement;
-    if (downloadCheckbox?.checked) {
+    const downloadCheckbox = form.querySelector<HTMLInputElement>("#download-checkbox");
+    if (downloadCheckbox?.checked === true) {
       const data = result.rep_sync_data.schedule;
 
       const fullUsername = result.rep_sync_data.rep_detail.username;

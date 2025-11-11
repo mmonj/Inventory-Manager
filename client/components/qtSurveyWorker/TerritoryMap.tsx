@@ -1,19 +1,23 @@
-import React, { useContext, useState } from "react";
+import React, { useState } from "react";
+
+import { Badge, Button } from "react-bootstrap";
+import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 
 import {
-  Context,
   SurveyWorkerQtraxWebsiteTypedefsAddress,
   SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
 } from "@reactivated";
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 
-import L, { LatLngLiteral } from "leaflet";
+import { faClock, faCopy, faExternalLinkAlt } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import {
   encodeQtAddress,
   getFormattedEstimatedTime,
   reformatServiceOrderDescription,
 } from "@client/util/commonUtil";
+
+import L, { LatLngLiteral } from "leaflet";
 
 const iconUrls = {
   green:
@@ -41,13 +45,12 @@ function MapPopupContent({
   };
 }) {
   const [clipboardMessage, setClipboardMessage] = useState<string | null>(null);
-  const djangoContext = useContext(Context);
 
   function handleCopyAddress() {
-    setClipboardMessage("Address Copied!");
+    setClipboardMessage("Copied!");
     setTimeout(() => {
       setClipboardMessage(null);
-    }, 2000);
+    }, 1500);
 
     void navigator.clipboard.writeText(
       `${locationGroup.address.City}, ${locationGroup.address.State} | ${locationGroup.address.StreetAddress} | ${locationGroup.address.StoreName}`
@@ -89,63 +92,63 @@ function MapPopupContent({
   });
 
   return (
-    <div>
-      <div className="fw-bold h6">{locationGroup.address.StoreName}</div>
-      <div className="d-flex justify-content-between">
-        <div>
-          <span className="d-block" style={{ fontSize: "1rem" }}>
-            {locationGroup.address.StreetAddress}
-          </span>
-          <small className="d-block" style={{ fontSize: "0.9rem" }}>
+    <div style={{ minWidth: "280px" }}>
+      {/* Store Header */}
+      <div className="mb-3">
+        <div className="d-flex justify-content-between align-items-start mb-2">
+          <h6 className="fw-bold text-primary mb-0">{locationGroup.address.StoreName}</h6>
+        </div>
+
+        {/* Address */}
+        <div className="small mb-1">
+          <div>{locationGroup.address.StreetAddress}</div>
+          <div>
             {locationGroup.address.City}, {locationGroup.address.State}{" "}
             {locationGroup.address.PostalCode}
-          </small>
-          <small>
-            {locationGroup.address.Latitude}, {locationGroup.address.Longitude}
-          </small>
+          </div>
         </div>
-        <div
-          className="text-center m-2"
-          style={{ height: "2.2rem", width: "2.2rem" }}
+
+        {/* Copy Address Button */}
+        <Button
+          variant="outline-secondary"
+          size="sm"
+          className="w-100 mt-2"
           onClick={handleCopyAddress}
         >
-          <img
-            src={djangoContext.STATIC_URL + "public/clipboard.svg"}
-            alt="Copy to clipboard"
-            style={{
-              maxHeight: "100%",
-              height: "1.3rem",
-              cursor: "pointer",
-            }}
-          />
-          {clipboardMessage !== null && <span className="text-success">{clipboardMessage}</span>}
-        </div>
+          <FontAwesomeIcon icon={faCopy} className="me-1" />
+          {clipboardMessage !== null ? clipboardMessage : "Copy Address"}
+        </Button>
       </div>
 
       <hr className="my-2" />
 
-      <div className="fw-bold mb-2" style={{ fontSize: "0.9rem" }}>
-        Total Time: {getFormattedEstimatedTime(totalHours)}
+      {/* Total Time */}
+      <div className="mb-3">
+        <Badge bg="success" className="w-100 py-2">
+          <FontAwesomeIcon icon={faClock} className="me-2" />
+          Total Time: {getFormattedEstimatedTime(totalHours)}
+        </Badge>
       </div>
 
+      {/* Jobs by Due Date */}
       <div>
         {sortedDueDates.map((dueDate, idx) => (
           <React.Fragment key={dueDate}>
             <div className="mb-3">
-              <div className="fw-bold mb-1">
+              <div className="fw-semibold mb-2 small text-secondary">
                 {dueDate === "No Due Date"
                   ? "No Due Date"
-                  : `Due Date: ${new Date(dueDate).toLocaleDateString()}`}
+                  : `Due: ${new Date(dueDate).toLocaleDateString()}`}
               </div>
-              <ul className="ps-1">
+              <ul className="list-unstyled ps-2 mb-0">
                 {jobsByDueDate[dueDate].map((job) => (
-                  <li key={job.JobId} className="d-flex justify-content-between align-items-start">
-                    <span style={{ flex: 1, marginRight: "8px" }}>
+                  <li key={job.JobId} className="small mb-2 d-flex justify-content-between">
+                    <span className="flex-grow-1 me-2">
                       {reformatServiceOrderDescription(job.ServiceOrderDescription)}
                     </span>
-                    <span className="fw-bold text-nowrap">
-                      ({getFormattedEstimatedTime(job.EstimatedTime)})
-                    </span>
+                    <Badge bg="secondary" pill className="align-self-start">
+                      {getFormattedEstimatedTime(job.EstimatedTime)}
+                    </Badge>
                   </li>
                 ))}
               </ul>
@@ -155,18 +158,21 @@ function MapPopupContent({
         ))}
       </div>
 
-      <a
+      {/* Google Maps Link */}
+      <Button
         href={
           "https://www.google.com/maps/search/?api=1&query=" +
           encodeQtAddress(locationGroup.address)
         }
         target="_blank"
         rel="noreferrer"
-        className="badge rounded-pill text-bg-primary d-block mt-3"
-        style={{ fontSize: "0.9rem" }}
+        variant="primary"
+        size="sm"
+        className="w-100 mt-3 text-dark"
       >
+        <FontAwesomeIcon icon={faExternalLinkAlt} className="me-2" />
         Open in Google Maps
-      </a>
+      </Button>
     </div>
   );
 }

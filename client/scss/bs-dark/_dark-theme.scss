@@ -1,0 +1,77 @@
+// Custom light theme for bootstrap, implemented under data-bs-theme="dark"
+// This inverts the theme so dark mode shows light colors
+
+@use "variables" as v;
+
+[data-bs-theme="dark"] {
+  // Force light color scheme for browser UI elements
+  color-scheme: light;
+
+  // Inverted grayscale for light theme
+  --#{v.$prefix}white: #{v.$black};
+  --#{v.$prefix}gray-100: #{v.$gray-900};
+  --#{v.$prefix}gray-200: #{v.$gray-800};
+  --#{v.$prefix}gray-300: #{v.$gray-700};
+  --#{v.$prefix}gray-400: #{v.$gray-600};
+  --#{v.$prefix}gray-500: #{v.$gray-500};
+  --#{v.$prefix}gray-600: #{v.$gray-400};
+  --#{v.$prefix}gray-700: #{v.$gray-300};
+  --#{v.$prefix}gray-800: #{v.$gray-200};
+  --#{v.$prefix}gray-900: #{v.$gray-100};
+  --#{v.$prefix}black: #{v.$white};
+
+  // Use inverted grayscale from variables for light theme
+  // In light theme: white is white, black is dark, grays go light to dark
+  $light-bg: v.$black; // rgb(255, 255, 255) - pure white
+  $light-surface: v.$gray-900; // rgb(231, 232, 235) - very light gray surface
+  $light-text: v.$white; // rgb(35, 47, 63) - dark text
+  $light-gray-100: v.$gray-900; // rgb(231, 232, 235)
+  $light-gray-200: v.$gray-800; // rgb(204, 207, 211)
+  $light-gray-300: v.$gray-700; // rgb(188, 191, 196)
+  $light-gray-400: v.$gray-600; // rgb(169, 173, 179)
+  $light-gray-500: v.$gray-500; // rgb(148, 154, 161)
+  $light-gray-600: v.$gray-400; // rgb(122, 130, 138)
+  $light-gray-700: v.$gray-300; // rgb(102, 110, 121)
+  $light-gray-800: v.$gray-200; // rgb(80, 91, 102)
+  $light-gray-900: v.$gray-100; // rgb(58, 70, 83)
+
+  // Light backgrounds
+  --#{v.$prefix}body-bg: #{$light-bg};
+  --#{v.$prefix}body-bg-rgb:
+    #{red($light-bg)}, #{green($light-bg)}, #{blue($light-bg)};
+  --#{v.$prefix}body-color: #{$light-text};
+  --#{v.$prefix}body-color-rgb:
+    #{red($light-text)}, #{green($light-text)}, #{blue($light-text)};
+
+  // Text hierarchy colors for light theme
+  --#{v.$prefix}emphasis-color: #{$light-text};
+  --#{v.$prefix}emphasis-color-rgb:
+    #{red($light-text)}, #{green($light-text)}, #{blue($light-text)};
+
+  --#{v.$prefix}secondary-color: rgba(
+    #{red($light-text)},
+    #{green($light-text)},
+    #{blue($light-text)},
+    0.75
+  );
+  --#{v.$prefix}secondary-color-rgb:
+    #{red($light-text)}, #{green($light-text)}, #{blue($light-text)};
+
+  --#{v.$prefix}tertiary-color: rgba(
+    #{red($light-text)},
+    #{green($light-text)},
+    #{blue($light-text)},
+    0.5
+  );
+  --#{v.$prefix}tertiary-color-rgb:
+    #{red($light-text)}, #{green($light-text)}, #{blue($light-text)};
+
+  // Background layers for light theme
+  --#{v.$prefix}secondary-bg: #{$light-gray-200};
+  --#{v.$prefix}secondary-bg-rgb:
+    #{red($light-gray-200)}, #{green($light-gray-200)}, #{blue($light-gray-200)};
+
+  --#{v.$prefix}tertiary-bg: #{$light-gray-100};
+  --#{v.$prefix}tertiary-bg-rgb:
+    #{red($light-gray-100)}, #{green($light-gray-100)}, #{blue($light-gray-100)};
+}

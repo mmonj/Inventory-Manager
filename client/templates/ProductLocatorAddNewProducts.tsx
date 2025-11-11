@@ -1,16 +1,16 @@
 import React, { useContext, useState } from "react";
 
-import { CSRFToken, Context, reverse, templates, useForm } from "@reactivated";
 import { Alert } from "react-bootstrap";
-
 import { FieldHandler } from "reactivated/dist/forms";
 import { DjangoFormsWidgetsSelect, DjangoFormsWidgetsTextarea } from "reactivated/dist/generated";
+
+import { CSRFToken, Context, reverse, templates, useForm } from "@reactivated";
 
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { Select, Textarea } from "@client/components/widgets";
 
-export default function Template(props: templates.ProductLocatorAddNewProducts) {
+export function Template(props: templates.ProductLocatorAddNewProducts) {
   const [selectValue, setSelectValue] = useState(props.form.fields.planogram_pk.widget.value);
   const [textValue, setTextValue] = useState(props.form.fields.planogram_text_dump.widget.value);
   const form = useForm({ form: props.form });
@@ -24,13 +24,13 @@ export default function Template(props: templates.ProductLocatorAddNewProducts) 
   }
 
   function handleTextChange(event: React.ChangeEvent<HTMLTextAreaElement>): void {
-    setTextValue(() => event.target.value ?? "");
+    setTextValue(() => event.target.value || "");
   }
 
   return (
     <Layout title="Add New Products" navbar={<NavigationBar />}>
       <section className="mw-rem-60 mx-auto p-2">
-        <h1 id="page-title" className="m-3 text-center title-color ">
+        <h1 id="page-title" className="m-3 text-center">
           Add New Products
         </h1>
         {djangoContext.messages.length === 0 && form.nonFieldErrors === null && (

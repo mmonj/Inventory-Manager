@@ -1,14 +1,15 @@
 import React from "react";
 
-import { Context, reverse } from "@reactivated";
 import { Container, Nav, Navbar } from "react-bootstrap";
+
+import { Context, reverse } from "@reactivated";
 
 export function NavigationBar() {
   const djangoContext = React.useContext(Context);
   const currentPath = djangoContext.request.path;
 
   return (
-    <Navbar expand="lg" className="bg-body-tertiary bg-blue-theme border-bottom px-2">
+    <Navbar expand="lg" className="border-bottom px-2">
       <Container fluid>
         <Navbar.Brand href={reverse("product_locator:index")}>Inventory Tracker</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
@@ -35,6 +36,12 @@ export function NavigationBar() {
           </Nav>
 
           <Nav className="mb-2 mb-lg-0">
+            {djangoContext.user.is_superuser && (
+              <Nav.Link href="/admin" target="_blank" rel="noopener noreferrer">
+                Admin
+              </Nav.Link>
+            )}
+
             <Nav.Link href={reverse("homepage:index")}>Home</Nav.Link>
 
             {djangoContext.user.is_authenticated && (

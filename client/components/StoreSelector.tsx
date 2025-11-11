@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
 import Select, { ActionMeta, SingleValue } from "react-select";
-
 import { FilterOptionOption } from "react-select/dist/declarations/src/filters";
 
 import { IFieldRep, IStore } from "@client/templates/StockTrackerScanner";
@@ -124,8 +123,6 @@ export function FieldRepStoreSelector({
     localStorage.setItem(LOCALSTORAGE_LAST_REP_ID_VIEWED_KEY, fieldRepRef.current.value);
 
     const fieldRepPk = fieldRepRef.current.value;
-    if (fieldRepPk === undefined) throw new Error("Field Rep Pk is undefined");
-
     const fieldRep = props.field_reps.find((field_rep) => field_rep.pk === parseInt(fieldRepPk));
 
     if (fieldRep === undefined) throw new Error(`Field Rep pk "${fieldRepPk}" not found`);

@@ -1,6 +1,6 @@
 import { SurveyWorkerQtraxWebsiteTypedefsAddress } from "@reactivated";
 
-import { IHttpError, TNotFoundErrorList } from "@client/types";
+import { ApiPromise, IHttpError, TNotFoundErrorList } from "@client/types";
 
 export function getErrorList(data: IHttpError | TNotFoundErrorList): string[] {
   if (Array.isArray(data)) {
@@ -113,4 +113,23 @@ export function encodeQtAddress(address: SurveyWorkerQtraxWebsiteTypedefsAddress
   return encodeURIComponent(
     `${address.StreetAddress} ${address.City} ${address.State} ${address.PostalCode}`
   );
+}
+
+export function fetchByReactivated<T>(
+  url: string,
+  csrfToken: string,
+  method: string,
+  payloadString: string
+): ApiPromise<T> {
+  const headers = {
+    Accept: "application/json",
+    "X-CSRFToken": csrfToken,
+    "Content-Type": "application/json",
+  };
+
+  return fetch(url, {
+    method: method,
+    body: payloadString,
+    headers: headers,
+  });
 }

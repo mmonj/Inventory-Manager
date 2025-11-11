@@ -1,0 +1,16 @@
+@use "sass:map";
+@use "variables" as v;
+
+.nav-link.active,
+.navbar-nav .active,
+.breadcrumb-item.active {
+  font-weight: bold;
+}
+
+// for classes like .border-primary, .border-secondary, etc.
+@each $color, $value in v.$theme-colors {
+  .border-#{$color} {
+    border-width: 1px !important;
+    border-color: rgba(var(--#{v.$prefix}#{$color}-rgb), 0.7) !important;
+  }
+}
