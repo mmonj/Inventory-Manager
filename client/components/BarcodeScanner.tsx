@@ -1,12 +1,17 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 
+import Button from "react-bootstrap/Button";
+import Nav from "react-bootstrap/Nav";
+
 import { Context, reverse } from "@reactivated";
+
+import { faCamera, faKeyboard } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+
+import { TScanErrorCallback, TScanSuccessCallback } from "@client/types";
 
 import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Html5QrcodeScannerConfig } from "html5-qrcode/esm/html5-qrcode-scanner";
-import Nav from "react-bootstrap/Nav";
-
-import { TScanErrorCallback, TScanSuccessCallback } from "@client/types";
 
 type navLinkType = "scanner" | "keyboard";
 interface IScannerProps {
@@ -36,28 +41,31 @@ function ProductLoggerKeyboard({
     <form
       onSubmit={handleSubmit}
       id="form-manual-upc"
-      className="mx-2"
+      className="p-3"
       action={reverse("stock_tracker:log_product_scan")}
       method="POST"
     >
-      <label htmlFor="text-input-upc" className="d-block my-2">
-        UPC Number
-      </label>
-      <input
-        ref={upcInputRef}
-        id="text-input-upc"
-        type="text"
-        autoComplete="off"
-        className="form-control mb-3"
-        placeholder="Type a UPC number"
-        minLength={12}
-        maxLength={12}
-        required
-      />
+      <div className="mb-3">
+        <label htmlFor="text-input-upc" className="form-label fw-semibold">
+          UPC Number
+        </label>
+        <input
+          ref={upcInputRef}
+          id="text-input-upc"
+          type="text"
+          autoComplete="off"
+          className="form-control form-control-lg"
+          placeholder="Type a UPC number"
+          minLength={12}
+          maxLength={12}
+          required
+        />
+      </div>
       <div id="error-manual-upc" className="alert alert-warning" role="alert" hidden></div>
-      <button type="submit" className="btn btn-primary form-control mb-2">
-        Submit
-      </button>
+      <Button type="submit" variant="primary" size="lg" className="w-100">
+        <FontAwesomeIcon icon={faKeyboard} className="me-2" />
+        Submit UPC
+      </Button>
     </form>
   );
 }
@@ -127,24 +135,38 @@ export function BarcodeScanner(props: IScannerProps) {
   const [activeNavLink, setActiveNavLink] = useState<navLinkType>("scanner");
 
   return (
-    <>
-      <Nav className="justify-content-center" variant="tabs" defaultActiveKey="scanner">
+    <div>
+      <Nav className="justify-content-center mb-3" variant="pills">
         <Nav.Item>
-          <Nav.Link eventKey="scanner" onClick={() => setActiveNavLink(() => "scanner")}>
+          <Nav.Link
+            eventKey="scanner"
+            active={activeNavLink === "scanner"}
+            onClick={() => setActiveNavLink(() => "scanner")}
+            className="d-flex align-items-center"
+          >
+            <FontAwesomeIcon icon={faCamera} className="me-2" />
             Scanner
           </Nav.Link>
         </Nav.Item>
         <Nav.Item>
-          <Nav.Link eventKey="keyboard" onClick={() => setActiveNavLink(() => "keyboard")}>
+          <Nav.Link
+            eventKey="keyboard"
+            active={activeNavLink === "keyboard"}
+            onClick={() => setActiveNavLink(() => "keyboard")}
+            className="d-flex align-items-center"
+          >
+            <FontAwesomeIcon icon={faKeyboard} className="me-2" />
             Keyboard
           </Nav.Link>
         </Nav.Item>
       </Nav>
 
-      {activeNavLink === "scanner" && <Html5QrcodePlugin {...props} />}
-      {activeNavLink === "keyboard" && (
-        <ProductLoggerKeyboard scanSuccessCallback={props.scanSuccessCallback} />
-      )}
-    </>
+      <div className="mt-3">
+        {activeNavLink === "scanner" && <Html5QrcodePlugin {...props} />}
+        {activeNavLink === "keyboard" && (
+          <ProductLoggerKeyboard scanSuccessCallback={props.scanSuccessCallback} />
+        )}
+      </div>
+    </div>
   );
 }

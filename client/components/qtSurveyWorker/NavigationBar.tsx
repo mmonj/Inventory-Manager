@@ -90,8 +90,8 @@ export function NavigationBar() {
             )}
 
             <Nav.Link
-              href={reverse("homepage:index")}
-              className={reverse("homepage:index") === currentPath ? "active fw-semibold" : ""}
+              href={reverse("root:index")}
+              className={reverse("root:index") === currentPath ? "active fw-semibold" : ""}
             >
               <FontAwesomeIcon icon={faHome} className="me-1" />
               Home

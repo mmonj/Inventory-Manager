@@ -86,6 +86,7 @@ export function Template(props: templates.StockTrackerScanner) {
   return (
     <Layout
       title="Scanner"
+      className="p-3"
       navbar={<NavigationBar />}
       extraStyles={["styles/stock_tracker/scanner.css"]}
     >

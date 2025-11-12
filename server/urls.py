@@ -19,9 +19,22 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from . import views
+
+# Root-level URL patterns with 'root:' namespace
+root_patterns = [
+    path("", views.index, name="index"),
+]
+
+if settings.DEBUG:
+    root_patterns += [
+        path("debug-404", views.error404),
+        path("debug-500", views.error500),
+    ]
+
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include("homepage.urls")),
+    path("", include((root_patterns, "root"))),
     path("api/", include("api.urls")),
     path("logger/", include("stock_tracker.urls")),
     path("product_locator/", include("product_locator.urls")),
@@ -30,5 +43,5 @@ urlpatterns = [
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
 ]
 
-# handler404 = "homepage.views.error404"
-# handler500 = "homepage.views.error500"
+# handler404 = "server.views.error404"
+# handler500 = "server.views.error500"
