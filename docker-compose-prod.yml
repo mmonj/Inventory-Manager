@@ -3,7 +3,7 @@ services:
     build:
       context: .
       args:
-        DEV: "${DEV}"
+        ENV_TYPE: "${ENV_TYPE}"
         UID: "${UID}"
     image: mmonj.inventory-manager-django-prod
     container_name: inventory-manager-prod
@@ -30,6 +30,7 @@ services:
   redis:
     image: redis
     container_name: redis-inventory-manager-prod
+    command: sh -c "redis-server --port ${REDIS_PORT} --requirepass ${REDIS_PASSWORD}"
     restart: unless-stopped
     networks:
       - caddy_net
@@ -39,23 +40,7 @@ services:
   rq_worker_default:
     image: mmonj.inventory-manager-django-prod
     container_name: inventory-manager-rq-worker-default-prod
-    command: poetry run python manage.py rqworker default
-    user: "${UID}"
-    volumes:
-      - ./:/app
-    env_file:
-      - ${ENV_FILE}
-    restart: unless-stopped
-    networks:
-      - caddy_net
-    depends_on:
-      - django_app
-      - redis
-
-  rq_worker_onehub_synccer:
-    image: mmonj.inventory-manager-django-prod
-    container_name: inventory-manager-rq-worker-onehub-synccer-prod
-    command: poetry run python manage.py rqworker onehub_synccer
+    command: uv run python manage.py rqworker default
     user: "${UID}"
     volumes:
       - ./:/app
@@ -71,7 +56,7 @@ services:
   rq_scheduler:
     image: mmonj.inventory-manager-django-prod
     container_name: inventory-manager-rq-scheduler-prod
-    command: poetry run rqscheduler -H redis -p 6379 --db 0
+    command: uv run rqscheduler -H redis -p ${REDIS_PORT} -P ${REDIS_PASSWORD} --db 0
     user: "${UID}"
     volumes:
       - ./:/app
