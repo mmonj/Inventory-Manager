@@ -61,7 +61,7 @@ export default function Template(props: templates.StockTrackerScanHistory) {
   }
 
   return (
-    <Layout title="Scan History" navbar={<NavigationBar />}>
+    <Layout title="Scan History" className="p-3" navbar={<NavigationBar />}>
       <section className="m-2 px-2 mw-rem-60 mx-auto">
         <h1 className="text-center">Scan History</h1>
         {chosenStore === null && (

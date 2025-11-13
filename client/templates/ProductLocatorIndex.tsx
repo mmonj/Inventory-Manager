@@ -114,8 +114,8 @@ export default function Template(props: templates.ProductLocatorIndex) {
                   <div className="d-flex align-items-center">
                     <FontAwesomeIcon icon={faExclamationTriangle} className="me-2 fs-4" />
                     <div>
-                      {getProductFetcher.errorMessages.map((message) => (
-                        <div key={crypto.randomUUID()}>{message}</div>
+                      {getProductFetcher.errorMessages.map((message, idx) => (
+                        <div key={idx}>{message}</div>
                       ))}
                     </div>
                   </div>
@@ -141,7 +141,7 @@ export default function Template(props: templates.ProductLocatorIndex) {
 
                           return (
                             <div
-                              key={crypto.randomUUID()}
+                              key={location.pk}
                               className="list-group-item list-group-item-action"
                             >
                               <div className="d-flex w-100 justify-content-between align-items-start">
@@ -197,7 +197,7 @@ export default function Template(props: templates.ProductLocatorIndex) {
 
                           return (
                             <div
-                              key={crypto.randomUUID()}
+                              key={location.pk}
                               className="list-group-item list-group-item-danger"
                             >
                               <div className="d-flex w-100 justify-content-between align-items-start">
