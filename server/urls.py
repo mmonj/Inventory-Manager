@@ -19,10 +19,23 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from . import views
+
+# root-level URL patterns with 'root:' namespace
+root_patterns = [
+    path("", views.index, name="index"),
+]
+
+if settings.DEBUG:
+    root_patterns += [
+        path("debug-404", views.error404),
+        path("debug-500", views.error500),
+    ]
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("django-rq/", include("django_rq.urls")),
-    path("", include("homepage.urls")),
+    path("", include((root_patterns, "root"))),
     path("api/", include("api.urls")),
     path("logger/", include("stock_tracker.urls")),
     path("product_locator/", include("product_locator.urls")),

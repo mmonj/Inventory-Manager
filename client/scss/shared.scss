@@ -1,4 +1,7 @@
-@import "variables";
+@use "bs-dark/variables" as bs;
+@use "sass:color";
+
+$max-width-rem-values: 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100;
 
 @each $i in $max-width-rem-values {
   .mw-rem-#{$i} {
@@ -10,15 +13,6 @@
   background: #bd00004f !important;
 }
 
-.navbar-brand:active {
-  filter: brightness(90%);
-}
-
-.nav-tabs {
-  border-bottom: 1px solid #e0e0e066;
-}
-
-// select2 dropdown styles
 .select2 {
   &-container {
     width: 100% !important;
@@ -38,34 +32,34 @@
 
   /* main selection */
   &-selection__rendered {
-    color: $text-color-1 !important;
-    background-color: $bg-dark-5;
+    color: bs.$gray-400 !important;
+    background-color: bs.$body-bg;
   }
 
   /* search input field */
   &-search__field {
-    color: $text-color-3 !important;
-    background-color: $bg-dark-5;
+    color: bs.$gray-400 !important;
+    background-color: bs.$body-bg;
   }
 
   /* search input border */
   &-search {
-    background-color: $bg-dark-5 !important;
+    background-color: bs.$body-bg !important;
   }
 
   /* currently selected option */
   &-results__option--selected {
-    background-color: #3a3a3a !important;
+    background-color: bs.$gray-100 !important;
   }
 
   /* non-selected options */
   &-results {
-    background-color: $bg-dark-5;
+    background-color: bs.$body-bg;
   }
 
   &-selection--single {
-    background-color: $bg-dark-5 !important;
-    border-color: $border-color-2 !important;
+    background-color: bs.$body-bg !important;
+    border-color: bs.$gray-800 !important;
     height: initial !important;
   }
 }
@@ -88,37 +82,37 @@
 
 .react-select {
   &__single-value {
-    color: white !important;
+    color: bs.$black !important;
   }
   &__input-container {
-    color: white !important;
+    color: bs.$black !important;
   }
   &__control {
-    color: white !important;
-    background-color: $bg-dark-5 !important;
+    color: bs.$black !important;
+    background-color: bs.$body-bg !important;
+    border-color: bs.$gray-300 !important;
   }
   &__menu {
-    border: #6d6d6d solid 1px;
+    border: bs.$gray-300 solid 1px;
   }
-
   &__menu-notice {
-    color: white !important;
-    background-color: $bg-dark-5 !important;
+    color: bs.$black !important;
+    background-color: bs.$body-bg !important;
   }
   &__menu-list {
-    background-color: $bg-dark-5 !important;
+    background-color: bs.$body-bg !important;
   }
   &__option {
-    color: white !important;
-    background-color: $bg-dark-5 !important;
+    color: bs.$black !important;
+    background-color: bs.$body-bg !important;
     padding-top: 0.3rem !important;
     padding-bottom: 0.3rem !important;
   }
   &__option--is-focused {
-    background-color: #67a2f7 !important;
+    background-color: bs.$blue !important;
   }
   &__option--is-selected {
-    background-color: #297df9 !important;
+    background-color: color.adjust(bs.$blue, $lightness: -12%) !important;
   }
   &__group {
     padding: 0 !important;
@@ -130,5 +124,5 @@
 }
 
 .accordion-button:not(.collapsed) {
-  background-color: rgb(173 206 251 / 13%);
+  background-color: rgba(bs.$blue, 0.13);
 }
