@@ -37,16 +37,13 @@
 
   // Light backgrounds
   --#{v.$prefix}body-bg: #{$light-bg};
-  --#{v.$prefix}body-bg-rgb:
-    #{red($light-bg)}, #{green($light-bg)}, #{blue($light-bg)};
+  --#{v.$prefix}body-bg-rgb: #{red($light-bg)}, #{green($light-bg)}, #{blue($light-bg)};
   --#{v.$prefix}body-color: #{$light-text};
-  --#{v.$prefix}body-color-rgb:
-    #{red($light-text)}, #{green($light-text)}, #{blue($light-text)};
+  --#{v.$prefix}body-color-rgb: #{red($light-text)}, #{green($light-text)}, #{blue($light-text)};
 
   // Text hierarchy colors for light theme
   --#{v.$prefix}emphasis-color: #{$light-text};
-  --#{v.$prefix}emphasis-color-rgb:
-    #{red($light-text)}, #{green($light-text)}, #{blue($light-text)};
+  --#{v.$prefix}emphasis-color-rgb: #{red($light-text)}, #{green($light-text)}, #{blue($light-text)};
 
   --#{v.$prefix}secondary-color: rgba(
     #{red($light-text)},
@@ -54,8 +51,8 @@
     #{blue($light-text)},
     0.75
   );
-  --#{v.$prefix}secondary-color-rgb:
-    #{red($light-text)}, #{green($light-text)}, #{blue($light-text)};
+  --#{v.$prefix}secondary-color-rgb: #{red($light-text)}, #{green($light-text)},
+    #{blue($light-text)};
 
   --#{v.$prefix}tertiary-color: rgba(
     #{red($light-text)},
@@ -63,15 +60,31 @@
     #{blue($light-text)},
     0.5
   );
-  --#{v.$prefix}tertiary-color-rgb:
-    #{red($light-text)}, #{green($light-text)}, #{blue($light-text)};
+  --#{v.$prefix}tertiary-color-rgb: #{red($light-text)}, #{green($light-text)}, #{blue($light-text)};
 
   // Background layers for light theme
   --#{v.$prefix}secondary-bg: #{$light-gray-200};
-  --#{v.$prefix}secondary-bg-rgb:
-    #{red($light-gray-200)}, #{green($light-gray-200)}, #{blue($light-gray-200)};
+  --#{v.$prefix}secondary-bg-rgb: #{red($light-gray-200)}, #{green($light-gray-200)},
+    #{blue($light-gray-200)};
 
   --#{v.$prefix}tertiary-bg: #{$light-gray-100};
-  --#{v.$prefix}tertiary-bg-rgb:
-    #{red($light-gray-100)}, #{green($light-gray-100)}, #{blue($light-gray-100)};
+  --#{v.$prefix}tertiary-bg-rgb: #{red($light-gray-100)}, #{green($light-gray-100)},
+    #{blue($light-gray-100)};
+
+  // Navbar toggler colors for light theme (inverted for dark mode display)
+  .navbar-dark .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><path stroke='#{v.$gray-500}' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/></svg>");
+  }
+
+  .navbar-dark .navbar-toggler {
+    border-color: rgba(v.$gray-500, 0.5);
+  }
+
+  .navbar-light .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><path stroke='#{v.$gray-500}' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/></svg>");
+  }
+
+  .navbar-light .navbar-toggler {
+    border-color: rgba(v.$gray-500, 0.5);
+  }
 }
