@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 
-import { Alert } from "react-bootstrap";
-
 import { Context, templates } from "@reactivated";
+import { Alert } from "react-bootstrap";
 
 import { Layout } from "@client/components/Layout";
 import { LoadingSpinner } from "@client/components/LoadingSpinner";
@@ -15,7 +14,7 @@ import { BasicProductAddition } from "@client/util/stockTracker/ajaxInterfaces";
 
 import { IStore } from "./StockTrackerScanner";
 
-export function Template(props: templates.StockTrackerScanHistory) {
+export default function Template(props: templates.StockTrackerScanHistory) {
   const djangoContext = React.useContext(Context);
   const [chosenStore, setChosenStore] = useState<IStore | null>(null);
   const [productAdditions, setProductAdditions] = useState<BasicProductAddition[]>([]);
@@ -32,8 +31,9 @@ export function Template(props: templates.StockTrackerScanHistory) {
         store_id: storePk,
       });
 
-    const [isSuccess, result] =
-      await productAdditionPaginationState.fetchData(productAdditionsCallback);
+    const [isSuccess, result] = await productAdditionPaginationState.fetchData(
+      productAdditionsCallback
+    );
     if (isSuccess) {
       setProductAdditions((prev) => [...prev, ...result]);
       setNextPageNumber((prev) => prev + 1);
@@ -63,7 +63,7 @@ export function Template(props: templates.StockTrackerScanHistory) {
   return (
     <Layout title="Scan History" navbar={<NavigationBar />}>
       <section className="m-2 px-2 mw-rem-60 mx-auto">
-        <h1 className="text-center">Scan History</h1>
+        <h1 className="title-color text-center">Scan History</h1>
         {chosenStore === null && (
           <FieldRepStoreSelector
             propType="fieldReps"
@@ -74,7 +74,7 @@ export function Template(props: templates.StockTrackerScanHistory) {
 
         {chosenStore !== null && (
           <ol className="list-group">
-            <h1 className="text-center my-3">{chosenStore.name}</h1>
+            <h1 className="title-color text-center my-3">{chosenStore.name}</h1>
             {productAdditions.map((productAddition) => (
               <ProductAdditionListItem
                 key={productAddition.id}

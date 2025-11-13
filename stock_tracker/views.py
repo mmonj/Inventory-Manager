@@ -43,7 +43,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
         logger.info(
             f"User {request.user.get_username()} is already logged in. Redirecting to homepage index"
         )
-        return redirect("root:index")
+        return redirect("homepage:index")
 
     if request.method == "GET":
         return render(request, "stock_tracker/login.html")
@@ -61,7 +61,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
             if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts=None):
                 return redirect(next_url)
 
-            return redirect("root:index")
+            return redirect("homepage:index")
         else:
             return render(request, "stock_tracker/login.html", {"is_invalid_credentials": True})
 

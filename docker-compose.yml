@@ -1,3 +1,5 @@
+# docker-compose.yml
+
 services:
   django_app:
     build:
@@ -17,7 +19,7 @@ services:
     tty: true
     user: "${UID}"
     ports:
-      - ${DJANGO_PORT}:${DJANGO_PORT}
+      - ${DJANGO_DEV_PORT}:${DJANGO_DEV_PORT}
     volumes:
       - inv_manager_node_modules:/app/node_modules
       - ./:/app
@@ -38,21 +40,14 @@ services:
     image: redis
     container_name: redis-inventory-manager-dev
     command: sh -c "redis-server --port ${REDIS_PORT} --requirepass ${REDIS_PASSWORD}"
-    env_file:
-      - ${ENV_FILE}
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "-h", "localhost", "-p", "${REDIS_PORT}", "-a", "${REDIS_PASSWORD}", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
     depends_on:
       - django_app
 
-  inv_manager_scheduler_worker_default:
+  rq_worker_default:
     image: inventory-manager-django-dev
-    container_name: inv-manager-scheduler-worker-default
-    command: uv run python manage.py scheduler_worker
+    container_name: inventory-manager-rq-worker-default-dev
+    command: uv run python manage.py rqworker default
     user: "${UID}"
     volumes:
       - ./:/app
@@ -60,9 +55,20 @@ services:
       - ${ENV_FILE}
     restart: unless-stopped
     depends_on:
-      redis:
-        condition: service_healthy
+      - django_app
 
+  rq_scheduler:
+    image: inventory-manager-django-dev
+    container_name: inventory-manager-rq-scheduler-dev
+    command: uv run rqscheduler -H redis -p ${REDIS_PORT} -P ${REDIS_PASSWORD} --db 0
+    user: "${UID}"
+    volumes:
+      - ./:/app
+    env_file:
+      - ${ENV_FILE}
+    restart: unless-stopped
+    depends_on:
+      - django_app
 
 volumes:
   inv_manager_node_modules:

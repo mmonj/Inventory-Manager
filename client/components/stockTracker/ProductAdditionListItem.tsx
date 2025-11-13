@@ -2,11 +2,11 @@ import React from "react";
 
 import { Context } from "@reactivated";
 
+import { format } from "date-fns";
+
 import { useFetch } from "@client/hooks/useFetch";
 import { uncarry_product_addition } from "@client/util/stockTracker";
 import { BasicProductAddition } from "@client/util/stockTracker/ajaxInterfaces";
-
-import { format } from "date-fns";
 
 import { LoadingSpinner } from "../LoadingSpinner";
 
@@ -48,8 +48,8 @@ export function ProductAdditionListItem({
         <div className="truncated-text-container">
           <p className="truncated-text mb-1">{productAddition.product.name}</p>
           <small className="text-muted">
-            {productAddition.product.parent_company.expanded_name ??
-              productAddition.product.parent_company.short_name ??
+            {productAddition.product.parent_company?.expanded_name ??
+              productAddition.product.parent_company?.short_name ??
               "Unknown brand"}
           </small>
         </div>

@@ -2,8 +2,8 @@ import React from "react";
 
 import { Context } from "@reactivated";
 
-// Props
-interface Props extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
+interface Props {
+  href: string;
   children: React.ReactNode;
 }
 

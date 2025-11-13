@@ -1,0 +1,80 @@
+{% extends "stock_tracker/layout.html" %}
+{% load static %}
+
+{% block title %}Inventory Manager{% endblock %}
+
+{% block extra_head_elements %}
+{% endblock %}
+
+{% block body_header %}
+<nav class="navbar mw-rem-60 mx-auto border-bottom">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="{% url 'homepage:index' %}">
+      <img src="{% static 'public/phone-barcode-image.png' %}" alt="Logo" width="30" height="50" id="nav-logo"
+        class="d-inline-block">
+      <span class="mx-2">Inventory Manager</span>
+    </a>
+  </div>
+</nav>
+{% endblock %}
+
+{% block body_main %}
+<section class="my-4 mw-rem-60 mx-auto px-2">
+  <div class="card mb-3 rounded-4 overflow-hidden">
+    <div class="row g-0">
+      <div class="col-md-4 text-center">
+        <img src="{% static 'public/product-logger-logo.png' %}" class="img-fluid rounded-start card-img"
+          alt="product-logger-logo">
+      </div>
+      <div class="card-body col-md-8 d-flex flex-column justify-content-between">
+        <div>
+          <h5 class="card-title">Inventory Tracker</h5>
+          <p class="card-text">Adjust and monitor inventory for individual stores</p>
+          <p class="card-text">Features a built-in barcode scanner</p>
+        </div>
+        <div class="text-end mt-3">
+          <a href="{% url 'stock_tracker:scanner' %}" class="btn btn-primary">Go to Inventory Tracker</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-3 rounded-4 overflow-hidden">
+    <div class="row g-0">
+      <div class="col-md-4 text-center">
+        <img src="{% static 'public/product-locator-logo.jpg' %}" class="img-fluid rounded-start card-img"
+          alt="product-logger-logo">
+      </div>
+      <div class="card-body col-md-8 d-flex flex-column justify-content-between">
+        <div>
+          <h5 class="card-title">Product Locator</h5>
+          <p class="card-text">Scan to find a product's home location. Useful when stocking large displays</p>
+          <p class="card-text">Features a built-in barcode scanner</p>
+        </div>
+        <div class="text-end mt-3">
+          <a href="{% url 'product_locator:index' %}" class="btn btn-primary">Go to Product Locator</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-3 rounded-4 overflow-hidden">
+    <div class="row g-0">
+      <div class="col-md-4 text-center">
+        <img src="{% static 'public/survey-logo.png' %}" class="img-fluid rounded-start card-img"
+          alt="product-logger-logo">
+      </div>
+      <div class="card-body col-md-8 d-flex flex-column justify-content-between">
+        <div>
+          <h5 class="card-title">Survey Worker</h5>
+          <p class="card-text">Find and launch work surveys in one go</p>
+          <p class="card-text">Features a searchable dropdown list</p>
+        </div>
+        <div class="text-end mt-3">
+          <a href="{% url 'survey_worker:index' %}" class="btn btn-primary">Go to Survey Launcher</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

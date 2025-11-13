@@ -8,7 +8,7 @@ import { BarcodeSheetHeader } from "@client/components/stockTracker/BarcodeSheet
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { BarcodeSheetSchema } from "@client/types";
 
-export function Template(props: templates.StockTrackerBarcodeSheet) {
+export default function Template(props: templates.StockTrackerBarcodeSheet) {
   const [isEditMode, setIsEditMode] = useState(false);
 
   BarcodeSheetSchema.parse(props);
@@ -16,9 +16,9 @@ export function Template(props: templates.StockTrackerBarcodeSheet) {
   return (
     <Layout
       title={`Barcode Sheet for ${props.barcodeSheet.parent_company.expanded_name}: ${props.barcodeSheet.store_name}`}
-      bsTheme="dark"
-      navbar={<NavigationBar extraClassName="navbar-light bg-light" />}
+      navbar={<NavigationBar />}
       extraStyles={["styles/stock_tracker/barcode_sheet.css"]}
+      excludeBsBodyOverrides={true}
     >
       <BarcodeSheetHeader {...props} setIsEditMode={setIsEditMode} />
       <BarcodeSheetContent {...props} isEditMode={isEditMode} />

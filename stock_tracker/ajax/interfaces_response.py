@@ -1,5 +1,6 @@
-from products.models import BrandParentCompany, Product, ProductAddition
 from rest_framework import serializers
+
+from products.models import BrandParentCompany, Product, ProductAddition
 
 
 class BasicBrandParentCompany(serializers.ModelSerializer[BrandParentCompany]):

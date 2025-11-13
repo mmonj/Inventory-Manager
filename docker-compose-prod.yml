@@ -3,19 +3,14 @@ services:
     build:
       context: .
       args:
-        ENV_TYPE: "${ENV_TYPE}"
+        DEV: "${DEV}"
         UID: "${UID}"
     image: mmonj.inventory-manager-django-prod
     container_name: inventory-manager-prod
-    command: >
-      poetry run bash -c "python manage.py migrate
-      && python manage.py generate_client_assets
-      && python manage.py build
-      && python manage.py collectstatic --clear --noinput
-      && uvicorn server.asgi:application --host 0.0.0.0 --port 8080"
+    command: npm run server:deploy
     user: "${UID}"
     volumes:
-      - /app/node_modules
+      - inv_manager_node_modules:/app/node_modules
       - ./:/app
     env_file:
       - ${ENV_FILE}
@@ -35,51 +30,64 @@ services:
   redis:
     image: redis
     container_name: redis-inventory-manager-prod
-    command: sh -c "redis-server --port ${REDIS_PORT} --requirepass ${REDIS_PASSWORD}"
-    env_file:
-      - ${ENV_FILE}
     restart: unless-stopped
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "redis-cli",
-          "-h",
-          "localhost",
-          "-p",
-          "${REDIS_PORT}",
-          "-a",
-          "${REDIS_PASSWORD}",
-          "ping",
-        ]
-      interval: 5s
-      timeout: 3s
-      retries: 3
     networks:
       - caddy_net
     depends_on:
       - django_app
 
-  inv_manager_scheduler_worker_default:
+  rq_worker_default:
     image: mmonj.inventory-manager-django-prod
-    container_name: inventory-manager-scheduler-worker-prod
-    command: uv run python manage.py scheduler_worker
+    container_name: inventory-manager-rq-worker-default-prod
+    command: poetry run python manage.py rqworker default
     user: "${UID}"
     volumes:
       - ./:/app
     env_file:
       - ${ENV_FILE}
     restart: unless-stopped
-    depends_on:
-      redis:
-        condition: service_healthy
     networks:
       - caddy_net
+    depends_on:
+      - django_app
+      - redis
 
-volumes:
-  inv_manager_node_modules:
-    external: true
+  rq_worker_onehub_synccer:
+    image: mmonj.inventory-manager-django-prod
+    container_name: inventory-manager-rq-worker-onehub-synccer-prod
+    command: poetry run python manage.py rqworker onehub_synccer
+    user: "${UID}"
+    volumes:
+      - ./:/app
+    env_file:
+      - ${ENV_FILE}
+    restart: unless-stopped
+    networks:
+      - caddy_net
+    depends_on:
+      - django_app
+      - redis
+
+  rq_scheduler:
+    image: mmonj.inventory-manager-django-prod
+    container_name: inventory-manager-rq-scheduler-prod
+    command: poetry run rqscheduler -H redis -p 6379 --db 0
+    user: "${UID}"
+    volumes:
+      - ./:/app
+    env_file:
+      - ${ENV_FILE}
+    restart: unless-stopped
+    networks:
+      - caddy_net
+    depends_on:
+      - django_app
+      - redis
 
 networks:
   caddy_net:
+    external: true
+
+volumes:
+  inv_manager_node_modules:
     external: true

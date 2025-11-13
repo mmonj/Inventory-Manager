@@ -1,7 +1,7 @@
 import logging
 import re
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from io import BytesIO
 from typing import Optional
 
@@ -9,8 +9,8 @@ import redis
 import requests
 from django.conf import settings
 from django.core.files import File
+from django_rq import job  # type: ignore [import]
 from PIL import Image, ImageChops, ImageOps
-from scheduler import job
 
 from .models import Product
 from .types import IUpcItemDbData, IUpcItemDbItem
@@ -35,17 +35,17 @@ logger = logging.getLogger("rq.worker")
 upc_to_fetch_key_template = "upc_to_fetch_{upc}"
 
 redis_client = redis.Redis(
-    host=settings.SCHEDULER_QUEUES["default"].HOST,  # type: ignore [arg-type]
-    password=settings.SCHEDULER_QUEUES["default"].PASSWORD,
-    port=settings.SCHEDULER_QUEUES["default"].PORT,  # type: ignore [arg-type]
-    db=settings.SCHEDULER_QUEUES["default"].DB,  # type: ignore [arg-type]
+    host=settings.RQ_QUEUES["default"]["HOST"],
+    password=settings.RQ_QUEUES["default"]["PASSWORD"],
+    port=settings.RQ_QUEUES["default"]["PORT"],
+    db=settings.RQ_QUEUES["default"]["DB"],
 )
 
 
-@job()  # type:ignore [misc]
+@job  # type:ignore [misc]
 def get_external_product_images() -> None:
     logger.info("Received job to fetch product images from API")
-    yesterday_date = datetime.now(tz=UTC).date() - timedelta(days=1)
+    yesterday_date = datetime.now().date() - timedelta(days=1)
     latest_products_with_no_image = Product.objects.filter(
         date_added__gt=yesterday_date, item_image=""
     )
@@ -72,7 +72,6 @@ def add_upcs_to_redis_store(*upcs: str) -> None:
 
 
 def fetch_product_data(products_to_fetch_image: list[Product]) -> None:
-    http_too_many_requests_code = 429
     split_size = 2
 
     for idx in range(0, len(products_to_fetch_image), split_size):
@@ -85,7 +84,7 @@ def fetch_product_data(products_to_fetch_image: list[Product]) -> None:
         )
         resp: requests.Response = requests.get(endpoint_url, timeout=15)
 
-        if resp.status_code == http_too_many_requests_code:
+        if resp.status_code == 429:
             logger.error("Rate limit has been hit. Waiting 60 seconds")
             time.sleep(61)
             continue

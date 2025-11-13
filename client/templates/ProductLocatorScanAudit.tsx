@@ -2,15 +2,15 @@ import React from "react";
 
 import { Context, interfaces, templates } from "@reactivated";
 
+import { format } from "date-fns";
+
 import { BarcodeScanner } from "@client/components/BarcodeScanner";
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { createNewScanAudit, postToScanAudit } from "@client/util/productLocator";
 
-import { format } from "date-fns";
-
-export function Template(props: templates.ProductLocatorScanAudit) {
+export default function Template(props: templates.ProductLocatorScanAudit) {
   const [scannedUpcs, setScannedUpcs] = React.useState<string[]>([]);
   const [selectedScanAuditId, setSelectedScanAuditId] = React.useState<number | null>(null);
   const createNewScanAuditFetch = useFetch<interfaces.IScanAuditCreation>();
@@ -79,7 +79,7 @@ export function Template(props: templates.ProductLocatorScanAudit) {
       extraStyles={["styles/stock_tracker/scanner.css"]}
     >
       <section className="m-2 px-2 mw-rem-60 mx-auto">
-        <h1 className="text-center my-3">Scan Audit</h1>
+        <h1 className="title-color text-center my-3">Scan Audit</h1>
         {selectedScanAuditId === null && (
           <form onSubmit={handleScanAuditSubmission}>
             <label htmlFor="previous-scan-audits">Continue with a previous Audit</label>

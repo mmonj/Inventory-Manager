@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 
+import { reverse, templates } from "@reactivated";
 import {
   Alert,
   Badge,
@@ -13,8 +14,6 @@ import {
   InputGroup,
   Row,
 } from "react-bootstrap";
-
-import { reverse, templates } from "@reactivated";
 
 import { Layout } from "@client/components/Layout";
 import { Pagination } from "@client/components/Pagination";
@@ -35,7 +34,7 @@ function getMessageTypeVariant(messageType: string): string {
   }
 }
 
-export function Template(props: templates.QtAutofillLogs) {
+export default function Template(props: templates.QtAutofillLogs) {
   const [filterType, setFilterType] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");

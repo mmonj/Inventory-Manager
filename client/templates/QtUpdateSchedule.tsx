@@ -5,7 +5,7 @@ import { CSRFToken, reverse, templates } from "@reactivated";
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
 
-export function Template(props: templates.QtUpdateSchedule) {
+export default function Template(props: templates.QtUpdateSchedule) {
   const [errorMsg, setErrorMsg] = React.useState<string>("");
 
   function handleFormSubmit(event: React.FormEvent<HTMLFormElement>) {

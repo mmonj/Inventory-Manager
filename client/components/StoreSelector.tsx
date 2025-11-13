@@ -1,11 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import Button from "react-bootstrap/Button";
 import Select, { ActionMeta, SingleValue } from "react-select";
-import { FilterOptionOption } from "react-select/dist/declarations/src/filters";
 
-import { faCheckCircle, faStore, faUser } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FilterOptionOption } from "react-select/dist/declarations/src/filters";
 
 import { IFieldRep, IStore } from "@client/templates/StockTrackerScanner";
 
@@ -84,18 +81,16 @@ function StoreSelector({ stores, selectedStore, setSelectedStore }: StoreSelecto
   );
 
   return (
-    <div id="store-select-container" className="mb-3">
-      <label htmlFor="store-select" className="form-label fw-semibold">
-        <FontAwesomeIcon icon={faStore} className="me-2 text-primary" />
-        Select a store
-        <span className="text-muted ms-2">({stores.length} listed)</span>
+    <div id="store-select-container" className="my-1 mb-3">
+      <label htmlFor="store-select" className="form-label">
+        Select a store ({stores.length} listed)
       </label>
 
       <Select
         required={true}
         filterOption={filterOption}
         menuShouldScrollIntoView={true}
-        placeholder="Search for a store..."
+        placeholder="Select a store"
         value={selectedStore}
         onChange={handleInputChange}
         options={options}
@@ -129,6 +124,8 @@ export function FieldRepStoreSelector({
     localStorage.setItem(LOCALSTORAGE_LAST_REP_ID_VIEWED_KEY, fieldRepRef.current.value);
 
     const fieldRepPk = fieldRepRef.current.value;
+    if (fieldRepPk === undefined) throw new Error("Field Rep Pk is undefined");
+
     const fieldRep = props.field_reps.find((field_rep) => field_rep.pk === parseInt(fieldRepPk));
 
     if (fieldRep === undefined) throw new Error(`Field Rep pk "${fieldRepPk}" not found`);
@@ -171,17 +168,16 @@ export function FieldRepStoreSelector({
   return (
     <form onSubmit={onSubmit}>
       <fieldset className="mb-3">
-        <legend className="h5 mb-3">Store Selector</legend>
+        <legend>Store Selector</legend>
         {props.propType === "fieldReps" && (
-          <div className="mb-3">
-            <label htmlFor="field-representative-select" className="form-label fw-semibold">
-              <FontAwesomeIcon icon={faUser} className="me-2 text-primary" />
+          <p>
+            <label htmlFor="field-representative-select" className="form-label">
               Field Representative
             </label>
             <select
               onChange={() => onFieldRepChange()}
               ref={fieldRepRef}
-              className="form-select form-select-lg"
+              className="form-select"
               id="field-representative-select"
               required
             >
@@ -191,7 +187,7 @@ export function FieldRepStoreSelector({
                 </option>
               ))}
             </select>
-          </div>
+          </p>
         )}
         <StoreSelector
           stores={listedStores}
@@ -200,10 +196,9 @@ export function FieldRepStoreSelector({
         />
       </fieldset>
       {isHandleSubmissionWithoutButton == false && (
-        <Button type="submit" variant="primary" size="lg" className="w-100">
-          <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+        <button type="submit" className="btn btn-primary col-12 my-2 d-block">
           {props.submitButtonText ?? "Submit"}
-        </Button>
+        </button>
       )}
     </form>
   );

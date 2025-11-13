@@ -1,0 +1,164 @@
+.mw-rem-50 {
+  max-width: 50rem;
+}
+
+.mw-rem-55 {
+  max-width: 55rem;
+}
+
+.mw-rem-60 {
+  max-width: 60rem;
+}
+
+.mw-rem-65 {
+  max-width: 65rem;
+}
+
+.mw-rem-70 {
+  max-width: 70rem;
+}
+
+.mw-rem-75 {
+  max-width: 75rem;
+}
+
+.mw-rem-80 {
+  max-width: 80rem;
+}
+
+.mw-rem-85 {
+  max-width: 85rem;
+}
+
+.mw-rem-90 {
+  max-width: 90rem;
+}
+
+.mw-rem-95 {
+  max-width: 95rem;
+}
+
+.mw-rem-100 {
+  max-width: 100rem;
+}
+
+.bg-danger {
+  background: rgba(189, 0, 0, 0.3098039216) !important;
+}
+
+.bg-blue-theme {
+  background-color: rgb(35, 45, 59);
+}
+
+.title-color {
+  color: rgb(247, 223, 186);
+}
+
+.navbar-brand:active {
+  filter: brightness(90%);
+}
+
+.nav-tabs {
+  border-bottom: 1px solid rgba(224, 224, 224, 0.4);
+}
+
+.select2 {
+  /* main selection */
+  /* search input field */
+  /* search input border */
+  /* currently selected option */
+  /* non-selected options */
+}
+.select2-container {
+  width: 100% !important;
+}
+.select2-selection {
+  min-height: 2rem;
+}
+.select2-selection__rendered {
+  margin: 0.25rem;
+}
+.select2-selection__arrow {
+  margin: 0.2rem 0;
+}
+.select2-selection__rendered {
+  color: rgb(255, 255, 255) !important;
+  background-color: rgb(17, 24, 39);
+}
+.select2-search__field {
+  color: rgb(156, 163, 175) !important;
+  background-color: rgb(17, 24, 39);
+}
+.select2-search {
+  background-color: rgb(17, 24, 39) !important;
+}
+.select2-results__option--selected {
+  background-color: #3a3a3a !important;
+}
+.select2-results {
+  background-color: rgb(17, 24, 39);
+}
+.select2-selection--single {
+  background-color: rgb(17, 24, 39) !important;
+  border-color: rgba(229, 231, 235, 0.274) !important;
+  height: initial !important;
+}
+
+@keyframes _fade_zero {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.fade-zero {
+  animation-name: _fade_zero;
+  animation-duration: 0.2s;
+  animation-fill-mode: forwards;
+  animation-play-state: running;
+}
+
+.react-select__single-value {
+  color: white !important;
+}
+.react-select__input-container {
+  color: white !important;
+}
+.react-select__control {
+  color: white !important;
+  background-color: rgb(17, 24, 39) !important;
+}
+.react-select__menu {
+  border: #6d6d6d solid 1px;
+}
+.react-select__menu-notice {
+  color: white !important;
+  background-color: rgb(17, 24, 39) !important;
+}
+.react-select__menu-list {
+  background-color: rgb(17, 24, 39) !important;
+}
+.react-select__option {
+  color: white !important;
+  background-color: rgb(17, 24, 39) !important;
+  padding-top: 0.3rem !important;
+  padding-bottom: 0.3rem !important;
+}
+.react-select__option--is-focused {
+  background-color: #67a2f7 !important;
+}
+.react-select__option--is-selected {
+  background-color: #297df9 !important;
+}
+.react-select__group {
+  padding: 0 !important;
+}
+
+.accordion-button {
+  background-color: transparent;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: rgba(173, 206, 251, 0.13);
+}/*# sourceMappingURL=shared.css.map */

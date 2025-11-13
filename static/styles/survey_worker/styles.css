@@ -1,0 +1,34 @@
+.mm-unset {
+  all: unset;
+}
+
+.rephub-top-action-elements {
+  width: 8rem;
+  height: 8rem;
+}
+
+.rephub-top-action-elements button:active {
+  transform: scale(0.95);
+}
+
+.rephub-main-content {
+  min-width: 12rem;
+}
+
+.webhub-clock-in-btn {
+  height: 6rem;
+  width: 6rem;
+}
+
+.webhub-clock-in-btn img {
+  max-height: 80%;
+  max-width: 80%;
+}
+
+.copy-address:active {
+  transform: scale(0.85);
+}
+
+.copy-address:hover {
+  cursor: pointer;
+}

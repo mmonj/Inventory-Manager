@@ -1,8 +1,7 @@
 import React, { useContext, useState } from "react";
 
-import { Alert } from "react-bootstrap";
-
 import { Context, templates } from "@reactivated";
+import { Alert } from "react-bootstrap";
 
 import { BarcodeScanner } from "@client/components/BarcodeScanner";
 import { Layout } from "@client/components/Layout";
@@ -26,7 +25,7 @@ export interface IFieldRep {
   stores: IStore[];
 }
 
-export function Template(props: templates.StockTrackerScanner) {
+export default function Template(props: templates.StockTrackerScanner) {
   const [productAdditions, setProductAdditions] = useState<BasicProductAddition[]>([]);
   const [store, setStore] = useState<IStore | null>(null);
   const { isError, isLoading, errorMessages, fetchData } = useFetch<BasicProductAddition>();
@@ -86,13 +85,12 @@ export function Template(props: templates.StockTrackerScanner) {
   return (
     <Layout
       title="Scanner"
-      className="p-3"
       navbar={<NavigationBar />}
       extraStyles={["styles/stock_tracker/scanner.css"]}
     >
       {store === null && (
         <section className="mw-rem-50 mx-auto p-2">
-          <h1 className="text-center">Scanner</h1>
+          <h1 className="title-color text-center">Scanner</h1>
           <FieldRepStoreSelector
             propType="fieldReps"
             field_reps={props.field_reps}
@@ -104,7 +102,7 @@ export function Template(props: templates.StockTrackerScanner) {
       {store !== null && (
         <section id="scanner-container" className="mw-rem-60 mx-auto">
           <div id="scanner-store-indicator">
-            <h3 className="text-center p-2">{store.name}</h3>
+            <h3 className="text-center title-color p-2">{store.name}</h3>
             <BarcodeScanner scanSuccessCallback={onScanSuccess} scanErrorCallback={onScanError} />
           </div>
 

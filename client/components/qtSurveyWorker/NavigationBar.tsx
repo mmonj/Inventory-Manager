@@ -1,11 +1,7 @@
 import React from "react";
 
-import { Container, Nav, NavDropdown, Navbar } from "react-bootstrap";
-
 import { Context, reverse } from "@reactivated";
-
-import { faHome, faSignInAlt, faSignOutAlt, faUserShield } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { Container, Nav, Navbar } from "react-bootstrap";
 
 import { NavLink } from "../NavLink";
 
@@ -37,11 +33,9 @@ export function NavigationBar() {
   ];
 
   return (
-    <Navbar expand="lg" className="border-bottom shadow-sm bg-white" sticky="top">
+    <Navbar expand="lg" className="bg-body-tertiary bg-blue-theme border-bottom px-2">
       <Container fluid>
-        <Navbar.Brand href={reverse("survey_worker:index")} className="fw-bold text-primary">
-          <span className="fs-5">Survey Worker</span>
-        </Navbar.Brand>
+        <Navbar.Brand href={reverse("survey_worker:index")}>Survey Worker</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto mb-2 mb-lg-0">
@@ -57,65 +51,31 @@ export function NavigationBar() {
 
             {djangoContext.user.is_superuser && (
               <>
-                <NavDropdown
-                  title={
-                    <>
-                      <FontAwesomeIcon icon={faUserShield} className="me-1" />
-                      Admin Tools
-                    </>
-                  }
-                  id="admin-tools-dropdown"
-                >
-                  {privilegedLinks.map((link, idx) => (
-                    <NavDropdown.Item key={idx} href={link.href} active={link.href === currentPath}>
-                      {link.text}
-                    </NavDropdown.Item>
-                  ))}
-                </NavDropdown>
+                {privilegedLinks.map((link, idx) => (
+                  <NavLink key={idx} href={link.href}>
+                    {link.text}
+                  </NavLink>
+                ))}
               </>
             )}
           </Nav>
 
-          <Nav className="mb-2 mb-lg-0 align-items-center">
-            {djangoContext.user.is_superuser && (
-              <Nav.Link
-                href="/admin"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-warning"
-              >
-                <FontAwesomeIcon icon={faUserShield} className="me-1" />
-                Django Admin
-              </Nav.Link>
-            )}
-
-            <Nav.Link
-              href={reverse("root:index")}
-              className={reverse("root:index") === currentPath ? "active fw-semibold" : ""}
-            >
-              <FontAwesomeIcon icon={faHome} className="me-1" />
-              Home
-            </Nav.Link>
+          <Nav className="mb-2 mb-lg-0">
+            <Nav.Link href={reverse("homepage:index")}>Home</Nav.Link>
 
             {djangoContext.user.is_authenticated && (
               <Nav.Link
                 href={reverse("stock_tracker:logout_view")}
-                className={
-                  reverse("stock_tracker:logout_view") === currentPath ? "active fw-semibold" : ""
-                }
+                className={reverse("stock_tracker:logout_view") === currentPath ? "active" : ""}
               >
-                <FontAwesomeIcon icon={faSignOutAlt} className="me-1" />
                 Log Out
               </Nav.Link>
             )}
             {!djangoContext.user.is_authenticated && (
               <Nav.Link
                 href={reverse("stock_tracker:login_view")}
-                className={
-                  reverse("stock_tracker:login_view") === currentPath ? "active fw-semibold" : ""
-                }
+                className={reverse("stock_tracker:login_view") === currentPath ? "active" : ""}
               >
-                <FontAwesomeIcon icon={faSignInAlt} className="me-1" />
                 Log In
               </Nav.Link>
             )}

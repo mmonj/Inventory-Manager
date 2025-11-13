@@ -1,12 +1,10 @@
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
-from . import templates
-
 
 # Create your views here.
 def index(request: HttpRequest) -> HttpResponse:
-    return templates.HomepageIndex().render(request)
+    return render(request, "homepage/index.html")
 
 
 def error404(

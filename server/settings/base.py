@@ -15,37 +15,32 @@ from pathlib import Path
 
 import django_stubs_ext
 
+# retrieve django settings that are included as environmental variables
+
 django_stubs_ext.monkeypatch()
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.0/howto/static-files/
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/4.1/howto/static-files/
+
 STATIC_URL = os.environ["DJANGO_STATIC_URL"]
-STATIC_ROOT = BASE_DIR / os.environ["DJANGO_COLLECTED_PATH"].strip("/")
-STATICFILES_DIRS = (BASE_DIR / os.environ["DJANGO_STATIC_DIR"].strip("/"),)
+STATIC_ROOT = BASE_DIR / "collected"
+STATICFILES_DIRS = (BASE_DIR / "static/",)
 
 MEDIA_URL = os.environ["DJANGO_MEDIA_URL"]
-MEDIA_ROOT = BASE_DIR / os.environ["DJANGO_MEDIA_DIR"].strip("/")
+MEDIA_ROOT = BASE_DIR / "media/"
 MEDIA_ROOT.mkdir(exist_ok=True)
-
-LOGS_DIR = BASE_DIR / "log_files"
-LOGS_DIR.mkdir(exist_ok=True)
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ["ENV_TYPE"] != "prod"
 
-ALLOWED_HOSTS = os.environ["DJANGO_ALLOWED_HOSTS"].split()
-CSRF_TRUSTED_ORIGINS = os.environ["DJANGO_CSRF_TRUSTED_ORIGINS"].split()
+TIME_ZONE = os.environ["TZ"]
+
+LOGS_DIR = BASE_DIR / "log_files"
+LOGS_DIR.mkdir(exist_ok=True)
 
 DAY_IN_SECONDS = 3600 * 24
 SESSION_COOKIE_AGE = DAY_IN_SECONDS * 7 * 4
@@ -62,6 +57,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "homepage",
     "api",
     "products",
     "stock_tracker",
@@ -71,8 +67,8 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
-    "scheduler",
     "django_cleanup.apps.CleanupConfig",
+    "django_rq",
     "reactivated",  # goes last
 ]
 
@@ -145,8 +141,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = os.environ["TZ"]
-
 USE_I18N = True
 
 USE_TZ = True
@@ -156,8 +150,24 @@ USE_TZ = True
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# django file upload settings
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.TokenAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+}
+
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024**2
+
+ALLOWED_HOSTS = os.environ["DJANGO_ALLOWED_HOSTS"].split()
+CSRF_TRUSTED_ORIGINS = os.environ["DJANGO_CSRF_TRUSTED_ORIGINS"].split()
+
+CORS_URLS_REGEX = r"^/(api|product_locator/api|survey_worker/api)/.*$"
+CORS_ALLOW_ALL_ORIGINS = True
+
 
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
@@ -173,18 +183,6 @@ DATABASES = {
     }
 }
 
-REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.TokenAuthentication",
-    ],
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",
-    ],
-}
-
-CORS_URLS_REGEX = r"^/(api|product_locator/api|survey_worker/api)/.*$"
-CORS_ALLOW_ALL_ORIGINS = True
 
 LOGGING = {
     "version": 1,
