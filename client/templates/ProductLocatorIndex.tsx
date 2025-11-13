@@ -67,7 +67,7 @@ export default function Template(props: templates.ProductLocatorIndex) {
         {!!store && (
           <section id="scanner-container" className="mw-rem-60 mx-auto">
             <div id="scanner-store-indicator" className="p-2">
-              <h5 className="card-title text-center title-color">{store.name}</h5>
+              <h5 className="card-title text-center">{store.name}</h5>
             </div>
 
             <BarcodeScanner {...{ scanSuccessCallback, scanErrorCallback }} />

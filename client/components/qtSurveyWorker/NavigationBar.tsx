@@ -33,7 +33,7 @@ export function NavigationBar() {
   ];
 
   return (
-    <Navbar expand="lg" className="bg-body-tertiary bg-blue-theme border-bottom px-2">
+    <Navbar expand="lg" className="border-bottom px-2">
       <Container fluid>
         <Navbar.Brand href={reverse("survey_worker:index")}>Survey Worker</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />

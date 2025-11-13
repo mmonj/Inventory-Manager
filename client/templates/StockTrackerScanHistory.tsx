@@ -63,7 +63,7 @@ export default function Template(props: templates.StockTrackerScanHistory) {
   return (
     <Layout title="Scan History" navbar={<NavigationBar />}>
       <section className="m-2 px-2 mw-rem-60 mx-auto">
-        <h1 className="title-color text-center">Scan History</h1>
+        <h1 className="text-center">Scan History</h1>
         {chosenStore === null && (
           <FieldRepStoreSelector
             propType="fieldReps"
@@ -74,7 +74,7 @@ export default function Template(props: templates.StockTrackerScanHistory) {
 
         {chosenStore !== null && (
           <ol className="list-group">
-            <h1 className="title-color text-center my-3">{chosenStore.name}</h1>
+            <h1 className="text-center my-3">{chosenStore.name}</h1>
             {productAdditions.map((productAddition) => (
               <ProductAdditionListItem
                 key={productAddition.id}

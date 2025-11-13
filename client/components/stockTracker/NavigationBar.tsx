@@ -3,12 +3,18 @@ import React from "react";
 import { Context, reverse } from "@reactivated";
 import { Container, Nav, Navbar } from "react-bootstrap";
 
-export function NavigationBar() {
+import classNames from "classnames";
+
+interface Props {
+  extraClassName?: string;
+}
+
+export function NavigationBar({ extraClassName = "" }: Props) {
   const djangoContext = React.useContext(Context);
   const currentPath = djangoContext.request.path;
 
   return (
-    <Navbar expand="lg" className="bg-body-tertiary bg-blue-theme border-bottom px-2">
+    <Navbar expand="lg" className={classNames("border-bottom px-2", extraClassName)}>
       <Container fluid>
         <Navbar.Brand href={reverse("stock_tracker:scanner")}>Inventory Tracker</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
@@ -18,7 +24,8 @@ export function NavigationBar() {
               <>
                 <Nav.Link
                   href={reverse("stock_tracker:scan_history")}
-                  className={reverse("stock_tracker:scan_history") === currentPath ? "active" : ""}>
+                  className={reverse("stock_tracker:scan_history") === currentPath ? "active" : ""}
+                >
                   Scan History
                 </Nav.Link>
 
@@ -26,7 +33,8 @@ export function NavigationBar() {
                   href={reverse("stock_tracker:barcode_sheet_history")}
                   className={
                     reverse("stock_tracker:barcode_sheet_history") === currentPath ? "active" : ""
-                  }>
+                  }
+                >
                   Barcode Sheets
                 </Nav.Link>
 
@@ -34,7 +42,8 @@ export function NavigationBar() {
                   href={reverse("stock_tracker:get_manager_names")}
                   className={
                     reverse("stock_tracker:get_manager_names") === currentPath ? "active" : ""
-                  }>
+                  }
+                >
                   Manager Update Form
                 </Nav.Link>
               </>
@@ -46,7 +55,8 @@ export function NavigationBar() {
                   href={reverse("stock_tracker:add_new_stores")}
                   className={
                     reverse("stock_tracker:add_new_stores") === currentPath ? "active" : ""
-                  }>
+                  }
+                >
                   Add New Stores
                 </Nav.Link>
 
@@ -54,7 +64,8 @@ export function NavigationBar() {
                   href={reverse("stock_tracker:import_json_data_files")}
                   className={
                     reverse("stock_tracker:import_json_data_files") === currentPath ? "active" : ""
-                  }>
+                  }
+                >
                   Import Old Database
                 </Nav.Link>
               </>
@@ -67,14 +78,16 @@ export function NavigationBar() {
             {djangoContext.user.is_authenticated && (
               <Nav.Link
                 href={reverse("stock_tracker:logout_view")}
-                className={reverse("stock_tracker:logout_view") === currentPath ? "active" : ""}>
+                className={reverse("stock_tracker:logout_view") === currentPath ? "active" : ""}
+              >
                 Log Out
               </Nav.Link>
             )}
             {!djangoContext.user.is_authenticated && (
               <Nav.Link
                 href={reverse("stock_tracker:login_view")}
-                className={reverse("stock_tracker:login_view") === currentPath ? "active" : ""}>
+                className={reverse("stock_tracker:login_view") === currentPath ? "active" : ""}
+              >
                 Log In
               </Nav.Link>
             )}

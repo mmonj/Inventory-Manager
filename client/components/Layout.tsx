@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 
 import { Context } from "@reactivated";
 import { Helmet } from "react-helmet-async";
@@ -17,11 +17,15 @@ interface Props {
   className?: string;
   extraStyles?: string[];
   extraExternalStyles?: IExternalStyles[];
-  excludeBsBodyOverrides?: boolean;
+  bsTheme?: "light" | "dark";
 }
 
-export const Layout = ({ extraStyles = [], excludeBsBodyOverrides = false, ...props }: Props) => {
+export const Layout = ({ extraStyles = [], bsTheme = "light", ...props }: Props) => {
   const djangoContext = React.useContext(Context);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-bs-theme", bsTheme);
+  }, []);
 
   return (
     <>
@@ -40,16 +44,16 @@ export const Layout = ({ extraStyles = [], excludeBsBodyOverrides = false, ...pr
           href={`${djangoContext.STATIC_URL}admin/css/fonts.css`}
         />
         <link
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
           rel="stylesheet"
-          integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65"
+          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
           crossOrigin="anonymous"
-        ></link>
+        />
 
         <link
           rel="stylesheet"
           type="text/css"
-          href={`${djangoContext.STATIC_URL}styles/bs-navbar-overrides.css`}
+          href={`${djangoContext.STATIC_URL}styles/bs-dark/bootstrap.css`}
         />
         <link
           rel="stylesheet"
@@ -61,14 +65,6 @@ export const Layout = ({ extraStyles = [], excludeBsBodyOverrides = false, ...pr
           type="text/css"
           href={`${djangoContext.STATIC_URL}styles/survey_worker/styles.css`}
         />
-
-        {!excludeBsBodyOverrides && (
-          <link
-            rel="stylesheet"
-            type="text/css"
-            href={`${djangoContext.STATIC_URL}styles/bs-overrides.css`}
-          />
-        )}
 
         {extraStyles.map((staticBasePath, idx) => (
           <link

@@ -5,7 +5,6 @@
   "trailingComma": "es5",
   "printWidth": 100,
   "endOfLine": "auto",
-  "plugins": ["@trivago/prettier-plugin-sort-imports"],
   "importOrder": [
     "^react$",
     "^react",

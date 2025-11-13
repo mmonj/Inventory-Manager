@@ -9,7 +9,7 @@ import redis
 import requests
 from django.conf import settings
 from django.core.files import File
-from django_rq import job  # type: ignore [import]
+from django_rq import job
 from PIL import Image, ImageChops, ImageOps
 
 from .models import Product

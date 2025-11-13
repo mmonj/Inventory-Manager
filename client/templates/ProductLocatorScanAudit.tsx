@@ -79,7 +79,7 @@ export default function Template(props: templates.ProductLocatorScanAudit) {
       extraStyles={["styles/stock_tracker/scanner.css"]}
     >
       <section className="m-2 px-2 mw-rem-60 mx-auto">
-        <h1 className="title-color text-center my-3">Scan Audit</h1>
+        <h1 className="text-center my-3">Scan Audit</h1>
         {selectedScanAuditId === null && (
           <form onSubmit={handleScanAuditSubmission}>
             <label htmlFor="previous-scan-audits">Continue with a previous Audit</label>

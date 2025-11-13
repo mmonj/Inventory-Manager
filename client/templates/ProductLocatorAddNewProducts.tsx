@@ -30,7 +30,7 @@ export default function Template(props: templates.ProductLocatorAddNewProducts) 
   return (
     <Layout title="Add New Products" navbar={<NavigationBar />}>
       <section className="mw-rem-60 mx-auto p-2">
-        <h1 id="page-title" className="m-3 text-center title-color ">
+        <h1 id="page-title" className="m-3 text-center ">
           Add New Products
         </h1>
         {djangoContext.messages.length === 0 && form.nonFieldErrors === null && (

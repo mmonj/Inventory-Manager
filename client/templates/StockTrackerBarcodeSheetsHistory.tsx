@@ -19,7 +19,7 @@ export default function Template(props: templates.StockTrackerBarcodeSheetsHisto
   return (
     <Layout title="Barcode Sheet History" navbar={<NavigationBar />}>
       <section className="mw-rem-60 mx-auto px-2">
-        <h1 className="m-3 text-center title-color">Barcode Sheet History</h1>
+        <h1 className="m-3 text-center">Barcode Sheet History</h1>
 
         <div className="text-center my-3">
           <DropdownButton

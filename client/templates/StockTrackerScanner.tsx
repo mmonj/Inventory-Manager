@@ -90,7 +90,7 @@ export default function Template(props: templates.StockTrackerScanner) {
     >
       {store === null && (
         <section className="mw-rem-50 mx-auto p-2">
-          <h1 className="title-color text-center">Scanner</h1>
+          <h1 className="text-center">Scanner</h1>
           <FieldRepStoreSelector
             propType="fieldReps"
             field_reps={props.field_reps}
@@ -102,7 +102,7 @@ export default function Template(props: templates.StockTrackerScanner) {
       {store !== null && (
         <section id="scanner-container" className="mw-rem-60 mx-auto">
           <div id="scanner-store-indicator">
-            <h3 className="text-center title-color p-2">{store.name}</h3>
+            <h3 className="text-center p-2">{store.name}</h3>
             <BarcodeScanner scanSuccessCallback={onScanSuccess} scanErrorCallback={onScanError} />
           </div>
 

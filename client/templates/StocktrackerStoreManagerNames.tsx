@@ -36,7 +36,7 @@ export default function Template(props: templates.StocktrackerStoreManagerNames)
 
           <fieldset>
             <legend className="text-center">
-              <h2 className="title-color">Manager Names</h2>
+              <h2>Manager Names</h2>
             </legend>
 
             <p>

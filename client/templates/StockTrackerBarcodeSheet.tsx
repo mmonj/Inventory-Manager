@@ -16,9 +16,9 @@ export default function Template(props: templates.StockTrackerBarcodeSheet) {
   return (
     <Layout
       title={`Barcode Sheet for ${props.barcodeSheet.parent_company.expanded_name}: ${props.barcodeSheet.store_name}`}
-      navbar={<NavigationBar />}
+      navbar={<NavigationBar extraClassName="bg-light navbar-light " />}
+      bsTheme="dark"
       extraStyles={["styles/stock_tracker/barcode_sheet.css"]}
-      excludeBsBodyOverrides={true}
     >
       <BarcodeSheetHeader {...props} setIsEditMode={setIsEditMode} />
       <BarcodeSheetContent {...props} isEditMode={isEditMode} />

@@ -8,7 +8,7 @@ export function NavigationBar() {
   const currentPath = djangoContext.request.path;
 
   return (
-    <Navbar expand="lg" className="bg-body-tertiary bg-blue-theme border-bottom px-2">
+    <Navbar expand="lg" className="border-bottom px-2">
       <Container fluid>
         <Navbar.Brand href={reverse("product_locator:index")}>Inventory Tracker</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />

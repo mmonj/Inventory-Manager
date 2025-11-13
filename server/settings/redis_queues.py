@@ -4,6 +4,7 @@ from typing import TypedDict
 
 class IRedisConnection(TypedDict):
     HOST: str
+    PASSWORD: str
     PORT: int
     DB: int
     DEFAULT_TIMEOUT: int
@@ -11,7 +12,6 @@ class IRedisConnection(TypedDict):
 
 class IRqQueues(TypedDict):
     default: IRedisConnection
-    onehub_synccer: IRedisConnection
 
 
 RQ_QUEUES: IRqQueues = {

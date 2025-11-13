@@ -12,7 +12,7 @@
     "server:generate_types": "uv run python manage.py generate_client_assets",
     "server:build": "uv run python manage.py generate_client_assets && uv run python manage.py build",
     "server:start": "uv run uvicorn server.asgi:application --host 0.0.0.0 --port ${DJANGO_DEPLOY_PORT:?}",
-    "server:deploy": "uv run bash -c 'python manage.py migrate && python manage.py collectstatic --clear --noinput && npm run server:build && npm run server:start'",
+    "server:deploy": "uv run bash -c 'python manage.py migrate && python manage.py collectstatic --clear --noinput && npm run server:build && npm run sass:build && npm run server:start'",
     "sass:build": "sass --no-source-map --style=compressed --load-path=node_modules client/scss:static/styles",
     "sass:watch": "sass --no-source-map --style=compressed --load-path=node_modules --watch client/scss:static/styles"
   },
