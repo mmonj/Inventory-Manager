@@ -1,15 +1,15 @@
 from django.urls import path
 
-from . import views
-from .ajax import views as ajax_views
 from .api import views as api_views
+from .views import ajax as ajax_views
+from .views import ssr as ssr_views
 
 app_name = "product_locator"
 
 pages = [
-    path("", views.index, name="index"),
-    path("add_new_products/", views.add_new_products, name="add_new_products"),
-    path("scan_audit/", views.scan_audit, name="scan_audit"),
+    path("", ssr_views.index, name="index"),
+    path("add_new_products/", ssr_views.add_new_products, name="add_new_products"),
+    path("scan_audit/", ssr_views.scan_audit, name="scan_audit"),
 ]
 
 ajax = [

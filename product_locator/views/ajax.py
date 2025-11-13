@@ -87,12 +87,12 @@ def add_new_product_location(request: DrfRequest) -> HttpResponse:
             raise DrfValidationError(ex.messages) from ex
 
     planogram = Planogram.objects.get(id=request_data.planogram_id)
-    location, is_new_location = HomeLocation.objects.select_related("planogram").get_or_create(
+    location, _is_new_location = HomeLocation.objects.select_related("planogram").get_or_create(
         name=request_data.location, planogram=planogram
     )
 
     if location not in product.home_locations.select_related("planogram", "planogram__store").all():
-        logger.info(f"Adding location '{location}' to product '{product}'")
+        logger.info("Adding location '%s' to product '%s'", location, product)
         product.home_locations.add(location)
 
     return interfaces_response.IHomeLocationUpdate(home_location=location).render(request)

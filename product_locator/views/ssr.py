@@ -8,14 +8,14 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.decorators.http import require_http_methods
 
-from product_locator import templates
+from product_locator.views import templates
 
-from . import planogram_parser, util
-from .forms import PlanogramForm
-from .models import Planogram, ProductScanAudit, Store
+from .. import planogram_parser, util
+from ..forms import PlanogramForm
+from ..models import Planogram, ProductScanAudit, Store
 
 if TYPE_CHECKING:
-    from .types import IImportedProductInfo
+    from ..types import IImportedProductInfo
 
 logger = logging.getLogger("main_logger")
 
