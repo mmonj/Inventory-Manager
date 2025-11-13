@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal, NamedTuple, cast
 
 from checkdigit import gs1
 from django.core.exceptions import ValidationError
@@ -15,8 +15,23 @@ class Store(models.Model):
         return self.name
 
 
+TPlanoTypeValue = Literal["inline", "seasonal", "other"]
+
+
 class Planogram(models.Model):
+    class TPlanoType(NamedTuple):
+        value: TPlanoTypeValue
+        label: str
+
+    class PlanoType(models.TextChoices):
+        REGULAR = ("regular", "Regular Planogram")
+        SEASONAL = ("seasonal", "Seasonal Planogram")
+        OTHER = ("other", "Other Planogram")
+
     name = models.CharField(max_length=50, default="Inline Plano")
+    plano_type = models.CharField(
+        max_length=10, choices=PlanoType.choices, default=PlanoType.REGULAR
+    )
     store = models.ForeignKey(Store, null=True, on_delete=models.CASCADE, related_name="planograms")
     date_start = models.DateField(null=False, blank=False, default=timezone.now)
     date_end = models.DateField(null=True, blank=True)
@@ -31,6 +46,12 @@ class Planogram(models.Model):
         if self.date_end is None:
             return ""
         return " [OUTDATED]"
+
+    @property
+    def plano_type_info(self) -> TPlanoType:
+        return self.TPlanoType(
+            cast("TPlanoTypeValue", self.plano_type), label=self.get_plano_type_display()
+        )
 
     @property
     def plano_status(self) -> str:
@@ -54,7 +75,7 @@ class HomeLocation(models.Model):
 
 class Product(models.Model):
     upc = models.CharField(max_length=UPC_A_LENGTH, unique=True)
-    name = models.CharField(max_length=100, null=True, blank=True)
+    name = models.CharField(max_length=100, blank=True, default="")
     home_locations = models.ManyToManyField(HomeLocation, related_name="products")
     date_created = models.DateField(null=False, blank=False, default=timezone.now)
 
@@ -87,7 +108,7 @@ class Product(models.Model):
 
 
 class ProductScanAudit(models.Model):
-    product_type = models.CharField(max_length=50, null=True, blank=False)
+    product_type = models.CharField(max_length=50, null=True, blank=False)  # noqa: DJ001
     datetime_created = models.DateTimeField(null=False, blank=False, default=timezone.now)
     products_in_stock = models.ManyToManyField(Product, related_name="scan_audits")
 
