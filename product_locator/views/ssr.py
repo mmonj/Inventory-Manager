@@ -35,13 +35,19 @@ def index(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def add_new_products(request: HttpRequest) -> HttpResponse:
     if request.method == "GET":
-        return templates.ProductLocatorAddNewProducts(form=PlanogramForm()).render(request)
+        stores = Store.objects.all()
+        return templates.ProductLocatorAddNewProducts(
+            form=PlanogramForm(), stores=list(stores)
+        ).render(request)
 
     # if POST
     received_form = PlanogramForm(request.POST)
     if not received_form.is_valid():
         messages.error(request, "Invalid form submission.")
-        return templates.ProductLocatorAddNewProducts(form=received_form).render(request)
+        stores = Store.objects.all()
+        return templates.ProductLocatorAddNewProducts(
+            form=received_form, stores=list(stores)
+        ).render(request)
 
     planogram: Planogram = received_form.cleaned_data["planogram_pk"]
     planogram_text_dump: str = received_form.cleaned_data["planogram_text_dump"]
@@ -50,7 +56,10 @@ def add_new_products(request: HttpRequest) -> HttpResponse:
 
     if not planogram_text_dump:
         messages.error(request, "You have submitted an empty planogram text dump.")
-        return templates.ProductLocatorAddNewProducts(form=received_form).render(request)
+        stores = Store.objects.all()
+        return templates.ProductLocatorAddNewProducts(
+            form=received_form, stores=list(stores)
+        ).render(request)
 
     product_list: list[IImportedProductInfo] = planogram_parser.parse_data(
         planogram_text_dump, request
@@ -59,7 +68,10 @@ def add_new_products(request: HttpRequest) -> HttpResponse:
 
     if not product_list:
         messages.error(request, "You have submitted data that resulted in 0 items being parsed.")
-        return templates.ProductLocatorAddNewProducts(form=received_form).render(request)
+        stores = Store.objects.all()
+        return templates.ProductLocatorAddNewProducts(
+            form=received_form, stores=list(stores)
+        ).render(request)
 
     num_products_added, locations_that_are_updating = util.add_location_records(
         product_list, planogram, is_reset_planogram, request
@@ -73,11 +85,14 @@ def add_new_products(request: HttpRequest) -> HttpResponse:
 
     if planogram.store is None:
         messages.error(request, "The selected planogram does not have an associated store.")
-        return templates.ProductLocatorAddNewProducts(form=received_form).render(request)
+        stores = Store.objects.all()
+        return templates.ProductLocatorAddNewProducts(
+            form=received_form, stores=list(stores)
+        ).render(request)
 
     messages.success(
         request,
-        f"Submitted {num_products_added} out of {len(product_list)} items successfully to store {planogram.store.name}",
+        f"Submitted {num_products_added} out of {len(product_list)} items successfully to: Store '{planogram.store.name}', planogram '{planogram.name}'",
     )
     return redirect("product_locator:add_new_products")
 

@@ -2,7 +2,7 @@ from typing import List, NamedTuple
 
 from reactivated import Pick, interface
 
-from ..models import HomeLocation, Product, ProductScanAudit
+from ..models import HomeLocation, Planogram, Product, ProductScanAudit
 
 
 @interface
@@ -44,6 +44,20 @@ class IHomeLocationUpdate(NamedTuple):
 @interface
 class IScanAuditCreation(NamedTuple):
     scan_audit: Pick[ProductScanAudit, "pk", "product_type", "datetime_created"]
+
+
+@interface
+class IPlanogramsByStore(NamedTuple):
+    planograms: List[
+        Pick[
+            Planogram,
+            "pk",
+            "name",
+            "date_start",
+            "date_end",
+            "plano_type_info",
+        ]
+    ]
 
 
 @interface

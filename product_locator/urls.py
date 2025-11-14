@@ -36,6 +36,11 @@ ajax = [
         ajax_views.create_new_scan_audit,
         name="create_new_scan_audit",
     ),
+    path(
+        "ajax/get_planograms_by_store/<int:store_id>/",
+        ajax_views.get_planograms_by_store,
+        name="get_planograms_by_store",
+    ),
 ]
 
 api = [

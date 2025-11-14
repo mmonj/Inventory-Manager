@@ -15,6 +15,7 @@ class ProductLocatorIndex(NamedTuple):
 @template
 class ProductLocatorAddNewProducts(NamedTuple):
     form: PlanogramForm
+    stores: List[Pick[Store, "pk", "name"]]
 
 
 @template

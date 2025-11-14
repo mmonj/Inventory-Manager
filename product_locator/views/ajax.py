@@ -125,3 +125,13 @@ def create_new_scan_audit(request: DrfRequest) -> HttpResponse:
     )
 
     return interfaces_response.IScanAuditCreation(scan_audit=scan_audit).render(request)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_planograms_by_store(request: DrfRequest, store_id: int) -> HttpResponse:
+    planograms = Planogram.objects.filter(store__pk=store_id, date_end__isnull=True).order_by(
+        "-date_start"
+    )
+
+    return interfaces_response.IPlanogramsByStore(planograms=list(planograms)).render(request)
