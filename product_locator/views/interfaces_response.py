@@ -21,6 +21,7 @@ class MatchingProducts(NamedTuple):
             "home_locations.name",
             "home_locations.planogram.pk",
             "home_locations.planogram.name",
+            "home_locations.planogram.plano_type_info",
             "home_locations.display_name",
         ]
     ]
@@ -36,6 +37,7 @@ class IHomeLocationUpdate(NamedTuple):
         "planogram.name",
         "planogram.date_start",
         "planogram.date_end",
+        "planogram.plano_type_info",
     ]
 
 
@@ -58,4 +60,5 @@ class IProductLocations(NamedTuple):
         "home_locations.planogram.name",
         "home_locations.planogram.date_start",
         "home_locations.planogram.date_end",
+        "home_locations.planogram.plano_type_info",
     ]

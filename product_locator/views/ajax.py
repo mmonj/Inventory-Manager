@@ -36,12 +36,12 @@ def get_product_location(request: DrfRequest) -> HttpResponse:
         Product.objects.prefetch_related(
             Prefetch(
                 "home_locations",
-                queryset=HomeLocation.objects.filter(planogram__store__pk=request_data.store_id),
+                queryset=HomeLocation.objects.filter(planogram__store__pk=request_data.store_id)
+                .select_related("planogram")
+                .order_by("-planogram__date_start"),
             ),
-            "home_locations__planogram",
         )
         .filter(upc=request_data.upc)
-        .order_by("-home_locations__planogram__date_start")
         .first()
     )
 
@@ -109,7 +109,7 @@ def add_upc_to_scan_audit(request: DrfRequest) -> HttpResponse:
 
     product = Product.objects.filter(upc=request_data.upc).first()
     if product is None:
-        product = Product.objects.create(upc=request_data.upc, name=None)
+        product = Product.objects.create(upc=request_data.upc, name="")
 
     scan_audit.products_in_stock.add(product)
 

@@ -1,0 +1,80 @@
+@use "../bs-dark/variables" as bs;
+
+// Seasonal location styling
+.seasonal-location {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 193, 7, 0.08) 0%,
+    rgba(255, 152, 0, 0.05) 50%,
+    rgba(255, 87, 34, 0.08) 100%
+  ) !important;
+  border-left: 4px solid #ff9800 !important;
+  box-shadow: 0 0 20px rgba(255, 152, 0, 0.15) !important;
+  animation: seasonal-glow 3s ease-in-out infinite;
+  overflow: hidden;
+}
+
+@keyframes seasonal-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(255, 152, 0, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 152, 0, 0.25), 0 0 40px rgba(255, 193, 7, 0.1);
+  }
+}
+
+// Seasonal indicator ribbon
+.seasonal-indicator {
+  position: absolute;
+  top: 8px;
+  right: -32px;
+  background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%);
+  color: white;
+  padding: 2px 32px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  transform: rotate(45deg);
+  box-shadow: 0 2px 8px rgba(255, 87, 34, 0.4);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  .seasonal-icon {
+    font-size: 0.75rem;
+  }
+
+  .seasonal-text {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+}
+
+// Enhanced seasonal badge styling
+.seasonal-badge {
+  position: relative;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3) !important;
+}
+
+// Location name styling for seasonal items
+.seasonal-location-name {
+  color: #ff9800 !important;
+  text-shadow: 0 0 10px rgba(255, 152, 0, 0.3);
+}
+
+// Enhance hover effect for seasonal locations
+.seasonal-location:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 193, 7, 0.15) 0%,
+    rgba(255, 152, 0, 0.1) 50%,
+    rgba(255, 87, 34, 0.15) 100%
+  ) !important;
+  transform: translateX(4px);
+  transition: all 0.3s ease;
+}

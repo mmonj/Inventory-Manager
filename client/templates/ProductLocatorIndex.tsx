@@ -20,6 +20,7 @@ import { LoadingSpinner } from "@client/components/LoadingSpinner";
 import { FieldRepStoreSelector } from "@client/components/StoreSelector";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { ProductLocatorModal } from "@client/components/productLocator/ProductLocatorModal";
+import { LocationItem } from "@client/components/productLocator/productLocatorIndex";
 import { useFetch } from "@client/hooks/useFetch";
 import { getProductLocation } from "@client/util/productLocator";
 
@@ -65,7 +66,7 @@ export default function Template(props: templates.ProductLocatorIndex) {
     <Layout
       title="Product Locator"
       navbar={<NavigationBar />}
-      extraStyles={["styles/stock_tracker/scanner.css"]}
+      extraStyles={["styles/stock_tracker/scanner.css", "styles/product_locator/location-item.css"]}
     >
       <div className="min-vh-100 py-4">
         <section id="store-select-container" className="mw-rem-60 mx-auto px-3">
@@ -139,34 +140,7 @@ export default function Template(props: templates.ProductLocatorIndex) {
                         {getProductFetcher.data.product.home_locations.map((location) => {
                           if (location.planogram.date_end !== null) return null;
 
-                          return (
-                            <div
-                              key={location.pk}
-                              className="list-group-item list-group-item-action"
-                            >
-                              <div className="d-flex w-100 justify-content-between align-items-start">
-                                <div className="flex-grow-1">
-                                  <div className="d-flex align-items-center mb-2">
-                                    <Badge bg="primary" className="me-2">
-                                      Location
-                                    </Badge>
-                                    <h6
-                                      className="mb-0 fw-bold"
-                                      style={{ fontFamily: 'Consolas, "Courier New", monospace' }}
-                                    >
-                                      {location.name}
-                                    </h6>
-                                  </div>
-                                  <div>
-                                    <Badge bg="info" className="me-2">
-                                      Planogram
-                                    </Badge>
-                                    <span className="fw-semibold">{location.planogram.name}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
+                          return <LocationItem key={location.pk} location={location} />;
                         })}
                       </div>
                     </Card.Body>
@@ -192,38 +166,15 @@ export default function Template(props: templates.ProductLocatorIndex) {
                         <strong>Product:</strong> {getProductFetcher.data.product.name}
                       </div>
                       <div className="list-group list-group-flush">
-                        {getProductFetcher.data.product.home_locations.map((location) => {
-                          if (location.planogram.date_end === null) return null;
-
-                          return (
-                            <div
+                        {getProductFetcher.data.product.home_locations
+                          .filter((location) => location.planogram.date_end !== null)
+                          .map((location) => (
+                            <LocationItem
                               key={location.pk}
-                              className="list-group-item list-group-item-danger"
-                            >
-                              <div className="d-flex w-100 justify-content-between align-items-start">
-                                <div className="flex-grow-1">
-                                  <div className="d-flex align-items-center mb-2">
-                                    <Badge bg="dark" className="me-2">
-                                      Location
-                                    </Badge>
-                                    <h6
-                                      className="mb-0 fw-bold"
-                                      style={{ fontFamily: 'Consolas, "Courier New", monospace' }}
-                                    >
-                                      {location.name}
-                                    </h6>
-                                  </div>
-                                  <div>
-                                    <Badge bg="secondary" className="me-2">
-                                      Planogram
-                                    </Badge>
-                                    <span className="fw-semibold">{location.planogram.name}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
+                              location={location}
+                              locationType="outdated"
+                            />
+                          ))}
                       </div>
                     </Card.Body>
                   </Card>
