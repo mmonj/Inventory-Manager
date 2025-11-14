@@ -28,7 +28,9 @@ class Planogram(models.Model):
         SEASONAL = ("seasonal", "Seasonal Planogram")
         OTHER = ("other", "Other Planogram")
 
-    name = models.CharField(max_length=50, default="Inline Plano")
+    DEFAULT_PLANO_NAME = "Inline Plano"
+
+    name = models.CharField(max_length=50, default=DEFAULT_PLANO_NAME)
     plano_type = models.CharField(
         max_length=10, choices=PlanoType.choices, default=PlanoType.REGULAR
     )

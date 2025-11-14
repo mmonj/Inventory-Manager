@@ -76,3 +76,8 @@ class IProductLocations(NamedTuple):
         "home_locations.planogram.date_end",
         "home_locations.planogram.plano_type_info",
     ]
+
+
+@interface
+class ISuccess(NamedTuple):
+    success: bool

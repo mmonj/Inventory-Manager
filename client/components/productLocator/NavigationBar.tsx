@@ -7,6 +7,7 @@ import { Context, reverse } from "@reactivated";
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
   faClipboardCheck,
+  faCog,
   faHome,
   faPlusCircle,
   faSearchLocation,
@@ -42,6 +43,7 @@ export function NavigationBar() {
 
   const superuserLinks: TLink[] = [
     getLink("Add New Products", reverse("product_locator:add_new_products"), faPlusCircle),
+    getLink("Manage Planograms", reverse("product_locator:manage_planograms"), faCog),
   ];
 
   return (

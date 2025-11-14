@@ -135,3 +135,16 @@ def get_planograms_by_store(request: DrfRequest, store_id: int) -> HttpResponse:
     )
 
     return interfaces_response.IPlanogramsByStore(planograms=list(planograms)).render(request)
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_planogram(request: DrfRequest, planogram_id: int) -> HttpResponse:
+    planogram = Planogram.objects.filter(pk=planogram_id).first()
+
+    if planogram is None:
+        raise DrfNotFound(f"Planogram with ID {planogram_id} not found")
+
+    planogram.delete()
+
+    return interfaces_response.ISuccess(success=True).render(request)

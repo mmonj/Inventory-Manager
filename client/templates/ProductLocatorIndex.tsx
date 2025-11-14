@@ -187,13 +187,16 @@ export default function Template(props: templates.ProductLocatorIndex) {
                     size="2x"
                     className="mb-3 text-warning"
                   />
-                  <h5 className="fw-bold mb-2">Product Not Found</h5>
+                  <h5 className="fw-bold mb-2 text-light">No Locations Found for This Store</h5>
+                  <p className="mb-2">
+                    <strong>Name:</strong> {getProductFetcher.data.product.name}
+                  </p>
                   <p className="mb-0">
                     UPC{" "}
-                    <Badge bg="dark" className="mx-1">
+                    <Badge bg="secondary" className="mx-1">
                       {getProductFetcher.data.product.upc}
                     </Badge>{" "}
-                    not found for this store
+                    has no locations assigned to this store
                   </p>
                 </Alert>
               )}

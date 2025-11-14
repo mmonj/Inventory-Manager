@@ -9,6 +9,7 @@ app_name = "product_locator"
 pages = [
     path("", ssr_views.index, name="index"),
     path("add_new_products/", ssr_views.add_new_products, name="add_new_products"),
+    path("manage_planograms/", ssr_views.manage_planograms, name="manage_planograms"),
     path("scan_audit/", ssr_views.scan_audit, name="scan_audit"),
 ]
 
@@ -40,6 +41,11 @@ ajax = [
         "ajax/get_planograms_by_store/<int:store_id>/",
         ajax_views.get_planograms_by_store,
         name="get_planograms_by_store",
+    ),
+    path(
+        "ajax/delete_planogram/<int:planogram_id>/",
+        ajax_views.delete_planogram,
+        name="delete_planogram",
     ),
 ]
 

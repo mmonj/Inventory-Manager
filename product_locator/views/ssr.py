@@ -11,7 +11,7 @@ from django.views.decorators.http import require_http_methods
 from product_locator.views import templates
 
 from .. import planogram_parser, util
-from ..forms import PlanogramForm
+from ..forms import CreatePlanogramForm, PlanogramForm
 from ..models import Planogram, ProductScanAudit, Store
 
 if TYPE_CHECKING:
@@ -107,3 +107,38 @@ def scan_audit(request: HttpRequest) -> HttpResponse:
     )
 
     return templates.ProductLocatorScanAudit(previous_audits=list(scan_audits)).render(request)
+
+
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
+@require_http_methods(["GET", "POST"])
+def manage_planograms(request: HttpRequest) -> HttpResponse:
+    stores = Store.objects.all()
+    plano_type_choices = [
+        Planogram.TPlanoType(value=choice[0], label=choice[1])
+        for choice in Planogram.PlanoType.choices
+    ]
+
+    if request.method == "GET":
+        return templates.ProductLocatorManagePlanograms(
+            stores=list(stores),
+            plano_type_choices=plano_type_choices,
+            default_plano_name=Planogram.DEFAULT_PLANO_NAME,
+        ).render(request)
+
+    # POST request
+    received_form = CreatePlanogramForm(request.POST)
+    if not received_form.is_valid():
+        messages.error(request, "Invalid form submission.")
+        return templates.ProductLocatorManagePlanograms(
+            stores=list(stores),
+            plano_type_choices=plano_type_choices,
+            default_plano_name=Planogram.DEFAULT_PLANO_NAME,
+        ).render(request)
+
+    # save new planogram
+    new_planogram = received_form.save()
+    messages.success(
+        request,
+        f"Successfully created planogram '{new_planogram.name}' for store '{new_planogram.store.name}'.",
+    )
+    return redirect("product_locator:manage_planograms")
