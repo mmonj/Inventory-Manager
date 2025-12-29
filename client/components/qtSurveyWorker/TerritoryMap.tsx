@@ -106,6 +106,9 @@ function MapPopupContent({
             {locationGroup.address.City}, {locationGroup.address.State}{" "}
             {locationGroup.address.PostalCode}
           </div>
+          <small>
+            {locationGroup.address.Latitude}, {locationGroup.address.Longitude}
+          </small>
         </div>
 
         {/* Copy Address Button */}

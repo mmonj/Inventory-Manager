@@ -11,5 +11,6 @@
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff"
   },
+  "python.analysis.typeCheckingMode": "off",
   "mypy.runUsingActiveInterpreter": true
 }

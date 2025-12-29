@@ -25,14 +25,24 @@ def get_check_digit(upc_without_check: str) -> str:
 
 
 def get_upc_from_length11(trunc_upc: str, upc_prefixes: tuple[str, ...]) -> Optional[str]:
+    candidate_upc: Optional[str] = None
+    # try appending prefix to front of trunc_upc
     if trunc_upc[0] not in upc_prefixes:
         for prefix in upc_prefixes:
             candidate_upc = prefix + trunc_upc
 
             if gs1.validate(candidate_upc):
                 return candidate_upc
-    else:
-        return trunc_upc + get_check_digit(trunc_upc)
+
+    # try trimming last digit
+    candidate_upc = get_upc_from_length10(trunc_upc[:-1], upc_prefixes)
+    if candidate_upc is not None and gs1.validate(candidate_upc):
+        return candidate_upc
+
+    # try appending valid check digit to end of trunc_upc
+    candidate_upc = trunc_upc + get_check_digit(trunc_upc)
+    if gs1.validate(candidate_upc):
+        return candidate_upc
 
     return None
 
@@ -51,7 +61,6 @@ def get_upc_from_length10(trunc_upc: str, upc_prefixes: tuple[str, ...]) -> Opti
 def get_prefix_from_product_name(
     product_name: str, parent_company: BrandParentCompany
 ) -> Optional[str]:
-
     try:
         prefix_mapping = PrefixMapping.objects.filter(
             parent_company=parent_company, product_name_regex__isnull=False
@@ -100,7 +109,7 @@ def get_valid_upc(raw_upc: str, product_name: str, company: BrandParentCompany) 
     if upc_from_preset_upc_corrections is not None:
         return upc_from_preset_upc_corrections
 
-    upc_prefixes = tuple(company.default_upc_prefixes)
+    upc_prefixes: tuple[str, ...] = tuple(company.default_upc_prefixes)
     if len(upc_prefixes) == 0:
         return None
 
