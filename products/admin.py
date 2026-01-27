@@ -4,6 +4,8 @@ from typing import Optional
 from django.contrib import admin
 from django.db import models
 from django.http import HttpRequest
+from django.urls import reverse
+from django.utils.html import format_html
 
 from .models import (
     BarcodeSheet,
@@ -139,10 +141,35 @@ class BarcodeSheetAdmin(admin.ModelAdmin[BarcodeSheet]):
     search_fields = ("store__name", "parent_company__short_name")
     list_display = ("store", "parent_company", "work_cycle", "num_product_additions", "upcs_hash")
     list_filter = ("parent_company__short_name", "work_cycle")
-    raw_id_fields = ("product_additions",)
+    readonly_fields = ("display_product_additions",)
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": (
+                    "store",
+                    "parent_company",
+                    "work_cycle",
+                    "upcs_hash",
+                    "upcs_list",
+                    "datetime_created",
+                )
+            },
+        ),
+        ("Product Additions", {"fields": ("display_product_additions",)}),
+    )
 
     def num_product_additions(self, barcode_sheet: BarcodeSheet) -> int:
         return barcode_sheet.product_additions.count()
+
+    def display_product_additions(self, obj: BarcodeSheet) -> str:
+        links: list[str] = []
+        for addition in obj.product_additions.all():
+            url = reverse("admin:products_product_change", args=[addition.product.id])
+            links.append(format_html('<a href="{}">{}</a>', url, addition.product))
+        return format_html("<br>".join(links)) if links else "No products"
+
+    setattr(display_product_additions, "short_description", "Product Additions")
 
 
 # Register your models here.
