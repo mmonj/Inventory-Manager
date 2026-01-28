@@ -13,10 +13,16 @@ import { TScanErrorCallback, TScanSuccessCallback } from "@client/types";
 import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Html5QrcodeScannerConfig } from "html5-qrcode/esm/html5-qrcode-scanner";
 
-type navLinkType = "scanner" | "keyboard";
+type TNavLinkType = "scanner" | "keyboard";
+
 interface IScannerProps {
   scanSuccessCallback: TScanSuccessCallback;
   scanErrorCallback: TScanErrorCallback;
+}
+
+interface IHtml5PluginProps extends IScannerProps {
+  scannerZoom: number;
+  setScannerZoom: React.Dispatch<React.SetStateAction<number>>;
 }
 
 function ProductLoggerKeyboard({
@@ -70,38 +76,50 @@ function ProductLoggerKeyboard({
   );
 }
 
-function Html5QrcodePlugin({ scanSuccessCallback, scanErrorCallback }: IScannerProps) {
+function Html5QrcodePlugin({
+  scanSuccessCallback,
+  scanErrorCallback,
+  scannerZoom,
+  setScannerZoom,
+}: IHtml5PluginProps) {
   const djangoContext = useContext(Context);
 
-  const getScanSound = () =>
-    new Audio(djangoContext.STATIC_URL + "public/stock_tracker/scan_sound.ogg");
-  const viewportElementId = "scanner-viewport-container";
-  const duplicateScanDelayMs = 2000;
-  const previousScanInfo = {
+  const scanSoundRef = useRef<HTMLAudioElement | null>(null);
+  const previousScanInfoRef = useRef({
     decodedText: "", // UPC
     timeScannedMs: 0,
-  };
+  });
+
+  const viewportElementId = "scanner-viewport-container";
+  const scannerSliderSelector = "html5-qrcode-input-range-zoom";
+  const duplicateScanDelayMs = 2000;
 
   function initialScanSuccessCallback(decodedText: string): void {
     if (
-      Date.now() - previousScanInfo.timeScannedMs < duplicateScanDelayMs &&
-      decodedText === previousScanInfo.decodedText
+      Date.now() - previousScanInfoRef.current.timeScannedMs < duplicateScanDelayMs &&
+      decodedText === previousScanInfoRef.current.decodedText
     ) {
       console.log(`Duplicate UPC has been scanned within the ${duplicateScanDelayMs} ms threshold`);
       return;
     }
-    previousScanInfo.decodedText = decodedText;
-    previousScanInfo.timeScannedMs = Date.now();
+    previousScanInfoRef.current.decodedText = decodedText;
+    previousScanInfoRef.current.timeScannedMs = Date.now();
 
     void (async () => {
-      await getScanSound().play();
+      if (scanSoundRef.current !== null) {
+        await scanSoundRef.current.play();
+      }
       console.log(`Sent ${decodedText} to scanSuccessCallback`);
       await scanSuccessCallback(decodedText);
     })();
   }
 
+  // when component mounts
   useEffect(() => {
-    // when component mounts
+    scanSoundRef.current = new Audio(
+      djangoContext.STATIC_URL + "public/stock_tracker/scan_sound.ogg"
+    );
+
     const config: Html5QrcodeScannerConfig = {
       showZoomSliderIfSupported: true,
       defaultZoomValueIfSupported: 2.0,
@@ -128,11 +146,30 @@ function Html5QrcodePlugin({ scanSuccessCallback, scanErrorCallback }: IScannerP
     };
   }, []);
 
+  // sync zoom state with scanner's zoom slider element
+  useEffect(() => {
+    function handleInput(e: Event) {
+      const target = e.target as HTMLInputElement;
+      setScannerZoom(Number(target.value));
+    }
+
+    const inputElm = document.querySelector<HTMLInputElement>(scannerSliderSelector);
+    if (inputElm === null) return;
+
+    inputElm.value = String(scannerZoom);
+
+    inputElm.addEventListener("input", handleInput);
+    return () => {
+      inputElm.removeEventListener("input", handleInput);
+    };
+  }, [scannerZoom, scannerSliderSelector, setScannerZoom]);
+
   return <div id={viewportElementId} />;
 }
 
 export function BarcodeScanner(props: IScannerProps) {
-  const [activeNavLink, setActiveNavLink] = useState<navLinkType>("scanner");
+  const [activeNavLink, setActiveNavLink] = useState<TNavLinkType>("scanner");
+  const [scannerZoom, setScannerZoom] = useState(2);
 
   return (
     <div>
@@ -162,7 +199,9 @@ export function BarcodeScanner(props: IScannerProps) {
       </Nav>
 
       <div className="mt-3">
-        {activeNavLink === "scanner" && <Html5QrcodePlugin {...props} />}
+        {activeNavLink === "scanner" && (
+          <Html5QrcodePlugin {...props} scannerZoom={scannerZoom} setScannerZoom={setScannerZoom} />
+        )}
         {activeNavLink === "keyboard" && (
           <ProductLoggerKeyboard scanSuccessCallback={props.scanSuccessCallback} />
         )}
