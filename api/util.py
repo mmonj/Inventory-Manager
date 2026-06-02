@@ -50,6 +50,8 @@ def update_product_record_names(
 
     new_products = list(bulk_create_and_get(Product, new_products, fields=["upc"]))
 
+    logger.info("Bulk created %s products", len(new_products))
+
     # bulk update products with no name
     products_with_no_name = Product.objects.filter(Q(name__isnull=True) | Q(name=""), upc__in=upcs)
 

@@ -134,6 +134,8 @@ def get_valid_upc(raw_upc: str, product_name: str, company: BrandParentCompany) 
         candidate_upc = raw_upc[1:]
     elif len(raw_upc) == UPC_A_LENGTH + 2 and raw_upc[0:2] == "00":
         candidate_upc = raw_upc[2:]
+    elif len(raw_upc) == UPC_A_LENGTH + 3:
+        candidate_upc = get_upc_from_length11(raw_upc[:11], upc_prefixes)
 
     if len(raw_upc) == 11:  # noqa: PLR2004
         candidate_upc = get_upc_from_length11(raw_upc, upc_prefixes)

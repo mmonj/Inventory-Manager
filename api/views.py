@@ -134,6 +134,15 @@ def get_store_product_additions(request: DrfRequest) -> DrfResponse:
             IRawProduct(raw_upc=upc, name=product.name),
         )
 
+    # determine if multiple raw UPCs correspond to the same normalized UPC and log this information
+    for upc, raw_upcs in upc_to_raw_upcs_map.items():
+        if len(raw_upcs) > 1:
+            logger.info(
+                "Multiple raw UPCs %s correspond to the same normalized UPC %s",
+                raw_upcs,
+                upc,
+            )
+
     normalized_upcs = [f.upc for f in normalized_products]
     hash_object = hashlib.sha256()
     hash_object.update(str(sorted(normalized_upcs)).encode())
