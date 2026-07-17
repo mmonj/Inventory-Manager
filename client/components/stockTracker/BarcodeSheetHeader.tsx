@@ -41,7 +41,8 @@ export function BarcodeSheetHeader(props: Props) {
         </DropdownButton>
 
         <div className="my-3">
-          {props.sheetTypeInfo.sheetType === "out-of-dist" && (
+          {(props.sheetTypeInfo.sheetType === "out-of-dist" ||
+            props.sheetTypeInfo.sheetType === "in-dist") && (
             <>
               <button
                 onClick={() => props.setIsEditMode((prevMode) => !prevMode)}
@@ -60,7 +61,11 @@ export function BarcodeSheetHeader(props: Props) {
                     d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"
                   ></path>
                 </svg>
-                <span className="fw-semibold">Mark products as carried</span>
+                <span className="fw-semibold">
+                  {props.sheetTypeInfo.sheetType === "out-of-dist"
+                    ? "Mark products as carried"
+                    : "Mark products as not carried"}
+                </span>
               </button>
             </>
           )}

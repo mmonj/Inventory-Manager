@@ -41,6 +41,11 @@ ssr_urlpatterns = [
         ssr_views.set_product_distribution_order_status,
         name="set_product_distribution_order_status",
     ),
+    path(
+        "set_not_carried_product_additions/",
+        ssr_views.set_not_carried_product_additions,
+        name="set_not_carried_product_additions",
+    ),
 ]
 
 ajax_urlpatterns = [

@@ -365,3 +365,31 @@ def set_carried_product_additions(request: HttpRequest) -> HttpResponse:
 
     messages.success(request, f"Submitted {len(product_id_list)} item(s) as In-Distribution")
     return HttpResponseRedirect(redirect_route)
+
+
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
+@require_http_methods(["POST"])
+def set_not_carried_product_additions(request: HttpRequest) -> HttpResponse:
+    redirect_route: Optional[str] = request.META.get("HTTP_REFERER")
+    if redirect_route is None:
+        return HttpResponseServerError()
+
+    product_id_list = request.POST.getlist("product-addition-id")
+    if not product_id_list:
+        logger.info("Barcode sheet form returned 0 new products. Redirecting with error message")
+        messages.error(request, "Error. Received 0 new products to update")
+        return HttpResponseRedirect(redirect_route)
+
+    product_additions = ProductAddition.objects.filter(id__in=product_id_list)
+    logger.info(
+        "Updating %s product additions from barcode sheet form for client '%s' for store: '%s'",
+        len(product_additions),
+        request.POST.get("parent-company"),
+        request.POST.get("store-name"),
+    )
+
+    for product_addition in product_additions:
+        util.set_not_carried(product_addition)
+
+    messages.success(request, f"Submitted {len(product_id_list)} item(s) as Not-Carried")
+    return HttpResponseRedirect(redirect_route)

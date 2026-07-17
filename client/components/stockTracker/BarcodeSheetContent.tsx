@@ -115,7 +115,7 @@ export function BarcodeSheetContent(props: Props) {
             name="parent-company"
             value={props.barcodeSheet.parent_company.short_name}
           />
-          {props.isEditMode && (
+          {props.isEditMode && props.sheetTypeInfo.sheetType === "out-of-dist" && (
             <Button
               onClick={() => setIsDistributionUpdate(() => true)}
               id="btn-stock-update"
@@ -127,7 +127,7 @@ export function BarcodeSheetContent(props: Props) {
               Submit as In-Distribution
             </Button>
           )}
-          {props.isEditMode && (
+          {props.isEditMode && props.sheetTypeInfo.sheetType === "out-of-dist" && (
             <Button
               onClick={() => setIsDistributionUpdate(() => false)}
               id="btn-stock-order"
@@ -137,6 +137,18 @@ export function BarcodeSheetContent(props: Props) {
               formAction={reverse("stock_tracker:set_product_distribution_order_status")}
             >
               Submit as ordered
+            </Button>
+          )}
+          {props.isEditMode && props.sheetTypeInfo.sheetType === "in-dist" && (
+            <Button
+              onClick={() => setIsDistributionUpdate(() => true)}
+              id="btn-stock-uncarry"
+              type="submit"
+              formAction={reverse("stock_tracker:set_not_carried_product_additions")}
+              variant="primary"
+              className="mx-3 my-2"
+            >
+              Submit as Not-Carried
             </Button>
           )}
         </div>
