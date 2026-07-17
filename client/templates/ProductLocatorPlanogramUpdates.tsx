@@ -9,7 +9,11 @@ import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { fetchByReactivated } from "@client/util/commonUtil";
-import { IProductMove, chaseProductMoves } from "@client/util/productLocator/chaseMoves";
+import {
+  IProductMove,
+  chaseProductMoves,
+  findEmptiedLocations,
+} from "@client/util/productLocator/chaseMoves";
 
 type TPlanogramUpdate = templates.ProductLocatorPlanogramUpdates["planogram_updates"][number];
 
@@ -44,6 +48,14 @@ export default function Template(props: templates.ProductLocatorPlanogramUpdates
 
   const moveChains: IProductMove[][] = selectedUpdate
     ? chaseProductMoves(
+        selectedUpdate.old_plano,
+        selectedUpdate.new_plano,
+        getChangedLocations(selectedUpdate)
+      )
+    : [];
+
+  const emptiedLocations: string[] = selectedUpdate
+    ? findEmptiedLocations(
         selectedUpdate.old_plano,
         selectedUpdate.new_plano,
         getChangedLocations(selectedUpdate)
@@ -131,7 +143,7 @@ export default function Template(props: templates.ProductLocatorPlanogramUpdates
                       disabled={applyFetcher.isLoading}
                       onClick={() => handleApply(selectedUpdate)}
                     >
-                      Put into effect
+                      Put new Planogram into effect
                     </Button>
                   )}
                 </div>
@@ -152,6 +164,24 @@ export default function Template(props: templates.ProductLocatorPlanogramUpdates
                   selectedUpdate.is_applied && (
                     <Alert variant="secondary">This update has already been applied.</Alert>
                   )
+                )}
+
+                {emptiedLocations.length > 0 && (
+                  <Alert variant="warning" className="mb-4">
+                    <strong>The following locations should be emptied out</strong> as their products
+                    are no longer part of the new planogram:
+                    <ul
+                      className="mb-0 mt-2"
+                      style={{ fontFamily: 'Consolas, "Courier New", monospace' }}
+                    >
+                      {emptiedLocations.map((location) => (
+                        <li key={location}>
+                          <strong>{location}</strong> — {selectedUpdate.old_plano[location].name} (
+                          {selectedUpdate.old_plano[location].upc})
+                        </li>
+                      ))}
+                    </ul>
+                  </Alert>
                 )}
 
                 {moveChains.length === 0 ? (

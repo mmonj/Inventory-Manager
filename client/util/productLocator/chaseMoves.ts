@@ -62,3 +62,18 @@ export function chaseProductMoves(
 
   return chains;
 }
+
+export function findEmptiedLocations(
+  oldPlano: TPlanoSnapshot,
+  newPlano: TPlanoSnapshot,
+  changedLocations: string[]
+): string[] {
+  return changedLocations.filter((location) => {
+    const oldProduct = oldPlano[location];
+    if (oldProduct === undefined) {
+      return false;
+    }
+
+    return findLocationForProduct(newPlano, oldProduct.upc) === undefined;
+  });
+}
