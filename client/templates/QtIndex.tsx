@@ -7,8 +7,6 @@ import {
   faCalendarAlt,
   faCalendarCheck,
   faChartBar,
-  faCog,
-  faCogs,
   faDatabase,
   faEdit,
   faExternalLinkAlt,
@@ -91,33 +89,6 @@ export default function Template(_props: templates.QtIndex) {
                   Administrative Tools
                 </h3>
                 <div className="row g-4">
-                  {/* qt_admin */}
-                  <div className="col-md-6 col-lg-4">
-                    <div className="card h-100 border-0 shadow-sm hover-shadow transition">
-                      <div className="card-body d-flex flex-column p-4">
-                        <div className="mb-3">
-                          <div
-                            className="bg-warning bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
-                            style={{ width: "60px", height: "60px" }}
-                          >
-                            <FontAwesomeIcon icon={faCogs} size="2x" className="text-warning" />
-                          </div>
-                        </div>
-                        <h5 className="card-title fw-bold mb-2">Qt Admin</h5>
-                        <p className="card-text text-muted flex-grow-1">
-                          Manage Qt territories and administrative settings
-                        </p>
-                        <a
-                          href={reverse("survey_worker:qt_admin")}
-                          className="btn btn-outline-warning btn-lg w-100 mt-3"
-                        >
-                          <FontAwesomeIcon icon={faCog} className="me-2" />
-                          Go to Qt Admin
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* qt_view_login_sessions */}
                   <div className="col-md-6 col-lg-4">
                     <div className="card h-100 border-0 shadow-sm hover-shadow transition">
