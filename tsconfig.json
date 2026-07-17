@@ -4,21 +4,20 @@
         "sourceMap": true,
         "noEmit": true,
         "module": "commonjs",
-        "target": "es6",
+        "target": "es2017",
         "esModuleInterop": true,
         "allowJs": true,
         "jsx": "react",
-        "baseUrl": ".",
         "skipLibCheck": true,
         "paths": {
             "@client/*": [
-                "client/*"
+                "./client/*"
             ],
             "@reactivated": [
-                "node_modules/_reactivated"
+                "./node_modules/_reactivated"
             ],
             "@static/*": [
-                "static/*"
+                "./static/*"
             ]
         }
     },
