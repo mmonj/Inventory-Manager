@@ -1,9 +1,10 @@
-from typing import List, NamedTuple
+from typing import Dict, List, NamedTuple
 
 from reactivated import Pick, template
 
 from ..forms import PlanogramForm
 from ..models import Planogram, ProductScanAudit, Store
+from ..types import IPlanoProduct
 
 
 @template
@@ -30,3 +31,17 @@ class ProductLocatorScanAudit(NamedTuple):
     previous_audits: List[
         Pick[ProductScanAudit, "pk", "product_type", "datetime_created", "products_in_stock.upc"]
     ]
+
+
+class TPlanogramUpdate(NamedTuple):
+    pk: int
+    label: str
+    is_applied: bool
+    old_plano: Dict[str, IPlanoProduct]
+    new_plano: Dict[str, IPlanoProduct]
+    planogram: Pick[Planogram, "pk", "name", "store.pk", "store.name"]
+
+
+@template
+class ProductLocatorPlanogramUpdates(NamedTuple):
+    planogram_updates: List[TPlanogramUpdate]

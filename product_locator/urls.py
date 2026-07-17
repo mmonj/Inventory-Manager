@@ -11,6 +11,7 @@ pages = [
     path("add_new_products/", ssr_views.add_new_products, name="add_new_products"),
     path("manage_planograms/", ssr_views.manage_planograms, name="manage_planograms"),
     path("scan_audit/", ssr_views.scan_audit, name="scan_audit"),
+    path("planogram_updates/", ssr_views.planogram_updates, name="planogram_updates"),
 ]
 
 ajax = [
@@ -46,6 +47,11 @@ ajax = [
         "ajax/delete_planogram/<int:planogram_id>/",
         ajax_views.delete_planogram,
         name="delete_planogram",
+    ),
+    path(
+        "ajax/apply_planogram_update/<int:planogram_update_id>/",
+        ajax_views.apply_planogram_update,
+        name="apply_planogram_update",
     ),
 ]
 

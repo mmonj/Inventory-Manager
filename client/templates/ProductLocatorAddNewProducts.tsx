@@ -1,11 +1,18 @@
 import React, { useContext, useState } from "react";
 
-import { CSRFToken, Context, interfaces, reverse, templates, useForm } from "@reactivated";
+import {
+  CSRFToken,
+  Context,
+  DjangoFormsWidgetsTextarea,
+  interfaces,
+  reverse,
+  templates,
+  useForm,
+} from "@reactivated";
 import { Alert } from "react-bootstrap";
 import Select from "react-select";
 
 import { FieldHandler } from "reactivated/dist/forms";
-import { DjangoFormsWidgetsTextarea } from "reactivated/dist/generated";
 
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
@@ -19,6 +26,9 @@ export default function Template(props: templates.ProductLocatorAddNewProducts) 
   const [selectedStore, setSelectedStore] = useState<SelectOption | null>(null);
   const [selectedPlanogram, setSelectedPlanogram] = useState<SelectOption | null>(null);
   const [textValue, setTextValue] = useState(props.form.fields.planogram_text_dump.widget.value);
+  const [isResetPlanogram, setIsResetPlanogram] = useState(
+    Boolean(props.form.fields.is_reset_planogram.widget.value)
+  );
   const form = useForm({ form: props.form });
   const djangoContext = useContext(Context);
   const planogramsFetcher = useFetch<interfaces.IPlanogramsByStore>();
@@ -175,15 +185,37 @@ export default function Template(props: templates.ProductLocatorAddNewProducts) 
                       id="is-reset-planogram"
                       name="is_reset_planogram"
                       defaultChecked={props.form.fields.is_reset_planogram.widget.value}
+                      onChange={(event) => setIsResetPlanogram(event.target.checked)}
                     />
                     <label className="form-check-label" htmlFor="is-reset-planogram">
                       Reset Planogram
                     </label>
                   </div>
                   <p>
-                    <strong>Note:</strong> This action is intended for planogram resets and will
-                    remove all existing products from the selected planogram.
+                    <strong>Note:</strong> This action will queue a planogram update for review. It
+                    will not take effect until explicitly applied from the Planogram Updates page.
                   </p>
+                  {isResetPlanogram && (
+                    <div className="mb-3">
+                      <label htmlFor="planogram-update-label" className="form-label">
+                        Label
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="planogram-update-label"
+                        name="label"
+                        maxLength={100}
+                        required
+                        defaultValue={props.form.fields.label.widget.value ?? ""}
+                      />
+                      {form.fields.label.error !== null && (
+                        <Alert variant="danger" className="p-1 my-1">
+                          {form.fields.label.error}
+                        </Alert>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <button type="submit" className="btn btn-primary col-12 my-2">
                   Submit

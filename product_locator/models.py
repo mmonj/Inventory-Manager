@@ -6,6 +6,7 @@ from django.db import models
 from django.utils import timezone
 
 from products.types import UPC_A_LENGTH
+from server.utils.typedefs import CommonModel
 
 
 class Store(models.Model):
@@ -116,3 +117,16 @@ class ProductScanAudit(models.Model):
 
     def __str__(self) -> str:
         return f"{self.product_type} - {self.datetime_created.isoformat()}"
+
+
+class PlanogramUpdate(CommonModel):
+    label = models.CharField(max_length=100, blank=False)
+    planogram = models.ForeignKey(
+        Planogram, on_delete=models.CASCADE, related_name="planogram_updates"
+    )
+    old_plano = models.JSONField()
+    new_plano = models.JSONField()
+    is_applied = models.BooleanField(default=False)
+
+    def __str__(self) -> str:
+        return f"{self.label} - {self.planogram}"

@@ -2,7 +2,7 @@ from typing import List, NamedTuple
 
 from reactivated import Pick, interface
 
-from ..models import HomeLocation, Planogram, Product, ProductScanAudit
+from ..models import HomeLocation, Planogram, PlanogramUpdate, Product, ProductScanAudit
 
 
 @interface
@@ -81,3 +81,15 @@ class IProductLocations(NamedTuple):
 @interface
 class ISuccess(NamedTuple):
     success: bool
+
+
+@interface
+class IPlanogramUpdateApplied(NamedTuple):
+    planogram_update: Pick[
+        PlanogramUpdate,
+        "pk",
+        "label",
+        "is_applied",
+        "planogram.pk",
+        "planogram.name",
+    ]

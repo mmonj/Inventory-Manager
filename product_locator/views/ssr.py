@@ -12,7 +12,7 @@ from product_locator.views import templates
 
 from .. import planogram_parser, util
 from ..forms import CreatePlanogramForm, PlanogramForm
-from ..models import Planogram, ProductScanAudit, Store
+from ..models import Planogram, PlanogramUpdate, ProductScanAudit, Store
 
 if TYPE_CHECKING:
     from ..types import IImportedProductInfo
@@ -82,16 +82,6 @@ def add_new_products(request: HttpRequest) -> HttpResponse:
             form=received_form, stores=list(stores)
         ).render(request)
 
-    num_products_added, locations_that_are_updating = util.add_location_records(
-        product_list, planogram, is_reset_planogram, request
-    )
-
-    if len(locations_that_are_updating) > 0:
-        messages.warning(
-            request,
-            f"The following locations have changed: {', '.join(loc.name for loc in locations_that_are_updating)}",
-        )
-
     if planogram.store is None:
         messages.error(request, "The selected planogram does not have an associated store.")
         stores = Store.objects.all()
@@ -99,11 +89,47 @@ def add_new_products(request: HttpRequest) -> HttpResponse:
             form=received_form, stores=list(stores)
         ).render(request)
 
+    if is_reset_planogram:
+        label: str = received_form.cleaned_data["label"]
+        planogram_update = util.create_planogram_update(label, product_list, planogram)
+        messages.success(
+            request,
+            f"Queued planogram update '{planogram_update.label}' for review: Store "
+            f"'{planogram.store.name}', planogram '{planogram.name}'",
+        )
+        return redirect("product_locator:planogram_updates")
+
+    num_products_added = util.add_location_records(product_list, planogram, request)
+
     messages.success(
         request,
         f"Submitted {num_products_added} out of {len(product_list)} items successfully to: Store '{planogram.store.name}', planogram '{planogram.name}'",
     )
     return redirect("product_locator:add_new_products")
+
+
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
+@require_http_methods(["GET"])
+def planogram_updates(request: HttpRequest) -> HttpResponse:
+    updates = (
+        PlanogramUpdate.objects.all()
+        .select_related("planogram", "planogram__store")
+        .order_by("is_applied", "-datetime_created")
+    )
+
+    return templates.ProductLocatorPlanogramUpdates(
+        planogram_updates=[
+            templates.TPlanogramUpdate(
+                pk=update.pk,
+                label=update.label,
+                is_applied=update.is_applied,
+                old_plano=update.old_plano,
+                new_plano=update.new_plano,
+                planogram=update.planogram,
+            )
+            for update in updates
+        ]
+    ).render(request)
 
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))

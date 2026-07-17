@@ -11,7 +11,8 @@ from rest_framework.request import Request as DrfRequest
 
 from server.utils.common import validate_structure
 
-from ..models import HomeLocation, Planogram, Product, ProductScanAudit
+from .. import util
+from ..models import HomeLocation, Planogram, PlanogramUpdate, Product, ProductScanAudit
 from . import interfaces_response
 from .interfaces_request import (
     GetProductLocationRequest,
@@ -148,3 +149,23 @@ def delete_planogram(request: DrfRequest, planogram_id: int) -> HttpResponse:
     planogram.delete()
 
     return interfaces_response.ISuccess(success=True).render(request)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def apply_planogram_update(request: DrfRequest, planogram_update_id: int) -> HttpResponse:
+    planogram_update = (
+        PlanogramUpdate.objects.select_related("planogram").filter(pk=planogram_update_id).first()
+    )
+
+    if planogram_update is None:
+        raise DrfNotFound(f"PlanogramUpdate with ID {planogram_update_id} not found")
+
+    if planogram_update.is_applied:
+        raise DrfValidationError("This planogram update has already been applied.")
+
+    util.apply_planogram_update(planogram_update, request)
+
+    return interfaces_response.IPlanogramUpdateApplied(planogram_update=planogram_update).render(
+        request
+    )

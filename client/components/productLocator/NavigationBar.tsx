@@ -11,6 +11,7 @@ import {
   faHome,
   faPlusCircle,
   faSearchLocation,
+  faShuffle,
   faSignInAlt,
   faSignOutAlt,
   faUserShield,
@@ -44,6 +45,7 @@ export function NavigationBar() {
   const superuserLinks: TLink[] = [
     getLink("Add New Products", reverse("product_locator:add_new_products"), faPlusCircle),
     getLink("Manage Planograms", reverse("product_locator:manage_planograms"), faCog),
+    getLink("Planogram Updates", reverse("product_locator:planogram_updates"), faShuffle),
   ];
 
   return (
