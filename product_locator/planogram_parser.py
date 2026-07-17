@@ -2,8 +2,7 @@ import logging
 import re
 from typing import Callable
 
-from django.contrib import messages
-from django.http import HttpRequest
+from checkdigit import gs1
 from natsort import natsorted
 
 from .types import IImportedProductInfo
@@ -13,6 +12,14 @@ logger = logging.getLogger("main_logger")
 # ITEM_ATTRIBUTES_RE = r"(.+?)[ \t]+(\d{12})(?:[ \t]+\d)?[ \t]+([a-z]\d+)"
 ITEM_ATTRIBUTES_RE = re.compile(
     r"(.+?)[ \t]+(\d{12})(?:[ \t]+\w)?[ \t]+(\w{2,3})[ \t]*", flags=re.MULTILINE | re.IGNORECASE
+)
+# matches "<location> Section <n> <upc> <name>", where <name> runs until the next
+# location/section/upc triplet or the end of the line, e.g.:
+# "A1 Section 1 843740198695 Cat BoX H1 Section 1 843740135607 Spectacular"
+LOCATION_FIRST_ITEM_ATTRIBUTES_RE = re.compile(
+    r"\b([a-z]\d{1,2})[ \t]+Section[ \t]+\d+[ \t]+(\d{12})[ \t]+(.*?)"
+    r"(?=[ \t]+[a-z]\d{1,2}[ \t]+Section[ \t]+\d+[ \t]+\d{12}|[ \t]*$)",
+    flags=re.IGNORECASE,
 )
 LOCATION_RE = re.compile(r"\b[a-z][0-9][0-9]?\b", flags=re.IGNORECASE)
 
@@ -30,24 +37,52 @@ COMMON_OCR_CHAR_ERRORS = {
 }
 
 
-def parse_data(planogram_text_dump: str, request: HttpRequest) -> list[IImportedProductInfo]:
+def parse_data(
+    planogram_text_dump: str,
+) -> tuple[list[IImportedProductInfo], list[str]]:
     product_list: list[IImportedProductInfo] = []
     lines_not_matched: list[str] = []
+    invalid_upcs: list[str] = []
+    errors: list[str] = []
 
     for line in planogram_text_dump.strip().split("\n"):
-        matches = ITEM_ATTRIBUTES_RE.finditer(line)
+        location_first_matches = list(LOCATION_FIRST_ITEM_ATTRIBUTES_RE.finditer(line))
+        if location_first_matches:
+            for match in location_first_matches:
+                location = match.group(1)
+                upc = match.group(2).strip()
+                name = match.group(3)
+
+                if not gs1.validate(upc):
+                    invalid_upcs.append(upc)
+                    continue
+
+                product_list.append(
+                    {
+                        "upc": upc,
+                        "name": name.strip(),
+                        "location": fix_location_ocr_inaccuracies(location.strip()),
+                    }
+                )
+            continue
+
+        matches = list(ITEM_ATTRIBUTES_RE.finditer(line))
         if not matches:
             lines_not_matched.append(line)
             continue
 
         for match in matches:
-            name: str = match.group(1)
-            upc: str = match.group(2)
-            location: str = match.group(3)
+            name = match.group(1)
+            upc = match.group(2).strip()
+            location = match.group(3)
+
+            if not gs1.validate(upc):
+                invalid_upcs.append(upc)
+                continue
 
             product_list.append(
                 {
-                    "upc": upc.strip(),
+                    "upc": upc,
                     "name": name.strip(),
                     "location": fix_location_ocr_inaccuracies(location.strip()),
                 }
@@ -55,12 +90,16 @@ def parse_data(planogram_text_dump: str, request: HttpRequest) -> list[IImported
 
     for line in lines_not_matched:
         logger.info(f"Regex was not matched on line: '{line}'")
-        messages.error(request, f"No data was parsed from line: {line}")
+        errors.append(f"No data was parsed from line: {line}")
+
+    for upc in invalid_upcs:
+        logger.info(f"Invalid UPC check digit: '{upc}'")
+        errors.append(f"Invalid UPC (failed check digit): {upc}")
 
     # assert_unique(product_list, "upc", key=lambda e: e["upc"])
     # assert_unique(product_list, "location", key=lambda e: e["location"])
 
-    return natsorted(product_list, key=lambda p: p["location"], reverse=True)
+    return natsorted(product_list, key=lambda p: p["location"], reverse=True), errors
 
 
 def assert_unique(
@@ -102,7 +141,7 @@ def fix_location_ocr_inaccuracies(location: str) -> str:
         elif idx > 0 and char.isalpha():
             fixed_char = get_numeric_ocr_char(char)
             assert fixed_char != "", (
-                f"Error in attempt to fix location {location}; " f"fix not found for char: {char}"
+                f"Error in attempt to fix location {location}; fix not found for char: {char}"
             )
 
             result += fixed_char

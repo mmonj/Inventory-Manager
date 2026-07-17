@@ -61,10 +61,19 @@ def add_new_products(request: HttpRequest) -> HttpResponse:
             form=received_form, stores=list(stores)
         ).render(request)
 
-    product_list: list[IImportedProductInfo] = planogram_parser.parse_data(
-        planogram_text_dump, request
-    )
+    product_list: list[IImportedProductInfo]
+    parse_errors: list[str]
+    product_list, parse_errors = planogram_parser.parse_data(planogram_text_dump)
     logger.info("%s parsed from user input", len(product_list))
+
+    if parse_errors:
+        for error in parse_errors:
+            messages.error(request, error)
+
+        stores = Store.objects.all()
+        return templates.ProductLocatorAddNewProducts(
+            form=received_form, stores=list(stores)
+        ).render(request)
 
     if not product_list:
         messages.error(request, "You have submitted data that resulted in 0 items being parsed.")
