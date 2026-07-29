@@ -9,6 +9,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { Context, interfaces, reverse, templates } from "@reactivated";
 
+import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
 import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
 import { getFormattedEstimatedTime } from "@client/util/commonUtil";
 
@@ -142,6 +143,9 @@ interface Props {
   selectedDate: Date | undefined;
   daySummaries: Map<string, ICalendarDaySummary>;
   onSelectDate: (date: Date | undefined) => void;
+  swapMode: boolean;
+  swapSelectedDates: Date[];
+  onSelectSwapDates: (dates: Date[] | undefined) => void;
 }
 
 function ScheduleCalendarGrid(props: Props) {
@@ -182,17 +186,32 @@ function ScheduleCalendarGrid(props: Props) {
   return (
     <Card className="qt-schedule-calendar">
       <Card.Body className="d-flex justify-content-center">
-        <DayPicker
-          mode="single"
-          selected={props.selectedDate}
-          onSelect={props.onSelectDate}
-          disabled={(date) => !isAllowed(date)}
-          modifiers={{ selectable: isAllowed }}
-          modifiersClassNames={{ selectable: "qt-day-selectable" }}
-          components={{ DayContent: renderDayContent }}
-          showOutsideDays
-          fixedWeeks
-        />
+        {props.swapMode ? (
+          <DayPicker
+            mode="multiple"
+            max={2}
+            selected={props.swapSelectedDates}
+            onSelect={props.onSelectSwapDates}
+            disabled={(date) => !isAllowed(date)}
+            modifiers={{ selectable: isAllowed }}
+            modifiersClassNames={{ selectable: "qt-day-selectable" }}
+            components={{ DayContent: renderDayContent }}
+            showOutsideDays
+            fixedWeeks
+          />
+        ) : (
+          <DayPicker
+            mode="single"
+            selected={props.selectedDate}
+            onSelect={props.onSelectDate}
+            disabled={(date) => !isAllowed(date)}
+            modifiers={{ selectable: isAllowed }}
+            modifiersClassNames={{ selectable: "qt-day-selectable" }}
+            components={{ DayContent: renderDayContent }}
+            showOutsideDays
+            fixedWeeks
+          />
+        )}
       </Card.Body>
     </Card>
   );
@@ -205,6 +224,7 @@ export default function Template(props: templates.QtScheduleCalendar) {
   const fetchRepSchedule = useFetch<interfaces.QtViewRepDetail>();
   const scheduleServiceOrderFetch = useFetch<interfaces.QtScheduleServiceOrder>();
   const unscheduleServiceOrderFetch = useFetch<interfaces.QtUnscheduleServiceOrder>();
+  const swapServiceOrdersFetch = useFetch<interfaces.QtSwapServiceOrders>();
 
   const [selectedRepId, setSelectedRepId] = React.useState<number | null>(null);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
@@ -213,6 +233,8 @@ export default function Template(props: templates.QtScheduleCalendar) {
     isCached: boolean;
     show: boolean;
   } | null>(null);
+  const [isSwapMode, setIsSwapMode] = React.useState(false);
+  const [swapSelectedDates, setSwapSelectedDates] = React.useState<Date[]>([]);
 
   const selectedDateKey = selectedDate ? toDateKey(selectedDate) : null;
 
@@ -360,6 +382,86 @@ export default function Template(props: templates.QtScheduleCalendar) {
     }
 
     updateServiceOrderDate(so.ServiceOrderId, schedule.UnscheduledDate);
+  }
+
+  function getPhysicalVisitServiceOrderIdsForDate(dateKey: string): number[] {
+    return serviceOrders
+      .filter(
+        (so) => so.Address.IsPhysicalVisit && toDateKey(new Date(so.DateScheduled)) === dateKey
+      )
+      .map((so) => so.ServiceOrderId);
+  }
+
+  async function handleExecuteSwap() {
+    if (selectedRepId === null || swapSelectedDates.length !== 2) {
+      return;
+    }
+
+    const [dateA, dateB] = swapSelectedDates;
+    const dateAKey = toDateKey(dateA);
+    const dateBKey = toDateKey(dateB);
+
+    const serviceOrderIdsA = getPhysicalVisitServiceOrderIdsForDate(dateAKey);
+    const serviceOrderIdsB = getPhysicalVisitServiceOrderIdsForDate(dateBKey);
+
+    if (serviceOrderIdsA.length === 0 && serviceOrderIdsB.length === 0) {
+      alert("Neither selected date has any physical-visit service orders to swap.");
+      return;
+    }
+
+    if (
+      !confirm(
+        `Swap ${serviceOrderIdsA.length} service order(s) on ${dateAKey} with ${serviceOrderIdsB.length} service order(s) on ${dateBKey}?`
+      )
+    ) {
+      return;
+    }
+
+    const [isSuccess, result] = await swapServiceOrdersFetch.fetchData(() =>
+      fetch(reverse("survey_worker:qt_swap_service_orders"), {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": context.csrf_token,
+          Accept: "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          rep_id: selectedRepId.toString(),
+          date_a: dateAKey,
+          date_b: dateBKey,
+          service_order_ids_a: serviceOrderIdsA.join(","),
+          service_order_ids_b: serviceOrderIdsB.join(","),
+        }),
+      })
+    );
+
+    if (!isSuccess) {
+      alert("Failed to swap service orders: request failed.");
+      return;
+    }
+
+    const failures = result.results.filter((r) => !r.success);
+
+    for (const swapResult of result.results) {
+      if (!swapResult.success) {
+        continue;
+      }
+
+      const isFromA = serviceOrderIdsA.includes(swapResult.service_order_id);
+      const newDateKey = isFromA ? dateBKey : dateAKey;
+      updateServiceOrderDate(swapResult.service_order_id, `${newDateKey}T00:00:00`);
+    }
+
+    if (failures.length > 0) {
+      alert(
+        `Swap completed with ${failures.length} failure(s): ${failures
+          .map((f) => `SO ${f.service_order_id}: ${f.error_message}`)
+          .join(", ")}`
+      );
+    }
+
+    setIsSwapMode(false);
+    setSwapSelectedDates([]);
   }
 
   const unscheduledServiceOrders = React.useMemo(() => {
@@ -553,15 +655,44 @@ export default function Template(props: templates.QtScheduleCalendar) {
           </div>
 
           <div className="col-md-7">
+            <div className="d-flex align-items-center justify-content-between mb-2">
+              <Form.Check
+                type="checkbox"
+                id="swap-jobs-checkbox"
+                label="Swap Jobs"
+                checked={isSwapMode}
+                onChange={(event) => {
+                  setIsSwapMode(event.target.checked);
+                  setSwapSelectedDates([]);
+                }}
+              />
+              {isSwapMode && (
+                <ButtonWithSpinner
+                  type="button"
+                  className={classNames("btn btn-warning btn-sm", {
+                    disabled: swapSelectedDates.length !== 2 && !swapServiceOrdersFetch.isLoading,
+                  })}
+                  spinnerVariant="black"
+                  fetchState={swapServiceOrdersFetch}
+                  onClick={() => swapSelectedDates.length === 2 && handleExecuteSwap()}
+                >
+                  Execute Swap
+                </ButtonWithSpinner>
+              )}
+            </div>
+
             <ScheduleCalendarGrid
               isTodayAllowed={isTodayAllowed}
               maxSelectableDate={maxSelectableDate}
               selectedDate={selectedDate}
               daySummaries={daySummaries}
               onSelectDate={setSelectedDate}
+              swapMode={isSwapMode}
+              swapSelectedDates={swapSelectedDates}
+              onSelectSwapDates={(dates) => setSwapSelectedDates(dates ?? [])}
             />
 
-            {selectedDateKey !== null && (
+            {!isSwapMode && selectedDateKey !== null && (
               <Card className="mt-4">
                 <Card.Header className="bg-primary text-white">
                   {serviceOrdersForSelectedDate.length} Service Order
