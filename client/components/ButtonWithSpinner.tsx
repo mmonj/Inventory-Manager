@@ -14,7 +14,8 @@ interface Props {
     | "warning"
     | "info"
     | "light"
-    | "dark";
+    | "dark"
+    | "black";
   onClick?: () => void;
   children: React.ReactNode;
 }
