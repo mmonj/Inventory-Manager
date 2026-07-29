@@ -12,12 +12,27 @@ from requests.adapters import HTTPAdapter, Retry
 from requests.utils import cookiejar_from_dict, dict_from_cookiejar
 from rest_framework.exceptions import ValidationError
 
-from .typedefs import TSessionData
+from .typedefs import TResult, TSessionData
 
 T = TypeVar("T")
 
 TModel = TypeVar("TModel", bound=models.Model)
 TIsNewRecord = bool
+
+
+def unwrap(result: TResult[T, Any]) -> T:
+    """Return a TResult's success value, or raise its error.
+
+    If the held error is already an Exception it's raised as-is; otherwise
+    it's wrapped in a plain Exception so callers always get something
+    raise-able regardless of what error type the TResult carries.
+    """
+    if result.ok:
+        return result.value
+
+    if isinstance(result.err, BaseException):
+        raise result.err
+    raise Exception(result.err)  # noqa: TRY002
 
 
 def cast_type(data: Any, _interface_class: Type[T]) -> T:

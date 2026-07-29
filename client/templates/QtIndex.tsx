@@ -89,6 +89,38 @@ export default function Template(_props: templates.QtIndex) {
                   Administrative Tools
                 </h3>
                 <div className="row g-4">
+                  {/* qt_schedule_calendar */}
+                  <div className="col-md-6 col-lg-4">
+                    <div className="card h-100 border-0 shadow-sm hover-shadow transition">
+                      <div className="card-body d-flex flex-column p-4">
+                        <div className="mb-3">
+                          <div
+                            className="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
+                            style={{ width: "60px", height: "60px" }}
+                          >
+                            <FontAwesomeIcon
+                              icon={faCalendarAlt}
+                              size="2x"
+                              className="text-success"
+                            />
+                          </div>
+                        </div>
+                        <h5 className="card-title fw-bold mb-2">Schedule Calendar</h5>
+                        <p className="card-text text-muted flex-grow-1">
+                          View a rep's schedule as a calendar and schedule or unschedule service
+                          orders
+                        </p>
+                        <a
+                          href={reverse("survey_worker:qt_schedule_calendar")}
+                          className="btn btn-outline-success btn-lg w-100 mt-3"
+                        >
+                          <FontAwesomeIcon icon={faCalendarCheck} className="me-2" />
+                          Open Schedule Calendar
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* qt_view_login_sessions */}
                   <div className="col-md-6 col-lg-4">
                     <div className="card h-100 border-0 shadow-sm hover-shadow transition">
@@ -132,10 +164,8 @@ export default function Template(_props: templates.QtIndex) {
                             />
                           </div>
                         </div>
-                        <h5 className="card-title fw-bold mb-2">View Schedules</h5>
-                        <p className="card-text text-muted flex-grow-1">
-                          View and manage territory schedules
-                        </p>
+                        <h5 className="card-title fw-bold mb-2">View Schedule JSON</h5>
+                        <p className="card-text text-muted flex-grow-1">View territory JSON data</p>
                         <a
                           href={reverse("survey_worker:qt_view_schedules")}
                           className="btn btn-outline-success btn-lg w-100 mt-3"
