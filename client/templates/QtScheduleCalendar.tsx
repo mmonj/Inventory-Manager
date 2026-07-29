@@ -1,6 +1,7 @@
 import React from "react";
 
-import { Button, Card, Form, ListGroup, Spinner } from "react-bootstrap";
+import classNames from "classnames";
+import { Button, Card, Form, ListGroup, Spinner, Toast, ToastContainer } from "react-bootstrap";
 import { DayContentProps, DayPicker } from "react-day-picker";
 
 import { faBuilding } from "@fortawesome/free-solid-svg-icons";
@@ -51,7 +52,10 @@ function StoreAddressBlock(props: { so: TServiceOrder }) {
       <FontAwesomeIcon
         icon={faBuilding}
         size="2x"
-        className={so.Address.IsPhysicalVisit ? "text-info" : "text-secondary"}
+        className={classNames({
+          "text-info": so.Address.IsPhysicalVisit,
+          "text-secondary": !so.Address.IsPhysicalVisit,
+        })}
       />
       <div>
         <div className="fw-semibold">{so.Address.StoreName}</div>
@@ -199,11 +203,26 @@ const LAST_SELECTED_REP_ID_KEY = "calendar-rep-id-last-used";
 export default function Template(props: templates.QtScheduleCalendar) {
   const context = React.useContext(Context);
   const fetchRepSchedule = useFetch<interfaces.QtViewRepDetail>();
+  const scheduleServiceOrderFetch = useFetch<interfaces.QtScheduleServiceOrder>();
+  const unscheduleServiceOrderFetch = useFetch<interfaces.QtUnscheduleServiceOrder>();
 
   const [selectedRepId, setSelectedRepId] = React.useState<number | null>(null);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
+  const [localSchedule, setLocalSchedule] = React.useState<TSchedule | null>(null);
+  const [scheduleFreshnessToast, setScheduleFreshnessToast] = React.useState<{
+    isCached: boolean;
+    show: boolean;
+  } | null>(null);
 
   const selectedDateKey = selectedDate ? toDateKey(selectedDate) : null;
+
+  React.useEffect(() => {
+    setLocalSchedule(fetchRepSchedule.data?.rep_sync_data.schedule ?? null);
+
+    if (fetchRepSchedule.data !== null) {
+      setScheduleFreshnessToast({ isCached: fetchRepSchedule.data.is_cached, show: true });
+    }
+  }, [fetchRepSchedule.data]);
 
   async function fetchScheduleForRep(repId: number) {
     const baseUrl = reverse("survey_worker:qt_view_rep_schedule", { rep_id: repId });
@@ -253,9 +272,95 @@ export default function Template(props: templates.QtScheduleCalendar) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
   }, []);
 
-  const schedule = fetchRepSchedule.data?.rep_sync_data.schedule ?? null;
+  const schedule = localSchedule;
 
   const serviceOrders: TServiceOrder[] = schedule?.ServiceOrders ?? [];
+
+  function updateServiceOrderDate(serviceOrderId: number, dateScheduled: string) {
+    setLocalSchedule((current) => {
+      if (current === null) {
+        return current;
+      }
+
+      return {
+        ...current,
+        ServiceOrders: current.ServiceOrders.map((so) =>
+          so.ServiceOrderId === serviceOrderId ? { ...so, DateScheduled: dateScheduled } : so
+        ),
+      };
+    });
+  }
+
+  async function handleScheduleServiceOrder(so: TServiceOrder, date: Date) {
+    if (selectedRepId === null) {
+      return;
+    }
+
+    const [isSuccess, result] = await scheduleServiceOrderFetch.fetchData(() =>
+      fetch(reverse("survey_worker:qt_schedule_service_order"), {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": context.csrf_token,
+          Accept: "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          rep_id: selectedRepId.toString(),
+          service_order_id: so.ServiceOrderId.toString(),
+          date: toDateKey(date),
+        }),
+      })
+    );
+
+    if (!isSuccess) {
+      alert("Failed to schedule service order: request failed.");
+      return;
+    }
+
+    if (!result.success) {
+      alert(`Failed to schedule service order: ${result.error_message}`);
+      return;
+    }
+
+    updateServiceOrderDate(so.ServiceOrderId, `${toDateKey(date)}T00:00:00`);
+  }
+
+  async function handleUnscheduleServiceOrder(so: TServiceOrder) {
+    if (selectedRepId === null || schedule === null) {
+      return;
+    }
+
+    if (!confirm(`Unschedule service order ${so.ServiceOrderId}?`)) {
+      return;
+    }
+
+    const [isSuccess, result] = await unscheduleServiceOrderFetch.fetchData(() =>
+      fetch(reverse("survey_worker:qt_unschedule_service_order"), {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": context.csrf_token,
+          Accept: "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          rep_id: selectedRepId.toString(),
+          service_order_id: so.ServiceOrderId.toString(),
+        }),
+      })
+    );
+
+    if (!isSuccess) {
+      alert("Failed to unschedule service order: request failed.");
+      return;
+    }
+
+    if (!result.success) {
+      alert("Failed to unschedule service order.");
+      return;
+    }
+
+    updateServiceOrderDate(so.ServiceOrderId, schedule.UnscheduledDate);
+  }
 
   const unscheduledServiceOrders = React.useMemo(() => {
     if (schedule === null) {
@@ -350,6 +455,32 @@ export default function Template(props: templates.QtScheduleCalendar) {
       className="mw-rem-90 mx-auto px-2"
       extraStyles={["styles/react-day-picker.css"]}
     >
+      <ToastContainer position="top-end" className="p-3" style={{ zIndex: 1100 }}>
+        <Toast
+          show={scheduleFreshnessToast?.show === true}
+          onClose={() =>
+            setScheduleFreshnessToast((current) => current && { ...current, show: false })
+          }
+          delay={4000}
+          autohide
+          bg={scheduleFreshnessToast?.isCached === true ? "warning" : "success"}
+        >
+          <Toast.Header closeButton={true}>
+            <strong className="me-auto">Schedule Data</strong>
+          </Toast.Header>
+          <Toast.Body
+            className={classNames({
+              "text-dark": scheduleFreshnessToast?.isCached === true,
+              "text-white": scheduleFreshnessToast?.isCached !== true,
+            })}
+          >
+            {scheduleFreshnessToast?.isCached === true
+              ? "Showing cached schedule data."
+              : "Showing freshly fetched schedule data."}
+          </Toast.Body>
+        </Toast>
+      </ToastContainer>
+
       <h1 className="my-4">Schedule Calendar</h1>
 
       <Form.Group className="mb-4" style={{ maxWidth: "24rem" }}>
@@ -403,9 +534,12 @@ export default function Template(props: templates.QtScheduleCalendar) {
                       <Button
                         variant="primary"
                         size="sm"
-                        disabled
+                        disabled={selectedDate === undefined || scheduleServiceOrderFetch.isLoading}
                         className="text-nowrap"
                         style={{ width: "9.5rem" }}
+                        onClick={() =>
+                          selectedDate !== undefined && handleScheduleServiceOrder(so, selectedDate)
+                        }
                       >
                         {selectedDate !== undefined
                           ? `Schedule on ${formatShortDate(selectedDate)}`
@@ -445,7 +579,12 @@ export default function Template(props: templates.QtScheduleCalendar) {
                       key={so.ServiceOrderId}
                       so={so}
                       action={
-                        <Button variant="danger" size="sm" disabled>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          disabled={unscheduleServiceOrderFetch.isLoading}
+                          onClick={() => handleUnscheduleServiceOrder(so)}
+                        >
                           Unschedule
                         </Button>
                       }
