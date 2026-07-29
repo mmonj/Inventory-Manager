@@ -18,7 +18,7 @@ export default function Template(props: templates.QtScheduleView) {
   const fetchRepSchedule = useFetch<interfaces.QtViewRepDetail>();
 
   const downloadCheckboxRef = React.useRef<HTMLInputElement>(null);
-  const forceFetchCheckboxRef = React.useRef<HTMLInputElement>(null);
+  const useCacheCheckboxRef = React.useRef<HTMLInputElement>(null);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -70,7 +70,7 @@ export default function Template(props: templates.QtScheduleView) {
 
   return (
     <Layout
-      title="Schedule Viewer"
+      title="Schedule JSON Viewer"
       navbar={<NavigationBar />}
       className="mw-rem-60 mx-auto px-2"
       extraStyles={["styles/react-json-viewer.css"]}
@@ -92,10 +92,11 @@ export default function Template(props: templates.QtScheduleView) {
 
         <Form.Check
           type="checkbox"
-          id="force-fetch-checkbox"
-          label="Fetch schedule anew"
-          name="fetch_anew"
-          ref={forceFetchCheckboxRef}
+          id="use-cache-checkbox"
+          label="Get Cached Schedule"
+          name="use_cache"
+          defaultChecked
+          ref={useCacheCheckboxRef}
         />
 
         <Form.Check

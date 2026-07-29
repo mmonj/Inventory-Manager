@@ -30,6 +30,7 @@
     "html5-qrcode": "^2.3.8",
     "leaflet": "^1.9.4",
     "react-bootstrap": "^2.8.0",
+    "react-day-picker": "^8.10.2",
     "react-json-view-lite": "^1.0.0",
     "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.16.0",

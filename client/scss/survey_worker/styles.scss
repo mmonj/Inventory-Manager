@@ -32,3 +32,39 @@
 .copy-address:hover {
   cursor: pointer;
 }
+
+.qt-schedule-calendar .rdp {
+  --rdp-cell-size: 4.5rem;
+  margin: 0;
+}
+
+.qt-schedule-calendar .rdp-cell,
+.qt-schedule-calendar .rdp-day {
+  height: 4.75rem;
+}
+
+.qt-schedule-calendar .rdp-day {
+  overflow: visible;
+  font-size: 0.85rem;
+}
+
+.qt-schedule-calendar .rdp-day_selected,
+.qt-schedule-calendar .qt-day-selectable {
+  white-space: normal;
+  line-height: 1.1;
+}
+
+.qt-day-selectable:not(.rdp-day_selected) {
+  background-color: var(--bs-success);
+  color: var(--bs-white);
+  border-radius: var(--bs-border-radius);
+}
+
+.qt-day-selectable:not(.rdp-day_selected):hover {
+  background-color: var(--bs-success-border-subtle);
+}
+
+.rdp-day_selected {
+  background-color: var(--bs-primary) !important;
+  color: var(--bs-white) !important;
+}

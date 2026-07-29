@@ -26,6 +26,7 @@ export function NavigationBar() {
   const currentPath = djangoContext.request.path;
 
   const privilegedLinks: TLink[] = [
+    getLink("Schedule", reverse("survey_worker:qt_schedule_calendar")),
     getLink("View Login Sessions", reverse("survey_worker:qt_view_login_sessions")),
     getLink("View Qt Schedules", reverse("survey_worker:qt_view_schedules")),
     getLink("Update Qt Schedule", reverse("survey_worker:qt_update_schedule")),
