@@ -17,3 +17,4 @@ static/dist/*
 *.css
 *.css.map
 .claude/
+CLAUDE.md
