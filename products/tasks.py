@@ -42,7 +42,7 @@ redis_client = redis.Redis(
 )
 
 
-@job  # type:ignore [misc]
+@job
 def get_external_product_images() -> None:
     logger.info("Received job to fetch product images from API")
     yesterday_date = datetime.now().date() - timedelta(days=1)

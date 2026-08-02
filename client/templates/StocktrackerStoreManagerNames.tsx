@@ -6,7 +6,7 @@ import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { StoreManagerFieldset } from "@client/components/stockTracker/StoreManagerFieldset";
 
-export default function Template(props: templates.StocktrackerStoreManagerNames) {
+export function Template(props: templates.StocktrackerStoreManagerNames) {
   const [currentRepStores, setCurrentRepStores] = useState<
     FieldRepresentative_3Ba5E2A106["stores"]
   >([]);

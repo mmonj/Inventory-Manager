@@ -34,7 +34,7 @@ function getMessageTypeVariant(messageType: string): string {
   }
 }
 
-export default function Template(props: templates.QtAutofillLogs) {
+export function Template(props: templates.QtAutofillLogs) {
   const [filterType, setFilterType] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");

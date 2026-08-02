@@ -14,7 +14,7 @@ import { fetchByReactivated } from "@client/util/commonUtil";
 
 type SelectOption = { value: number; label: string };
 
-export default function Template(props: templates.ProductLocatorManagePlanograms) {
+export function Template(props: templates.ProductLocatorManagePlanograms) {
   const [selectedStore, setSelectedStore] = useState<SelectOption | null>(null);
   const djangoContext = useContext(Context);
   const planogramsFetcher = useFetch<interfaces.IPlanogramsByStore>();

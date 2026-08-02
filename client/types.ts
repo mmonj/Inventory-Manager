@@ -1,10 +1,10 @@
-import { StockTrackerTypesSheetTypeDescriptionInterface } from "@reactivated";
-
 import {
   DjangoFormsWidgetsSelect,
   DjangoFormsWidgetsTextarea,
   ReactivatedSerializationWidgetsTextareaAttrs,
-} from "reactivated/dist/generated";
+  StockTrackerTypesSheetTypeDescriptionInterface,
+} from "@reactivated";
+
 import { z } from "zod";
 
 export type TScanSuccessCallback = (decodedText: string) => Promise<void>;
@@ -41,7 +41,8 @@ export interface PreliminaryTextAreaProps extends DjangoFormsWidgetsTextarea {
 }
 
 export interface TextAreaProps
-  extends Omit<DjangoFormsWidgetsTextarea, FilteredKeysType>,
+  extends
+    Omit<DjangoFormsWidgetsTextarea, FilteredKeysType>,
     Omit<ReactivatedSerializationWidgetsTextareaAttrs, "cols" | "rows"> {
   maxLength?: number;
   className?: string;

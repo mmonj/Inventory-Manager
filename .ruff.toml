@@ -32,7 +32,7 @@ exclude = [
 line-length = 100
 indent-width = 4
 
-target-version = "py39"
+target-version = "py312"
 
 [lint]
 select = [
@@ -56,31 +56,33 @@ ignore = [
     "D106",    # Missing docstring in public nested class
     "D107",    # Missing docstring in __init__
     "D200",    # One-line docstring should fit on one line
-    "D202",    # No blank lines allowed after function docstring (found 1)
     "D205",    # 1 blank line required between summary line and description
     "D212",    # Multi-line docstring summary should start at the first line
-    "D213",    # Multi-line docstring summary should start at the second line
     "D400",    # First line should end with a period
     "D401",    # First line of docstring should be in imperative mood
-    "D406",    # Section name should end with a newline
+    "D406",
     "D407",    # Missing dashed underline after section
     "D411",
     "D413",    # Missing blank line after last section
     "D415",    # First line should end with a period, question mark, or exclamation point
     "E402",    # module imports must be at top of file; false positives for local imports
     "E501",    # line too long
+    "E731",    # do not assign a lambda
+    "PLC0415", # import should be at top-level of file; used deliberately to avoid circular/app-registry-ordering issues
     "F403",    # undefined-local-with-import-star; mypy analyzes undefined names for wildcards.
     "F821",    # undefined-name; Reactivated uses literals inside Pick that get flagged as missing variable/names.
-    "FA100",   # Add `from __future__ import annotations` to simplify `...`
     "EM",      # f-/format/literal strings passed to exceptions
     "ERA001",  # lingering commented-out code
     "PLR0913", # too-many-arguments
+    "RUF012",
     "T201",    # lingering print statements
     "TRY003",  # external messages in exceptions are too verbose
     "TRY300",  # Checks for return statements in try blocks
     "TD002",   # require author in TODO comments
     "TD003",   # require referencing an issue URL/number in next line
     "FIX002",  # too verbose descriptions of todos
-    "UP007",   # non-pep604-annotation (prefer | operator for Unions)
     "UP006",   # non-pep585-annotation (eg. prefer list over List)
+    "UP035",
+    "PT009",   # Use a regular `assert` instead of unittest-style `assertTrue`
+    "PT027",   # Use `pytest.raises` instead of unittest-style `assertRaises`
 ]

@@ -45,24 +45,10 @@ services:
     depends_on:
       - django_app
 
-  rq_worker_default:
+  scheduler_worker_default:
     image: inventory-manager-django-dev
-    container_name: inventory-manager-rq-worker-default-dev
-    command: uv run python manage.py rqworker default
-    user: "${UID}"
-    volumes:
-      - /opt/.venv
-      - ./:/app
-    env_file:
-      - ${ENV_FILE}
-    restart: unless-stopped
-    depends_on:
-      - django_app
-
-  rq_scheduler:
-    image: inventory-manager-django-dev
-    container_name: inventory-manager-rq-scheduler-dev
-    command: uv run rqscheduler -H redis -p ${REDIS_PORT} -P ${REDIS_PASSWORD} --db 0
+    container_name: inventory-manager-scheduler-worker-default-dev
+    command: uv run python manage.py scheduler_worker default
     user: "${UID}"
     volumes:
       - /opt/.venv

@@ -28,9 +28,11 @@ import {
 import { Layout } from "../components/Layout";
 import { useFetch } from "../hooks/useFetch";
 
+import "@client/scss/react-day-picker.scss";
+
 const LAST_SELECTED_REP_ID_KEY = "calendar-rep-id-last-used";
 
-export default function Template(props: templates.QtScheduleCalendar) {
+export function Template(props: templates.QtScheduleCalendar) {
   const context = React.useContext(Context);
   const fetchRepSchedule = useFetch<interfaces.QtViewRepDetail>();
   const scheduleServiceOrderFetch = useFetch<interfaces.QtScheduleServiceOrder>();
@@ -364,12 +366,7 @@ export default function Template(props: templates.QtScheduleCalendar) {
   );
 
   return (
-    <Layout
-      title="Schedule"
-      navbar={<NavigationBar />}
-      className="mw-rem-90 mx-auto px-2 mb-4"
-      extraStyles={["styles/react-day-picker.css"]}
-    >
+    <Layout title="Schedule" navbar={<NavigationBar />} className="mw-rem-90 mx-auto px-2 mb-4">
       <ToastContainer position="top-end" className="p-3" style={{ zIndex: 1100 }}>
         <Toast
           show={scheduleFreshnessToast?.show === true}

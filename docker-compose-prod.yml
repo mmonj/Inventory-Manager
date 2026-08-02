@@ -37,26 +37,10 @@ services:
     depends_on:
       - django_app
 
-  rq_worker_default:
+  scheduler_worker_default:
     image: mmonj.inventory-manager-django-prod
-    container_name: inventory-manager-rq-worker-default-prod
-    command: uv run python manage.py rqworker default
-    user: "${UID}"
-    volumes:
-      - ./:/app
-    env_file:
-      - ${ENV_FILE}
-    restart: unless-stopped
-    networks:
-      - caddy_net
-    depends_on:
-      - django_app
-      - redis
-
-  rq_scheduler:
-    image: mmonj.inventory-manager-django-prod
-    container_name: inventory-manager-rq-scheduler-prod
-    command: uv run rqscheduler -H redis -p ${REDIS_PORT} -P ${REDIS_PASSWORD} --db 0
+    container_name: inventory-manager-scheduler-worker-default-prod
+    command: uv run python manage.py scheduler_worker default
     user: "${UID}"
     volumes:
       - ./:/app

@@ -12,13 +12,14 @@ import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
 
 import { Layout } from "../components/Layout";
 
-export default function Template(props: templates.QtRepSessionDetails) {
+import "@client/scss/react-json-viewer.scss";
+
+export function Template(props: templates.QtRepSessionDetails) {
   return (
     <Layout
       title="Rep Session Details"
       navbar={<NavigationBar />}
       className="mw-rem-60 mx-auto px-2"
-      extraStyles={["styles/react-json-viewer.css"]}
     >
       <h1 className="my-4">Rep Session Details</h1>
 

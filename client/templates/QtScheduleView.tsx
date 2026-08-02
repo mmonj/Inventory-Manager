@@ -13,7 +13,9 @@ import { buildUrlFromFormData } from "@client/util/commonUtil";
 import { Layout } from "../components/Layout";
 import { useFetch } from "../hooks/useFetch";
 
-export default function Template(props: templates.QtScheduleView) {
+import "@client/scss/react-json-viewer.scss";
+
+export function Template(props: templates.QtScheduleView) {
   const context = React.useContext(Context);
   const fetchRepSchedule = useFetch<interfaces.QtViewRepDetail>();
 
@@ -73,7 +75,6 @@ export default function Template(props: templates.QtScheduleView) {
       title="Schedule JSON Viewer"
       navbar={<NavigationBar />}
       className="mw-rem-60 mx-auto px-2"
-      extraStyles={["styles/react-json-viewer.css"]}
     >
       <h1 className="my-4">Fetch Rep Schedule</h1>
 

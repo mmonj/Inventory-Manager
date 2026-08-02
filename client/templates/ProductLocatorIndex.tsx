@@ -24,9 +24,12 @@ import { LocationItem } from "@client/components/productLocator/productLocatorIn
 import { useFetch } from "@client/hooks/useFetch";
 import { getProductLocation } from "@client/util/productLocator";
 
+import "@client/scss/stock_tracker/scanner.scss";
+import "@client/scss/product_locator/location-item.scss";
+
 type TStore = templates.ProductLocatorIndex["stores"][number];
 
-export default function Template(props: templates.ProductLocatorIndex) {
+export function Template(props: templates.ProductLocatorIndex) {
   const [store, setStore] = useState<TStore | null>(null);
   const [scannedUpc, setScannedUpc] = useState("");
   const [modalShow, setModalShow] = useState(false);
@@ -63,11 +66,7 @@ export default function Template(props: templates.ProductLocatorIndex) {
   }
 
   return (
-    <Layout
-      title="Product Locator"
-      navbar={<NavigationBar />}
-      extraStyles={["styles/stock_tracker/scanner.css", "styles/product_locator/location-item.css"]}
-    >
+    <Layout title="Product Locator" navbar={<NavigationBar />}>
       <div className="min-vh-100 py-4">
         <section id="store-select-container" className="mw-rem-60 mx-auto px-3">
           {!store && (

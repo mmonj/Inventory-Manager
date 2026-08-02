@@ -25,7 +25,7 @@ type TGroupedStoreRecord = Record<
   }
 >;
 
-export default function Template(props: templates.QtTerritoryViewer) {
+export function Template(props: templates.QtTerritoryViewer) {
   const [selectedRepDetailId, setSelectedRepDetailId] = useState<number | null>(
     props.rep_sync_datalist[0]?.id ?? null
   );

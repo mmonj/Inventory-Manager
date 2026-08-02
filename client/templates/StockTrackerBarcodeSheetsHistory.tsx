@@ -18,7 +18,7 @@ import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 
 import { format } from "date-fns";
 
-export default function Template(props: templates.StockTrackerBarcodeSheetsHistory) {
+export function Template(props: templates.StockTrackerBarcodeSheetsHistory) {
   let currentFieldRepName = "";
   props.field_representatives.forEach((field_rep) => {
     if (field_rep.pk === props.current_field_rep_id) {

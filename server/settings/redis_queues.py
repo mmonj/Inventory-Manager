@@ -1,6 +1,8 @@
 import os
 from typing import TypedDict
 
+from scheduler.types import QueueConfiguration
+
 
 class IRedisConnection(TypedDict):
     HOST: str
@@ -22,4 +24,13 @@ RQ_QUEUES: IRqQueues = {
         "DB": 0,
         "DEFAULT_TIMEOUT": 1800,  # seconds
     },
+}
+
+SCHEDULER_QUEUES = {
+    "default": QueueConfiguration(
+        HOST=os.environ["REDIS_HOST"],
+        PORT=int(os.environ["REDIS_PORT"]),
+        PASSWORD=os.environ["REDIS_PASSWORD"],
+        DB=0,
+    ),
 }

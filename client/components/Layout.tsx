@@ -1,7 +1,6 @@
-import React, { useEffect } from "react";
+import React from "react";
 
 import { Context } from "@reactivated";
-import { Helmet } from "react-helmet-async";
 
 import { ContribMessages } from "./ContribMessages";
 
@@ -13,23 +12,18 @@ interface IExternalStyles {
 interface Props {
   title: string;
   children: React.ReactNode;
-  navbar: JSX.Element;
+  navbar: React.JSX.Element;
   className?: string;
-  extraStyles?: string[];
   extraExternalStyles?: IExternalStyles[];
   bsTheme?: "light" | "dark";
 }
 
-export const Layout = ({ extraStyles = [], bsTheme = "light", ...props }: Props) => {
+export const Layout = ({ bsTheme = "light", ...props }: Props) => {
   const djangoContext = React.useContext(Context);
 
-  useEffect(() => {
-    document.documentElement.setAttribute("data-bs-theme", bsTheme);
-  }, []);
-
   return (
-    <>
-      <Helmet>
+    <html data-bs-theme={bsTheme}>
+      <head>
         <meta charSet="utf-8" />
         <title>{props.title}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -50,31 +44,6 @@ export const Layout = ({ extraStyles = [], bsTheme = "light", ...props }: Props)
           crossOrigin="anonymous"
         />
 
-        <link
-          rel="stylesheet"
-          type="text/css"
-          href={`${djangoContext.STATIC_URL}styles/bs-dark/bootstrap.css`}
-        />
-        <link
-          rel="stylesheet"
-          type="text/css"
-          href={`${djangoContext.STATIC_URL}styles/shared.css`}
-        />
-        <link
-          rel="stylesheet"
-          type="text/css"
-          href={`${djangoContext.STATIC_URL}styles/survey_worker/styles.css`}
-        />
-
-        {extraStyles.map((staticBasePath, idx) => (
-          <link
-            key={idx}
-            rel="stylesheet"
-            type="text/css"
-            href={djangoContext.STATIC_URL + staticBasePath}
-          />
-        ))}
-
         {props.extraExternalStyles?.map((style, idx) => (
           <link
             key={idx}
@@ -86,12 +55,14 @@ export const Layout = ({ extraStyles = [], bsTheme = "light", ...props }: Props)
         ))}
 
         <script defer crossOrigin="anonymous" src={`${djangoContext.STATIC_URL}dist/index.js`} />
-      </Helmet>
-      <header>{props.navbar}</header>
-      <main className={props.className}>
-        <ContribMessages />
-        {props.children}
-      </main>
-    </>
+      </head>
+      <body>
+        <header>{props.navbar}</header>
+        <main className={props.className}>
+          <ContribMessages />
+          {props.children}
+        </main>
+      </body>
+    </html>
   );
 };

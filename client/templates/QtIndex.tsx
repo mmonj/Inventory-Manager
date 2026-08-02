@@ -22,7 +22,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
 
-export default function Template(_props: templates.QtIndex) {
+export function Template(_props: templates.QtIndex) {
   const context = React.useContext(Context);
   const { user } = context;
 

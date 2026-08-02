@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Types } from "reactivated/dist/generated";
+import { _Types } from "@reactivated";
 
 import {
   PreliminarySelectProps,
@@ -9,7 +9,7 @@ import {
   TextAreaProps,
 } from "@client/types";
 
-export type CoreWidget = Types["Widget"];
+export type CoreWidget = _Types["globals"]["Widget"];
 
 export const CheckboxInput = (props: {
   name: string;

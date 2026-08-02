@@ -10,7 +10,9 @@ import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { createNewScanAudit, postToScanAudit } from "@client/util/productLocator";
 
-export default function Template(props: templates.ProductLocatorScanAudit) {
+import "@client/scss/stock_tracker/scanner.scss";
+
+export function Template(props: templates.ProductLocatorScanAudit) {
   const [scannedUpcs, setScannedUpcs] = React.useState<string[]>([]);
   const [selectedScanAuditId, setSelectedScanAuditId] = React.useState<number | null>(null);
   const createNewScanAuditFetch = useFetch<interfaces.IScanAuditCreation>();
@@ -73,11 +75,7 @@ export default function Template(props: templates.ProductLocatorScanAudit) {
   }
 
   return (
-    <Layout
-      title="Scan Audit"
-      navbar={<NavigationBar />}
-      extraStyles={["styles/stock_tracker/scanner.css"]}
-    >
+    <Layout title="Scan Audit" navbar={<NavigationBar />}>
       <section className="m-2 px-2 mw-rem-60 mx-auto">
         <h1 className="text-center my-3">Scan Audit</h1>
         {selectedScanAuditId === null && (

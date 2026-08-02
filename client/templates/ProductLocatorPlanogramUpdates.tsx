@@ -28,7 +28,7 @@ function getChangedLocations(planogramUpdate: TPlanogramUpdate): string[] {
   });
 }
 
-export default function Template(props: templates.ProductLocatorPlanogramUpdates) {
+export function Template(props: templates.ProductLocatorPlanogramUpdates) {
   const [selectedUpdate, setSelectedUpdate] = useState<TPlanogramUpdate | null>(null);
   const [completedMoves, setCompletedMoves] = useState<Set<string>>(new Set());
   const djangoContext = useContext(Context);

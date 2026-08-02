@@ -22,7 +22,7 @@ import { fetchByReactivated } from "@client/util/commonUtil";
 
 type SelectOption = { value: number; label: string };
 
-export default function Template(props: templates.ProductLocatorAddNewProducts) {
+export function Template(props: templates.ProductLocatorAddNewProducts) {
   const [selectedStore, setSelectedStore] = useState<SelectOption | null>(null);
   const [selectedPlanogram, setSelectedPlanogram] = useState<SelectOption | null>(null);
   const [textValue, setTextValue] = useState(props.form.fields.planogram_text_dump.widget.value);

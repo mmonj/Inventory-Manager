@@ -14,6 +14,8 @@ import { TScanErrorCallback, TScanSuccessCallback } from "@client/types";
 import { postLogProductScan } from "@client/util/stockTracker";
 import { BasicProductAddition } from "@client/util/stockTracker/ajaxInterfaces";
 
+import "@client/scss/stock_tracker/scanner.scss";
+
 export interface IStore {
   pk: number;
   name: string | null;
@@ -25,7 +27,7 @@ export interface IFieldRep {
   stores: IStore[];
 }
 
-export default function Template(props: templates.StockTrackerScanner) {
+export function Template(props: templates.StockTrackerScanner) {
   const [productAdditions, setProductAdditions] = useState<BasicProductAddition[]>([]);
   const [store, setStore] = useState<IStore | null>(null);
   const { isError, isLoading, errorMessages, fetchData } = useFetch<BasicProductAddition>();
@@ -83,12 +85,7 @@ export default function Template(props: templates.StockTrackerScanner) {
   };
 
   return (
-    <Layout
-      title="Scanner"
-      className="p-3"
-      navbar={<NavigationBar />}
-      extraStyles={["styles/stock_tracker/scanner.css"]}
-    >
+    <Layout title="Scanner" className="p-3" navbar={<NavigationBar />}>
       {store === null && (
         <section className="mw-rem-50 mx-auto p-2">
           <h1 className="text-center">Scanner</h1>

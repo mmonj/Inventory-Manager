@@ -37,7 +37,7 @@ function HomepageNavbar() {
   );
 }
 
-export default function Template(_props: templates.HomepageIndex) {
+export function Template(_props: templates.HomepageIndex) {
   const context = React.useContext(Context);
 
   return (

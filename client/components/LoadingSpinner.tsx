@@ -7,14 +7,7 @@ interface Props {
   isBlockElement: boolean;
   className?: string;
   spinnerVariant?:
-    | "primary"
-    | "secondary"
-    | "success"
-    | "danger"
-    | "warning"
-    | "info"
-    | "light"
-    | "dark";
+    "primary" | "secondary" | "success" | "danger" | "warning" | "info" | "light" | "dark";
 }
 
 export function LoadingSpinner({
