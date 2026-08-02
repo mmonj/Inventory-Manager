@@ -32,17 +32,6 @@ export const Layout = ({ bsTheme = "light", ...props }: Props) => {
           type="image/x-icon"
           href={`${djangoContext.STATIC_URL}public/favicon.png`}
         />
-        <link
-          rel="stylesheet"
-          type="text/css"
-          href={`${djangoContext.STATIC_URL}admin/css/fonts.css`}
-        />
-        <link
-          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-          rel="stylesheet"
-          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
-          crossOrigin="anonymous"
-        />
 
         {props.extraExternalStyles?.map((style, idx) => (
           <link
@@ -54,7 +43,11 @@ export const Layout = ({ bsTheme = "light", ...props }: Props) => {
           />
         ))}
 
-        <script defer crossOrigin="anonymous" src={`${djangoContext.STATIC_URL}dist/index.js`} />
+        <script
+          type="module"
+          crossOrigin="anonymous"
+          src={`${djangoContext.STATIC_URL}dist/index.js`}
+        />
       </head>
       <body>
         <header>{props.navbar}</header>
