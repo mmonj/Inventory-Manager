@@ -21,7 +21,8 @@ services:
     ports:
       - ${DJANGO_DEV_PORT}:${DJANGO_DEV_PORT}
     volumes:
-      - inv_manager_node_modules:/app/node_modules
+      - /app/node_modules
+      - /opt/.venv
       - ./:/app
     env_file:
       - ${ENV_FILE}
@@ -50,6 +51,7 @@ services:
     command: uv run python manage.py rqworker default
     user: "${UID}"
     volumes:
+      - /opt/.venv
       - ./:/app
     env_file:
       - ${ENV_FILE}
@@ -63,13 +65,10 @@ services:
     command: uv run rqscheduler -H redis -p ${REDIS_PORT} -P ${REDIS_PASSWORD} --db 0
     user: "${UID}"
     volumes:
+      - /opt/.venv
       - ./:/app
     env_file:
       - ${ENV_FILE}
     restart: unless-stopped
     depends_on:
       - django_app
-
-volumes:
-  inv_manager_node_modules:
-    external: true
