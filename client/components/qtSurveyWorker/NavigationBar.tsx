@@ -28,7 +28,7 @@ export function NavigationBar() {
   const privilegedLinks: TLink[] = [
     getLink("Schedule", reverse("survey_worker:qt_schedule_calendar")),
     getLink("View Login Sessions", reverse("survey_worker:qt_view_login_sessions")),
-    getLink("View Qt Schedules", reverse("survey_worker:qt_view_schedules")),
+    getLink("View Schedule JSON", reverse("survey_worker:qt_view_schedules")),
     getLink("Update Qt Schedule", reverse("survey_worker:qt_update_schedule")),
     getLink("Autofill Logs", reverse("survey_worker:qt_view_autofill_logs")),
   ];

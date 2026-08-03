@@ -20,6 +20,7 @@ export function Template(props: templates.StockTrackerBarcodeSheet) {
       title={`Barcode Sheet for ${props.barcodeSheet.parent_company.expanded_name}: ${props.barcodeSheet.store_name}`}
       navbar={<NavigationBar extraClassName="bg-light navbar-light " />}
       bsTheme="dark"
+      className="barcode-sheet-main"
     >
       <BarcodeSheetHeader {...props} setIsEditMode={setIsEditMode} />
       <BarcodeSheetContent {...props} isEditMode={isEditMode} />

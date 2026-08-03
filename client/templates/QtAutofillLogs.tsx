@@ -100,7 +100,11 @@ export function Template(props: templates.QtAutofillLogs) {
   }
 
   return (
-    <Layout title="Autofill Logs" navbar={<NavigationBar />} className="container-fluid py-2">
+    <Layout
+      title="Autofill Logs"
+      navbar={<NavigationBar />}
+      className="container-fluid py-2 mw-rem-60 mx-auto"
+    >
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1 className="mb-0">📊 Autofill Logs</h1>
         <Badge bg="secondary" className="fs-6">
