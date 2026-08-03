@@ -46,7 +46,7 @@ export function Template(_props: templates.QtIndex) {
           <div className="mb-5">
             <h3 className="h5 text-secondary mb-3">
               <FontAwesomeIcon icon={faMapMarkedAlt} className="me-2" />
-              Territory Management
+              Tools
             </h3>
             <div className="row g-4">
               {/* qt_territory_viewer */}
@@ -76,7 +76,32 @@ export function Template(_props: templates.QtIndex) {
                 </div>
               </div>
 
-              {user.is_superuser && <>{/* Admin Section - close the territory management row */}</>}
+              {/* qt_schedule_calendar */}
+              <div className="col-md-6 col-lg-4">
+                <div className="card h-100 border-0 shadow-sm hover-shadow transition">
+                  <div className="card-body d-flex flex-column p-4">
+                    <div className="mb-3">
+                      <div
+                        className="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
+                        style={{ width: "60px", height: "60px" }}
+                      >
+                        <FontAwesomeIcon icon={faCalendarAlt} size="2x" className="text-success" />
+                      </div>
+                    </div>
+                    <h5 className="card-title fw-bold mb-2">Schedule Calendar</h5>
+                    <p className="card-text text-muted flex-grow-1">
+                      View a rep's schedule as a calendar and schedule or unschedule service orders
+                    </p>
+                    <a
+                      href={reverse("survey_worker:qt_schedule_calendar")}
+                      className="btn btn-outline-success btn-lg w-100 mt-3"
+                    >
+                      <FontAwesomeIcon icon={faCalendarCheck} className="me-2" />
+                      Open Schedule Calendar
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -89,38 +114,6 @@ export function Template(_props: templates.QtIndex) {
                   Administrative Tools
                 </h3>
                 <div className="row g-4">
-                  {/* qt_schedule_calendar */}
-                  <div className="col-md-6 col-lg-4">
-                    <div className="card h-100 border-0 shadow-sm hover-shadow transition">
-                      <div className="card-body d-flex flex-column p-4">
-                        <div className="mb-3">
-                          <div
-                            className="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
-                            style={{ width: "60px", height: "60px" }}
-                          >
-                            <FontAwesomeIcon
-                              icon={faCalendarAlt}
-                              size="2x"
-                              className="text-success"
-                            />
-                          </div>
-                        </div>
-                        <h5 className="card-title fw-bold mb-2">Schedule Calendar</h5>
-                        <p className="card-text text-muted flex-grow-1">
-                          View a rep's schedule as a calendar and schedule or unschedule service
-                          orders
-                        </p>
-                        <a
-                          href={reverse("survey_worker:qt_schedule_calendar")}
-                          className="btn btn-outline-success btn-lg w-100 mt-3"
-                        >
-                          <FontAwesomeIcon icon={faCalendarCheck} className="me-2" />
-                          Open Schedule Calendar
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* qt_view_login_sessions */}
                   <div className="col-md-6 col-lg-4">
                     <div className="card h-100 border-0 shadow-sm hover-shadow transition">

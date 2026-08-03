@@ -1,11 +1,20 @@
 import React from "react";
 
 import classNames from "classnames";
-import { Button, Card, Form, ListGroup, Spinner, Toast, ToastContainer } from "react-bootstrap";
+import {
+  Alert,
+  Button,
+  Card,
+  Form,
+  ListGroup,
+  Spinner,
+  Toast,
+  ToastContainer,
+} from "react-bootstrap";
 
 import { Context, interfaces, reverse, templates } from "@reactivated";
 
-import { faFilter } from "@fortawesome/free-solid-svg-icons";
+import { faFilter, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
@@ -477,9 +486,19 @@ export function Template(props: templates.QtScheduleCalendar) {
         </div>
       )}
       {fetchRepSchedule.isError && (
-        <div className="text-danger">
-          Failed to fetch schedule: {fetchRepSchedule.errorMessages.join(", ")}
-        </div>
+        <Alert variant="danger" className="d-flex">
+          <FontAwesomeIcon icon={faTriangleExclamation} className="fs-3 me-3 flex-shrink-0" />
+          <div>
+            <Alert.Heading as="h4" className="fw-bold">
+              Failed to fetch schedule
+            </Alert.Heading>
+            <p className="mb-2">{fetchRepSchedule.errorMessages.join(", ")}</p>
+            <hr />
+            <p className="mb-0">
+              Try refreshing the page, or select a different rep from the dropdown above.
+            </p>
+          </div>
+        </Alert>
       )}
 
       {selectedRepId !== null && schedule !== null && (
