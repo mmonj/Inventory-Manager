@@ -8,7 +8,7 @@ from . import models, util
 
 
 def printdebug(*items: Any) -> None:
-    print("")
+    print()
     for item in items:
         print(f"    > Type: {type(item)} -> {item._strd()}")
 

@@ -81,8 +81,6 @@ ignore = [
     "TD002",   # require author in TODO comments
     "TD003",   # require referencing an issue URL/number in next line
     "FIX002",  # too verbose descriptions of todos
-    "UP006",   # non-pep585-annotation (eg. prefer list over List)
-    "UP035",
     "PT009",   # Use a regular `assert` instead of unittest-style `assertTrue`
     "PT027",   # Use `pytest.raises` instead of unittest-style `assertRaises`
 ]

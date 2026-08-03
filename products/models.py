@@ -48,7 +48,7 @@ class FieldRepresentative(CommonModel):
 
     # string for debugging
     def _strd(self) -> str:
-        return f"FieldRepresentative(name={ self.name !r}, work_email={ self.work_email !r})"
+        return f"FieldRepresentative(name={self.name!r}, work_email={self.work_email!r})"
 
 
 class BrandParentCompany(CommonModel):
@@ -74,11 +74,12 @@ class BrandParentCompany(CommonModel):
 
     # string for debugging
     def _strd(self) -> str:
-        return f"BrandParentCompany(short_name={ self.short_name !r}, expanded_name={ self.expanded_name !r})"
+        return f"BrandParentCompany(short_name={self.short_name!r}, expanded_name={self.expanded_name!r})"
 
 
-def product_image_upload_location(instance: "Product", filename: str) -> str:
-    """Change filename to be based on the UPC number of the product
+def product_image_upload_location(instance: Product, filename: str) -> str:
+    """
+    Change filename to be based on the UPC number of the product
 
     Args:
         instance (Product): Product model instance
@@ -113,7 +114,9 @@ class Product(models.Model):
 
     # string for debugging
     def _strd(self) -> str:
-        return f"Product(upc={ self.upc !r}, name={ self.name !r}, parent_company={ self.parent_company })"
+        return (
+            f"Product(upc={self.upc!r}, name={self.name!r}, parent_company={self.parent_company})"
+        )
 
     def is_valid_upc(self) -> bool:
         # return self.upc.isnumeric() and len(self.upc) == UPC_A_LENGTH and gs1.validate(self.upc)
@@ -241,8 +244,8 @@ class PersonnelContact(CommonModel):
 
     # string for debugging
     def _strd(self) -> str:
-        return f"PersonnelContact(first_name={ self.first_name !r}, \
-            last_name={ self.last_name !r}, store={ self.store !r})"
+        return f"PersonnelContact(first_name={self.first_name!r}, \
+            last_name={self.last_name!r}, store={self.store!r})"
 
 
 class StoreGUID(models.Model):

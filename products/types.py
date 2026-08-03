@@ -1,4 +1,4 @@
-from typing import List, TypedDict
+from typing import TypedDict
 
 UPC_A_LENGTH = 12
 
@@ -55,15 +55,15 @@ class IUpcItemDbItem(TypedDict):
     currency: str
     lowest_recorded_price: float
     highest_recorded_price: float
-    images: List[str]
-    offers: List[IUpcItemDbOffer]
+    images: list[str]
+    offers: list[IUpcItemDbOffer]
 
 
 class IUpcItemDbData(TypedDict):
     code: str
     total: int
     offset: int
-    items: List[IUpcItemDbItem]
+    items: list[IUpcItemDbItem]
 
 
 class TParsedAddress(TypedDict):

@@ -1,4 +1,4 @@
-from typing import List, NamedTuple
+from typing import NamedTuple
 
 from reactivated import Pick, interface
 
@@ -12,7 +12,7 @@ class IProductLocatorProduct(NamedTuple):
 
 @interface
 class MatchingProducts(NamedTuple):
-    products: List[
+    products: list[
         Pick[
             Product,
             "pk",
@@ -48,7 +48,7 @@ class IScanAuditCreation(NamedTuple):
 
 @interface
 class IPlanogramsByStore(NamedTuple):
-    planograms: List[
+    planograms: list[
         Pick[
             Planogram,
             "pk",

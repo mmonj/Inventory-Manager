@@ -1,8 +1,6 @@
-from typing import List, Optional
+from products.models import ProductAddition
 
 from .types import SheetQueryInfoInterface, SheetTypeDescriptionInterface
-
-from products.models import ProductAddition
 
 
 def record_product_addition(
@@ -22,16 +20,16 @@ def set_not_carried(product_addition: ProductAddition) -> None:
 
 
 def get_sheet_type_info(
-    sheet_type: str, possible_sheet_types_info: List[SheetTypeDescriptionInterface]
-) -> Optional[SheetTypeDescriptionInterface]:
+    sheet_type: str, possible_sheet_types_info: list[SheetTypeDescriptionInterface]
+) -> SheetTypeDescriptionInterface | None:
     for possible_sheet_type in possible_sheet_types_info:
         if sheet_type == possible_sheet_type["sheetType"]:
             return possible_sheet_type
     return None
 
 
-def get_sheet_query_info(sheet_type: str) -> Optional[SheetQueryInfoInterface]:
-    sheet_queries_info: List[SheetQueryInfoInterface] = [
+def get_sheet_query_info(sheet_type: str) -> SheetQueryInfoInterface | None:
+    sheet_queries_info: list[SheetQueryInfoInterface] = [
         {
             "sheetType": "all-products",
             "is_carried_list": [True, False],

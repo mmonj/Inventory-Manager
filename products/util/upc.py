@@ -1,6 +1,5 @@
 import logging
 import re
-from typing import Optional
 
 from checkdigit import gs1
 
@@ -24,8 +23,8 @@ def get_check_digit(upc_without_check: str) -> str:
     return result
 
 
-def get_upc_from_length11(trunc_upc: str, upc_prefixes: tuple[str, ...]) -> Optional[str]:
-    candidate_upc: Optional[str] = None
+def get_upc_from_length11(trunc_upc: str, upc_prefixes: tuple[str, ...]) -> str | None:
+    candidate_upc: str | None = None
     # try appending prefix to front of trunc_upc
     if trunc_upc[0] not in upc_prefixes:
         for prefix in upc_prefixes:
@@ -47,7 +46,7 @@ def get_upc_from_length11(trunc_upc: str, upc_prefixes: tuple[str, ...]) -> Opti
     return None
 
 
-def get_upc_from_length10(trunc_upc: str, upc_prefixes: tuple[str, ...]) -> Optional[str]:
+def get_upc_from_length10(trunc_upc: str, upc_prefixes: tuple[str, ...]) -> str | None:
     for prefix in upc_prefixes:
         length11_upc = prefix + trunc_upc
         candidate_upc = length11_upc + get_check_digit(length11_upc)
@@ -60,7 +59,7 @@ def get_upc_from_length10(trunc_upc: str, upc_prefixes: tuple[str, ...]) -> Opti
 
 def get_prefix_from_product_name(
     product_name: str, parent_company: BrandParentCompany
-) -> Optional[str]:
+) -> str | None:
     try:
         prefix_mapping = PrefixMapping.objects.filter(
             parent_company=parent_company, product_name_regex__isnull=False
@@ -83,8 +82,8 @@ def get_prefix_from_product_name(
 
 
 def _validate_upc(
-    candidate_upc: Optional[str], upc_prefixes: tuple[str, ...], main_prefix: Optional[str]
-) -> Optional[str]:
+    candidate_upc: str | None, upc_prefixes: tuple[str, ...], main_prefix: str | None
+) -> str | None:
     if candidate_upc is None or len(candidate_upc) == 0:
         return None
 
@@ -100,7 +99,7 @@ def _validate_upc(
     return candidate_upc
 
 
-def get_valid_upc(raw_upc: str, product_name: str, company: BrandParentCompany) -> Optional[str]:
+def get_valid_upc(raw_upc: str, product_name: str, company: BrandParentCompany) -> str | None:
     raw_upc = raw_upc.strip()
 
     upc_from_preset_upc_corrections = (
@@ -117,7 +116,7 @@ def get_valid_upc(raw_upc: str, product_name: str, company: BrandParentCompany) 
     if main_prefix is not None:
         upc_prefixes = (main_prefix, *upc_prefixes)
 
-    candidate_upc: Optional[str] = raw_upc
+    candidate_upc: str | None = raw_upc
 
     if len(raw_upc) == UPC_A_LENGTH and main_prefix is not None:
         if raw_upc.startswith(upc_prefixes):

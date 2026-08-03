@@ -1,4 +1,4 @@
-from typing import Dict, List, NamedTuple
+from typing import NamedTuple
 
 from reactivated import Pick, template
 
@@ -9,26 +9,26 @@ from ..types import IPlanoProduct
 
 @template
 class ProductLocatorIndex(NamedTuple):
-    stores: List[Pick[Store, "pk", "name"]]
-    planograms: List[Pick[Planogram, "pk", "name", "date_start", "date_end", "store.pk"]]
+    stores: list[Pick[Store, "pk", "name"]]
+    planograms: list[Pick[Planogram, "pk", "name", "date_start", "date_end", "store.pk"]]
 
 
 @template
 class ProductLocatorAddNewProducts(NamedTuple):
     form: PlanogramForm
-    stores: List[Pick[Store, "pk", "name"]]
+    stores: list[Pick[Store, "pk", "name"]]
 
 
 @template
 class ProductLocatorManagePlanograms(NamedTuple):
-    stores: List[Pick[Store, "pk", "name"]]
-    plano_type_choices: List[Planogram.TPlanoType]
+    stores: list[Pick[Store, "pk", "name"]]
+    plano_type_choices: list[Planogram.TPlanoType]
     default_plano_name: str
 
 
 @template
 class ProductLocatorScanAudit(NamedTuple):
-    previous_audits: List[
+    previous_audits: list[
         Pick[ProductScanAudit, "pk", "product_type", "datetime_created", "products_in_stock.upc"]
     ]
 
@@ -37,11 +37,11 @@ class TPlanogramUpdate(NamedTuple):
     pk: int
     label: str
     is_applied: bool
-    old_plano: Dict[str, IPlanoProduct]
-    new_plano: Dict[str, IPlanoProduct]
+    old_plano: dict[str, IPlanoProduct]
+    new_plano: dict[str, IPlanoProduct]
     planogram: Pick[Planogram, "pk", "name", "store.pk", "store.name"]
 
 
 @template
 class ProductLocatorPlanogramUpdates(NamedTuple):
-    planogram_updates: List[TPlanogramUpdate]
+    planogram_updates: list[TPlanogramUpdate]

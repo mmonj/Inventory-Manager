@@ -1,6 +1,5 @@
 import json
 import logging
-from typing import List, Optional
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
@@ -47,23 +46,21 @@ def login_view(request: HttpRequest) -> HttpResponse:
 
     if request.method == "GET":
         return render(request, "stock_tracker/login.html")
-    else:
-        # Attempt to sign user in
-        username = request.POST["username"]
-        password = request.POST["password"]
-        user = authenticate(request, username=username, password=password)
+    # Attempt to sign user in
+    username = request.POST["username"]
+    password = request.POST["password"]
+    user = authenticate(request, username=username, password=password)
 
-        # Check if authentication successful
-        if user is not None:
-            login(request, user)
+    # Check if authentication successful
+    if user is not None:
+        login(request, user)
 
-            next_url = iri_to_uri(request.POST.get("next", "/"))
-            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts=None):
-                return redirect(next_url)
+        next_url = iri_to_uri(request.POST.get("next", "/"))
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts=None):
+            return redirect(next_url)
 
-            return redirect("root:index")
-        else:
-            return render(request, "stock_tracker/login.html", {"is_invalid_credentials": True})
+        return redirect("root:index")
+    return render(request, "stock_tracker/login.html", {"is_invalid_credentials": True})
 
 
 @require_http_methods(["GET"])
@@ -165,7 +162,7 @@ def import_json_data_files(request: HttpRequest) -> HttpResponse:
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET"])
 def barcode_sheet_history(
-    request: HttpRequest, field_representative_id: Optional[int] = None
+    request: HttpRequest, field_representative_id: int | None = None
 ) -> HttpResponse:
     fields_to_prefetch = ["store", "parent_company", "product_additions", "work_cycle"]
     num_fields = 25
@@ -196,7 +193,7 @@ def barcode_sheet_history(
 def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpResponse:
     # Check sheet_type validity
     sheet_type: str = request.GET.get("sheet-type", "")
-    possible_sheet_types_info: List[SheetTypeDescriptionInterface] = [
+    possible_sheet_types_info: list[SheetTypeDescriptionInterface] = [
         {
             "sheetType": "all-products",
             "sheetTypeVerbose": "All Products",
@@ -341,7 +338,7 @@ def set_product_distribution_order_status(request: HttpRequest) -> HttpResponse:
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["POST"])
 def set_carried_product_additions(request: HttpRequest) -> HttpResponse:
-    redirect_route: Optional[str] = request.META.get("HTTP_REFERER")
+    redirect_route: str | None = request.META.get("HTTP_REFERER")
     if redirect_route is None:
         return HttpResponseServerError()
 
@@ -370,7 +367,7 @@ def set_carried_product_additions(request: HttpRequest) -> HttpResponse:
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["POST"])
 def set_not_carried_product_additions(request: HttpRequest) -> HttpResponse:
-    redirect_route: Optional[str] = request.META.get("HTTP_REFERER")
+    redirect_route: str | None = request.META.get("HTTP_REFERER")
     if redirect_route is None:
         return HttpResponseServerError()
 

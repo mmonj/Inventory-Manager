@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 from django.db.models import Q
 
@@ -16,7 +16,8 @@ T = TypeVar("T")
 def update_product_record_names(
     normalized_products: list[IProduct], parent_company: BrandParentCompany
 ) -> list[str]:
-    """Bulk create products if they don't already exist.
+    """
+    Bulk create products if they don't already exist.
     Bulk update existing products with product name if they don't contain it
 
     Args:
@@ -27,7 +28,7 @@ def update_product_record_names(
         tuple: tuple<str> of sorted UPC numbers
     """
 
-    def get_product_name(upc: str, products: list[IProduct]) -> Optional[str]:
+    def get_product_name(upc: str, products: list[IProduct]) -> str | None:
         for product_info in products:
             if product_info.upc == upc:
                 return product_info.name
@@ -67,7 +68,8 @@ def update_product_record_names(
 def update_product_additions(
     store: Store, parent_company: BrandParentCompany, normalized_upcs: list[str]
 ) -> list[ProductAddition]:
-    """Bulk create ProductAddition records if they don't already exist
+    """
+    Bulk create ProductAddition records if they don't already exist
 
     Args:
         store (products.Store): products.Store instance
@@ -77,7 +79,6 @@ def update_product_additions(
     Returns:
         list: list of products.ProductAddition that match the UPCs present in request_json
     """
-
     products = Product.objects.filter(upc__in=normalized_upcs, parent_company=parent_company).all()
     new_product_additions = [ProductAddition(store=store, product=p) for p in products]
 

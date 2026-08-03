@@ -1,5 +1,3 @@
-from typing import Optional
-
 from attr import frozen
 
 
@@ -35,6 +33,6 @@ class IUpdateStoreFieldRep:
 @frozen
 class IUpdateStorePersonnel:
     store_id: int
-    existing_personnel_id: Optional[int]
+    existing_personnel_id: int | None
     new_personnel_first_name: str
     new_personnel_last_name: str

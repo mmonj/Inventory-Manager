@@ -1,9 +1,9 @@
 import logging
 import zipfile
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Set
+from typing import TYPE_CHECKING, Any
 
 import pytz
 from django.core.exceptions import ValidationError
@@ -45,7 +45,8 @@ def import_field_reps(field_reps_info: dict[str, ImportedFieldRepInfo]) -> None:
 
 
 def import_new_stores(stores: list[str]) -> None:
-    """bulk adds list of stores to database
+    """
+    Bulk adds list of stores to database
 
     Args:
         stores (list): list<str> of store names
@@ -100,8 +101,8 @@ def import_territories(territory_info: dict[str, Any]) -> None:
 
 def import_products(
     products_info: dict[str, dict[str, ImportedProductInfo]],
-    images_zip_path: Optional[str] = None,
-    brand_logos_zip: Optional[bytes] = None,
+    images_zip_path: str | None = None,
+    brand_logos_zip: bytes | None = None,
 ) -> None:
     # new_products = []
     for client_brand, products_dict in products_info.items():
@@ -168,7 +169,7 @@ def import_distribution_data(
                 # product = products.filter(upc=upc).first(),
                 store=store,
                 date_added=datetime.fromtimestamp(
-                    product_distribution_data.get("time_added", 0), timezone.utc
+                    product_distribution_data.get("time_added", 0), UTC
                 ),
                 date_last_scanned=get_utc_datetime(product_distribution_data.get("date_scanned")),
                 is_carried=product_distribution_data.get("instock", False),
@@ -182,7 +183,7 @@ def import_distribution_data(
         )
 
 
-def get_product_from_queryset(products: list[Product], upc: str) -> Optional[Product]:
+def get_product_from_queryset(products: list[Product], upc: str) -> Product | None:
     result: list[Product] = list(filter(lambda p: p.upc == upc, products))
     if not result:
         return None
@@ -190,7 +191,8 @@ def get_product_from_queryset(products: list[Product], upc: str) -> Optional[Pro
 
 
 def get_missing_products(upcs_batch: list[str], products: list[Product]) -> list[str]:
-    """Determines which UPCs in `upcs_batch` are not present in `products`
+    """
+    Determines which UPCs in `upcs_batch` are not present in `products`
 
     Args:
         upcs_batch (list[str]): _
@@ -211,9 +213,9 @@ def get_missing_products(upcs_batch: list[str], products: list[Product]) -> list
     return missing_upcs
 
 
-def get_utc_datetime(datetime_str: Optional[str]) -> datetime:
+def get_utc_datetime(datetime_str: str | None) -> datetime:
     if datetime_str is None:
-        return datetime.fromtimestamp(0, timezone.utc)
+        return datetime.fromtimestamp(0, UTC)
 
     datetime_object = datetime.strptime(datetime_str, "%Y-%m-%d at %I:%M:%S %p")
 
@@ -225,7 +227,7 @@ def get_utc_datetime(datetime_str: Optional[str]) -> datetime:
 
 
 def get_store_count(territory_info: dict[str, Any]) -> int:
-    store_names_set: Set[str] = set(territory_info["All Stores"].keys())
+    store_names_set: set[str] = set(territory_info["All Stores"].keys())
 
     for rep_name, store_names_list in territory_info.items():
         if rep_name == "All Stores":
@@ -297,7 +299,7 @@ def get_product_additions_count(
 
 
 def is_date_within_work_cycle(date_in_question: date, work_cycle: WorkCycle) -> bool:
-    return work_cycle.start_date <= date_in_question and date_in_question <= work_cycle.end_date
+    return work_cycle.start_date <= date_in_question <= work_cycle.end_date
 
 
 def get_num_work_cycles_offset(date_in_question: date, work_cycle: WorkCycle) -> int:
@@ -314,7 +316,8 @@ def get_num_work_cycles_offset(date_in_question: date, work_cycle: WorkCycle) ->
 
 
 def get_current_work_cycle() -> WorkCycle:
-    """Get the latest WorkCycle instance; return if today's date is within existing work cycle's date intervals
+    """
+    Get the latest WorkCycle instance; return if today's date is within existing work cycle's date intervals
         else create a new WorkCycle record and return that
 
     Returns:

@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional, TypedDict
+from typing import Literal, TypedDict
 
 SheetType = Literal["all-products", "out-of-dist", "in-dist"]
 SheetTypeVerbose = Literal["All Products", "Out Of Distribution", "In Distribution"]
@@ -7,7 +7,7 @@ SheetTypeVerbose = Literal["All Products", "Out Of Distribution", "In Distributi
 class ProductInterface(TypedDict):
     upc: str
     name: str
-    upc_sections: List[str]
+    upc_sections: list[str]
     item_image_url: str
     barcode_b64: str
 
@@ -23,14 +23,14 @@ class ProductAdditionInterface(TypedDict):
     product: ProductInterface
     is_carried: bool
     is_new: bool
-    date_ordered: Optional[str]
+    date_ordered: str | None
 
 
 class BarcodeSheetInterface(TypedDict):
     barcode_sheet_id: int
     store_name: str
     parent_company: ParentCompanyInterface
-    product_additions: List[ProductAdditionInterface]
+    product_additions: list[ProductAdditionInterface]
 
 
 class SheetTypeInterface(TypedDict):
@@ -42,4 +42,4 @@ class SheetTypeDescriptionInterface(SheetTypeInterface):
 
 
 class SheetQueryInfoInterface(SheetTypeInterface):
-    is_carried_list: List[bool]
+    is_carried_list: list[bool]

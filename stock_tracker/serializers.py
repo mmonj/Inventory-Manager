@@ -1,19 +1,18 @@
-from typing import Optional
-import barcode  # type:ignore [import, unused-ignore]
 import base64
 import io
 
-from rest_framework import serializers
+import barcode  # type:ignore [import, unused-ignore]
 from django.templatetags.static import static
+from rest_framework import serializers
 
 from products.models import (
     BarcodeSheet,
     BrandParentCompany,
+    FieldRepresentative,
+    PersonnelContact,
     Product,
     ProductAddition,
     Store,
-    FieldRepresentative,
-    PersonnelContact,
 )
 
 
@@ -141,5 +140,5 @@ class BarcodeSheetSerializer(serializers.ModelSerializer[BarcodeSheet]):
     def get_barcode_sheet_id(self, barcode_sheet: BarcodeSheet) -> int:
         return barcode_sheet.id
 
-    def get_store_name(self, barcode_sheet: BarcodeSheet) -> Optional[str]:
+    def get_store_name(self, barcode_sheet: BarcodeSheet) -> str | None:
         return barcode_sheet.store.name

@@ -3,7 +3,6 @@ import re
 import time
 from datetime import datetime, timedelta
 from io import BytesIO
-from typing import Optional
 
 import redis
 import requests
@@ -142,7 +141,8 @@ def handle_product_data_response(products: list[Product], items: list[IUpcItemDb
 
 
 def download_image(product: Product, product_image_url: str) -> bool:
-    """Download image from URL, trim any excessive border padding and resize to a smaller size
+    """
+    Download image from URL, trim any excessive border padding and resize to a smaller size
 
     Args:
         product (Product): model.Product instance onto which to save the image
@@ -204,8 +204,8 @@ def reorder_images_based_on_preferences(product_image_urls: list[str]) -> list[s
     return list(preferred_urls | remaining_urls)
 
 
-def trim_and_resize_image(img: Image.Image) -> Optional[Image.Image]:
-    def trim_borders(img: Image.Image) -> Optional[Image.Image]:
+def trim_and_resize_image(img: Image.Image) -> Image.Image | None:
+    def trim_borders(img: Image.Image) -> Image.Image | None:
         if img.mode in ("RGBA", "P"):
             img = img.convert("RGB")
 

@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Any, Optional, Type, TypeVar  # noqa: UP035
+from typing import Any, TypeVar
 
 import cattrs
 import requests
@@ -21,7 +21,8 @@ TIsNewRecord = bool
 
 
 def unwrap(result: TResult[T, Any]) -> T:
-    """Return a TResult's success value, or raise its error.
+    """
+    Return a TResult's success value, or raise its error.
 
     If the held error is already an Exception it's raised as-is; otherwise
     it's wrapped in a plain Exception so callers always get something
@@ -35,12 +36,12 @@ def unwrap(result: TResult[T, Any]) -> T:
     raise Exception(result.err)  # noqa: TRY002
 
 
-def cast_type(data: Any, _interface_class: Type[T]) -> T:
+def cast_type(data: Any, _interface_class: type[T]) -> T:
     temp: T = data
     return temp
 
 
-def validate_structure(data: Any, interface_class: Type[T], is_api: bool = True) -> T:
+def validate_structure(data: Any, interface_class: type[T], is_api: bool = True) -> T:
     c = cattrs.Converter()
     try:
         obj = c.structure(data, interface_class)
@@ -58,7 +59,7 @@ def validate_structure(data: Any, interface_class: Type[T], is_api: bool = True)
     return obj
 
 
-def validate_only_struct_keys(data: Any, interface_class: Type[T]) -> T:
+def validate_only_struct_keys(data: Any, interface_class: type[T]) -> T:
     missing_keys: list[str] = []
     extra_keys: list[str] = []
 
@@ -81,7 +82,7 @@ def validate_only_struct_keys(data: Any, interface_class: Type[T]) -> T:
     return data  # type: ignore [no-any-return]
 
 
-def validation_hook_generic(value: T, expected_type: Type[T]) -> T:
+def validation_hook_generic(value: T, expected_type: type[T]) -> T:
     if not isinstance(value, expected_type):
         raise TypeError(f"Value of {value!r} has type {type(value)}. Expected {expected_type}.")
     return value
@@ -125,11 +126,11 @@ def session_dict_to_session_object(data: TSessionData) -> Session:
 
 
 def bulk_create_and_get(
-    model_class: Type[TModel],
+    model_class: type[TModel],
     items: list[TModel],
     *,
     fields: list[str],
-    batch_size: Optional[int] = None,
+    batch_size: int | None = None,
 ) -> models.QuerySet[TModel]:
     """
     Bulk creates items in the database with ignore_conflicts=True and
@@ -152,7 +153,7 @@ def bulk_create_and_get(
 
 
 def atomic_get_or_create(instance: TModel, *, fields: list[str]) -> tuple[TModel, TIsNewRecord]:
-    model_class: Type[TModel] = type(instance)
+    model_class: type[TModel] = type(instance)
 
     try:
         with transaction.atomic():

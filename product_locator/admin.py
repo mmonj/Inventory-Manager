@@ -49,7 +49,7 @@ class ProductScanAuditAdmin(admin.ModelAdmin[ProductScanAudit]):
         return qs.annotate(models.Count("products_in_stock"))
 
     def products_count(self, scan_audit: ProductScanAudit) -> int:
-        return cast(int, scan_audit.products_in_stock__count)  # type:ignore [attr-defined]
+        return cast("int", scan_audit.products_in_stock__count)  # type:ignore [attr-defined]
 
     products_count.admin_order_field = "products_in_stock__count"  # type:ignore [attr-defined]
 

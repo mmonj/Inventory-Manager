@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Callable
+from collections.abc import Callable
 
 from checkdigit import gs1
 from natsort import natsorted
@@ -121,7 +121,8 @@ def assert_unique(
 
 
 def fix_location_ocr_inaccuracies(location: str) -> str:
-    """fix OCR inaccuracies for the 2-3 letter product location string
+    """
+    Fix OCR inaccuracies for the 2-3 letter product location string
 
     Args:
         location (str): product location string (location on planogram)

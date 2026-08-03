@@ -1,5 +1,4 @@
 # ruff: noqa: B010
-from typing import Optional
 
 from django.contrib import admin
 from django.db import models
@@ -95,27 +94,27 @@ class StoreAdmin(admin.ModelAdmin[Store]):
     )
     list_filter = ("field_representative__name",)
 
-    def get_personnel_contact_first_name(self, store: Store) -> Optional[str]:
+    def get_personnel_contact_first_name(self, store: Store) -> str | None:
         contacts: models.QuerySet[PersonnelContact] = store.contacts.all()
         if not contacts:
             return None
-        first_contact: Optional[PersonnelContact] = contacts.first()
+        first_contact: PersonnelContact | None = contacts.first()
         if not first_contact:
             return None
         return first_contact.first_name
 
-    def get_personnel_contact_last_name(self, store: Store) -> Optional[str]:
+    def get_personnel_contact_last_name(self, store: Store) -> str | None:
         contacts: models.QuerySet[PersonnelContact] = store.contacts.all()
         if not contacts:
             return None
 
-        first_contact: Optional[PersonnelContact] = contacts.first()
+        first_contact: PersonnelContact | None = contacts.first()
         if not first_contact:
             return None
 
         return first_contact.last_name
 
-    def get_field_representative(self, store: Store) -> Optional[str]:
+    def get_field_representative(self, store: Store) -> str | None:
         if store.field_representative is None:
             return None
         return store.field_representative.name

@@ -1,4 +1,4 @@
-from typing import Optional, TypedDict
+from typing import TypedDict
 
 from django.http import HttpRequest
 
@@ -17,7 +17,7 @@ class TGlobalSettings(TypedDict):
 
 class TContextProvider(TypedDict):
     user: UserInfo
-    global_settings: Optional[TGlobalSettings]
+    global_settings: TGlobalSettings | None
 
 
 def context_provider(request: HttpRequest) -> TContextProvider:

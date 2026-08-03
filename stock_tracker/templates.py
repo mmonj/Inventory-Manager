@@ -1,4 +1,4 @@
-from typing import List, NamedTuple, Optional
+from typing import NamedTuple
 
 from reactivated import Pick, template
 
@@ -12,14 +12,14 @@ class StockTrackerBarcodeSheet(NamedTuple):
     barcodeSheet: BarcodeSheetInterface
     total_products: int
     sheetTypeInfo: SheetTypeDescriptionInterface
-    possibleSheetTypesInfo: List[SheetTypeDescriptionInterface]
+    possibleSheetTypesInfo: list[SheetTypeDescriptionInterface]
 
 
 @template
 class StockTrackerBarcodeSheetsHistory(NamedTuple):
-    current_field_rep_id: Optional[int]
-    field_representatives: List[Pick[FieldRepresentative, "pk", "name"]]
-    recent_barcode_sheets: List[
+    current_field_rep_id: int | None
+    field_representatives: list[Pick[FieldRepresentative, "pk", "name"]]
+    recent_barcode_sheets: list[
         Pick[
             BarcodeSheet,
             "pk",
@@ -35,7 +35,7 @@ class StockTrackerBarcodeSheetsHistory(NamedTuple):
 
 @template
 class StocktrackerStoreManagerNames(NamedTuple):
-    field_reps: List[
+    field_reps: list[
         Pick[
             FieldRepresentative,
             "pk",
@@ -51,7 +51,7 @@ class StocktrackerStoreManagerNames(NamedTuple):
 
 @template
 class StockTrackerScanner(NamedTuple):
-    field_reps: List[
+    field_reps: list[
         Pick[
             FieldRepresentative,
             "pk",
@@ -64,4 +64,4 @@ class StockTrackerScanner(NamedTuple):
 
 @template
 class StockTrackerScanHistory(NamedTuple):
-    field_reps: List[Pick[FieldRepresentative, "pk", "name", "stores.pk", "stores.name"]]
+    field_reps: list[Pick[FieldRepresentative, "pk", "name", "stores.pk", "stores.name"]]

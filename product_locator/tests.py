@@ -21,7 +21,7 @@ class ImportTest(TestCase):
         response = self.client.post(
             route, {"planogram_id": planogram.id, "planogram_text_dump": self.data_dump}
         )
-        self.assertEqual(302, response.status_code)  # noqa: PT009
+        self.assertEqual(302, response.status_code)
 
     def test_invalid_import(self) -> None:
         store = models.Store.objects.create(name="T3277v2")
@@ -31,4 +31,4 @@ class ImportTest(TestCase):
         response = self.client.post(
             route, {"planogram_id": planogram.id, "planogram_text_dump": "some random data"}
         )
-        self.assertEqual(500, response.status_code)  # noqa: PT009
+        self.assertEqual(500, response.status_code)

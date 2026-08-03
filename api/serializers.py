@@ -1,5 +1,3 @@
-from typing import Optional
-
 import cattrs
 from django.utils import timezone
 from rest_framework import serializers
@@ -46,7 +44,7 @@ class ProductAdditionSerializer(serializers.ModelSerializer[ProductAddition]):
             and product_addition.date_added <= work_cycle.end_date
         )
 
-    def get_num_work_cycles_since_order(self, product_addition: ProductAddition) -> Optional[int]:
+    def get_num_work_cycles_since_order(self, product_addition: ProductAddition) -> int | None:
         if product_addition.date_ordered is None:
             return None
 
@@ -115,12 +113,12 @@ class BarcodeSheetSerializer(serializers.ModelSerializer[BarcodeSheet]):
             "product_additions",
         )
 
-    def get_barcode_sheet_id(self, barcode_sheet: Optional[BarcodeSheet]) -> Optional[int]:
+    def get_barcode_sheet_id(self, barcode_sheet: BarcodeSheet | None) -> int | None:
         if barcode_sheet is None:
             return None
         return barcode_sheet.id
 
-    def get_client_name(self, barcode_sheet: Optional[BarcodeSheet]) -> Optional[str]:
+    def get_client_name(self, barcode_sheet: BarcodeSheet | None) -> str | None:
         if barcode_sheet is None or barcode_sheet.parent_company is None:
             return None
         return barcode_sheet.parent_company.canonical_name
