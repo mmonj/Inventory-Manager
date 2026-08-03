@@ -5,9 +5,13 @@ import { Button, Card, Form, ListGroup, Spinner, Toast, ToastContainer } from "r
 
 import { Context, interfaces, reverse, templates } from "@reactivated";
 
+import { faFilter } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+
 import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
 import {
   ICalendarDaySummary,
+  JobClientFilterModal,
   ScheduleCalendarGrid,
   ScheduledServiceOrderListItem,
   UnscheduledServiceOrderListItem,
@@ -52,6 +56,8 @@ export function Template(props: templates.QtScheduleCalendar) {
   const [swapSelectedDates, setSwapSelectedDates] = React.useState<Date[]>([]);
   const [unscheduledOrderBy, setUnscheduledOrderBy] =
     React.useState<TUnscheduledOrderBy>("Location");
+  const [showJobClientFilter, setShowJobClientFilter] = React.useState(false);
+  const [selectedJobClients, setSelectedJobClients] = React.useState<Set<string>>(new Set());
 
   const selectedDateKey = selectedDate ? toDateKey(selectedDate) : null;
 
@@ -114,6 +120,15 @@ export function Template(props: templates.QtScheduleCalendar) {
   const schedule = localSchedule;
 
   const serviceOrders: TServiceOrder[] = schedule?.ServiceOrders ?? [];
+
+  const allJobClients = React.useMemo(
+    () => Array.from(new Set(serviceOrders.map((so) => so.JobClient))).sort(),
+    [serviceOrders]
+  );
+
+  React.useEffect(() => {
+    setSelectedJobClients(new Set(allJobClients));
+  }, [allJobClients]);
 
   function rescheduleServiceOrdersLocally(serviceOrderIds: Iterable<number>, date: Date | string) {
     setLocalSchedule((current) => withServiceOrdersRescheduled(current, serviceOrderIds, date));
@@ -291,9 +306,13 @@ export function Template(props: templates.QtScheduleCalendar) {
         }
       }
 
+      if (!selectedJobClients.has(so.JobClient)) {
+        return false;
+      }
+
       return true;
     });
-  }, [serviceOrders, schedule, selectedDate]);
+  }, [serviceOrders, schedule, selectedDate, selectedJobClients]);
   const groupedUnscheduledServiceOrders = React.useMemo(
     () => sortServiceOrdersBy(unscheduledServiceOrders, unscheduledOrderBy),
     [unscheduledServiceOrders, unscheduledOrderBy]
@@ -469,20 +488,30 @@ export function Template(props: templates.QtScheduleCalendar) {
             <Card>
               <Card.Header className="bg-secondary text-white d-flex align-items-center justify-content-between">
                 <span>{unscheduledServiceOrders.length} Unscheduled Service Orders</span>
-                <Form.Select
-                  size="sm"
-                  className="w-auto"
-                  value={unscheduledOrderBy}
-                  onChange={(event) =>
-                    setUnscheduledOrderBy(event.target.value as TUnscheduledOrderBy)
-                  }
-                >
-                  {UNSCHEDULED_ORDER_BY_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      Order By: {option}
-                    </option>
-                  ))}
-                </Form.Select>
+                <div className="d-flex align-items-center gap-2">
+                  <Button
+                    variant="outline-light"
+                    size="sm"
+                    onClick={() => setShowJobClientFilter(true)}
+                  >
+                    <FontAwesomeIcon icon={faFilter} className="me-1" />
+                    Filter
+                  </Button>
+                  <Form.Select
+                    size="sm"
+                    className="w-auto"
+                    value={unscheduledOrderBy}
+                    onChange={(event) =>
+                      setUnscheduledOrderBy(event.target.value as TUnscheduledOrderBy)
+                    }
+                  >
+                    {UNSCHEDULED_ORDER_BY_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        Order By: {option}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </div>
               </Card.Header>
               <ListGroup variant="flush">
                 {unscheduledServiceOrders.length === 0 && (
@@ -601,6 +630,14 @@ export function Template(props: templates.QtScheduleCalendar) {
           </div>
         </div>
       )}
+
+      <JobClientFilterModal
+        show={showJobClientFilter}
+        onHide={() => setShowJobClientFilter(false)}
+        jobClients={allJobClients}
+        selectedJobClients={selectedJobClients}
+        onChange={setSelectedJobClients}
+      />
     </Layout>
   );
 }
