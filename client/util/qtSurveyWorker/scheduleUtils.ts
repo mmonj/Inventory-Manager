@@ -101,3 +101,33 @@ export function sortServiceOrdersBy(
 
   return [...serviceOrders].sort((a, b) => getSortKey(a).localeCompare(getSortKey(b)));
 }
+
+/**
+ * Moves one or more service orders (by id) to a new DateScheduled within a
+ * TSchedule, leaving every other order untouched. `date` may be a calendar
+ * Date (converted to a date-key + midnight timestamp) or the schedule's own
+ * UnscheduledDate string, for moving orders back to the unscheduled pool.
+ *
+ * Returns a new TSchedule, or the input unchanged if `schedule` is null - so
+ * callers can pass this straight to a setState updater regardless of whether
+ * a schedule has loaded yet.
+ */
+export function withServiceOrdersRescheduled<T extends TSchedule | null>(
+  schedule: T,
+  serviceOrderIds: Iterable<number>,
+  date: Date | string
+): T {
+  if (schedule === null) {
+    return schedule;
+  }
+
+  const dateScheduled = typeof date === "string" ? date : `${toDateKey(date)}T00:00:00`;
+  const idsToMove = new Set(serviceOrderIds);
+
+  return {
+    ...schedule,
+    ServiceOrders: schedule.ServiceOrders.map((so) =>
+      idsToMove.has(so.ServiceOrderId) ? { ...so, DateScheduled: dateScheduled } : so
+    ),
+  };
+}

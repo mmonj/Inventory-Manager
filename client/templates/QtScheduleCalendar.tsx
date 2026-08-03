@@ -23,6 +23,7 @@ import {
   groupByStore,
   sortServiceOrdersBy,
   toDateKey,
+  withServiceOrdersRescheduled,
 } from "@client/util/qtSurveyWorker/scheduleUtils";
 
 import { Layout } from "../components/Layout";
@@ -38,6 +39,7 @@ export function Template(props: templates.QtScheduleCalendar) {
   const scheduleServiceOrderFetch = useFetch<interfaces.QtScheduleServiceOrder>();
   const unscheduleServiceOrderFetch = useFetch<interfaces.QtUnscheduleServiceOrder>();
   const swapServiceOrdersFetch = useFetch<interfaces.QtSwapServiceOrders>();
+  const clearScheduledDateFetch = useFetch<interfaces.QtClearScheduledDate>();
 
   const [selectedRepId, setSelectedRepId] = React.useState<number | null>(null);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
@@ -113,19 +115,8 @@ export function Template(props: templates.QtScheduleCalendar) {
 
   const serviceOrders: TServiceOrder[] = schedule?.ServiceOrders ?? [];
 
-  function updateServiceOrderDate(serviceOrderId: number, dateScheduled: string) {
-    setLocalSchedule((current) => {
-      if (current === null) {
-        return current;
-      }
-
-      return {
-        ...current,
-        ServiceOrders: current.ServiceOrders.map((so) =>
-          so.ServiceOrderId === serviceOrderId ? { ...so, DateScheduled: dateScheduled } : so
-        ),
-      };
-    });
+  function rescheduleServiceOrdersLocally(serviceOrderIds: Iterable<number>, date: Date | string) {
+    setLocalSchedule((current) => withServiceOrdersRescheduled(current, serviceOrderIds, date));
   }
 
   async function handleScheduleServiceOrder(so: TServiceOrder, date: Date) {
@@ -159,7 +150,7 @@ export function Template(props: templates.QtScheduleCalendar) {
       return;
     }
 
-    updateServiceOrderDate(so.ServiceOrderId, `${toDateKey(date)}T00:00:00`);
+    rescheduleServiceOrdersLocally([so.ServiceOrderId], date);
   }
 
   async function handleUnscheduleServiceOrder(so: TServiceOrder) {
@@ -196,7 +187,7 @@ export function Template(props: templates.QtScheduleCalendar) {
       return;
     }
 
-    updateServiceOrderDate(so.ServiceOrderId, schedule.UnscheduledDate);
+    rescheduleServiceOrdersLocally([so.ServiceOrderId], schedule.UnscheduledDate);
   }
 
   function getPhysicalVisitServiceOrderIdsForDate(dateKey: string): number[] {
@@ -256,16 +247,12 @@ export function Template(props: templates.QtScheduleCalendar) {
     }
 
     const failures = result.results.filter((r) => !r.success);
+    const succeeded = result.results.filter((r) => r.success).map((r) => r.service_order_id);
+    const movedToB = succeeded.filter((id) => serviceOrderIdsA.includes(id));
+    const movedToA = succeeded.filter((id) => serviceOrderIdsB.includes(id));
 
-    for (const swapResult of result.results) {
-      if (!swapResult.success) {
-        continue;
-      }
-
-      const isFromA = serviceOrderIdsA.includes(swapResult.service_order_id);
-      const newDateKey = isFromA ? dateBKey : dateAKey;
-      updateServiceOrderDate(swapResult.service_order_id, `${newDateKey}T00:00:00`);
-    }
+    rescheduleServiceOrdersLocally(movedToB, dateB);
+    rescheduleServiceOrdersLocally(movedToA, dateA);
 
     if (failures.length > 0) {
       alert(
@@ -364,6 +351,57 @@ export function Template(props: templates.QtScheduleCalendar) {
     () => groupByStore(serviceOrdersForSelectedDate),
     [serviceOrdersForSelectedDate]
   );
+
+  async function handleClearScheduledDate() {
+    if (selectedRepId === null || schedule === null || serviceOrdersForSelectedDate.length === 0) {
+      return;
+    }
+
+    const serviceOrderIds = serviceOrdersForSelectedDate.map((so) => so.ServiceOrderId);
+
+    if (
+      !confirm(
+        `Unschedule all ${serviceOrderIds.length} service order(s) on ${formatWeekdayShortDate(
+          selectedDate!
+        )}?`
+      )
+    ) {
+      return;
+    }
+
+    const [isSuccess, result] = await clearScheduledDateFetch.fetchData(() =>
+      fetch(reverse("survey_worker:qt_clear_scheduled_date"), {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": context.csrf_token,
+          Accept: "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          rep_id: selectedRepId.toString(),
+          service_order_ids: serviceOrderIds.join(","),
+        }),
+      })
+    );
+
+    if (!isSuccess) {
+      alert("Failed to clear date: request failed.");
+      return;
+    }
+
+    const succeeded = result.results.filter((r) => r.success).map((r) => r.service_order_id);
+    const failures = result.results.filter((r) => !r.success);
+
+    rescheduleServiceOrdersLocally(succeeded, schedule.UnscheduledDate);
+
+    if (failures.length > 0) {
+      alert(
+        `Cleared date with ${failures.length} failure(s): ${failures
+          .map((f) => `SO ${f.service_order_id}`)
+          .join(", ")}`
+      );
+    }
+  }
 
   return (
     <Layout title="Schedule" navbar={<NavigationBar />} className="mw-rem-90 mx-auto px-2 mb-4">
@@ -518,10 +556,22 @@ export function Template(props: templates.QtScheduleCalendar) {
 
             {!isSwapMode && selectedDateKey !== null && selectedDate !== undefined && (
               <Card className="mt-4">
-                <Card.Header className="bg-primary text-white">
-                  {serviceOrdersForSelectedDate.length} Service Order
-                  {serviceOrdersForSelectedDate.length === 1 ? "" : "s"} Scheduled on{" "}
-                  {formatWeekdayShortDate(selectedDate)}
+                <Card.Header className="bg-primary text-white d-flex align-items-center justify-content-between">
+                  <span>
+                    {serviceOrdersForSelectedDate.length} Service Order
+                    {serviceOrdersForSelectedDate.length === 1 ? "" : "s"} Scheduled on{" "}
+                    {formatWeekdayShortDate(selectedDate)}
+                  </span>
+                  <Button
+                    variant="outline-light"
+                    size="sm"
+                    disabled={
+                      serviceOrdersForSelectedDate.length === 0 || clearScheduledDateFetch.isLoading
+                    }
+                    onClick={() => void handleClearScheduledDate()}
+                  >
+                    Clear Date
+                  </Button>
                 </Card.Header>
                 <ListGroup variant="flush">
                   {serviceOrdersForSelectedDate.length === 0 && (
