@@ -26,7 +26,6 @@ export function NavigationBar() {
   const currentPath = djangoContext.request.path;
 
   const privilegedLinks: TLink[] = [
-    getLink("Schedule", reverse("survey_worker:qt_schedule_calendar")),
     getLink("View Login Sessions", reverse("survey_worker:qt_view_login_sessions")),
     getLink("View Schedule JSON", reverse("survey_worker:qt_view_schedules")),
     getLink("Update Qt Schedule", reverse("survey_worker:qt_update_schedule")),
@@ -34,6 +33,7 @@ export function NavigationBar() {
   ];
   const nonPrivilegedLinks: TLink[] = [
     getLink("Territory Viewer", reverse("survey_worker:qt_territory_viewer")),
+    getLink("Schedule", reverse("survey_worker:qt_schedule_calendar")),
   ];
 
   return (

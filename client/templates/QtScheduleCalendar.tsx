@@ -435,7 +435,7 @@ export function Template(props: templates.QtScheduleCalendar) {
     <Layout title="Schedule" navbar={<NavigationBar />} className="mw-rem-90 mx-auto px-2 mb-4">
       <ToastContainer position="top-end" className="p-3" style={{ zIndex: 1100 }}>
         <Toast
-          show={scheduleFreshnessToast?.show === true}
+          show={context.user.is_superuser && scheduleFreshnessToast?.show === true}
           onClose={() =>
             setScheduleFreshnessToast((current) => current && { ...current, show: false })
           }
