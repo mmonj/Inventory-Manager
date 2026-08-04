@@ -165,7 +165,9 @@ export function Template(props: templates.QtScheduleCalendar) {
     );
 
     if (!isSuccess) {
-      alert("Failed to schedule service order: request failed.");
+      alert(
+        `Failed to schedule service order: ${scheduleServiceOrderFetch.errorMessages.join(", ")}`
+      );
       return;
     }
 
@@ -202,7 +204,9 @@ export function Template(props: templates.QtScheduleCalendar) {
     );
 
     if (!isSuccess) {
-      alert("Failed to unschedule service order: request failed.");
+      alert(
+        `Failed to unschedule service order: ${unscheduleServiceOrderFetch.errorMessages.join(", ")}`
+      );
       return;
     }
 
@@ -266,7 +270,7 @@ export function Template(props: templates.QtScheduleCalendar) {
     );
 
     if (!isSuccess) {
-      alert("Failed to swap service orders: request failed.");
+      alert(`Failed to swap service orders: ${swapServiceOrdersFetch.errorMessages.join(", ")}`);
       return;
     }
 
@@ -413,7 +417,7 @@ export function Template(props: templates.QtScheduleCalendar) {
     );
 
     if (!isSuccess) {
-      alert("Failed to clear date: request failed.");
+      alert(`Failed to clear date: ${clearScheduledDateFetch.errorMessages.join(", ")}`);
       return;
     }
 
@@ -492,7 +496,13 @@ export function Template(props: templates.QtScheduleCalendar) {
             <Alert.Heading as="h4" className="fw-bold">
               Failed to fetch schedule
             </Alert.Heading>
-            <p className="mb-2">{fetchRepSchedule.errorMessages.join(", ")}</p>
+            <ListGroup variant="flush" className="mb-2">
+              {fetchRepSchedule.errorMessages.map((message, idx) => (
+                <ListGroup.Item key={idx} variant="danger" className="px-0 py-1 border-0">
+                  {message}
+                </ListGroup.Item>
+              ))}
+            </ListGroup>
             <hr />
             <p className="mb-0">
               Try refreshing the page, or select a different rep from the dropdown above.
