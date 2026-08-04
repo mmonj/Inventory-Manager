@@ -84,9 +84,13 @@ export function Template(props: templates.QtScheduleCalendar) {
     }
   }, [fetchRepSchedule.data]);
 
-  async function fetchScheduleForRep(repId: number) {
+  async function fetchScheduleForRep(repId: number, forceFresh = false) {
     const baseUrl = reverse("survey_worker:qt_view_rep_schedule", { rep_id: repId });
-    const useCache = new URLSearchParams(window.location.search).get("use_cache");
+    // forceFresh overrides the URL's use_cache param - used right after a server-side mutation
+    // (e.g. auto-scheduling) where a cached/recently-modified response would be stale.
+    const useCache = forceFresh
+      ? "off"
+      : new URLSearchParams(window.location.search).get("use_cache");
     const url = useCache !== null ? `${baseUrl}?use_cache=${useCache}` : baseUrl;
 
     await fetchRepSchedule.fetchData(() =>
@@ -443,8 +447,9 @@ export function Template(props: templates.QtScheduleCalendar) {
     setAutoScheduleSelectedDates([]);
     setIsAutoScheduleMode(false);
 
-    // the server computed the actual assignment - refetch rather than guessing it locally
-    await fetchScheduleForRep(selectedRepId);
+    // the server computed the actual assignment - refetch rather than guessing it locally;
+    // force-bypass the cache/freshness-delta since we just mutated the schedule server-side
+    await fetchScheduleForRep(selectedRepId, true);
 
     if (result.unscheduled_service_order_ids.length > 0) {
       alert(
@@ -583,7 +588,7 @@ export function Template(props: templates.QtScheduleCalendar) {
           >
             {scheduleFreshnessToast?.isCached === true
               ? "Showing cached schedule data."
-              : "Showing freshly fetched schedule data."}
+              : "Fetched fresh schedule data."}
           </Toast.Body>
         </Toast>
       </ToastContainer>

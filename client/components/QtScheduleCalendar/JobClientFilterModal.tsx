@@ -24,7 +24,7 @@ export function JobClientFilterModal(props: Props) {
   }
 
   return (
-    <Modal show={props.show} onHide={props.onHide} backdrop="static" keyboard={false} centered>
+    <Modal show={props.show} onHide={props.onHide} backdrop="static" centered>
       <Modal.Header closeButton>
         <Modal.Title>Filter by Job Client</Modal.Title>
       </Modal.Header>
