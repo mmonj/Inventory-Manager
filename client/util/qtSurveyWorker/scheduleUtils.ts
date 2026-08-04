@@ -58,14 +58,14 @@ export function formatWindow(so: TServiceOrder): string {
 
 /**
  * Builds a string sort key that clusters service orders by store location
- * (physical-visit flag, then lat/lng), so adjacent list items belong to the
- * same store. Job description and range-end are appended only to break ties
- * within a store.
+ * (physical-visit flag, then city, then lat/lng), so adjacent list items
+ * belong to the same store. Job description and range-end are appended only
+ * to break ties within a store.
  */
 export function getStoreGroupKey(so: TServiceOrder): string {
-  return `Physical Visit: ${so.Address.IsPhysicalVisit.toString()} ${so.Address.Latitude} ${
-    so.Address.Longitude
-  } ${so.ServiceOrderDescription} ${so.DateScheduleRangeEnd}`;
+  return `Physical Visit: ${so.Address.IsPhysicalVisit.toString()} ${so.Address.City} ${
+    so.Address.Latitude
+  } ${so.Address.Longitude} ${so.ServiceOrderDescription} ${so.DateScheduleRangeEnd}`;
 }
 
 /** Sorts service orders so entries at the same store are grouped adjacently. */

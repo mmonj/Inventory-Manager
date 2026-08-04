@@ -134,7 +134,12 @@ export function Template(props: templates.QtScheduleCalendar) {
 
   const schedule = localSchedule;
 
-  const serviceOrders: TServiceOrder[] = schedule?.ServiceOrders ?? [];
+  // memoized so a re-render without a real schedule change doesn't produce a new array
+  // reference each time - downstream useMemo/useEffect hooks key off this by reference
+  const serviceOrders: TServiceOrder[] = React.useMemo(
+    () => schedule?.ServiceOrders ?? [],
+    [schedule]
+  );
 
   const allJobClients = React.useMemo(
     () => Array.from(new Set(serviceOrders.map((so) => so.JobClient))).sort(),
@@ -355,6 +360,14 @@ export function Template(props: templates.QtScheduleCalendar) {
     });
   }, [visibleUnscheduledSoIds]);
 
+  // the "Enable Auto-Scheduling" checkbox is hidden with no unscheduled SOs to select -
+  // exit auto-schedule mode if it was on when the list emptied out from under it
+  React.useEffect(() => {
+    if (unscheduledServiceOrders.length === 0) {
+      setIsAutoScheduleMode(false);
+    }
+  }, [unscheduledServiceOrders]);
+
   function toggleAutoScheduleSoSelected(soId: number) {
     setAutoScheduleSelectedSoIds((current) => {
       const next = new Set(current);
@@ -389,6 +402,15 @@ export function Template(props: templates.QtScheduleCalendar) {
       return;
     }
 
+    if (
+      !confirm(
+        `This will auto-schedule ${serviceOrderIds.length} service order(s) and may take up ` +
+          `to a minute or two depending on how many are being scheduled. Continue?`
+      )
+    ) {
+      return;
+    }
+
     const [isSuccess, result] = await executeAutoScheduleFetch.fetchData(() =>
       fetch(reverse("survey_worker:qt_execute_auto_schedule"), {
         method: "POST",
@@ -419,6 +441,18 @@ export function Template(props: templates.QtScheduleCalendar) {
 
     setAutoScheduleSelectedSoIds(new Set());
     setAutoScheduleSelectedDates([]);
+    setIsAutoScheduleMode(false);
+
+    // the server computed the actual assignment - refetch rather than guessing it locally
+    await fetchScheduleForRep(selectedRepId);
+
+    if (result.unscheduled_service_order_ids.length > 0) {
+      alert(
+        `${result.unscheduled_service_order_ids.length} service order(s) could not be ` +
+          `auto-scheduled because they didn't fit within the selected dates' remaining ` +
+          `capacity: ${result.unscheduled_service_order_ids.join(", ")}`
+      );
+    }
   }
 
   const isTodayAllowed = React.useMemo(() => {
@@ -634,23 +668,25 @@ export function Template(props: templates.QtScheduleCalendar) {
                 </div>
               </Card.Header>
               <div className="px-3 pt-3 d-flex align-items-center justify-content-between">
-                <Form.Check
-                  type="checkbox"
-                  id="enable-auto-scheduling-checkbox"
-                  label="Enable Auto-Scheduling"
-                  checked={isAutoScheduleMode}
-                  onChange={(event) => {
-                    const isChecked = event.target.checked;
-                    setIsAutoScheduleMode(isChecked);
-                    setAutoScheduleSelectedSoIds(new Set());
-                    setAutoScheduleSelectedDates([]);
-                    if (isChecked) {
-                      setIsSwapMode(false);
-                      setSwapSelectedDates([]);
-                      setSelectedDate(undefined);
-                    }
-                  }}
-                />
+                {unscheduledServiceOrders.length > 0 && (
+                  <Form.Check
+                    type="checkbox"
+                    id="enable-auto-scheduling-checkbox"
+                    label="Enable Auto-Scheduling"
+                    checked={isAutoScheduleMode}
+                    onChange={(event) => {
+                      const isChecked = event.target.checked;
+                      setIsAutoScheduleMode(isChecked);
+                      setAutoScheduleSelectedSoIds(new Set());
+                      setAutoScheduleSelectedDates([]);
+                      if (isChecked) {
+                        setIsSwapMode(false);
+                        setSwapSelectedDates([]);
+                        setSelectedDate(undefined);
+                      }
+                    }}
+                  />
+                )}
                 {isAutoScheduleMode && (
                   <div className="d-flex align-items-center gap-2">
                     <span className="text-muted small text-nowrap">
@@ -765,6 +801,7 @@ export function Template(props: templates.QtScheduleCalendar) {
                       !executeAutoScheduleFetch.isLoading,
                   })}
                   fetchState={executeAutoScheduleFetch}
+                  spinnerVariant="dark"
                   onClick={() => void handleExecuteAutoSchedule()}
                 >
                   Execute Auto-Schedule for Selected

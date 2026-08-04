@@ -24,6 +24,8 @@ interface Props {
   onSelectAutoScheduleDates: (dates: Date[] | undefined) => void;
 }
 
+const SUNDAY_DAY_OF_WEEK = 0;
+
 export function ScheduleCalendarGrid(props: Props) {
   function isAllowed(date: Date): boolean {
     const today = new Date();
@@ -33,11 +35,19 @@ export function ScheduleCalendarGrid(props: Props) {
       return false;
     }
 
-    if (toDateKey(date) === toDateKey(today)) {
-      return props.isTodayAllowed;
+    const isBaseAllowed =
+      toDateKey(date) === toDateKey(today) ? props.isTodayAllowed : date > today;
+    if (!isBaseAllowed) {
+      return false;
     }
 
-    return date > today;
+    // auto-scheduling is never allowed on Sundays - mirrors the backend's
+    // get_auto_schedule_dates_error check
+    if (props.autoScheduleMode && date.getDay() === SUNDAY_DAY_OF_WEEK) {
+      return false;
+    }
+
+    return true;
   }
 
   function renderDayContent(dayProps: DayContentProps) {
