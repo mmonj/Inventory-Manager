@@ -26,6 +26,7 @@ import {
   UnscheduledServiceOrderListItem,
 } from "@client/components/QtScheduleCalendar";
 import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
+import { fetchByReactivated } from "@client/util/commonUtil";
 import {
   TSchedule,
   TServiceOrder,
@@ -54,6 +55,7 @@ export function Template(props: templates.QtScheduleCalendar) {
   const swapServiceOrdersFetch = useFetch<interfaces.QtSwapServiceOrders>();
   const clearScheduledDateFetch = useFetch<interfaces.QtClearScheduledDate>();
   const executeAutoScheduleFetch = useFetch<interfaces.QtExecuteAutoSchedule>();
+  const executeBulkUnscheduleFetch = useFetch<interfaces.QtExecuteBulkUnschedule>();
 
   const [selectedRepId, setSelectedRepId] = React.useState<number | null>(null);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
@@ -73,6 +75,8 @@ export function Template(props: templates.QtScheduleCalendar) {
   const [autoScheduleSelectedSoIds, setAutoScheduleSelectedSoIds] = React.useState<Set<number>>(
     new Set()
   );
+  const [isBulkUnscheduleMode, setIsBulkUnscheduleMode] = React.useState(false);
+  const [bulkUnscheduleSelectedDates, setBulkUnscheduleSelectedDates] = React.useState<Date[]>([]);
 
   const selectedDateKey = selectedDate ? toDateKey(selectedDate) : null;
 
@@ -94,13 +98,7 @@ export function Template(props: templates.QtScheduleCalendar) {
     const url = useCache !== null ? `${baseUrl}?use_cache=${useCache}` : baseUrl;
 
     await fetchRepSchedule.fetchData(() =>
-      fetch(url, {
-        method: "GET",
-        headers: {
-          "X-CSRFToken": context.csrf_token,
-          Accept: "application/json",
-        },
-      })
+      fetchByReactivated<interfaces.QtViewRepDetail>(url, context.csrf_token, "GET")
     );
   }
 
@@ -164,19 +162,17 @@ export function Template(props: templates.QtScheduleCalendar) {
     }
 
     const [isSuccess, result] = await scheduleServiceOrderFetch.fetchData(() =>
-      fetch(reverse("survey_worker:qt_schedule_service_order"), {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": context.csrf_token,
-          Accept: "application/json",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
+      fetchByReactivated<interfaces.QtScheduleServiceOrder>(
+        reverse("survey_worker:qt_schedule_service_order"),
+        context.csrf_token,
+        "POST",
+        new URLSearchParams({
           rep_id: selectedRepId.toString(),
           service_order_id: so.ServiceOrderId.toString(),
           date: toDateKey(date),
         }),
-      })
+        "application/x-www-form-urlencoded"
+      )
     );
 
     if (!isSuccess) {
@@ -204,18 +200,16 @@ export function Template(props: templates.QtScheduleCalendar) {
     }
 
     const [isSuccess, result] = await unscheduleServiceOrderFetch.fetchData(() =>
-      fetch(reverse("survey_worker:qt_unschedule_service_order"), {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": context.csrf_token,
-          Accept: "application/json",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
+      fetchByReactivated<interfaces.QtUnscheduleServiceOrder>(
+        reverse("survey_worker:qt_unschedule_service_order"),
+        context.csrf_token,
+        "POST",
+        new URLSearchParams({
           rep_id: selectedRepId.toString(),
           service_order_id: so.ServiceOrderId.toString(),
         }),
-      })
+        "application/x-www-form-urlencoded"
+      )
     );
 
     if (!isSuccess) {
@@ -268,21 +262,19 @@ export function Template(props: templates.QtScheduleCalendar) {
     }
 
     const [isSuccess, result] = await swapServiceOrdersFetch.fetchData(() =>
-      fetch(reverse("survey_worker:qt_swap_service_orders"), {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": context.csrf_token,
-          Accept: "application/json",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
+      fetchByReactivated<interfaces.QtSwapServiceOrders>(
+        reverse("survey_worker:qt_swap_service_orders"),
+        context.csrf_token,
+        "POST",
+        new URLSearchParams({
           rep_id: selectedRepId.toString(),
           date_a: dateAKey,
           date_b: dateBKey,
           service_order_ids_a: serviceOrderIdsA.join(","),
           service_order_ids_b: serviceOrderIdsB.join(","),
         }),
-      })
+        "application/x-www-form-urlencoded"
+      )
     );
 
     if (!isSuccess) {
@@ -416,19 +408,17 @@ export function Template(props: templates.QtScheduleCalendar) {
     }
 
     const [isSuccess, result] = await executeAutoScheduleFetch.fetchData(() =>
-      fetch(reverse("survey_worker:qt_execute_auto_schedule"), {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": context.csrf_token,
-          Accept: "application/json",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
+      fetchByReactivated<interfaces.QtExecuteAutoSchedule>(
+        reverse("survey_worker:qt_execute_auto_schedule"),
+        context.csrf_token,
+        "POST",
+        new URLSearchParams({
           rep_id: selectedRepId.toString(),
           service_order_ids: serviceOrderIds.join(","),
           dates: dateKeys.join(","),
         }),
-      })
+        "application/x-www-form-urlencoded"
+      )
     );
 
     if (!isSuccess) {
@@ -456,6 +446,64 @@ export function Template(props: templates.QtScheduleCalendar) {
         `${result.unscheduled_service_order_ids.length} service order(s) could not be ` +
           `auto-scheduled because they didn't fit within the selected dates' remaining ` +
           `capacity: ${result.unscheduled_service_order_ids.join(", ")}`
+      );
+    }
+  }
+
+  async function handleExecuteBulkUnschedule() {
+    if (selectedRepId === null || bulkUnscheduleSelectedDates.length === 0) {
+      return;
+    }
+
+    const dateKeys = bulkUnscheduleSelectedDates.map((date) => toDateKey(date));
+
+    if (
+      !confirm(
+        `This will unschedule every physical-visit service order on ${dateKeys.length} ` +
+          `selected date(s) and may take a while depending on how many there are. Continue?`
+      )
+    ) {
+      return;
+    }
+
+    const [isSuccess, result] = await executeBulkUnscheduleFetch.fetchData(() =>
+      fetchByReactivated<interfaces.QtExecuteBulkUnschedule>(
+        reverse("survey_worker:qt_execute_bulk_unschedule"),
+        context.csrf_token,
+        "POST",
+        new URLSearchParams({
+          rep_id: selectedRepId.toString(),
+          dates: dateKeys.join(","),
+        }),
+        "application/x-www-form-urlencoded"
+      )
+    );
+
+    if (!isSuccess) {
+      alert(
+        `Failed to bulk-unschedule service orders: ${executeBulkUnscheduleFetch.errorMessages.join(", ")}`
+      );
+      return;
+    }
+
+    setBulkUnscheduleSelectedDates([]);
+    setIsBulkUnscheduleMode(false);
+
+    // the server unscheduled whatever it could - refetch rather than guessing it locally;
+    // force-bypass the cache/freshness-delta since we just mutated the schedule server-side
+    await fetchScheduleForRep(selectedRepId, true);
+
+    const failures = result.results.filter((r) => !r.success);
+    if (result.aborted_early || failures.length > 0) {
+      alert(
+        (result.aborted_early
+          ? "Bulk-unschedule stopped early after too many consecutive failures. "
+          : "") +
+          (failures.length > 0
+            ? `${failures.length} service order(s) failed to unschedule: ${failures
+                .map((f) => f.service_order_id)
+                .join(", ")}`
+            : "")
       );
     }
   }
@@ -532,18 +580,16 @@ export function Template(props: templates.QtScheduleCalendar) {
     }
 
     const [isSuccess, result] = await clearScheduledDateFetch.fetchData(() =>
-      fetch(reverse("survey_worker:qt_clear_scheduled_date"), {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": context.csrf_token,
-          Accept: "application/json",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
+      fetchByReactivated<interfaces.QtClearScheduledDate>(
+        reverse("survey_worker:qt_clear_scheduled_date"),
+        context.csrf_token,
+        "POST",
+        new URLSearchParams({
           rep_id: selectedRepId.toString(),
           service_order_ids: serviceOrderIds.join(","),
         }),
-      })
+        "application/x-www-form-urlencoded"
+      )
     );
 
     if (!isSuccess) {
@@ -679,6 +725,7 @@ export function Template(props: templates.QtScheduleCalendar) {
                     id="enable-auto-scheduling-checkbox"
                     label="Enable Auto-Scheduling"
                     checked={isAutoScheduleMode}
+                    disabled={isBulkUnscheduleMode}
                     onChange={(event) => {
                       const isChecked = event.target.checked;
                       setIsAutoScheduleMode(isChecked);
@@ -687,6 +734,8 @@ export function Template(props: templates.QtScheduleCalendar) {
                       if (isChecked) {
                         setIsSwapMode(false);
                         setSwapSelectedDates([]);
+                        setIsBulkUnscheduleMode(false);
+                        setBulkUnscheduleSelectedDates([]);
                         setSelectedDate(undefined);
                       }
                     }}
@@ -772,17 +821,34 @@ export function Template(props: templates.QtScheduleCalendar) {
 
           <div className="col-md-7">
             <div className="d-flex align-items-center justify-content-between mb-2">
-              <Form.Check
-                type="checkbox"
-                id="swap-jobs-checkbox"
-                label="Swap Jobs"
-                checked={isSwapMode}
-                disabled={isAutoScheduleMode}
-                onChange={(event) => {
-                  setIsSwapMode(event.target.checked);
-                  setSwapSelectedDates([]);
-                }}
-              />
+              <div className="d-flex align-items-center gap-3">
+                <Form.Check
+                  type="checkbox"
+                  id="swap-jobs-checkbox"
+                  label="Swap Jobs"
+                  checked={isSwapMode}
+                  disabled={isAutoScheduleMode || isBulkUnscheduleMode}
+                  onChange={(event) => {
+                    setIsSwapMode(event.target.checked);
+                    setSwapSelectedDates([]);
+                  }}
+                />
+                <Form.Check
+                  type="checkbox"
+                  id="enable-bulk-unschedule-checkbox"
+                  label="Enable Bulk-Unschedule"
+                  checked={isBulkUnscheduleMode}
+                  disabled={isAutoScheduleMode || isSwapMode}
+                  onChange={(event) => {
+                    const isChecked = event.target.checked;
+                    setIsBulkUnscheduleMode(isChecked);
+                    setBulkUnscheduleSelectedDates([]);
+                    if (isChecked) {
+                      setSelectedDate(undefined);
+                    }
+                  }}
+                />
+              </div>
               {isSwapMode && (
                 <ButtonWithSpinner
                   type="button"
@@ -812,11 +878,33 @@ export function Template(props: templates.QtScheduleCalendar) {
                   Execute Auto-Schedule for Selected
                 </ButtonWithSpinner>
               )}
+              {isBulkUnscheduleMode && (
+                <ButtonWithSpinner
+                  type="button"
+                  className={classNames("btn btn-danger btn-sm", {
+                    disabled:
+                      bulkUnscheduleSelectedDates.length === 0 &&
+                      !executeBulkUnscheduleFetch.isLoading,
+                  })}
+                  fetchState={executeBulkUnscheduleFetch}
+                  spinnerVariant="dark"
+                  onClick={() => void handleExecuteBulkUnschedule()}
+                >
+                  Execute Bulk-Unschedule
+                </ButtonWithSpinner>
+              )}
             </div>
 
             {isAutoScheduleMode && (
               <Alert variant="warning" className="mb-0 py-2 rounded-bottom-0">
                 Select multiple dates <strong>({autoScheduleSelectedDates.length} selected)</strong>
+              </Alert>
+            )}
+
+            {isBulkUnscheduleMode && (
+              <Alert variant="warning" className="mb-0 py-2 rounded-bottom-0">
+                Select multiple dates{" "}
+                <strong>({bulkUnscheduleSelectedDates.length} selected)</strong>
               </Alert>
             )}
 
@@ -832,52 +920,59 @@ export function Template(props: templates.QtScheduleCalendar) {
               autoScheduleMode={isAutoScheduleMode}
               autoScheduleSelectedDates={autoScheduleSelectedDates}
               onSelectAutoScheduleDates={(dates) => setAutoScheduleSelectedDates(dates ?? [])}
+              bulkUnscheduleMode={isBulkUnscheduleMode}
+              bulkUnscheduleSelectedDates={bulkUnscheduleSelectedDates}
+              onSelectBulkUnscheduleDates={(dates) => setBulkUnscheduleSelectedDates(dates ?? [])}
             />
 
-            {!isSwapMode && selectedDateKey !== null && selectedDate !== undefined && (
-              <Card className="mt-4">
-                <Card.Header className="bg-primary text-white d-flex align-items-center justify-content-between">
-                  <span>
-                    {serviceOrdersForSelectedDate.length} Service Order
-                    {serviceOrdersForSelectedDate.length === 1 ? "" : "s"} Scheduled on{" "}
-                    {formatWeekdayShortDate(selectedDate)}
-                  </span>
-                  <Button
-                    variant="outline-light"
-                    size="sm"
-                    disabled={
-                      serviceOrdersForSelectedDate.length === 0 || clearScheduledDateFetch.isLoading
-                    }
-                    onClick={() => void handleClearScheduledDate()}
-                  >
-                    Clear Date
-                  </Button>
-                </Card.Header>
-                <ListGroup variant="flush">
-                  {serviceOrdersForSelectedDate.length === 0 && (
-                    <ListGroup.Item className="text-muted">
-                      No service orders scheduled on this date.
-                    </ListGroup.Item>
-                  )}
-                  {groupedServiceOrdersForSelectedDate.map((so) => (
-                    <ScheduledServiceOrderListItem
-                      key={so.ServiceOrderId}
-                      so={so}
-                      action={
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          disabled={unscheduleServiceOrderFetch.isLoading}
-                          onClick={() => handleUnscheduleServiceOrder(so)}
-                        >
-                          Unschedule
-                        </Button>
+            {!isSwapMode &&
+              !isBulkUnscheduleMode &&
+              selectedDateKey !== null &&
+              selectedDate !== undefined && (
+                <Card className="mt-4">
+                  <Card.Header className="bg-primary text-white d-flex align-items-center justify-content-between">
+                    <span>
+                      {serviceOrdersForSelectedDate.length} Service Order
+                      {serviceOrdersForSelectedDate.length === 1 ? "" : "s"} Scheduled on{" "}
+                      {formatWeekdayShortDate(selectedDate)}
+                    </span>
+                    <Button
+                      variant="outline-light"
+                      size="sm"
+                      disabled={
+                        serviceOrdersForSelectedDate.length === 0 ||
+                        clearScheduledDateFetch.isLoading
                       }
-                    />
-                  ))}
-                </ListGroup>
-              </Card>
-            )}
+                      onClick={() => void handleClearScheduledDate()}
+                    >
+                      Clear Date
+                    </Button>
+                  </Card.Header>
+                  <ListGroup variant="flush">
+                    {serviceOrdersForSelectedDate.length === 0 && (
+                      <ListGroup.Item className="text-muted">
+                        No service orders scheduled on this date.
+                      </ListGroup.Item>
+                    )}
+                    {groupedServiceOrdersForSelectedDate.map((so) => (
+                      <ScheduledServiceOrderListItem
+                        key={so.ServiceOrderId}
+                        so={so}
+                        action={
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            disabled={unscheduleServiceOrderFetch.isLoading}
+                            onClick={() => handleUnscheduleServiceOrder(so)}
+                          >
+                            Unschedule
+                          </Button>
+                        }
+                      />
+                    ))}
+                  </ListGroup>
+                </Card>
+              )}
           </div>
         </div>
       )}

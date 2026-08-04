@@ -22,6 +22,9 @@ interface Props {
   autoScheduleMode: boolean;
   autoScheduleSelectedDates: Date[];
   onSelectAutoScheduleDates: (dates: Date[] | undefined) => void;
+  bulkUnscheduleMode: boolean;
+  bulkUnscheduleSelectedDates: Date[];
+  onSelectBulkUnscheduleDates: (dates: Date[] | undefined) => void;
 }
 
 const SUNDAY_DAY_OF_WEEK = 0;
@@ -90,6 +93,18 @@ export function ScheduleCalendarGrid(props: Props) {
             mode="multiple"
             selected={props.autoScheduleSelectedDates}
             onSelect={props.onSelectAutoScheduleDates}
+            disabled={(date) => !isAllowed(date)}
+            modifiers={{ selectable: isAllowed }}
+            modifiersClassNames={{ selectable: "qt-day-selectable" }}
+            components={{ DayContent: renderDayContent }}
+            showOutsideDays
+            fixedWeeks
+          />
+        ) : props.bulkUnscheduleMode ? (
+          <DayPicker
+            mode="multiple"
+            selected={props.bulkUnscheduleSelectedDates}
+            onSelect={props.onSelectBulkUnscheduleDates}
             disabled={(date) => !isAllowed(date)}
             modifiers={{ selectable: isAllowed }}
             modifiersClassNames={{ selectable: "qt-day-selectable" }}

@@ -119,12 +119,13 @@ export function fetchByReactivated<T>(
   url: string,
   csrfToken: string,
   method: string,
-  payloadBody: BodyInit | undefined = undefined
+  payloadBody: BodyInit | undefined = undefined,
+  contentType = "application/json"
 ): ApiPromise<T> {
   const headers = {
     Accept: "application/json",
     "X-CSRFToken": csrfToken,
-    "Content-Type": "application/json",
+    "Content-Type": contentType,
   };
 
   return fetch(url, {
