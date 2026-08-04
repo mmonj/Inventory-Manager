@@ -4,7 +4,7 @@ from typing import Any, TypeVar
 import cattrs
 import requests
 from django.db import IntegrityError, models, transaction
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from requests import Session
@@ -18,6 +18,10 @@ T = TypeVar("T")
 
 TModel = TypeVar("TModel", bound=models.Model)
 TIsNewRecord = bool
+
+
+def error_json_response(errors: list[str], *, status: int, **kwargs: Any) -> JsonResponse:
+    return JsonResponse(errors, status=status, safe=False, **kwargs)
 
 
 def unwrap(result: TResult[T, Any]) -> T:

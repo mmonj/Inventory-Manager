@@ -8,7 +8,7 @@ import Form from "react-bootstrap/Form";
 
 import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
 import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
-import { buildUrlFromFormData } from "@client/util/commonUtil";
+import { buildUrlFromFormData, fetchByReactivated } from "@client/util/commonUtil";
 
 import { Layout } from "../components/Layout";
 import { useFetch } from "../hooks/useFetch";
@@ -38,18 +38,12 @@ export function Template(props: templates.QtScheduleView) {
     const baseUrl = reverse("survey_worker:qt_view_rep_schedule", { rep_id: repId });
     const fetchUrl = buildUrlFromFormData(baseUrl, formData);
 
-    const [isSuccess, result] = await fetchRepSchedule.fetchData(() =>
-      fetch(fetchUrl, {
-        method: "GET",
-        headers: {
-          "X-CSRFToken": context.csrf_token,
-          Accept: "application/json",
-        },
-      })
+    const [isSuccess, result, errorMessages] = await fetchRepSchedule.fetchData(() =>
+      fetchByReactivated<interfaces.QtViewRepDetail>(fetchUrl, context.csrf_token, "GET")
     );
 
     if (!isSuccess) {
-      alert("Failed to fetch data.");
+      alert(`Failed to fetch data:\n\n${errorMessages.join("\n")}`);
       return;
     }
 

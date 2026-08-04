@@ -18,6 +18,7 @@ import { faFilter, faTriangleExclamation } from "@fortawesome/free-solid-svg-ico
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
+import { ErrorToastStack } from "@client/components/ErrorToastStack";
 import {
   ICalendarDaySummary,
   JobClientFilterModal,
@@ -26,6 +27,7 @@ import {
   UnscheduledServiceOrderListItem,
 } from "@client/components/QtScheduleCalendar";
 import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
+import { useErrorToasts } from "@client/hooks/useErrorToasts";
 import { fetchByReactivated } from "@client/util/commonUtil";
 import {
   TSchedule,
@@ -56,6 +58,7 @@ export function Template(props: templates.QtScheduleCalendar) {
   const clearScheduledDateFetch = useFetch<interfaces.QtClearScheduledDate>();
   const executeAutoScheduleFetch = useFetch<interfaces.QtExecuteAutoSchedule>();
   const executeBulkUnscheduleFetch = useFetch<interfaces.QtExecuteBulkUnschedule>();
+  const errorToasts = useErrorToasts();
 
   const [selectedRepId, setSelectedRepId] = React.useState<number | null>(null);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
@@ -161,7 +164,7 @@ export function Template(props: templates.QtScheduleCalendar) {
       return;
     }
 
-    const [isSuccess, result] = await scheduleServiceOrderFetch.fetchData(() =>
+    const [isSuccess, result, errorMessages] = await scheduleServiceOrderFetch.fetchData(() =>
       fetchByReactivated<interfaces.QtScheduleServiceOrder>(
         reverse("survey_worker:qt_schedule_service_order"),
         context.csrf_token,
@@ -176,9 +179,7 @@ export function Template(props: templates.QtScheduleCalendar) {
     );
 
     if (!isSuccess) {
-      alert(
-        `Failed to schedule service order: ${scheduleServiceOrderFetch.errorMessages.join(", ")}`
-      );
+      errorToasts.showError("Failed to schedule service order", errorMessages);
       return;
     }
 
@@ -199,7 +200,7 @@ export function Template(props: templates.QtScheduleCalendar) {
       return;
     }
 
-    const [isSuccess, result] = await unscheduleServiceOrderFetch.fetchData(() =>
+    const [isSuccess, result, errorMessages] = await unscheduleServiceOrderFetch.fetchData(() =>
       fetchByReactivated<interfaces.QtUnscheduleServiceOrder>(
         reverse("survey_worker:qt_unschedule_service_order"),
         context.csrf_token,
@@ -213,9 +214,7 @@ export function Template(props: templates.QtScheduleCalendar) {
     );
 
     if (!isSuccess) {
-      alert(
-        `Failed to unschedule service order: ${unscheduleServiceOrderFetch.errorMessages.join(", ")}`
-      );
+      errorToasts.showError("Failed to unschedule service order", errorMessages);
       return;
     }
 
@@ -261,7 +260,7 @@ export function Template(props: templates.QtScheduleCalendar) {
       return;
     }
 
-    const [isSuccess, result] = await swapServiceOrdersFetch.fetchData(() =>
+    const [isSuccess, result, errorMessages] = await swapServiceOrdersFetch.fetchData(() =>
       fetchByReactivated<interfaces.QtSwapServiceOrders>(
         reverse("survey_worker:qt_swap_service_orders"),
         context.csrf_token,
@@ -278,7 +277,7 @@ export function Template(props: templates.QtScheduleCalendar) {
     );
 
     if (!isSuccess) {
-      alert(`Failed to swap service orders: ${swapServiceOrdersFetch.errorMessages.join(", ")}`);
+      errorToasts.showError("Failed to swap service orders", errorMessages);
       return;
     }
 
@@ -407,7 +406,7 @@ export function Template(props: templates.QtScheduleCalendar) {
       return;
     }
 
-    const [isSuccess, result] = await executeAutoScheduleFetch.fetchData(() =>
+    const [isSuccess, result, errorMessages] = await executeAutoScheduleFetch.fetchData(() =>
       fetchByReactivated<interfaces.QtExecuteAutoSchedule>(
         reverse("survey_worker:qt_execute_auto_schedule"),
         context.csrf_token,
@@ -422,9 +421,7 @@ export function Template(props: templates.QtScheduleCalendar) {
     );
 
     if (!isSuccess) {
-      alert(
-        `Failed to auto-schedule service orders: ${executeAutoScheduleFetch.errorMessages.join(", ")}`
-      );
+      errorToasts.showError("Failed to auto-schedule service orders", errorMessages);
       return;
     }
 
@@ -466,7 +463,7 @@ export function Template(props: templates.QtScheduleCalendar) {
       return;
     }
 
-    const [isSuccess, result] = await executeBulkUnscheduleFetch.fetchData(() =>
+    const [isSuccess, result, errorMessages] = await executeBulkUnscheduleFetch.fetchData(() =>
       fetchByReactivated<interfaces.QtExecuteBulkUnschedule>(
         reverse("survey_worker:qt_execute_bulk_unschedule"),
         context.csrf_token,
@@ -480,9 +477,7 @@ export function Template(props: templates.QtScheduleCalendar) {
     );
 
     if (!isSuccess) {
-      alert(
-        `Failed to bulk-unschedule service orders: ${executeBulkUnscheduleFetch.errorMessages.join(", ")}`
-      );
+      errorToasts.showError("Failed to bulk-unschedule service orders", errorMessages);
       return;
     }
 
@@ -579,7 +574,7 @@ export function Template(props: templates.QtScheduleCalendar) {
       return;
     }
 
-    const [isSuccess, result] = await clearScheduledDateFetch.fetchData(() =>
+    const [isSuccess, result, errorMessages] = await clearScheduledDateFetch.fetchData(() =>
       fetchByReactivated<interfaces.QtClearScheduledDate>(
         reverse("survey_worker:qt_clear_scheduled_date"),
         context.csrf_token,
@@ -593,7 +588,7 @@ export function Template(props: templates.QtScheduleCalendar) {
     );
 
     if (!isSuccess) {
-      alert(`Failed to clear date: ${clearScheduledDateFetch.errorMessages.join(", ")}`);
+      errorToasts.showError("Failed to clear date", errorMessages);
       return;
     }
 
@@ -613,7 +608,12 @@ export function Template(props: templates.QtScheduleCalendar) {
 
   return (
     <Layout title="Schedule" navbar={<NavigationBar />} className="mw-rem-90 mx-auto px-2 mb-4">
-      <ToastContainer position="top-end" className="p-3" style={{ zIndex: 1100 }}>
+      <ToastContainer
+        position="top-end"
+        containerPosition="fixed"
+        className="p-3"
+        style={{ zIndex: 1100 }}
+      >
         <Toast
           show={context.user.is_superuser && scheduleFreshnessToast?.show === true}
           onClose={() =>
@@ -637,6 +637,8 @@ export function Template(props: templates.QtScheduleCalendar) {
               : "Fetched fresh schedule data."}
           </Toast.Body>
         </Toast>
+
+        <ErrorToastStack toasts={errorToasts.toasts} onDismiss={errorToasts.dismiss} />
       </ToastContainer>
 
       <h1 className="my-4">Schedule Calendar</h1>

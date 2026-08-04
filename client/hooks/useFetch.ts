@@ -41,13 +41,15 @@ export function useFetch<T>() {
         setIsLoading(() => false);
         setIsError(() => true);
         if (errorResp instanceof Error) {
-          setErrorMessages(() => [errorResp.message]);
-          return [false, errorResp] as const;
+          const messages = [errorResp.message];
+          setErrorMessages(() => messages);
+          return [false, errorResp, messages] as const;
         } else {
           const data = await (errorResp as ApiResponse<IHttpError | TNotFoundErrorList>).json();
-          setErrorMessages(() => getErrorList(data));
+          const messages = getErrorList(data);
+          setErrorMessages(() => messages);
 
-          return [false, errorResp] as const;
+          return [false, errorResp, messages] as const;
         }
       });
   };
