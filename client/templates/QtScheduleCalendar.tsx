@@ -60,6 +60,10 @@ export function Template(props: templates.QtScheduleCalendar) {
   const executeBulkUnscheduleFetch = useFetch<interfaces.QtExecuteBulkUnschedule>();
   const errorToasts = useErrorToasts();
 
+  // guard against a duplicate initial fetch if the mount effect below somehow fires twice
+  // to work around hydration remounts
+  const hasFetchedInitialSchedule = React.useRef(false);
+
   const [selectedRepId, setSelectedRepId] = React.useState<number | null>(null);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
   const [localSchedule, setLocalSchedule] = React.useState<TSchedule | null>(null);
@@ -122,6 +126,10 @@ export function Template(props: templates.QtScheduleCalendar) {
 
   // load last selected rep ID on mount and auto-fetch their schedule
   React.useEffect(() => {
+    if (hasFetchedInitialSchedule.current) {
+      return;
+    }
+
     const lastSelectedRepId = localStorage.getItem(LAST_SELECTED_REP_ID_KEY);
     if (lastSelectedRepId === null || lastSelectedRepId === "") {
       return;
@@ -132,6 +140,7 @@ export function Template(props: templates.QtScheduleCalendar) {
       return;
     }
 
+    hasFetchedInitialSchedule.current = true;
     setSelectedRepId(storedId);
     void fetchScheduleForRep(storedId);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
