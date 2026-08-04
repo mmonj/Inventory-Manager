@@ -19,6 +19,9 @@ interface Props {
   swapMode: boolean;
   swapSelectedDates: Date[];
   onSelectSwapDates: (dates: Date[] | undefined) => void;
+  autoScheduleMode: boolean;
+  autoScheduleSelectedDates: Date[];
+  onSelectAutoScheduleDates: (dates: Date[] | undefined) => void;
 }
 
 export function ScheduleCalendarGrid(props: Props) {
@@ -65,6 +68,18 @@ export function ScheduleCalendarGrid(props: Props) {
             max={2}
             selected={props.swapSelectedDates}
             onSelect={props.onSelectSwapDates}
+            disabled={(date) => !isAllowed(date)}
+            modifiers={{ selectable: isAllowed }}
+            modifiersClassNames={{ selectable: "qt-day-selectable" }}
+            components={{ DayContent: renderDayContent }}
+            showOutsideDays
+            fixedWeeks
+          />
+        ) : props.autoScheduleMode ? (
+          <DayPicker
+            mode="multiple"
+            selected={props.autoScheduleSelectedDates}
+            onSelect={props.onSelectAutoScheduleDates}
             disabled={(date) => !isAllowed(date)}
             modifiers={{ selectable: isAllowed }}
             modifiersClassNames={{ selectable: "qt-day-selectable" }}

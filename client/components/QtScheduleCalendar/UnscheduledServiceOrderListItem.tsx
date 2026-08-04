@@ -10,6 +10,7 @@ import { StoreAddressBlock } from "./StoreAddressBlock";
 interface Props {
   so: TServiceOrder;
   action: React.ReactNode;
+  checkbox?: React.ReactNode;
 }
 
 export function UnscheduledServiceOrderListItem(props: Props) {
@@ -17,6 +18,9 @@ export function UnscheduledServiceOrderListItem(props: Props) {
 
   return (
     <ListGroup.Item className="d-flex justify-content-between align-items-start gap-4">
+      {props.checkbox !== undefined && (
+        <div className="flex-shrink-0 d-flex align-items-start pt-1">{props.checkbox}</div>
+      )}
       <div className="fw-semibold" style={{ width: "28%" }}>
         {so.JobId} {so.ServiceOrderDescription} ({so.ServiceOrderId})
       </div>

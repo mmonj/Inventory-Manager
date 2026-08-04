@@ -17,6 +17,25 @@ import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
 
 const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMap"));
 
+const RELATIVE_TIME_THRESHOLD_HOURS = 12;
+
+function formatLastRefreshed(isoString: string): string {
+  const refreshedDate = new Date(isoString);
+  const hoursSince = (Date.now() - refreshedDate.getTime()) / (1000 * 60 * 60);
+
+  if (hoursSince < 0 || hoursSince >= RELATIVE_TIME_THRESHOLD_HOURS) {
+    return refreshedDate.toLocaleString();
+  }
+
+  if (hoursSince < 1) {
+    const minutesSince = Math.max(1, Math.floor(hoursSince * 60));
+    return `${minutesSince} minute${minutesSince === 1 ? "" : "s"} ago`;
+  }
+
+  const wholeHoursSince = Math.floor(hoursSince);
+  return `${wholeHoursSince} hour${wholeHoursSince === 1 ? "" : "s"} ago`;
+}
+
 type TGroupedStoreRecord = Record<
   number,
   {
@@ -201,9 +220,9 @@ export function Template(props: templates.QtTerritoryViewer) {
           <div>
             <strong>{Object.keys(filteredStores).length} stores shown</strong>
             <div className="text-secondary">
-              Last updated:{" "}
-              {selectedRepData
-                ? new Date(selectedRepData.datetime_modified).toLocaleString()
+              Last refreshed:{" "}
+              {selectedRepData?.schedule_last_refreshed != null
+                ? formatLastRefreshed(selectedRepData.schedule_last_refreshed)
                 : "N/A"}
             </div>
           </div>
