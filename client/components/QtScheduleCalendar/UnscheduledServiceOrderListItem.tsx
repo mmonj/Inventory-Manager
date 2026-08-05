@@ -1,6 +1,6 @@
 import React from "react";
 
-import { ListGroup } from "react-bootstrap";
+import { motion } from "motion/react";
 
 import { TServiceOrder } from "@client/util/qtSurveyWorker/scheduleUtils";
 import { getFormattedEstimatedTime } from "@client/util/commonUtil";
@@ -17,7 +17,14 @@ export function UnscheduledServiceOrderListItem(props: Props) {
   const { so } = props;
 
   return (
-    <ListGroup.Item className="d-flex justify-content-between align-items-start gap-4">
+    <motion.div
+      layout
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.2 }}
+      className="list-group-item d-flex justify-content-between align-items-start gap-4 overflow-hidden"
+    >
       {props.checkbox !== undefined && (
         <div className="flex-shrink-0 d-flex align-items-start pt-1">{props.checkbox}</div>
       )}
@@ -36,6 +43,6 @@ export function UnscheduledServiceOrderListItem(props: Props) {
       </div>
 
       <div className="flex-shrink-0">{props.action}</div>
-    </ListGroup.Item>
+    </motion.div>
   );
 }

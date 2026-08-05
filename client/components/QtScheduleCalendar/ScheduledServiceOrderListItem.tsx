@@ -1,6 +1,6 @@
 import React from "react";
 
-import { ListGroup } from "react-bootstrap";
+import { motion } from "motion/react";
 
 import { TServiceOrder } from "@client/util/qtSurveyWorker/scheduleUtils";
 import { getFormattedEstimatedTime } from "@client/util/commonUtil";
@@ -16,7 +16,14 @@ export function ScheduledServiceOrderListItem(props: Props) {
   const { so } = props;
 
   return (
-    <ListGroup.Item className="d-flex justify-content-between align-items-start gap-2">
+    <motion.div
+      layout
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.2 }}
+      className="list-group-item d-flex justify-content-between align-items-start gap-2 overflow-hidden"
+    >
       <div>
         <div className="fw-semibold">
           {so.JobId} {so.ServiceOrderDescription} ({so.ServiceOrderId})
@@ -28,6 +35,6 @@ export function ScheduledServiceOrderListItem(props: Props) {
         <span className="text-info small">{getFormattedEstimatedTime(so.EstimatedTime)} Est.</span>
         {props.action}
       </div>
-    </ListGroup.Item>
+    </motion.div>
   );
 }

@@ -1,6 +1,7 @@
 import React from "react";
 
 import classNames from "classnames";
+import { AnimatePresence } from "motion/react";
 import {
   Alert,
   Button,
@@ -768,42 +769,44 @@ export function Template(props: templates.QtScheduleCalendar) {
                     No unscheduled service orders.
                   </ListGroup.Item>
                 )}
-                {groupedUnscheduledServiceOrders.map((so) => (
-                  <UnscheduledServiceOrderListItem
-                    key={so.ServiceOrderId}
-                    so={so}
-                    checkbox={
-                      isAutoScheduleMode ? (
-                        <Form.Check
-                          type="checkbox"
-                          checked={autoScheduleSelectedSoIds.has(so.ServiceOrderId)}
-                          onChange={() => toggleAutoScheduleSoSelected(so.ServiceOrderId)}
-                        />
-                      ) : undefined
-                    }
-                    action={
-                      isAutoScheduleMode ? null : (
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          disabled={
-                            selectedDate === undefined || scheduleServiceOrderFetch.isLoading
-                          }
-                          className="text-nowrap"
-                          style={{ width: "9.5rem" }}
-                          onClick={() =>
-                            selectedDate !== undefined &&
-                            handleScheduleServiceOrder(so, selectedDate)
-                          }
-                        >
-                          {selectedDate !== undefined
-                            ? `Schedule on ${formatShortDate(selectedDate)}`
-                            : "Select a date"}
-                        </Button>
-                      )
-                    }
-                  />
-                ))}
+                <AnimatePresence initial={false}>
+                  {groupedUnscheduledServiceOrders.map((so) => (
+                    <UnscheduledServiceOrderListItem
+                      key={so.ServiceOrderId}
+                      so={so}
+                      checkbox={
+                        isAutoScheduleMode ? (
+                          <Form.Check
+                            type="checkbox"
+                            checked={autoScheduleSelectedSoIds.has(so.ServiceOrderId)}
+                            onChange={() => toggleAutoScheduleSoSelected(so.ServiceOrderId)}
+                          />
+                        ) : undefined
+                      }
+                      action={
+                        isAutoScheduleMode ? null : (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            disabled={
+                              selectedDate === undefined || scheduleServiceOrderFetch.isLoading
+                            }
+                            className="text-nowrap"
+                            style={{ width: "9.5rem" }}
+                            onClick={() =>
+                              selectedDate !== undefined &&
+                              handleScheduleServiceOrder(so, selectedDate)
+                            }
+                          >
+                            {selectedDate !== undefined
+                              ? `Schedule on ${formatShortDate(selectedDate)}`
+                              : "Select a date"}
+                          </Button>
+                        )
+                      }
+                    />
+                  ))}
+                </AnimatePresence>
               </ListGroup>
             </Card>
           </div>
@@ -988,22 +991,24 @@ export function Template(props: templates.QtScheduleCalendar) {
                         No service orders scheduled on this date.
                       </ListGroup.Item>
                     )}
-                    {groupedServiceOrdersForSelectedDate.map((so) => (
-                      <ScheduledServiceOrderListItem
-                        key={so.ServiceOrderId}
-                        so={so}
-                        action={
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            disabled={unscheduleServiceOrderFetch.isLoading}
-                            onClick={() => handleUnscheduleServiceOrder(so)}
-                          >
-                            Unschedule
-                          </Button>
-                        }
-                      />
-                    ))}
+                    <AnimatePresence initial={false}>
+                      {groupedServiceOrdersForSelectedDate.map((so) => (
+                        <ScheduledServiceOrderListItem
+                          key={so.ServiceOrderId}
+                          so={so}
+                          action={
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              disabled={unscheduleServiceOrderFetch.isLoading}
+                              onClick={() => handleUnscheduleServiceOrder(so)}
+                            >
+                              Unschedule
+                            </Button>
+                          }
+                        />
+                      ))}
+                    </AnimatePresence>
                   </ListGroup>
                 </Card>
               )}
