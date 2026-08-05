@@ -37,6 +37,7 @@ import {
   UNSCHEDULED_ORDER_BY_OPTIONS,
   formatShortDate,
   formatWeekdayShortDate,
+  formatWindow,
   groupByStore,
   sortServiceOrdersBy,
   toDateKey,
@@ -312,6 +313,11 @@ export function Template(props: templates.QtScheduleCalendar) {
     setSwapSelectedDates([]);
   }
 
+  // Every SO that's still unscheduled, whose window hasn't closed, and that passes the
+  // Job Client filter. Deliberately NOT filtered by selectedDate - all such SOs stay visible
+  // in the Unscheduled list regardless of which date is picked (split into schedulable/
+  // outside-window groups below instead of hiding anything), and the calendar's selectable
+  // range is derived from this same set, so the range always matches what's visible.
   const unscheduledServiceOrders = React.useMemo(() => {
     if (schedule === null) {
       return [];
@@ -325,30 +331,45 @@ export function Template(props: templates.QtScheduleCalendar) {
         return false;
       }
 
-      // drop SOs whose scheduling window has already closed
-      const rangeEnd = new Date(so.DateScheduleRangeEnd);
-      if (rangeEnd < today) {
+      if (new Date(so.DateScheduleRangeEnd) < today) {
         return false;
       }
 
-      // if a calendar date is picked, only show SOs eligible for that date
-      if (selectedDate !== undefined) {
-        const rangeStart = new Date(so.DateScheduleRangeStart);
-        if (selectedDate < rangeStart || selectedDate > rangeEnd) {
-          return false;
-        }
-      }
-
-      if (!selectedJobClients.has(so.JobClient)) {
-        return false;
-      }
-
-      return true;
+      return selectedJobClients.has(so.JobClient);
     });
-  }, [serviceOrders, schedule, selectedDate, selectedJobClients]);
-  const groupedUnscheduledServiceOrders = React.useMemo(
-    () => sortServiceOrdersBy(unscheduledServiceOrders, unscheduledOrderBy),
-    [unscheduledServiceOrders, unscheduledOrderBy]
+  }, [serviceOrders, schedule, selectedJobClients]);
+
+  // Split by whether the currently selected date falls within each SO's scheduling window -
+  // schedulable SOs get the "Schedule on <date>" action, the rest show why they can't be
+  // scheduled on that date instead of disappearing from the list.
+  const schedulableForSelectedDate = React.useMemo(() => {
+    if (selectedDate === undefined) {
+      return unscheduledServiceOrders;
+    }
+
+    return unscheduledServiceOrders.filter((so) => {
+      const rangeStart = new Date(so.DateScheduleRangeStart);
+      const rangeEnd = new Date(so.DateScheduleRangeEnd);
+      return selectedDate >= rangeStart && selectedDate <= rangeEnd;
+    });
+  }, [unscheduledServiceOrders, selectedDate]);
+
+  const outsideWindowForSelectedDate = React.useMemo(() => {
+    if (selectedDate === undefined) {
+      return [];
+    }
+
+    const schedulableIds = new Set(schedulableForSelectedDate.map((so) => so.ServiceOrderId));
+    return unscheduledServiceOrders.filter((so) => !schedulableIds.has(so.ServiceOrderId));
+  }, [unscheduledServiceOrders, schedulableForSelectedDate, selectedDate]);
+
+  const groupedSchedulableForSelectedDate = React.useMemo(
+    () => sortServiceOrdersBy(schedulableForSelectedDate, unscheduledOrderBy),
+    [schedulableForSelectedDate, unscheduledOrderBy]
+  );
+  const groupedOutsideWindowForSelectedDate = React.useMemo(
+    () => sortServiceOrdersBy(outsideWindowForSelectedDate, unscheduledOrderBy),
+    [outsideWindowForSelectedDate, unscheduledOrderBy]
   );
 
   const visibleUnscheduledSoIds = React.useMemo(
@@ -522,15 +543,28 @@ export function Template(props: templates.QtScheduleCalendar) {
     return schedule.AllowSchedulingDates.some((isoStr) => toDateKey(new Date(isoStr)) === todayKey);
   }, [schedule]);
 
-  // the furthest-out due date across all SOs caps how far ahead the calendar allows selection
-  const maxSelectableDate = React.useMemo(() => {
-    if (serviceOrders.length === 0) {
-      return null;
+  // Date keys the calendar highlights as schedulable: every day actually covered by at least
+  // one visible Unscheduled SO's [DateScheduleRangeStart, DateScheduleRangeEnd] window - not
+  // just a min/max span, since a date inside that overall span can still have nothing left
+  // that's actually schedulable on it (e.g. every SO whose window covered it has since been
+  // scheduled elsewhere or expired).
+  const schedulableDateKeys = React.useMemo(() => {
+    const dateKeys = new Set<string>();
+
+    for (const so of unscheduledServiceOrders) {
+      const cursor = new Date(so.DateScheduleRangeStart);
+      cursor.setHours(0, 0, 0, 0);
+      const rangeEnd = new Date(so.DateScheduleRangeEnd);
+      rangeEnd.setHours(0, 0, 0, 0);
+
+      while (cursor <= rangeEnd) {
+        dateKeys.add(toDateKey(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+      }
     }
 
-    const endDates = serviceOrders.map((so) => new Date(so.DateScheduleRangeEnd));
-    return new Date(Math.max(...endDates.map((date) => date.getTime())));
-  }, [serviceOrders]);
+    return dateKeys;
+  }, [unscheduledServiceOrders]);
 
   const daySummaries = React.useMemo(() => {
     const summaries = new Map<string, ICalendarDaySummary>();
@@ -663,7 +697,7 @@ export function Template(props: templates.QtScheduleCalendar) {
         <ErrorToastStack toasts={errorToasts.toasts} onDismiss={errorToasts.dismiss} />
       </ToastContainer>
 
-      <h1 className="my-4">Schedule Calendar</h1>
+      <h1 className="my-4">Schedule</h1>
 
       <Form.Group className="mb-4" style={{ maxWidth: "24rem" }}>
         <Form.Label>Select Rep</Form.Label>
@@ -782,7 +816,7 @@ export function Template(props: templates.QtScheduleCalendar) {
                   </ListGroup.Item>
                 )}
                 <AnimatePresence initial={false}>
-                  {groupedUnscheduledServiceOrders.map((so) => (
+                  {groupedSchedulableForSelectedDate.map((so) => (
                     <UnscheduledServiceOrderListItem
                       key={so.ServiceOrderId}
                       so={so}
@@ -818,6 +852,29 @@ export function Template(props: templates.QtScheduleCalendar) {
                       }
                     />
                   ))}
+                </AnimatePresence>
+
+                {selectedDate !== undefined && groupedOutsideWindowForSelectedDate.length > 0 && (
+                  <ListGroup.Item className="text-muted small bg-body-tertiary">
+                    Outside {formatShortDate(selectedDate)}&apos;s scheduling window
+                  </ListGroup.Item>
+                )}
+                <AnimatePresence initial={false}>
+                  {selectedDate !== undefined &&
+                    groupedOutsideWindowForSelectedDate.map((so) => (
+                      <UnscheduledServiceOrderListItem
+                        key={so.ServiceOrderId}
+                        so={so}
+                        action={
+                          <span
+                            className="text-muted small text-nowrap"
+                            style={{ width: "9.5rem" }}
+                          >
+                            {formatShortDate(selectedDate)} is outside {formatWindow(so)} window.
+                          </span>
+                        }
+                      />
+                    ))}
                 </AnimatePresence>
               </ListGroup>
             </Card>
@@ -959,7 +1016,7 @@ export function Template(props: templates.QtScheduleCalendar) {
 
             <ScheduleCalendarGrid
               isTodayAllowed={isTodayAllowed}
-              maxSelectableDate={maxSelectableDate}
+              schedulableDateKeys={schedulableDateKeys}
               selectedDate={selectedDate}
               daySummaries={daySummaries}
               onSelectDate={setSelectedDate}

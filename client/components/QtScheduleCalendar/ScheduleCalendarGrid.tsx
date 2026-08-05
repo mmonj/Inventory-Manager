@@ -12,7 +12,7 @@ interface ICalendarDaySummary {
 
 interface Props {
   isTodayAllowed: boolean;
-  maxSelectableDate: Date | null;
+  schedulableDateKeys: Set<string>;
   selectedDate: Date | undefined;
   daySummaries: Map<string, ICalendarDaySummary>;
   onSelectDate: (date: Date | undefined) => void;
@@ -30,24 +30,36 @@ interface Props {
 const SUNDAY_DAY_OF_WEEK = 0;
 
 export function ScheduleCalendarGrid(props: Props) {
-  function isAllowed(date: Date): boolean {
+  // Whether the date isn't in the past - the one floor every mode shares. Today has its own
+  // eligibility rule (the service's own same-day cutoff) instead of the plain date comparison.
+  function isNotInPast(date: Date): boolean {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (props.maxSelectableDate === null || date > props.maxSelectableDate) {
+    const isToday = toDateKey(date) === toDateKey(today);
+    return isToday ? props.isTodayAllowed : date >= today;
+  }
+
+  // Purely informational: does at least one visible Unscheduled SO's window cover this day.
+  // Drives only the green "selectable" highlight, in every mode - it's a signal, not a
+  // selection gate, so it never affects whether the date can actually be clicked.
+  function isSchedulable(date: Date): boolean {
+    return isNotInPast(date) && props.schedulableDateKeys.has(toDateKey(date));
+  }
+
+  // Whether the date can actually be selected/clicked. Single-select, Swap Jobs, and
+  // Bulk-Unschedule all need non-green dates selectable too - you might pick an earlier date
+  // with nothing new schedulable on it specifically to view/unschedule/swap what's already
+  // there. Auto-Schedule is the one mode that's genuinely only about placing new unscheduled
+  // work, so it alone is restricted to schedulable (and non-Sunday, per the backend's
+  // get_auto_schedule_dates_error) dates.
+  function isSelectable(date: Date): boolean {
+    if (!isNotInPast(date)) {
       return false;
     }
 
-    const isBaseAllowed =
-      toDateKey(date) === toDateKey(today) ? props.isTodayAllowed : date > today;
-    if (!isBaseAllowed) {
-      return false;
-    }
-
-    // auto-scheduling is never allowed on Sundays - mirrors the backend's
-    // get_auto_schedule_dates_error check
-    if (props.autoScheduleMode && date.getDay() === SUNDAY_DAY_OF_WEEK) {
-      return false;
+    if (props.autoScheduleMode) {
+      return props.schedulableDateKeys.has(toDateKey(date)) && date.getDay() !== SUNDAY_DAY_OF_WEEK;
     }
 
     return true;
@@ -82,8 +94,8 @@ export function ScheduleCalendarGrid(props: Props) {
               max={2}
               selected={props.swapSelectedDates}
               onSelect={props.onSelectSwapDates}
-              disabled={(date) => !isAllowed(date)}
-              modifiers={{ selectable: isAllowed }}
+              disabled={(date) => !isSelectable(date)}
+              modifiers={{ selectable: isSchedulable }}
               modifiersClassNames={{ selectable: "qt-day-selectable" }}
               components={{ DayContent: renderDayContent }}
               showOutsideDays
@@ -94,8 +106,8 @@ export function ScheduleCalendarGrid(props: Props) {
               mode="multiple"
               selected={props.autoScheduleSelectedDates}
               onSelect={props.onSelectAutoScheduleDates}
-              disabled={(date) => !isAllowed(date)}
-              modifiers={{ selectable: isAllowed }}
+              disabled={(date) => !isSelectable(date)}
+              modifiers={{ selectable: isSchedulable }}
               modifiersClassNames={{ selectable: "qt-day-selectable" }}
               components={{ DayContent: renderDayContent }}
               showOutsideDays
@@ -106,8 +118,8 @@ export function ScheduleCalendarGrid(props: Props) {
               mode="multiple"
               selected={props.bulkUnscheduleSelectedDates}
               onSelect={props.onSelectBulkUnscheduleDates}
-              disabled={(date) => !isAllowed(date)}
-              modifiers={{ selectable: isAllowed }}
+              disabled={(date) => !isSelectable(date)}
+              modifiers={{ selectable: isSchedulable }}
               modifiersClassNames={{ selectable: "qt-day-selectable" }}
               components={{ DayContent: renderDayContent }}
               showOutsideDays
@@ -118,8 +130,8 @@ export function ScheduleCalendarGrid(props: Props) {
               mode="single"
               selected={props.selectedDate}
               onSelect={props.onSelectDate}
-              disabled={(date) => !isAllowed(date)}
-              modifiers={{ selectable: isAllowed }}
+              disabled={(date) => !isSelectable(date)}
+              modifiers={{ selectable: isSchedulable }}
               modifiersClassNames={{ selectable: "qt-day-selectable" }}
               components={{ DayContent: renderDayContent }}
               showOutsideDays

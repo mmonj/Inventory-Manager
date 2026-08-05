@@ -29,6 +29,7 @@ export function JobClientFilterModal(props: Props) {
         <Modal.Title>Filter by Job Client</Modal.Title>
       </Modal.Header>
       <Modal.Body>
+        <p>Currently showing tickets by the following job clients:</p>
         {jobClients.length === 0 && <div className="text-muted">No job clients available.</div>}
         {jobClients.map((jobClient) => (
           <Form.Check
