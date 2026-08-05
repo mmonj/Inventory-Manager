@@ -566,19 +566,31 @@ export function Template(props: templates.QtScheduleCalendar) {
     () => groupByStore(serviceOrdersForSelectedDate),
     [serviceOrdersForSelectedDate]
   );
+  // Clear Date only unschedules physical-visit SOs, matching execute_bulk_unschedule's
+  // server-side filtering - non-physical-visit entries (e.g. drive-time) are left scheduled
+  const physicalVisitServiceOrdersForSelectedDate = React.useMemo(
+    () => serviceOrdersForSelectedDate.filter((so) => so.Address.IsPhysicalVisit),
+    [serviceOrdersForSelectedDate]
+  );
 
   async function handleClearScheduledDate() {
-    if (selectedRepId === null || schedule === null || serviceOrdersForSelectedDate.length === 0) {
+    if (
+      selectedRepId === null ||
+      schedule === null ||
+      physicalVisitServiceOrdersForSelectedDate.length === 0
+    ) {
       return;
     }
 
-    const serviceOrderIds = serviceOrdersForSelectedDate.map((so) => so.ServiceOrderId);
+    const serviceOrderIds = physicalVisitServiceOrdersForSelectedDate.map(
+      (so) => so.ServiceOrderId
+    );
 
     if (
       !confirm(
-        `Unschedule all ${serviceOrderIds.length} service order(s) on ${formatWeekdayShortDate(
+        `Unschedule ${serviceOrderIds.length} physical-visit service order(s) on ${formatWeekdayShortDate(
           selectedDate!
-        )}?`
+        )}?\n\nNon-physical-visit tickets (e.g. drive-time) will not be affected.`
       )
     ) {
       return;
@@ -701,7 +713,7 @@ export function Template(props: templates.QtScheduleCalendar) {
 
       {selectedRepId !== null && schedule !== null && (
         <div className="row g-4">
-          <div className="col-md-5">
+          <div className="col-md-5 order-2 order-md-1">
             <Card>
               <Card.Header className="bg-secondary text-white d-flex align-items-center justify-content-between">
                 <span>{unscheduledServiceOrders.length} Unscheduled Service Orders</span>
@@ -811,7 +823,7 @@ export function Template(props: templates.QtScheduleCalendar) {
             </Card>
           </div>
 
-          <div className="col-md-7">
+          <div className="col-md-7 order-1 order-md-2">
             <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-sm-between gap-2 mb-2">
               <div className="d-flex align-items-center flex-wrap gap-3">
                 <Form.Check
@@ -829,7 +841,7 @@ export function Template(props: templates.QtScheduleCalendar) {
                   <Form.Check
                     type="checkbox"
                     id="enable-auto-scheduling-checkbox"
-                    label="Enable Auto-Scheduling"
+                    label="Auto-Schedule"
                     checked={isAutoScheduleMode}
                     disabled={isBulkUnscheduleMode || isSwapMode}
                     onChange={(event) => {
@@ -850,7 +862,7 @@ export function Template(props: templates.QtScheduleCalendar) {
                 <Form.Check
                   type="checkbox"
                   id="enable-bulk-unschedule-checkbox"
-                  label="Enable Bulk-Unschedule"
+                  label="Bulk-Unschedule"
                   checked={isBulkUnscheduleMode}
                   disabled={isAutoScheduleMode || isSwapMode}
                   onChange={(event) => {
@@ -977,7 +989,7 @@ export function Template(props: templates.QtScheduleCalendar) {
                       variant="outline-light"
                       size="sm"
                       disabled={
-                        serviceOrdersForSelectedDate.length === 0 ||
+                        physicalVisitServiceOrdersForSelectedDate.length === 0 ||
                         clearScheduledDateFetch.isLoading
                       }
                       onClick={() => void handleClearScheduledDate()}
