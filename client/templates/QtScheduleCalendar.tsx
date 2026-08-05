@@ -166,6 +166,8 @@ export function Template(props: templates.QtScheduleCalendar) {
     setSelectedJobClients(new Set(allJobClients));
   }, [allJobClients]);
 
+  const isJobClientFilterActive = selectedJobClients.size < allJobClients.length;
+
   function rescheduleServiceOrdersLocally(serviceOrderIds: Iterable<number>, date: Date | string) {
     setLocalSchedule((current) => withServiceOrdersRescheduled(current, serviceOrderIds, date));
   }
@@ -747,13 +749,13 @@ export function Template(props: templates.QtScheduleCalendar) {
 
       {selectedRepId !== null && schedule !== null && (
         <div className="row g-4">
-          <div className="col-md-5 order-2 order-md-1">
+          <div className="col-md-6 order-2 order-md-1">
             <Card>
               <Card.Header className="bg-secondary text-white d-flex align-items-center justify-content-between">
                 <span>{unscheduledServiceOrders.length} Unscheduled Service Orders</span>
                 <div className="d-flex align-items-center gap-2">
                   <Button
-                    variant="outline-light"
+                    variant={isJobClientFilterActive ? "warning" : "outline-light"}
                     size="sm"
                     onClick={() => setShowJobClientFilter(true)}
                   >
@@ -776,6 +778,21 @@ export function Template(props: templates.QtScheduleCalendar) {
                   </Form.Select>
                 </div>
               </Card.Header>
+              {isJobClientFilterActive && (
+                <div className="px-3 py-2 bg-warning-subtle text-warning-emphasis small border-bottom">
+                  <FontAwesomeIcon icon={faTriangleExclamation} className="me-1" />
+                  Job Client filter active — showing {selectedJobClients.size} of{" "}
+                  {allJobClients.length} job clients.{" "}
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="p-0 align-baseline"
+                    onClick={() => setShowJobClientFilter(true)}
+                  >
+                    Edit filter
+                  </Button>
+                </div>
+              )}
               <div className="px-3 pt-3 d-flex align-items-center justify-content-end">
                 {isAutoScheduleMode && (
                   <div className="d-flex align-items-center gap-2">
@@ -880,7 +897,7 @@ export function Template(props: templates.QtScheduleCalendar) {
             </Card>
           </div>
 
-          <div className="col-md-7 order-1 order-md-2">
+          <div className="col-md-6 order-1 order-md-2">
             <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-sm-between gap-2 mb-2">
               <div className="d-flex align-items-center flex-wrap gap-3">
                 <Form.Check

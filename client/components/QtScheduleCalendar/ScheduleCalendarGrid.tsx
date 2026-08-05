@@ -70,7 +70,7 @@ export function ScheduleCalendarGrid(props: Props) {
 
     return (
       <div
-        className="d-flex flex-column align-items-start justify-content-center"
+        className="d-flex flex-column align-items-start justify-content-start h-100 w-100"
         style={{ textAlign: "left" }}
       >
         <div className="mb-1 fw-bold">{dayProps.date.getDate()}</div>

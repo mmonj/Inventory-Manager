@@ -53,26 +53,30 @@
 .qt-schedule-calendar .rdp-cell {
   width: calc(100% / 7);
   max-width: none;
-  height: 4.75rem;
+  height: 3.75rem;
 }
 
 .qt-schedule-calendar .rdp-day {
   width: calc(100% - 0.1rem);
   max-width: none;
-  height: 4.75rem;
+  height: 3.75rem;
   margin: 0.125rem;
 }
 
 .qt-schedule-calendar .rdp-day {
   overflow: hidden;
   font-size: 0.85rem;
+  line-height: 1.1;
+  white-space: normal;
   border-radius: var(--bs-border-radius);
 }
 
-.qt-schedule-calendar .rdp-day_selected,
-.qt-schedule-calendar .qt-day-selectable {
-  white-space: normal;
-  line-height: 1.1;
+.qt-schedule-calendar .rdp-day_today:not(.rdp-day_outside):not(.rdp-day_selected) {
+  font-weight: normal;
+}
+
+.qt-schedule-calendar .rdp-day_selected {
+  font-weight: bold !important;
 }
 
 @media (max-width: 575.98px) {
