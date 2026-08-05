@@ -729,29 +729,7 @@ export function Template(props: templates.QtScheduleCalendar) {
                   </Form.Select>
                 </div>
               </Card.Header>
-              <div className="px-3 pt-3 d-flex align-items-center justify-content-between">
-                {unscheduledServiceOrders.length > 0 && (
-                  <Form.Check
-                    type="checkbox"
-                    id="enable-auto-scheduling-checkbox"
-                    label="Enable Auto-Scheduling"
-                    checked={isAutoScheduleMode}
-                    disabled={isBulkUnscheduleMode}
-                    onChange={(event) => {
-                      const isChecked = event.target.checked;
-                      setIsAutoScheduleMode(isChecked);
-                      setAutoScheduleSelectedSoIds(new Set());
-                      setAutoScheduleSelectedDates([]);
-                      if (isChecked) {
-                        setIsSwapMode(false);
-                        setSwapSelectedDates([]);
-                        setIsBulkUnscheduleMode(false);
-                        setBulkUnscheduleSelectedDates([]);
-                        setSelectedDate(undefined);
-                      }
-                    }}
-                  />
-                )}
+              <div className="px-3 pt-3 d-flex align-items-center justify-content-end">
                 {isAutoScheduleMode && (
                   <div className="d-flex align-items-center gap-2">
                     <span className="text-muted small text-nowrap">
@@ -831,8 +809,8 @@ export function Template(props: templates.QtScheduleCalendar) {
           </div>
 
           <div className="col-md-7">
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <div className="d-flex align-items-center gap-3">
+            <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-sm-between gap-2 mb-2">
+              <div className="d-flex align-items-center flex-wrap gap-3">
                 <Form.Check
                   type="checkbox"
                   id="swap-jobs-checkbox"
@@ -844,6 +822,28 @@ export function Template(props: templates.QtScheduleCalendar) {
                     setSwapSelectedDates([]);
                   }}
                 />
+                {unscheduledServiceOrders.length > 0 && (
+                  <Form.Check
+                    type="checkbox"
+                    id="enable-auto-scheduling-checkbox"
+                    label="Enable Auto-Scheduling"
+                    checked={isAutoScheduleMode}
+                    disabled={isBulkUnscheduleMode || isSwapMode}
+                    onChange={(event) => {
+                      const isChecked = event.target.checked;
+                      setIsAutoScheduleMode(isChecked);
+                      setAutoScheduleSelectedSoIds(new Set());
+                      setAutoScheduleSelectedDates([]);
+                      if (isChecked) {
+                        setIsSwapMode(false);
+                        setSwapSelectedDates([]);
+                        setIsBulkUnscheduleMode(false);
+                        setBulkUnscheduleSelectedDates([]);
+                        setSelectedDate(undefined);
+                      }
+                    }}
+                  />
+                )}
                 <Form.Check
                   type="checkbox"
                   id="enable-bulk-unschedule-checkbox"
@@ -860,62 +860,85 @@ export function Template(props: templates.QtScheduleCalendar) {
                   }}
                 />
               </div>
-              {isSwapMode && (
-                <ButtonWithSpinner
-                  type="button"
-                  className={classNames("btn btn-warning btn-sm", {
-                    disabled: swapSelectedDates.length !== 2 && !swapServiceOrdersFetch.isLoading,
-                  })}
-                  spinnerVariant="black"
-                  fetchState={swapServiceOrdersFetch}
-                  onClick={() => swapSelectedDates.length === 2 && handleExecuteSwap()}
-                >
-                  Execute Swap
-                </ButtonWithSpinner>
-              )}
-              {isAutoScheduleMode && (
-                <ButtonWithSpinner
-                  type="button"
-                  className={classNames("btn btn-primary btn-sm", {
-                    disabled:
-                      (autoScheduleSelectedSoIds.size === 0 ||
-                        autoScheduleSelectedDates.length === 0) &&
-                      !executeAutoScheduleFetch.isLoading,
-                  })}
-                  fetchState={executeAutoScheduleFetch}
-                  spinnerVariant="dark"
-                  onClick={() => void handleExecuteAutoSchedule()}
-                >
-                  Execute Auto-Schedule for Selected
-                </ButtonWithSpinner>
-              )}
-              {isBulkUnscheduleMode && (
-                <ButtonWithSpinner
-                  type="button"
-                  className={classNames("btn btn-danger btn-sm", {
-                    disabled:
-                      bulkUnscheduleSelectedDates.length === 0 &&
-                      !executeBulkUnscheduleFetch.isLoading,
-                  })}
-                  fetchState={executeBulkUnscheduleFetch}
-                  spinnerVariant="dark"
-                  onClick={() => void handleExecuteBulkUnschedule()}
-                >
-                  Execute Bulk-Unschedule
-                </ButtonWithSpinner>
-              )}
+              <div className="d-flex align-items-center flex-wrap gap-2 mt-2">
+                {isSwapMode && (
+                  <ButtonWithSpinner
+                    type="button"
+                    className={classNames("btn btn-warning btn-sm", {
+                      disabled: swapSelectedDates.length !== 2 && !swapServiceOrdersFetch.isLoading,
+                    })}
+                    spinnerVariant="black"
+                    fetchState={swapServiceOrdersFetch}
+                    onClick={() => swapSelectedDates.length === 2 && handleExecuteSwap()}
+                  >
+                    Execute Swap
+                  </ButtonWithSpinner>
+                )}
+                {isAutoScheduleMode && (
+                  <ButtonWithSpinner
+                    type="button"
+                    className={classNames("btn btn-primary btn-sm", {
+                      disabled:
+                        (autoScheduleSelectedSoIds.size === 0 ||
+                          autoScheduleSelectedDates.length === 0) &&
+                        !executeAutoScheduleFetch.isLoading,
+                    })}
+                    fetchState={executeAutoScheduleFetch}
+                    spinnerVariant="dark"
+                    onClick={() => void handleExecuteAutoSchedule()}
+                  >
+                    Execute Auto-Schedule for Selected
+                  </ButtonWithSpinner>
+                )}
+                {isBulkUnscheduleMode && (
+                  <ButtonWithSpinner
+                    type="button"
+                    className={classNames("btn btn-danger btn-sm", {
+                      disabled:
+                        bulkUnscheduleSelectedDates.length === 0 &&
+                        !executeBulkUnscheduleFetch.isLoading,
+                    })}
+                    fetchState={executeBulkUnscheduleFetch}
+                    spinnerVariant="dark"
+                    onClick={() => void handleExecuteBulkUnschedule()}
+                  >
+                    Execute Bulk-Unschedule
+                  </ButtonWithSpinner>
+                )}
+              </div>
             </div>
+
+            {isSwapMode && (
+              <Alert variant="warning" className="mb-0 py-2 rounded-bottom-0">
+                <div className="mb-1">
+                  Select two calendar dates to swap all physical-visit service orders between them,
+                  then click &quot;Execute Swap&quot;.
+                </div>
+                <strong>({swapSelectedDates.length}/2 dates selected)</strong>
+              </Alert>
+            )}
 
             {isAutoScheduleMode && (
               <Alert variant="warning" className="mb-0 py-2 rounded-bottom-0">
-                Select multiple dates <strong>({autoScheduleSelectedDates.length} selected)</strong>
+                <div className="mb-1">
+                  Check off service orders in the Unscheduled list below, then pick one or more
+                  dates on the calendar. Clicking &quot;Execute Auto-Schedule for Selected&quot;
+                  will automatically assign the selected service orders to those dates.
+                </div>
+                <strong>
+                  {autoScheduleSelectedSoIds.size} SO(s), {autoScheduleSelectedDates.length} date(s)
+                  selected
+                </strong>
               </Alert>
             )}
 
             {isBulkUnscheduleMode && (
               <Alert variant="warning" className="mb-0 py-2 rounded-bottom-0">
-                Select multiple dates{" "}
-                <strong>({bulkUnscheduleSelectedDates.length} selected)</strong>
+                <div>
+                  Select one or more calendar dates to unschedule every physical-visit service order
+                  currently scheduled on them, then click &quot;Execute Bulk-Unschedule&quot;.
+                </div>
+                <strong>({bulkUnscheduleSelectedDates.length} date(s) selected)</strong>
               </Alert>
             )}
 

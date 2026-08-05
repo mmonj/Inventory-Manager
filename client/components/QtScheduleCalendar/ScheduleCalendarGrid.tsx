@@ -74,57 +74,59 @@ export function ScheduleCalendarGrid(props: Props) {
 
   return (
     <Card className="qt-schedule-calendar">
-      <Card.Body className="d-flex justify-content-center">
-        {props.swapMode ? (
-          <DayPicker
-            mode="multiple"
-            max={2}
-            selected={props.swapSelectedDates}
-            onSelect={props.onSelectSwapDates}
-            disabled={(date) => !isAllowed(date)}
-            modifiers={{ selectable: isAllowed }}
-            modifiersClassNames={{ selectable: "qt-day-selectable" }}
-            components={{ DayContent: renderDayContent }}
-            showOutsideDays
-            fixedWeeks
-          />
-        ) : props.autoScheduleMode ? (
-          <DayPicker
-            mode="multiple"
-            selected={props.autoScheduleSelectedDates}
-            onSelect={props.onSelectAutoScheduleDates}
-            disabled={(date) => !isAllowed(date)}
-            modifiers={{ selectable: isAllowed }}
-            modifiersClassNames={{ selectable: "qt-day-selectable" }}
-            components={{ DayContent: renderDayContent }}
-            showOutsideDays
-            fixedWeeks
-          />
-        ) : props.bulkUnscheduleMode ? (
-          <DayPicker
-            mode="multiple"
-            selected={props.bulkUnscheduleSelectedDates}
-            onSelect={props.onSelectBulkUnscheduleDates}
-            disabled={(date) => !isAllowed(date)}
-            modifiers={{ selectable: isAllowed }}
-            modifiersClassNames={{ selectable: "qt-day-selectable" }}
-            components={{ DayContent: renderDayContent }}
-            showOutsideDays
-            fixedWeeks
-          />
-        ) : (
-          <DayPicker
-            mode="single"
-            selected={props.selectedDate}
-            onSelect={props.onSelectDate}
-            disabled={(date) => !isAllowed(date)}
-            modifiers={{ selectable: isAllowed }}
-            modifiersClassNames={{ selectable: "qt-day-selectable" }}
-            components={{ DayContent: renderDayContent }}
-            showOutsideDays
-            fixedWeeks
-          />
-        )}
+      <Card.Body className="d-flex justify-content-center overflow-x-auto">
+        <div className="w-100" style={{ maxWidth: "calc(var(--rdp-cell-size) * 7)" }}>
+          {props.swapMode ? (
+            <DayPicker
+              mode="multiple"
+              max={2}
+              selected={props.swapSelectedDates}
+              onSelect={props.onSelectSwapDates}
+              disabled={(date) => !isAllowed(date)}
+              modifiers={{ selectable: isAllowed }}
+              modifiersClassNames={{ selectable: "qt-day-selectable" }}
+              components={{ DayContent: renderDayContent }}
+              showOutsideDays
+              fixedWeeks
+            />
+          ) : props.autoScheduleMode ? (
+            <DayPicker
+              mode="multiple"
+              selected={props.autoScheduleSelectedDates}
+              onSelect={props.onSelectAutoScheduleDates}
+              disabled={(date) => !isAllowed(date)}
+              modifiers={{ selectable: isAllowed }}
+              modifiersClassNames={{ selectable: "qt-day-selectable" }}
+              components={{ DayContent: renderDayContent }}
+              showOutsideDays
+              fixedWeeks
+            />
+          ) : props.bulkUnscheduleMode ? (
+            <DayPicker
+              mode="multiple"
+              selected={props.bulkUnscheduleSelectedDates}
+              onSelect={props.onSelectBulkUnscheduleDates}
+              disabled={(date) => !isAllowed(date)}
+              modifiers={{ selectable: isAllowed }}
+              modifiersClassNames={{ selectable: "qt-day-selectable" }}
+              components={{ DayContent: renderDayContent }}
+              showOutsideDays
+              fixedWeeks
+            />
+          ) : (
+            <DayPicker
+              mode="single"
+              selected={props.selectedDate}
+              onSelect={props.onSelectDate}
+              disabled={(date) => !isAllowed(date)}
+              modifiers={{ selectable: isAllowed }}
+              modifiersClassNames={{ selectable: "qt-day-selectable" }}
+              components={{ DayContent: renderDayContent }}
+              showOutsideDays
+              fixedWeeks
+            />
+          )}
+        </div>
       </Card.Body>
     </Card>
   );

@@ -35,23 +35,59 @@
 
 .qt-schedule-calendar .rdp {
   --rdp-cell-size: 4.5rem;
+  width: 100%;
   margin: 0;
 }
 
-.qt-schedule-calendar .rdp-cell,
-.qt-schedule-calendar .rdp-day {
+.qt-schedule-calendar .rdp-months,
+.qt-schedule-calendar .rdp-month,
+.qt-schedule-calendar .rdp-table {
+  width: 100%;
+  max-width: 100%;
+}
+
+.qt-schedule-calendar .rdp-table {
+  table-layout: fixed;
+}
+
+.qt-schedule-calendar .rdp-cell {
+  width: calc(100% / 7);
+  max-width: none;
   height: 4.75rem;
 }
 
 .qt-schedule-calendar .rdp-day {
-  overflow: visible;
+  width: calc(100% - 0.1rem);
+  max-width: none;
+  height: 4.75rem;
+  margin: 0.125rem;
+}
+
+.qt-schedule-calendar .rdp-day {
+  overflow: hidden;
   font-size: 0.85rem;
+  border-radius: var(--bs-border-radius);
 }
 
 .qt-schedule-calendar .rdp-day_selected,
 .qt-schedule-calendar .qt-day-selectable {
   white-space: normal;
   line-height: 1.1;
+}
+
+@media (max-width: 575.98px) {
+  .qt-schedule-calendar .rdp {
+    --rdp-cell-size: 2.75rem;
+  }
+
+  .qt-schedule-calendar .rdp-cell,
+  .qt-schedule-calendar .rdp-day {
+    height: 3.5rem;
+  }
+
+  .qt-schedule-calendar .rdp-day {
+    font-size: 0.6rem;
+  }
 }
 
 .qt-day-selectable:not(.rdp-day_selected) {
