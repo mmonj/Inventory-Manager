@@ -42,12 +42,6 @@ export const Layout = ({ bsTheme = "light", ...props }: Props) => {
             crossOrigin=""
           />
         ))}
-
-        <script
-          type="module"
-          crossOrigin="anonymous"
-          src={`${djangoContext.STATIC_URL}dist/index.js`}
-        />
       </head>
       <body>
         <header>{props.navbar}</header>
