@@ -68,6 +68,27 @@ export function getStoreGroupKey(so: TServiceOrder): string {
   } ${so.Address.Longitude} ${so.ServiceOrderDescription} ${so.DateScheduleRangeEnd}`;
 }
 
+/** Builds the text a service order is matched against for the Unscheduled SOs search box. */
+export function getServiceOrderSearchKey(so: TServiceOrder): string {
+  return `${so.Address.StoreName} ${so.ServiceOrderDescription} ${so.Address.StreetAddress} ${so.Address.City} ${so.Address.State} ${so.Address.PostalCode}`;
+}
+
+/**
+ * Whether a prebuilt search key matches a search query: the query is split on whitespace,
+ * and every resulting word must appear as a substring somewhere in the search key (in any
+ * order, case-insensitively) - not matched as a whole word. `searchKey` should already
+ * concatenate whatever fields the caller wants to match against (e.g. description, address).
+ */
+export function matchesSearch(searchKey: string, query: string): boolean {
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) {
+    return true;
+  }
+
+  const lowerSearchKey = searchKey.toLowerCase();
+  return words.every((word) => lowerSearchKey.includes(word));
+}
+
 /** Sorts service orders so entries at the same store are grouped adjacently. */
 export function groupByStore(serviceOrders: TServiceOrder[]): TServiceOrder[] {
   return [...serviceOrders].sort((a, b) => getStoreGroupKey(a).localeCompare(getStoreGroupKey(b)));

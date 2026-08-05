@@ -38,7 +38,9 @@ import {
   formatShortDate,
   formatWeekdayShortDate,
   formatWindow,
+  getServiceOrderSearchKey,
   groupByStore,
+  matchesSearch,
   sortServiceOrdersBy,
   toDateKey,
   withServiceOrdersRescheduled,
@@ -79,6 +81,7 @@ export function Template(props: templates.QtScheduleCalendar) {
     React.useState<TUnscheduledOrderBy>("Location");
   const [showJobClientFilter, setShowJobClientFilter] = React.useState(false);
   const [selectedJobClients, setSelectedJobClients] = React.useState<Set<string>>(new Set());
+  const [unscheduledSearchQuery, setUnscheduledSearchQuery] = React.useState("");
   const [isAutoScheduleMode, setIsAutoScheduleMode] = React.useState(false);
   const [autoScheduleSelectedDates, setAutoScheduleSelectedDates] = React.useState<Date[]>([]);
   const [autoScheduleSelectedSoIds, setAutoScheduleSelectedSoIds] = React.useState<Set<number>>(
@@ -315,12 +318,10 @@ export function Template(props: templates.QtScheduleCalendar) {
     setSwapSelectedDates([]);
   }
 
-  // Every SO that's still unscheduled, whose window hasn't closed, and that passes the
-  // Job Client filter. Deliberately NOT filtered by selectedDate - all such SOs stay visible
-  // in the Unscheduled list regardless of which date is picked (split into schedulable/
-  // outside-window groups below instead of hiding anything), and the calendar's selectable
-  // range is derived from this same set, so the range always matches what's visible.
-  const unscheduledServiceOrders = React.useMemo(() => {
+  // Every SO that's still unscheduled and whose window hasn't closed, before either the Job
+  // Client filter or the search box is applied. Used as the fixed denominator for the
+  // "showing X of Y" banner, so Y reflects the true total regardless of which filters are on.
+  const eligibleUnscheduledServiceOrders = React.useMemo(() => {
     if (schedule === null) {
       return [];
     }
@@ -333,13 +334,26 @@ export function Template(props: templates.QtScheduleCalendar) {
         return false;
       }
 
-      if (new Date(so.DateScheduleRangeEnd) < today) {
+      return new Date(so.DateScheduleRangeEnd) >= today;
+    });
+  }, [serviceOrders, schedule]);
+
+  // Deliberately NOT filtered by selectedDate - all such SOs stay visible in the Unscheduled
+  // list regardless of which date is picked (split into schedulable/outside-window groups
+  // below instead of hiding anything), and the calendar's selectable range is derived from
+  // this same set, so the range always matches what's visible.
+  const unscheduledServiceOrders = React.useMemo(() => {
+    return eligibleUnscheduledServiceOrders.filter((so) => {
+      if (!selectedJobClients.has(so.JobClient)) {
         return false;
       }
 
-      return selectedJobClients.has(so.JobClient);
+      return matchesSearch(getServiceOrderSearchKey(so), unscheduledSearchQuery);
     });
-  }, [serviceOrders, schedule, selectedJobClients]);
+  }, [eligibleUnscheduledServiceOrders, selectedJobClients, unscheduledSearchQuery]);
+
+  const isSearchFilterActive = unscheduledSearchQuery.trim() !== "";
+  const isUnscheduledFilterActive = isJobClientFilterActive || isSearchFilterActive;
 
   // Split by whether the currently selected date falls within each SO's scheduling window -
   // schedulable SOs get the "Schedule on <date>" action, the rest show why they can't be
@@ -778,19 +792,52 @@ export function Template(props: templates.QtScheduleCalendar) {
                   </Form.Select>
                 </div>
               </Card.Header>
-              {isJobClientFilterActive && (
-                <div className="px-3 py-2 bg-warning-subtle text-warning-emphasis small border-bottom">
-                  <FontAwesomeIcon icon={faTriangleExclamation} className="me-1" />
-                  Job Client filter active — showing {selectedJobClients.size} of{" "}
-                  {allJobClients.length} job clients.{" "}
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="p-0 align-baseline"
-                    onClick={() => setShowJobClientFilter(true)}
-                  >
-                    Edit filter
-                  </Button>
+              <div className="px-3 pt-3">
+                <Form.Control
+                  type="search"
+                  size="sm"
+                  className="py-2"
+                  placeholder="Search by description or address..."
+                  value={unscheduledSearchQuery}
+                  onChange={(event) => setUnscheduledSearchQuery(event.target.value)}
+                />
+              </div>
+              {isUnscheduledFilterActive && (
+                <div className="px-3 pb-3">
+                  <div className="p-2 bg-warning-subtle text-warning-emphasis small rounded">
+                    <div className="mb-2">
+                      <FontAwesomeIcon icon={faTriangleExclamation} className="me-1" />
+                      Showing {unscheduledServiceOrders.length} of{" "}
+                      {eligibleUnscheduledServiceOrders.length} unscheduled service orders.
+                    </div>
+                    {isJobClientFilterActive && (
+                      <div>
+                        Job Client filter active — showing {selectedJobClients.size} of{" "}
+                        {allJobClients.length} job clients.{" "}
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="p-0 align-baseline"
+                          onClick={() => setShowJobClientFilter(true)}
+                        >
+                          Edit filter
+                        </Button>
+                      </div>
+                    )}
+                    {isSearchFilterActive && (
+                      <div>
+                        Job Title filter active.{" "}
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="p-0 align-baseline"
+                          onClick={() => setUnscheduledSearchQuery("")}
+                        >
+                          Clear search box
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
               <div className="px-3 pt-3 d-flex align-items-center justify-content-end">

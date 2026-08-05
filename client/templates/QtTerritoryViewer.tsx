@@ -14,6 +14,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Layout } from "@client/components/Layout";
 import { StoreList } from "@client/components/qtSurveyWorker/StoreList";
 import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
+import { matchesSearch } from "@client/util/qtSurveyWorker/scheduleUtils";
 
 const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMap"));
 
@@ -111,9 +112,7 @@ export function Template(props: templates.QtTerritoryViewer) {
           .join(" ");
         const searchableText = `${fullStoreName} ${jobDescriptions}`;
 
-        const matchesStoreFilter = searchableText
-          .toLowerCase()
-          .includes(storeFilterValue.toLowerCase());
+        const matchesStoreFilter = matchesSearch(searchableText, storeFilterValue);
 
         // filter by due date
         const matchesDueDate =
