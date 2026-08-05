@@ -1048,35 +1048,41 @@ export function Template(props: templates.QtScheduleCalendar) {
               onSelectBulkUnscheduleDates={(dates) => setBulkUnscheduleSelectedDates(dates ?? [])}
             />
 
-            {!isSwapMode &&
-              !isBulkUnscheduleMode &&
-              selectedDateKey !== null &&
-              selectedDate !== undefined && (
-                <Card className="mt-4">
-                  <Card.Header className="bg-primary text-white d-flex align-items-center justify-content-between">
-                    <span>
-                      {serviceOrdersForSelectedDate.length} Service Order
-                      {serviceOrdersForSelectedDate.length === 1 ? "" : "s"} Scheduled on{" "}
-                      {formatWeekdayShortDate(selectedDate)}
-                    </span>
-                    <Button
-                      variant="outline-light"
-                      size="sm"
-                      disabled={
-                        physicalVisitServiceOrdersForSelectedDate.length === 0 ||
-                        clearScheduledDateFetch.isLoading
-                      }
-                      onClick={() => void handleClearScheduledDate()}
-                    >
-                      Clear Date
-                    </Button>
-                  </Card.Header>
-                  <ListGroup variant="flush">
-                    {serviceOrdersForSelectedDate.length === 0 && (
-                      <ListGroup.Item className="text-muted">
-                        No service orders scheduled on this date.
-                      </ListGroup.Item>
+            {!isSwapMode && !isBulkUnscheduleMode && (
+              <Card className="mt-4">
+                <Card.Header className="bg-primary text-white d-flex align-items-center justify-content-between">
+                  <span>
+                    {selectedDate !== undefined ? (
+                      <>
+                        {serviceOrdersForSelectedDate.length} Service Order
+                        {serviceOrdersForSelectedDate.length === 1 ? "" : "s"} Scheduled on{" "}
+                        {formatWeekdayShortDate(selectedDate)}
+                      </>
+                    ) : (
+                      "Select a date to view scheduled service orders"
                     )}
+                  </span>
+                  <Button
+                    variant="outline-light"
+                    size="sm"
+                    disabled={
+                      selectedDate === undefined ||
+                      physicalVisitServiceOrdersForSelectedDate.length === 0 ||
+                      clearScheduledDateFetch.isLoading
+                    }
+                    onClick={() => void handleClearScheduledDate()}
+                  >
+                    Clear Date
+                  </Button>
+                </Card.Header>
+                {selectedDate === undefined ? (
+                  <div className="text-muted p-3">
+                    Select a date to view scheduled service orders.
+                  </div>
+                ) : serviceOrdersForSelectedDate.length === 0 ? (
+                  <div className="text-muted p-3">No service orders to show.</div>
+                ) : (
+                  <ListGroup variant="flush">
                     <AnimatePresence initial={false}>
                       {groupedServiceOrdersForSelectedDate.map((so) => (
                         <ScheduledServiceOrderListItem
@@ -1096,8 +1102,9 @@ export function Template(props: templates.QtScheduleCalendar) {
                       ))}
                     </AnimatePresence>
                   </ListGroup>
-                </Card>
-              )}
+                )}
+              </Card>
+            )}
           </div>
         </div>
       )}
