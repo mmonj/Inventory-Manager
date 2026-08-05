@@ -879,6 +879,19 @@ export function Template(props: templates.QtScheduleCalendar) {
                     No unscheduled service orders.
                   </ListGroup.Item>
                 )}
+                {unscheduledServiceOrders.length > 0 && selectedDate !== undefined && (
+                  <ListGroup.Item className="text-muted small bg-body-tertiary">
+                    Within {formatShortDate(selectedDate)}&apos;s scheduling window
+                  </ListGroup.Item>
+                )}
+                {unscheduledServiceOrders.length > 0 &&
+                  selectedDate !== undefined &&
+                  groupedSchedulableForSelectedDate.length === 0 && (
+                    <ListGroup.Item className="bg-dark text-light">
+                      No unscheduled service orders fall within {formatShortDate(selectedDate)}
+                      &apos;s scheduling window.
+                    </ListGroup.Item>
+                  )}
                 <AnimatePresence initial={false}>
                   {groupedSchedulableForSelectedDate.map((so) => (
                     <UnscheduledServiceOrderListItem
