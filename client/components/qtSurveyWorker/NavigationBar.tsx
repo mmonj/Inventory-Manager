@@ -30,10 +30,10 @@ export function NavigationBar() {
     getLink("View Schedule JSON", reverse("survey_worker:qt_view_schedules")),
     getLink("Update Qt Schedule", reverse("survey_worker:qt_update_schedule")),
     getLink("Autofill Logs", reverse("survey_worker:qt_view_autofill_logs")),
-    getLink("Schedule", reverse("survey_worker:qt_schedule_calendar")),
   ];
   const nonPrivilegedLinks: TLink[] = [
     getLink("Territory Viewer", reverse("survey_worker:qt_territory_viewer")),
+    getLink("Schedule", reverse("survey_worker:qt_schedule_calendar")),
   ];
 
   return (
