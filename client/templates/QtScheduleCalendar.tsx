@@ -749,7 +749,7 @@ export function Template(props: templates.QtScheduleCalendar) {
 
       {selectedRepId !== null && schedule !== null && (
         <div className="row g-4">
-          <div className="col-md-6 order-2 order-md-1">
+          <div className="col-md-6 order-2 order-md-1 qt-unscheduled-so-list-container">
             <Card>
               <Card.Header className="bg-secondary text-white d-flex align-items-center justify-content-between">
                 <span>{unscheduledServiceOrders.length} Unscheduled Service Orders</span>
@@ -884,7 +884,7 @@ export function Template(props: templates.QtScheduleCalendar) {
                         so={so}
                         action={
                           <span
-                            className="text-muted small text-nowrap"
+                            className="text-muted small text-end d-inline-block"
                             style={{ width: "9.5rem" }}
                           >
                             {formatShortDate(selectedDate)} is outside {formatWindow(so)} window.

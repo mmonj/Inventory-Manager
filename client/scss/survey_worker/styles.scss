@@ -108,3 +108,48 @@
   background-color: var(--bs-primary) !important;
   color: var(--bs-white) !important;
 }
+
+// UnscheduledServiceOrderListItem switches between a stacked 2-column layout and the
+// original 4-column row based on the width of its actual containing card (the Unscheduled
+// SOs list), not the viewport - the card can be much narrower than 576px even on a wide
+// screen (e.g. it's only half the row at the md breakpoint), so a viewport media query would
+// switch to the row layout well before there's actually room for it.
+.qt-unscheduled-so-list-container {
+  container-name: qt-unscheduled-so-list;
+  container-type: inline-size;
+}
+
+.qt-uso-address-narrow {
+  display: block;
+}
+
+.qt-uso-action-narrow {
+  display: flex;
+}
+
+.qt-uso-address-wide,
+.qt-uso-estimate-wide,
+.qt-uso-action-wide {
+  display: none;
+}
+
+@container qt-unscheduled-so-list (min-width: 576px) {
+  .qt-uso-row {
+    gap: 1.5rem !important;
+  }
+
+  .qt-unscheduled-so-job-info {
+    width: 28%;
+  }
+
+  .qt-uso-address-narrow,
+  .qt-uso-action-narrow {
+    display: none;
+  }
+
+  .qt-uso-address-wide,
+  .qt-uso-estimate-wide,
+  .qt-uso-action-wide {
+    display: block;
+  }
+}
