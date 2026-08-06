@@ -16,7 +16,8 @@ import { StoreList } from "@client/components/qtSurveyWorker/StoreList";
 import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
 import { matchesSearch } from "@client/util/qtSurveyWorker/scheduleUtils";
 
-const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMap"));
+// const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMap"));
+const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMapGMaps"));
 
 const RELATIVE_TIME_THRESHOLD_HOURS = 12;
 
@@ -313,7 +314,19 @@ export function Template(props: templates.QtTerritoryViewer) {
             </Modal.Header>
             <Modal.Body className="p-0" style={{ height: "70vh" }}>
               <Suspense fallback={<div>Loading map...</div>}>
-                <TerritoryMap groupedByStore={filteredStores} />
+                <TerritoryMap
+                  groupedByStore={filteredStores}
+                  repAddress={
+                    selectedRepData !== undefined && selectedRepData.rep_detail.address !== ""
+                      ? {
+                          repId: selectedRepData.rep_detail.id,
+                          address: selectedRepData.rep_detail.address,
+                          lat: selectedRepData.rep_detail.address_latitude,
+                          lng: selectedRepData.rep_detail.address_longitude,
+                        }
+                      : null
+                  }
+                />
               </Suspense>
             </Modal.Body>
           </Modal>

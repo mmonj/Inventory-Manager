@@ -165,6 +165,11 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024**2
 ALLOWED_HOSTS = os.environ["DJANGO_ALLOWED_HOSTS"].split()
 CSRF_TRUSTED_ORIGINS = os.environ["DJANGO_CSRF_TRUSTED_ORIGINS"].split()
 
+# Client-side key for the Google Maps JavaScript API (Territory Viewer's map). Restricted by
+# HTTP referrer in the Google Cloud Console, not treated as a server secret - Google's own docs
+# expect this key to be embedded in page source.
+GOOGLE_MAPS_JS_API_KEY = os.environ["G_MAPS_JS_API_KEY"]
+
 CORS_URLS_REGEX = r"^/(api|product_locator/api|survey_worker/api)/.*$"
 CORS_ALLOW_ALL_ORIGINS = True
 

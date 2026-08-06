@@ -42,6 +42,7 @@ urlpatterns = [
     path("product_locator/", include("product_locator.urls")),
     path("survey_worker/", include("survey_worker.urls")),
     path("django-rq/", include("django_rq.urls")),
+    path("scheduler/", include("scheduler.urls")),
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
 ]
 

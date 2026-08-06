@@ -188,6 +188,9 @@ interface Props {
       jobs: SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[];
     }
   >;
+  // Accepted for prop-shape parity with TerritoryMapGMaps (the two are meant to be a
+  // drop-in swap for each other) - not implemented here.
+  repAddress: { repId: number; address: string; lat: number | null; lng: number | null } | null;
 }
 
 export default function TerritoryMap({ groupedByStore }: Props) {

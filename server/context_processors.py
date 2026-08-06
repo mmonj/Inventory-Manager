@@ -1,5 +1,6 @@
 from typing import TypedDict
 
+from django.conf import settings
 from django.http import HttpRequest
 
 from survey_worker.models import GlobalSettings
@@ -18,6 +19,7 @@ class TGlobalSettings(TypedDict):
 class TContextProvider(TypedDict):
     user: UserInfo
     global_settings: TGlobalSettings | None
+    google_maps_js_api_key: str
 
 
 def context_provider(request: HttpRequest) -> TContextProvider:
@@ -34,4 +36,5 @@ def context_provider(request: HttpRequest) -> TContextProvider:
             if global_settings is not None
             else None
         ),
+        "google_maps_js_api_key": settings.GOOGLE_MAPS_JS_API_KEY,
     }
