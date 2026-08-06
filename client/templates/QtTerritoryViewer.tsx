@@ -16,7 +16,7 @@ import { StoreList } from "@client/components/qtSurveyWorker/StoreList";
 import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
 import { matchesSearch } from "@client/util/qtSurveyWorker/scheduleUtils";
 
-// const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMap"));
+// const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMapLeaflet"));
 const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMapGMaps"));
 
 const RELATIVE_TIME_THRESHOLD_HOURS = 12;
