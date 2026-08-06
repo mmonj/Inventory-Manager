@@ -75,6 +75,7 @@ ignore = [
     "ERA001",  # lingering commented-out code
     "PLR0913", # too-many-arguments
     "RUF012",
+    "RET507",  # unnecessary else after continue
     "T201",    # lingering print statements
     "TRY003",  # external messages in exceptions are too verbose
     "TRY300",  # Checks for return statements in try blocks
