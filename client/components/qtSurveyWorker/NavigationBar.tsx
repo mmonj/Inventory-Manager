@@ -21,20 +21,20 @@ function getLink(name: string, path: string) {
   } satisfies TLink;
 }
 
+const privilegedLinks: TLink[] = [
+  getLink("View Login Sessions", reverse("survey_worker:qt_view_login_sessions")),
+  getLink("View Schedule JSON", reverse("survey_worker:qt_view_schedules")),
+  getLink("Update Qt Schedule", reverse("survey_worker:qt_update_schedule")),
+  getLink("Autofill Logs", reverse("survey_worker:qt_view_autofill_logs")),
+];
+const nonPrivilegedLinks: TLink[] = [
+  getLink("Territory Viewer", reverse("survey_worker:qt_territory_viewer")),
+  getLink("Schedule", reverse("survey_worker:qt_schedule_calendar")),
+];
+
 export function NavigationBar() {
   const djangoContext = React.useContext(Context);
   const currentPath = djangoContext.request.path;
-
-  const privilegedLinks: TLink[] = [
-    getLink("View Login Sessions", reverse("survey_worker:qt_view_login_sessions")),
-    getLink("View Schedule JSON", reverse("survey_worker:qt_view_schedules")),
-    getLink("Update Qt Schedule", reverse("survey_worker:qt_update_schedule")),
-    getLink("Autofill Logs", reverse("survey_worker:qt_view_autofill_logs")),
-  ];
-  const nonPrivilegedLinks: TLink[] = [
-    getLink("Territory Viewer", reverse("survey_worker:qt_territory_viewer")),
-    getLink("Schedule", reverse("survey_worker:qt_schedule_calendar")),
-  ];
 
   return (
     <Navbar expand="lg" className="border-bottom shadow-sm bg-white" sticky="top">

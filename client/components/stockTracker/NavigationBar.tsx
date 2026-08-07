@@ -38,20 +38,20 @@ interface Props {
   extraClassName?: string;
 }
 
+const authenticatedLinks: TLink[] = [
+  getLink("Scan History", reverse("stock_tracker:scan_history"), faHistory),
+  getLink("Barcode Sheets", reverse("stock_tracker:barcode_sheet_history"), faBarcode),
+  getLink("Manager Update Form", reverse("stock_tracker:get_manager_names"), faUserEdit),
+];
+
+const superuserLinks: TLink[] = [
+  getLink("Add New Stores", reverse("stock_tracker:add_new_stores"), faStore),
+  getLink("Import Old Database", reverse("stock_tracker:import_json_data_files"), faFileImport),
+];
+
 export function NavigationBar({ extraClassName = undefined }: Props) {
   const djangoContext = React.useContext(Context);
   const currentPath = djangoContext.request.path;
-
-  const authenticatedLinks: TLink[] = [
-    getLink("Scan History", reverse("stock_tracker:scan_history"), faHistory),
-    getLink("Barcode Sheets", reverse("stock_tracker:barcode_sheet_history"), faBarcode),
-    getLink("Manager Update Form", reverse("stock_tracker:get_manager_names"), faUserEdit),
-  ];
-
-  const superuserLinks: TLink[] = [
-    getLink("Add New Stores", reverse("stock_tracker:add_new_stores"), faStore),
-    getLink("Import Old Database", reverse("stock_tracker:import_json_data_files"), faFileImport),
-  ];
 
   return (
     <Navbar

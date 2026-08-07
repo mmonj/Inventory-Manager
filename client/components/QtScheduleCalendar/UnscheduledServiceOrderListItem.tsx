@@ -1,6 +1,6 @@
 import React from "react";
 
-import { motion } from "motion/react";
+import { m } from "motion/react";
 
 import { TServiceOrder } from "@client/util/qtSurveyWorker/scheduleUtils";
 import { getFormattedEstimatedTime } from "@client/util/commonUtil";
@@ -17,7 +17,7 @@ export function UnscheduledServiceOrderListItem(props: Props) {
   const { so } = props;
 
   return (
-    <motion.div
+    <m.div
       layout
       // react-doctor-disable-next-line react-doctor/no-layout-property-animation
       initial={{ opacity: 0, height: 0 }}
@@ -66,6 +66,6 @@ export function UnscheduledServiceOrderListItem(props: Props) {
           <div className="flex-shrink-0">{props.action}</div>
         </div>
       </div>
-    </motion.div>
+    </m.div>
   );
 }

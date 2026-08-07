@@ -27,6 +27,10 @@ export interface IFieldRep {
   stores: IStore[];
 }
 
+const onScanError: TScanErrorCallback = (errorMessage: string) => {
+  console.log("An error occurred on scan:", errorMessage);
+};
+
 export function Template(props: templates.StockTrackerScanner) {
   const [productAdditions, setProductAdditions] = useState<BasicProductAddition[]>([]);
   const [store, setStore] = useState<IStore | null>(null);
@@ -79,10 +83,6 @@ export function Template(props: templates.StockTrackerScanner) {
       return prev.filter((productAddition) => productAddition.product.upc !== upcNumber);
     });
   }
-
-  const onScanError: TScanErrorCallback = (errorMessage: string) => {
-    console.log("An error occurred on scan:", errorMessage);
-  };
 
   return (
     <Layout title="Scanner" className="p-3" navbar={<NavigationBar />}>

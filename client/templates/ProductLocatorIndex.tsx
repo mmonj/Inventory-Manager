@@ -29,6 +29,16 @@ import "@client/scss/product_locator/location-item.scss";
 
 type TStore = templates.ProductLocatorIndex["stores"][number];
 
+function scanErrorCallback(errorMessage: string) {
+  console.log("Error occurred on scan. Message:", errorMessage);
+}
+
+function handleStoreSubmission(storePk: string): void {
+  const newUrl = new URL(window.location.href);
+  newUrl.searchParams.set("store-id", storePk);
+  window.location.href = newUrl.href;
+}
+
 export function Template(props: templates.ProductLocatorIndex) {
   const [store, setStore] = useState<TStore | null>(null);
   const [scannedUpc, setScannedUpc] = useState("");
@@ -53,16 +63,6 @@ export function Template(props: templates.ProductLocatorIndex) {
     await getProductFetcher.fetchData(() =>
       getProductLocation(decodedText, store!.pk, reverse("product_locator:get_product_location"))
     );
-  }
-
-  function scanErrorCallback(errorMessage: string) {
-    console.log("Error occurred on scan. Message:", errorMessage);
-  }
-
-  function handleStoreSubmission(storePk: string): void {
-    const newUrl = new URL(window.location.href);
-    newUrl.searchParams.set("store-id", storePk);
-    window.location.href = newUrl.href;
   }
 
   return (

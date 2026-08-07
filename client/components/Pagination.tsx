@@ -29,6 +29,12 @@ function PageLink({ isActive = false, ...props }: IPageLinkProps) {
   );
 }
 
+function navigateToPage(page: number) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("page", page.toString());
+  window.location.href = url.toString();
+}
+
 export function Pagination(props: interfaces.TPaginationData) {
   const pageNumbers = useMemo(() => {
     const startPage = Math.max(1, props.current_page - 2);
@@ -39,12 +45,6 @@ export function Pagination(props: interfaces.TPaginationData) {
 
   if (props.total_pages <= 1) {
     return null;
-  }
-
-  function navigateToPage(page: number) {
-    const url = new URL(window.location.href);
-    url.searchParams.set("page", page.toString());
-    window.location.href = url.toString();
   }
 
   return (

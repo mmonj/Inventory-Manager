@@ -1,7 +1,7 @@
 import React from "react";
 
 import classNames from "classnames";
-import { AnimatePresence } from "motion/react";
+import { AnimatePresence, LazyMotion, domAnimation } from "motion/react";
 import {
   Alert,
   Button,
@@ -719,547 +719,559 @@ export function Template(props: templates.QtScheduleCalendar) {
   }
 
   return (
-    <Layout title="Schedule" navbar={<NavigationBar />} className="mw-rem-90 mx-auto px-2 mb-4">
-      <ToastContainer
-        position="top-end"
-        containerPosition="fixed"
-        className="p-3"
-        style={{ zIndex: 1100 }}
-      >
-        <Toast
-          show={context.user.is_superuser && scheduleFreshnessToast?.show === true}
-          onClose={() =>
-            setScheduleFreshnessToast((current) => current && { ...current, show: false })
-          }
-          delay={4000}
-          autohide
-          bg={scheduleFreshnessToast?.isCached === true ? "warning" : "success"}
+    <LazyMotion features={domAnimation}>
+      <Layout title="Schedule" navbar={<NavigationBar />} className="mw-rem-90 mx-auto px-2 mb-4">
+        <ToastContainer
+          position="top-end"
+          containerPosition="fixed"
+          className="p-3"
+          style={{ zIndex: 1100 }}
         >
-          <Toast.Header closeButton={true}>
-            <strong className="me-auto">Schedule Data</strong>
-          </Toast.Header>
-          <Toast.Body
-            className={classNames({
-              "text-dark": scheduleFreshnessToast?.isCached === true,
-              "text-white": scheduleFreshnessToast?.isCached !== true,
-            })}
+          <Toast
+            show={context.user.is_superuser && scheduleFreshnessToast?.show === true}
+            onClose={() =>
+              setScheduleFreshnessToast((current) => current && { ...current, show: false })
+            }
+            delay={4000}
+            autohide
+            bg={scheduleFreshnessToast?.isCached === true ? "warning" : "success"}
           >
-            {scheduleFreshnessToast?.isCached === true
-              ? "Showing cached schedule data."
-              : "Fetched fresh schedule data."}
-          </Toast.Body>
-        </Toast>
-
-        <ErrorToastStack toasts={errorToasts.toasts} onDismiss={errorToasts.dismiss} />
-      </ToastContainer>
-
-      <h1 className="my-4">Schedule</h1>
-
-      <Form.Group className="mb-4" style={{ maxWidth: "24rem" }}>
-        <Form.Label>Select Rep</Form.Label>
-        <Form.Select
-          value={selectedRepId ?? -1}
-          onChange={handleSelectRep}
-          disabled={fetchRepSchedule.isLoading}
-        >
-          <option value={-1}>Select a rep...</option>
-          {props.rep_details.map((rep) => (
-            <option key={rep.id} value={rep.id}>
-              {rep.username}
-            </option>
-          ))}
-        </Form.Select>
-      </Form.Group>
-
-      {fetchRepSchedule.isLoading && schedule === null && (
-        <div className="d-flex flex-column align-items-center justify-content-center text-center py-5 my-3 bg-body-tertiary border rounded-3">
-          <Spinner animation="border" role="status" style={{ width: "3.5rem", height: "3.5rem" }}>
-            <span className="visually-hidden">Loading...</span>
-          </Spinner>
-          <div className="fs-4 fw-semibold mt-3">Loading schedule…</div>
-          <div className="text-muted">
-            Fetching schedule for{" "}
-            {props.rep_details.find((rep) => rep.id === selectedRepId)?.username ?? "rep"}
-          </div>
-        </div>
-      )}
-
-      {fetchRepSchedule.isLoading && schedule !== null && (
-        <div
-          className="d-inline-flex align-items-center gap-2 px-3 py-2 mb-3 rounded-pill text-white shadow-sm"
-          style={{
-            background: "linear-gradient(90deg, var(--bs-primary), var(--bs-info))",
-          }}
-        >
-          <Spinner animation="border" role="status" size="sm">
-            <span className="visually-hidden">Loading...</span>
-          </Spinner>
-          <span className="fw-semibold">Refreshing schedule…</span>
-        </div>
-      )}
-      {fetchRepSchedule.isError && (
-        <Alert variant="danger" className="d-flex">
-          <FontAwesomeIcon icon={faTriangleExclamation} className="fs-3 me-3 flex-shrink-0" />
-          <div>
-            <Alert.Heading as="h4" className="fw-bold">
-              Failed to fetch schedule
-            </Alert.Heading>
-            <ListGroup variant="flush" className="mb-2">
-              {fetchRepSchedule.errorMessages.map((message, idx) => (
-                <ListGroup.Item key={idx} variant="danger" className="px-0 py-1 border-0">
-                  {message}
-                </ListGroup.Item>
-              ))}
-            </ListGroup>
-            <hr />
-            <p className="mb-0">
-              Try refreshing the page, or select a different rep from the dropdown above.
-            </p>
-          </div>
-        </Alert>
-      )}
-
-      {selectedRepId !== null && schedule !== null && (
-        <div className="position-relative">
-          {isAutoScheduling && (
-            <div
-              className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-              style={{ background: "rgba(0, 0, 0, 0.4)", zIndex: 10 }}
+            <Toast.Header closeButton={true}>
+              <strong className="me-auto">Schedule Data</strong>
+            </Toast.Header>
+            <Toast.Body
+              className={classNames({
+                "text-dark": scheduleFreshnessToast?.isCached === true,
+                "text-white": scheduleFreshnessToast?.isCached !== true,
+              })}
             >
-              <div className="d-flex flex-column align-items-center text-white">
-                <Spinner animation="border" role="status" style={{ width: "3rem", height: "3rem" }}>
-                  <span className="visually-hidden">Loading...</span>
-                </Spinner>
-                <div className="fs-5 fw-semibold mt-3">Auto-scheduling in progress…</div>
-              </div>
+              {scheduleFreshnessToast?.isCached === true
+                ? "Showing cached schedule data."
+                : "Fetched fresh schedule data."}
+            </Toast.Body>
+          </Toast>
+
+          <ErrorToastStack toasts={errorToasts.toasts} onDismiss={errorToasts.dismiss} />
+        </ToastContainer>
+
+        <h1 className="my-4">Schedule</h1>
+
+        <Form.Group className="mb-4" style={{ maxWidth: "24rem" }}>
+          <Form.Label>Select Rep</Form.Label>
+          <Form.Select
+            value={selectedRepId ?? -1}
+            onChange={handleSelectRep}
+            disabled={fetchRepSchedule.isLoading}
+          >
+            <option value={-1}>Select a rep...</option>
+            {props.rep_details.map((rep) => (
+              <option key={rep.id} value={rep.id}>
+                {rep.username}
+              </option>
+            ))}
+          </Form.Select>
+        </Form.Group>
+
+        {fetchRepSchedule.isLoading && schedule === null && (
+          <div className="d-flex flex-column align-items-center justify-content-center text-center py-5 my-3 bg-body-tertiary border rounded-3">
+            <Spinner animation="border" role="status" style={{ width: "3.5rem", height: "3.5rem" }}>
+              <span className="visually-hidden">Loading...</span>
+            </Spinner>
+            <div className="fs-4 fw-semibold mt-3">Loading schedule…</div>
+            <div className="text-muted">
+              Fetching schedule for{" "}
+              {props.rep_details.find((rep) => rep.id === selectedRepId)?.username ?? "rep"}
             </div>
-          )}
-          <div className="row g-4">
-            <div className="col-md-6 order-2 order-md-1 qt-unscheduled-so-list-container">
-              <Card>
-                <Card.Header className="bg-secondary text-white d-flex align-items-center justify-content-between">
-                  <span>{unscheduledServiceOrders.length} Unscheduled Service Orders</span>
-                  <div className="d-flex align-items-center gap-2">
-                    <Button
-                      variant={isJobClientFilterActive ? "warning" : "outline-light"}
-                      size="sm"
-                      onClick={() => setShowJobClientFilter(true)}
-                    >
-                      <FontAwesomeIcon icon={faFilter} className="me-1" />
-                      Filter
-                    </Button>
-                    <Form.Select
-                      size="sm"
-                      className="w-auto"
-                      value={unscheduledOrderBy}
-                      onChange={(event) =>
-                        setUnscheduledOrderBy(event.target.value as TUnscheduledOrderBy)
-                      }
-                    >
-                      {UNSCHEDULED_ORDER_BY_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          Order By: {option}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </div>
-                </Card.Header>
-                <div className="px-3 pt-3">
-                  <Form.Control
-                    type="search"
-                    size="sm"
-                    className="py-2"
-                    placeholder="Search by description or address..."
-                    value={unscheduledSearchQuery}
-                    onChange={(event) => setUnscheduledSearchQuery(event.target.value)}
-                  />
+          </div>
+        )}
+
+        {fetchRepSchedule.isLoading && schedule !== null && (
+          <div
+            className="d-inline-flex align-items-center gap-2 px-3 py-2 mb-3 rounded-pill text-white shadow-sm"
+            style={{
+              background: "linear-gradient(90deg, var(--bs-primary), var(--bs-info))",
+            }}
+          >
+            <Spinner animation="border" role="status" size="sm">
+              <span className="visually-hidden">Loading...</span>
+            </Spinner>
+            <span className="fw-semibold">Refreshing schedule…</span>
+          </div>
+        )}
+        {fetchRepSchedule.isError && (
+          <Alert variant="danger" className="d-flex">
+            <FontAwesomeIcon icon={faTriangleExclamation} className="fs-3 me-3 flex-shrink-0" />
+            <div>
+              <Alert.Heading as="h4" className="fw-bold">
+                Failed to fetch schedule
+              </Alert.Heading>
+              <ListGroup variant="flush" className="mb-2">
+                {fetchRepSchedule.errorMessages.map((message, idx) => (
+                  <ListGroup.Item key={idx} variant="danger" className="px-0 py-1 border-0">
+                    {message}
+                  </ListGroup.Item>
+                ))}
+              </ListGroup>
+              <hr />
+              <p className="mb-0">
+                Try refreshing the page, or select a different rep from the dropdown above.
+              </p>
+            </div>
+          </Alert>
+        )}
+
+        {selectedRepId !== null && schedule !== null && (
+          <div className="position-relative">
+            {isAutoScheduling && (
+              <div
+                className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+                style={{ background: "rgba(0, 0, 0, 0.4)", zIndex: 10 }}
+              >
+                <div className="d-flex flex-column align-items-center text-white">
+                  <Spinner
+                    animation="border"
+                    role="status"
+                    style={{ width: "3rem", height: "3rem" }}
+                  >
+                    <span className="visually-hidden">Loading...</span>
+                  </Spinner>
+                  <div className="fs-5 fw-semibold mt-3">Auto-scheduling in progress…</div>
                 </div>
-                {isUnscheduledFilterActive && (
-                  <div className="px-3 pb-3">
-                    <div className="p-2 bg-warning-subtle text-warning-emphasis small rounded">
-                      <div className="mb-2">
-                        <FontAwesomeIcon icon={faTriangleExclamation} className="me-1" />
-                        Showing {unscheduledServiceOrders.length} of{" "}
-                        {eligibleUnscheduledServiceOrders.length} unscheduled service orders.
-                      </div>
-                      {isJobClientFilterActive && (
-                        <div>
-                          Job Client filter active — showing {selectedJobClients.size} of{" "}
-                          {allJobClients.length} job clients.{" "}
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="p-0 align-baseline"
-                            onClick={() => setShowJobClientFilter(true)}
-                          >
-                            Edit filter
-                          </Button>
-                        </div>
-                      )}
-                      {isSearchFilterActive && (
-                        <div>
-                          Job Title filter active.{" "}
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="p-0 align-baseline"
-                            onClick={() => setUnscheduledSearchQuery("")}
-                          >
-                            Clear search box
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                <div className="px-3 pt-3 d-flex align-items-center justify-content-end">
-                  {isAutoScheduleMode && (
+              </div>
+            )}
+            <div className="row g-4">
+              <div className="col-md-6 order-2 order-md-1 qt-unscheduled-so-list-container">
+                <Card>
+                  <Card.Header className="bg-secondary text-white d-flex align-items-center justify-content-between">
+                    <span>{unscheduledServiceOrders.length} Unscheduled Service Orders</span>
                     <div className="d-flex align-items-center gap-2">
-                      <span className="text-muted small text-nowrap">
-                        {autoScheduleSelectedSoIds.size}/{visibleUnscheduledSoIds.size} currently
-                        selected
-                      </span>
                       <Button
-                        variant="outline-secondary"
+                        variant={isJobClientFilterActive ? "warning" : "outline-light"}
                         size="sm"
-                        onClick={() =>
-                          setAutoScheduleSelectedSoIds(
-                            (current) => new Set([...current, ...visibleUnscheduledSoIds])
-                          )
+                        onClick={() => setShowJobClientFilter(true)}
+                      >
+                        <FontAwesomeIcon icon={faFilter} className="me-1" />
+                        Filter
+                      </Button>
+                      <Form.Select
+                        size="sm"
+                        className="w-auto"
+                        value={unscheduledOrderBy}
+                        onChange={(event) =>
+                          setUnscheduledOrderBy(event.target.value as TUnscheduledOrderBy)
                         }
                       >
-                        Select All
-                      </Button>
-                      <Button
-                        variant="outline-secondary"
-                        size="sm"
-                        onClick={() =>
-                          setAutoScheduleSelectedSoIds(
-                            (current) =>
-                              new Set([...current].filter((id) => !visibleUnscheduledSoIds.has(id)))
-                          )
-                        }
-                      >
-                        Deselect All
-                      </Button>
+                        {UNSCHEDULED_ORDER_BY_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            Order By: {option}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </div>
+                  </Card.Header>
+                  <div className="px-3 pt-3">
+                    <Form.Control
+                      type="search"
+                      size="sm"
+                      className="py-2"
+                      placeholder="Search by description or address..."
+                      value={unscheduledSearchQuery}
+                      onChange={(event) => setUnscheduledSearchQuery(event.target.value)}
+                    />
+                  </div>
+                  {isUnscheduledFilterActive && (
+                    <div className="px-3 pb-3">
+                      <div className="p-2 bg-warning-subtle text-warning-emphasis small rounded">
+                        <div className="mb-2">
+                          <FontAwesomeIcon icon={faTriangleExclamation} className="me-1" />
+                          Showing {unscheduledServiceOrders.length} of{" "}
+                          {eligibleUnscheduledServiceOrders.length} unscheduled service orders.
+                        </div>
+                        {isJobClientFilterActive && (
+                          <div>
+                            Job Client filter active — showing {selectedJobClients.size} of{" "}
+                            {allJobClients.length} job clients.{" "}
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="p-0 align-baseline"
+                              onClick={() => setShowJobClientFilter(true)}
+                            >
+                              Edit filter
+                            </Button>
+                          </div>
+                        )}
+                        {isSearchFilterActive && (
+                          <div>
+                            Job Title filter active.{" "}
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="p-0 align-baseline"
+                              onClick={() => setUnscheduledSearchQuery("")}
+                            >
+                              Clear search box
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
-                </div>
-                <ListGroup variant="flush">
-                  {unscheduledServiceOrders.length === 0 && (
-                    <ListGroup.Item className="text-muted">
-                      No unscheduled service orders.
-                    </ListGroup.Item>
-                  )}
-                  {unscheduledServiceOrders.length > 0 && selectedDate !== undefined && (
-                    <ListGroup.Item className="text-muted small bg-body-tertiary">
-                      Within {formatShortDate(selectedDate)}&apos;s scheduling window
-                    </ListGroup.Item>
-                  )}
-                  {unscheduledServiceOrders.length > 0 &&
-                    selectedDate !== undefined &&
-                    groupedSchedulableForSelectedDate.length === 0 && (
-                      <ListGroup.Item className="bg-dark text-light">
-                        No unscheduled service orders fall within {formatShortDate(selectedDate)}
-                        &apos;s scheduling window.
+                  <div className="px-3 pt-3 d-flex align-items-center justify-content-end">
+                    {isAutoScheduleMode && (
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="text-muted small text-nowrap">
+                          {autoScheduleSelectedSoIds.size}/{visibleUnscheduledSoIds.size} currently
+                          selected
+                        </span>
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          onClick={() =>
+                            setAutoScheduleSelectedSoIds(
+                              (current) => new Set([...current, ...visibleUnscheduledSoIds])
+                            )
+                          }
+                        >
+                          Select All
+                        </Button>
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          onClick={() =>
+                            setAutoScheduleSelectedSoIds(
+                              (current) =>
+                                new Set(
+                                  [...current].filter((id) => !visibleUnscheduledSoIds.has(id))
+                                )
+                            )
+                          }
+                        >
+                          Deselect All
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <ListGroup variant="flush">
+                    {unscheduledServiceOrders.length === 0 && (
+                      <ListGroup.Item className="text-muted">
+                        No unscheduled service orders.
                       </ListGroup.Item>
                     )}
-                  <AnimatePresence initial={false}>
-                    {groupedSchedulableForSelectedDate.map((so) => (
-                      <UnscheduledServiceOrderListItem
-                        key={so.ServiceOrderId}
-                        so={so}
-                        checkbox={
-                          isAutoScheduleMode ? (
-                            <Form.Check
-                              type="checkbox"
-                              checked={autoScheduleSelectedSoIds.has(so.ServiceOrderId)}
-                              onChange={() => toggleAutoScheduleSoSelected(so.ServiceOrderId)}
-                            />
-                          ) : undefined
-                        }
-                        action={
-                          isAutoScheduleMode ? null : (
-                            <Button
-                              variant="primary"
-                              size="sm"
-                              disabled={
-                                selectedDate === undefined || scheduleServiceOrderFetch.isLoading
-                              }
-                              className="text-nowrap"
-                              style={{ width: "9.5rem" }}
-                              onClick={() =>
-                                selectedDate !== undefined &&
-                                handleScheduleServiceOrder(so, selectedDate)
-                              }
-                            >
-                              {selectedDate !== undefined
-                                ? `Schedule on ${formatShortDate(selectedDate)}`
-                                : "Select a date"}
-                            </Button>
-                          )
-                        }
-                      />
-                    ))}
-                  </AnimatePresence>
-
-                  {selectedDate !== undefined && groupedOutsideWindowForSelectedDate.length > 0 && (
-                    <ListGroup.Item className="text-muted small bg-body-tertiary">
-                      Outside {formatShortDate(selectedDate)}&apos;s scheduling window
-                    </ListGroup.Item>
-                  )}
-                  <AnimatePresence initial={false}>
-                    {selectedDate !== undefined &&
-                      groupedOutsideWindowForSelectedDate.map((so) => (
+                    {unscheduledServiceOrders.length > 0 && selectedDate !== undefined && (
+                      <ListGroup.Item className="text-muted small bg-body-tertiary">
+                        Within {formatShortDate(selectedDate)}&apos;s scheduling window
+                      </ListGroup.Item>
+                    )}
+                    {unscheduledServiceOrders.length > 0 &&
+                      selectedDate !== undefined &&
+                      groupedSchedulableForSelectedDate.length === 0 && (
+                        <ListGroup.Item className="bg-dark text-light">
+                          No unscheduled service orders fall within {formatShortDate(selectedDate)}
+                          &apos;s scheduling window.
+                        </ListGroup.Item>
+                      )}
+                    <AnimatePresence initial={false}>
+                      {groupedSchedulableForSelectedDate.map((so) => (
                         <UnscheduledServiceOrderListItem
                           key={so.ServiceOrderId}
                           so={so}
+                          checkbox={
+                            isAutoScheduleMode ? (
+                              <Form.Check
+                                type="checkbox"
+                                checked={autoScheduleSelectedSoIds.has(so.ServiceOrderId)}
+                                onChange={() => toggleAutoScheduleSoSelected(so.ServiceOrderId)}
+                              />
+                            ) : undefined
+                          }
                           action={
-                            <span
-                              className="text-muted small text-end d-inline-block"
-                              style={{ width: "9.5rem" }}
-                            >
-                              {formatShortDate(selectedDate)} is outside {formatWindow(so)} window.
-                            </span>
+                            isAutoScheduleMode ? null : (
+                              <Button
+                                variant="primary"
+                                size="sm"
+                                disabled={
+                                  selectedDate === undefined || scheduleServiceOrderFetch.isLoading
+                                }
+                                className="text-nowrap"
+                                style={{ width: "9.5rem" }}
+                                onClick={() =>
+                                  selectedDate !== undefined &&
+                                  handleScheduleServiceOrder(so, selectedDate)
+                                }
+                              >
+                                {selectedDate !== undefined
+                                  ? `Schedule on ${formatShortDate(selectedDate)}`
+                                  : "Select a date"}
+                              </Button>
+                            )
                           }
                         />
                       ))}
-                  </AnimatePresence>
-                </ListGroup>
-              </Card>
-            </div>
+                    </AnimatePresence>
 
-            <div className="col-md-6 order-1 order-md-2">
-              <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-sm-between gap-2 mb-2">
-                <div className="d-flex align-items-center flex-wrap gap-3">
-                  <Form.Check
-                    type="checkbox"
-                    id="swap-jobs-checkbox"
-                    label="Swap Jobs"
-                    checked={isSwapMode}
-                    disabled={isAutoScheduleMode || isBulkUnscheduleMode}
-                    onChange={(event) => {
-                      setIsSwapMode(event.target.checked);
-                      setSwapSelectedDates([]);
-                    }}
-                  />
-                  {unscheduledServiceOrders.length > 0 && (
+                    {selectedDate !== undefined &&
+                      groupedOutsideWindowForSelectedDate.length > 0 && (
+                        <ListGroup.Item className="text-muted small bg-body-tertiary">
+                          Outside {formatShortDate(selectedDate)}&apos;s scheduling window
+                        </ListGroup.Item>
+                      )}
+                    <AnimatePresence initial={false}>
+                      {selectedDate !== undefined &&
+                        groupedOutsideWindowForSelectedDate.map((so) => (
+                          <UnscheduledServiceOrderListItem
+                            key={so.ServiceOrderId}
+                            so={so}
+                            action={
+                              <span
+                                className="text-muted small text-end d-inline-block"
+                                style={{ width: "9.5rem" }}
+                              >
+                                {formatShortDate(selectedDate)} is outside {formatWindow(so)}{" "}
+                                window.
+                              </span>
+                            }
+                          />
+                        ))}
+                    </AnimatePresence>
+                  </ListGroup>
+                </Card>
+              </div>
+
+              <div className="col-md-6 order-1 order-md-2">
+                <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-sm-between gap-2 mb-2">
+                  <div className="d-flex align-items-center flex-wrap gap-3">
                     <Form.Check
                       type="checkbox"
-                      id="enable-auto-scheduling-checkbox"
-                      label="Auto-Schedule"
-                      checked={isAutoScheduleMode}
-                      disabled={isBulkUnscheduleMode || isSwapMode}
+                      id="swap-jobs-checkbox"
+                      label="Swap Jobs"
+                      checked={isSwapMode}
+                      disabled={isAutoScheduleMode || isBulkUnscheduleMode}
+                      onChange={(event) => {
+                        setIsSwapMode(event.target.checked);
+                        setSwapSelectedDates([]);
+                      }}
+                    />
+                    {unscheduledServiceOrders.length > 0 && (
+                      <Form.Check
+                        type="checkbox"
+                        id="enable-auto-scheduling-checkbox"
+                        label="Auto-Schedule"
+                        checked={isAutoScheduleMode}
+                        disabled={isBulkUnscheduleMode || isSwapMode}
+                        onChange={(event) => {
+                          const isChecked = event.target.checked;
+                          setIsAutoScheduleMode(isChecked);
+                          setAutoScheduleSelectedSoIds(new Set());
+                          setAutoScheduleSelectedDates([]);
+                          if (isChecked) {
+                            setIsSwapMode(false);
+                            setSwapSelectedDates([]);
+                            setIsBulkUnscheduleMode(false);
+                            setBulkUnscheduleSelectedDates([]);
+                            setSelectedDate(undefined);
+                          }
+                        }}
+                      />
+                    )}
+                    <Form.Check
+                      type="checkbox"
+                      id="enable-bulk-unschedule-checkbox"
+                      label="Bulk-Unschedule"
+                      checked={isBulkUnscheduleMode}
+                      disabled={isAutoScheduleMode || isSwapMode}
                       onChange={(event) => {
                         const isChecked = event.target.checked;
-                        setIsAutoScheduleMode(isChecked);
-                        setAutoScheduleSelectedSoIds(new Set());
-                        setAutoScheduleSelectedDates([]);
+                        setIsBulkUnscheduleMode(isChecked);
+                        setBulkUnscheduleSelectedDates([]);
                         if (isChecked) {
-                          setIsSwapMode(false);
-                          setSwapSelectedDates([]);
-                          setIsBulkUnscheduleMode(false);
-                          setBulkUnscheduleSelectedDates([]);
                           setSelectedDate(undefined);
                         }
                       }}
                     />
-                  )}
-                  <Form.Check
-                    type="checkbox"
-                    id="enable-bulk-unschedule-checkbox"
-                    label="Bulk-Unschedule"
-                    checked={isBulkUnscheduleMode}
-                    disabled={isAutoScheduleMode || isSwapMode}
-                    onChange={(event) => {
-                      const isChecked = event.target.checked;
-                      setIsBulkUnscheduleMode(isChecked);
-                      setBulkUnscheduleSelectedDates([]);
-                      if (isChecked) {
-                        setSelectedDate(undefined);
-                      }
-                    }}
-                  />
+                  </div>
+                  <div className="d-flex align-items-center flex-wrap gap-2 mt-2">
+                    {isSwapMode && (
+                      <ButtonWithSpinner
+                        type="button"
+                        className={classNames("btn btn-warning btn-sm", {
+                          disabled:
+                            swapSelectedDates.length !== 2 && !swapServiceOrdersFetch.isLoading,
+                        })}
+                        spinnerVariant="black"
+                        fetchState={swapServiceOrdersFetch}
+                        onClick={() => swapSelectedDates.length === 2 && handleExecuteSwap()}
+                      >
+                        Execute Swap
+                      </ButtonWithSpinner>
+                    )}
+                    {isAutoScheduleMode && (
+                      <ButtonWithSpinner
+                        type="button"
+                        className={classNames("btn btn-primary btn-sm", {
+                          disabled:
+                            (autoScheduleSelectedSoIds.size === 0 ||
+                              autoScheduleSelectedDates.length === 0) &&
+                            !executeAutoScheduleFetch.isLoading,
+                        })}
+                        fetchState={executeAutoScheduleFetch}
+                        spinnerVariant="dark"
+                        onClick={() => void handleExecuteAutoSchedule()}
+                      >
+                        Execute Auto-Schedule for Selected
+                      </ButtonWithSpinner>
+                    )}
+                    {isBulkUnscheduleMode && (
+                      <ButtonWithSpinner
+                        type="button"
+                        className={classNames("btn btn-warning btn-sm", {
+                          disabled:
+                            bulkUnscheduleSelectedDates.length === 0 &&
+                            !executeBulkUnscheduleFetch.isLoading,
+                        })}
+                        fetchState={executeBulkUnscheduleFetch}
+                        spinnerVariant="black"
+                        onClick={() => void handleExecuteBulkUnschedule()}
+                      >
+                        Execute Bulk-Unschedule
+                      </ButtonWithSpinner>
+                    )}
+                  </div>
                 </div>
-                <div className="d-flex align-items-center flex-wrap gap-2 mt-2">
-                  {isSwapMode && (
-                    <ButtonWithSpinner
-                      type="button"
-                      className={classNames("btn btn-warning btn-sm", {
-                        disabled:
-                          swapSelectedDates.length !== 2 && !swapServiceOrdersFetch.isLoading,
-                      })}
-                      spinnerVariant="black"
-                      fetchState={swapServiceOrdersFetch}
-                      onClick={() => swapSelectedDates.length === 2 && handleExecuteSwap()}
-                    >
-                      Execute Swap
-                    </ButtonWithSpinner>
-                  )}
-                  {isAutoScheduleMode && (
-                    <ButtonWithSpinner
-                      type="button"
-                      className={classNames("btn btn-primary btn-sm", {
-                        disabled:
-                          (autoScheduleSelectedSoIds.size === 0 ||
-                            autoScheduleSelectedDates.length === 0) &&
-                          !executeAutoScheduleFetch.isLoading,
-                      })}
-                      fetchState={executeAutoScheduleFetch}
-                      spinnerVariant="dark"
-                      onClick={() => void handleExecuteAutoSchedule()}
-                    >
-                      Execute Auto-Schedule for Selected
-                    </ButtonWithSpinner>
-                  )}
-                  {isBulkUnscheduleMode && (
-                    <ButtonWithSpinner
-                      type="button"
-                      className={classNames("btn btn-warning btn-sm", {
-                        disabled:
-                          bulkUnscheduleSelectedDates.length === 0 &&
-                          !executeBulkUnscheduleFetch.isLoading,
-                      })}
-                      fetchState={executeBulkUnscheduleFetch}
-                      spinnerVariant="dark"
-                      onClick={() => void handleExecuteBulkUnschedule()}
-                    >
-                      Execute Bulk-Unschedule
-                    </ButtonWithSpinner>
-                  )}
-                </div>
-              </div>
 
-              {isSwapMode && (
-                <Alert variant="info" className="mb-0 py-2 rounded-bottom-0">
-                  <div className="mb-1">
-                    Select two calendar dates to swap all physical-visit service orders between
-                    them, then click &quot;Execute Swap&quot;.
-                  </div>
-                  <strong>({swapSelectedDates.length}/2 dates selected)</strong>
-                </Alert>
-              )}
-
-              {isAutoScheduleMode && (
-                <Alert variant="info" className="mb-0 py-2 rounded-bottom-0">
-                  <div className="mb-1">
-                    Check off service orders in the Unscheduled list below, then pick one or more
-                    dates on the calendar. Clicking &quot;Execute Auto-Schedule for Selected&quot;
-                    will automatically assign the selected service orders to those dates.
-                  </div>
-                  <strong>
-                    {autoScheduleSelectedSoIds.size} SO(s), {autoScheduleSelectedDates.length}{" "}
-                    date(s) selected
-                  </strong>
-                </Alert>
-              )}
-
-              {isBulkUnscheduleMode && (
-                <Alert variant="info" className="mb-0 py-2 rounded-bottom-0">
-                  <div>
-                    Select one or more calendar dates to unschedule every physical-visit service
-                    order currently scheduled on them, then click &quot;Execute
-                    Bulk-Unschedule&quot;.
-                  </div>
-                  <strong>({bulkUnscheduleSelectedDates.length} date(s) selected)</strong>
-                </Alert>
-              )}
-
-              {isAutoScheduleMode &&
-                autoScheduleSelectedDates.length > 0 &&
-                unscheduledServiceOrders.length === 0 && (
-                  <Alert variant="danger" className="mb-0 py-2 rounded-bottom-0">
-                    None of the unscheduled service orders can be scheduled on the currently
-                    selected date(s). Try selecting different dates.
+                {isSwapMode && (
+                  <Alert variant="info" className="mb-0 py-2 rounded-bottom-0">
+                    <div className="mb-1">
+                      Select two calendar dates to swap all physical-visit service orders between
+                      them, then click &quot;Execute Swap&quot;.
+                    </div>
+                    <strong>({swapSelectedDates.length}/2 dates selected)</strong>
                   </Alert>
                 )}
 
-              <ScheduleCalendarGrid
-                isTodayAllowed={isTodayAllowed}
-                schedulableDateKeys={schedulableDateKeys}
-                selectedDate={selectedDate}
-                daySummaries={daySummaries}
-                onSelectDate={setSelectedDate}
-                swapMode={isSwapMode}
-                swapSelectedDates={swapSelectedDates}
-                onSelectSwapDates={(dates) => setSwapSelectedDates(dates ?? [])}
-                autoScheduleMode={isAutoScheduleMode}
-                autoScheduleSelectedDates={autoScheduleSelectedDates}
-                onSelectAutoScheduleDates={(dates) => setAutoScheduleSelectedDates(dates ?? [])}
-                bulkUnscheduleMode={isBulkUnscheduleMode}
-                bulkUnscheduleSelectedDates={bulkUnscheduleSelectedDates}
-                onSelectBulkUnscheduleDates={(dates) => setBulkUnscheduleSelectedDates(dates ?? [])}
-              />
-
-              {!isSwapMode && !isBulkUnscheduleMode && (
-                <Card className="mt-4">
-                  <Card.Header className="bg-primary text-white d-flex align-items-center justify-content-between">
-                    <span>
-                      {selectedDate !== undefined ? (
-                        <>
-                          {serviceOrdersForSelectedDate.length} Service Order
-                          {serviceOrdersForSelectedDate.length === 1 ? "" : "s"} Scheduled on{" "}
-                          {formatWeekdayShortDate(selectedDate)}
-                        </>
-                      ) : (
-                        "Select a date to view scheduled service orders"
-                      )}
-                    </span>
-                    <Button
-                      variant="outline-light"
-                      size="sm"
-                      disabled={
-                        selectedDate === undefined ||
-                        physicalVisitServiceOrdersForSelectedDate.length === 0 ||
-                        clearScheduledDateFetch.isLoading
-                      }
-                      onClick={() => void handleClearScheduledDate()}
-                    >
-                      Clear Date
-                    </Button>
-                  </Card.Header>
-                  {selectedDate === undefined ? (
-                    <div className="text-muted p-3">
-                      Select a date to view scheduled service orders.
+                {isAutoScheduleMode && (
+                  <Alert variant="info" className="mb-0 py-2 rounded-bottom-0">
+                    <div className="mb-1">
+                      Check off service orders in the Unscheduled list below, then pick one or more
+                      dates on the calendar. Clicking &quot;Execute Auto-Schedule for Selected&quot;
+                      will automatically assign the selected service orders to those dates.
                     </div>
-                  ) : serviceOrdersForSelectedDate.length === 0 ? (
-                    <div className="text-muted p-3">No service orders to show.</div>
-                  ) : (
-                    <ListGroup variant="flush">
-                      <AnimatePresence initial={false}>
-                        {groupedServiceOrdersForSelectedDate.map((so) => (
-                          <ScheduledServiceOrderListItem
-                            key={so.ServiceOrderId}
-                            so={so}
-                            action={
-                              <Button
-                                variant="danger"
-                                size="sm"
-                                disabled={unscheduleServiceOrderFetch.isLoading}
-                                onClick={() => handleUnscheduleServiceOrder(so)}
-                              >
-                                Unschedule
-                              </Button>
-                            }
-                          />
-                        ))}
-                      </AnimatePresence>
-                    </ListGroup>
+                    <strong>
+                      {autoScheduleSelectedSoIds.size} SO(s), {autoScheduleSelectedDates.length}{" "}
+                      date(s) selected
+                    </strong>
+                  </Alert>
+                )}
+
+                {isBulkUnscheduleMode && (
+                  <Alert variant="info" className="mb-0 py-2 rounded-bottom-0">
+                    <div>
+                      Select one or more calendar dates to unschedule every physical-visit service
+                      order currently scheduled on them, then click &quot;Execute
+                      Bulk-Unschedule&quot;.
+                    </div>
+                    <strong>({bulkUnscheduleSelectedDates.length} date(s) selected)</strong>
+                  </Alert>
+                )}
+
+                {isAutoScheduleMode &&
+                  autoScheduleSelectedDates.length > 0 &&
+                  unscheduledServiceOrders.length === 0 && (
+                    <Alert variant="danger" className="mb-0 py-2 rounded-bottom-0">
+                      None of the unscheduled service orders can be scheduled on the currently
+                      selected date(s). Try selecting different dates.
+                    </Alert>
                   )}
-                </Card>
-              )}
+
+                <ScheduleCalendarGrid
+                  isTodayAllowed={isTodayAllowed}
+                  schedulableDateKeys={schedulableDateKeys}
+                  selectedDate={selectedDate}
+                  daySummaries={daySummaries}
+                  onSelectDate={setSelectedDate}
+                  swapMode={isSwapMode}
+                  swapSelectedDates={swapSelectedDates}
+                  onSelectSwapDates={(dates) => setSwapSelectedDates(dates ?? [])}
+                  autoScheduleMode={isAutoScheduleMode}
+                  autoScheduleSelectedDates={autoScheduleSelectedDates}
+                  onSelectAutoScheduleDates={(dates) => setAutoScheduleSelectedDates(dates ?? [])}
+                  bulkUnscheduleMode={isBulkUnscheduleMode}
+                  bulkUnscheduleSelectedDates={bulkUnscheduleSelectedDates}
+                  onSelectBulkUnscheduleDates={(dates) =>
+                    setBulkUnscheduleSelectedDates(dates ?? [])
+                  }
+                />
+
+                {!isSwapMode && !isBulkUnscheduleMode && (
+                  <Card className="mt-4">
+                    <Card.Header className="bg-primary text-white d-flex align-items-center justify-content-between">
+                      <span>
+                        {selectedDate !== undefined ? (
+                          <>
+                            {serviceOrdersForSelectedDate.length} Service Order
+                            {serviceOrdersForSelectedDate.length === 1 ? "" : "s"} Scheduled on{" "}
+                            {formatWeekdayShortDate(selectedDate)}
+                          </>
+                        ) : (
+                          "Select a date to view scheduled service orders"
+                        )}
+                      </span>
+                      <Button
+                        variant="dark"
+                        size="sm"
+                        disabled={
+                          selectedDate === undefined ||
+                          physicalVisitServiceOrdersForSelectedDate.length === 0 ||
+                          clearScheduledDateFetch.isLoading
+                        }
+                        onClick={() => void handleClearScheduledDate()}
+                      >
+                        Clear Date
+                      </Button>
+                    </Card.Header>
+                    {selectedDate === undefined ? (
+                      <div className="text-muted p-3">
+                        Select a date to view scheduled service orders.
+                      </div>
+                    ) : serviceOrdersForSelectedDate.length === 0 ? (
+                      <div className="text-muted p-3">No service orders to show.</div>
+                    ) : (
+                      <ListGroup variant="flush">
+                        <AnimatePresence initial={false}>
+                          {groupedServiceOrdersForSelectedDate.map((so) => (
+                            <ScheduledServiceOrderListItem
+                              key={so.ServiceOrderId}
+                              so={so}
+                              action={
+                                <Button
+                                  variant="danger"
+                                  size="sm"
+                                  disabled={unscheduleServiceOrderFetch.isLoading}
+                                  onClick={() => handleUnscheduleServiceOrder(so)}
+                                >
+                                  Unschedule
+                                </Button>
+                              }
+                            />
+                          ))}
+                        </AnimatePresence>
+                      </ListGroup>
+                    )}
+                  </Card>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <JobClientFilterModal
-        show={showJobClientFilter}
-        onHide={() => setShowJobClientFilter(false)}
-        jobClients={allJobClients}
-        selectedJobClients={selectedJobClients}
-        onChange={setSelectedJobClients}
-      />
-    </Layout>
+        <JobClientFilterModal
+          show={showJobClientFilter}
+          onHide={() => setShowJobClientFilter(false)}
+          jobClients={allJobClients}
+          selectedJobClients={selectedJobClients}
+          onChange={setSelectedJobClients}
+        />
+      </Layout>
+    </LazyMotion>
   );
 }

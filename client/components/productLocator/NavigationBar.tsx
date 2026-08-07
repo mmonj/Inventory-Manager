@@ -34,19 +34,19 @@ function getLink(name: string, path: string, icon?: IconDefinition) {
   } satisfies TLink;
 }
 
+const authenticatedLinks: TLink[] = [
+  getLink("Scan Audit", reverse("product_locator:scan_audit"), faClipboardCheck),
+];
+
+const superuserLinks: TLink[] = [
+  getLink("Add New Products", reverse("product_locator:add_new_products"), faPlusCircle),
+  getLink("Manage Planograms", reverse("product_locator:manage_planograms"), faCog),
+  getLink("Planogram Updates", reverse("product_locator:planogram_updates"), faShuffle),
+];
+
 export function NavigationBar() {
   const djangoContext = React.useContext(Context);
   const currentPath = djangoContext.request.path;
-
-  const authenticatedLinks: TLink[] = [
-    getLink("Scan Audit", reverse("product_locator:scan_audit"), faClipboardCheck),
-  ];
-
-  const superuserLinks: TLink[] = [
-    getLink("Add New Products", reverse("product_locator:add_new_products"), faPlusCircle),
-    getLink("Manage Planograms", reverse("product_locator:manage_planograms"), faCog),
-    getLink("Planogram Updates", reverse("product_locator:planogram_updates"), faShuffle),
-  ];
 
   return (
     <Navbar expand="lg" className="border-bottom shadow-sm bg-white" sticky="top">

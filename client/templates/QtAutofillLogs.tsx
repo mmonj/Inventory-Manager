@@ -34,6 +34,22 @@ function getMessageTypeVariant(messageType: string): string {
   }
 }
 
+function handleSoidSearch(event: React.FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+  const formData = new FormData(event.currentTarget);
+  const soid = formData.get("soid") as string;
+
+  if (soid.trim()) {
+    const url = `${reverse("survey_worker:qt_view_autofill_logs")}?soid=${encodeURIComponent(
+      soid.trim()
+    )}`;
+    window.location.href = url;
+  } else {
+    // if empty, go to base URL (show all logs)
+    window.location.href = reverse("survey_worker:qt_view_autofill_logs");
+  }
+}
+
 export function Template(props: templates.QtAutofillLogs) {
   const [filterType, setFilterType] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -68,22 +84,6 @@ export function Template(props: templates.QtAutofillLogs) {
       newExpanded.add(logId);
     }
     setExpandedLogs(newExpanded);
-  }
-
-  function handleSoidSearch(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const soid = formData.get("soid") as string;
-
-    if (soid.trim()) {
-      const url = `${reverse("survey_worker:qt_view_autofill_logs")}?soid=${encodeURIComponent(
-        soid.trim()
-      )}`;
-      window.location.href = url;
-    } else {
-      // if empty, go to base URL (show all logs)
-      window.location.href = reverse("survey_worker:qt_view_autofill_logs");
-    }
   }
 
   const logCounts = {

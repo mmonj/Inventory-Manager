@@ -1,6 +1,6 @@
 import React from "react";
 
-import { motion } from "motion/react";
+import { m } from "motion/react";
 
 import { TServiceOrder } from "@client/util/qtSurveyWorker/scheduleUtils";
 import { getFormattedEstimatedTime } from "@client/util/commonUtil";
@@ -16,7 +16,7 @@ export function ScheduledServiceOrderListItem(props: Props) {
   const { so } = props;
 
   return (
-    <motion.div
+    <m.div
       layout
       // react-doctor-disable-next-line react-doctor/no-layout-property-animation
       initial={{ opacity: 0, height: 0 }}
@@ -38,6 +38,6 @@ export function ScheduledServiceOrderListItem(props: Props) {
         <span className="text-info small">{getFormattedEstimatedTime(so.EstimatedTime)} Est.</span>
         {props.action}
       </div>
-    </motion.div>
+    </m.div>
   );
 }

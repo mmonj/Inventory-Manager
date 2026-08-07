@@ -12,6 +12,17 @@ import { createNewScanAudit, postToScanAudit } from "@client/util/productLocator
 
 import "@client/scss/stock_tracker/scanner.scss";
 
+function setQueryParameter(key: string, value: string) {
+  const url = new URL(window.location.href);
+  url.searchParams.set(key, value);
+
+  window.location.href = url.href;
+}
+
+function scanErrorCallback() {
+  console.log("error");
+}
+
 export function Template(props: templates.ProductLocatorScanAudit) {
   const [scannedUpcs, setScannedUpcs] = React.useState<string[]>([]);
   const [selectedScanAuditId, setSelectedScanAuditId] = React.useState<number | null>(null);
@@ -28,13 +39,6 @@ export function Template(props: templates.ProductLocatorScanAudit) {
       setSelectedScanAuditId(() => parseInt(_scanAuditId));
     }
   }, []);
-
-  function setQueryParameter(key: string, value: string) {
-    const url = new URL(window.location.href);
-    url.searchParams.set(key, value);
-
-    window.location.href = url.href;
-  }
 
   function handleScanAuditSubmission(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -68,10 +72,6 @@ export function Template(props: templates.ProductLocatorScanAudit) {
       setScannedUpcs((prev) => prev.filter((prevUpc) => prevUpc !== decodedText));
       setScannedUpcs((prev) => [decodedText, ...prev]);
     }
-  }
-
-  function scanErrorCallback() {
-    console.log("error");
   }
 
   return (
