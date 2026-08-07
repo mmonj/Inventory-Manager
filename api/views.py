@@ -1,11 +1,9 @@
 import hashlib
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import NotFound as DrfNotFound
-from rest_framework.exceptions import PermissionDenied as DrfPermissionDenied
 from rest_framework.exceptions import ValidationError as DrfValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request as DrfRequest
@@ -22,10 +20,8 @@ from products.tasks import get_external_product_images
 from products.util import get_current_work_cycle
 from products.util.upc import get_valid_upc
 from server.utils.common import validate_structure
-from survey_worker.onehub.util import add_cmk_urls_to_db_workcycle, get_current_work_cycle_data
 from survey_worker.qtrax.models import QtServiceOrder
 
-from .interfaces_request import ICmkStoreHtmlData
 from .serializers import (
     BarcodeSheetSerializer,
     FieldRepresentativeSerializer,
@@ -41,9 +37,6 @@ from .types import (
     IUpdateStorePersonnel,
 )
 from .util import update_product_additions, update_product_record_names
-
-if TYPE_CHECKING:
-    from survey_worker.onehub.typedefs.interfaces import ICmkHtmlSourcesData
 
 logger = logging.getLogger("main_logger")
 
@@ -222,34 +215,6 @@ def update_store_personnel(request: DrfRequest) -> DrfResponse:
     )
 
     return DrfResponse(PersonnelContactSerializer(new_personel_contact).data)
-
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def update_cmk_html_src(request: DrfRequest) -> DrfResponse:
-    if request.user.is_authenticated and not request.user.is_superuser:
-        raise DrfPermissionDenied
-
-    request_data = validate_structure(request.data, ICmkStoreHtmlData)
-
-    current_work_cycle_data = get_current_work_cycle_data()
-    cmklaunch_urls_html_sources: list[ICmkHtmlSourcesData] = (
-        current_work_cycle_data.cmklaunch_urls_html_sources
-    )
-
-    add_cmk_urls_to_db_workcycle(current_work_cycle_data, cmklaunch_urls_html_sources)
-
-    for cmk_data in cmklaunch_urls_html_sources:
-        if cmk_data["cmk_url"] == request_data.cmk_url:
-            cmk_data["html_src"] = request_data.html_src
-
-    logger.info(request_data.cmk_url)
-    logger.info(len(request_data.html_src))
-
-    current_work_cycle_data.cmklaunch_urls_html_sources = cmklaunch_urls_html_sources
-    current_work_cycle_data.save(update_fields=["cmklaunch_urls_html_sources"])
-
-    return DrfResponse({"success": True}, status=200)
 
 
 @api_view(["GET"])
