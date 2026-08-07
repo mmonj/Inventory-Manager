@@ -734,11 +734,15 @@ export function Template(props: templates.QtScheduleCalendar) {
       </Form.Group>
 
       {fetchRepSchedule.isLoading && (
-        <div className="d-flex align-items-center gap-2">
-          <span>Loading schedule...</span>
-          <Spinner animation="border" role="status" size="sm">
+        <div className="d-flex flex-column align-items-center justify-content-center text-center py-5 my-3 bg-body-tertiary border rounded-3">
+          <Spinner animation="border" role="status" style={{ width: "3.5rem", height: "3.5rem" }}>
             <span className="visually-hidden">Loading...</span>
           </Spinner>
+          <div className="fs-4 fw-semibold mt-3">Loading schedule…</div>
+          <div className="text-muted">
+            Fetching schedule for{" "}
+            {props.rep_details.find((rep) => rep.id === selectedRepId)?.username ?? "rep"}
+          </div>
         </div>
       )}
       {fetchRepSchedule.isError && (
