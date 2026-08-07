@@ -472,18 +472,20 @@ export function Template(props: templates.QtScheduleCalendar) {
       return;
     }
 
-    if (!result.success) {
-      alert(`Failed to auto-schedule service orders: ${result.error_message}`);
-      return;
-    }
-
     setAutoScheduleSelectedSoIds(new Set());
     setAutoScheduleSelectedDates([]);
     setIsAutoScheduleMode(false);
 
-    // the server computed the actual assignment - refetch rather than guessing it locally;
-    // force-bypass the cache/freshness-delta since we just mutated the schedule server-side
+    // the server may have partially applied the schedule even on failure (some SOs may have
+    // been scheduled before a later one failed) - refetch either way rather than leaving a
+    // stale view; force-bypass the cache/freshness-delta since the schedule may have mutated
+    // server-side
     await fetchScheduleForRep(selectedRepId, true);
+
+    if (!result.success) {
+      alert(`Failed to auto-schedule service orders: ${result.error_message}`);
+      return;
+    }
 
     if (result.unscheduled_service_order_ids.length > 0) {
       alert(
