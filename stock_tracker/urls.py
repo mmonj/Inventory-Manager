@@ -17,9 +17,6 @@ ssr_urlpatterns = [
         ssr_views.uncarry_product_addition,
         name="uncarry_product_addition",
     ),
-    path(
-        "import_json_data_files/", ssr_views.import_json_data_files, name="import_json_data_files"
-    ),
     path("barcode_sheet_history/", ssr_views.barcode_sheet_history, name="barcode_sheet_history"),
     path(
         "barcode_sheet_history/<int:field_representative_id>/",

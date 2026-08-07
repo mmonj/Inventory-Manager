@@ -1,47 +1,14 @@
 import logging
-import zipfile
-from datetime import UTC, date, datetime, timedelta
-from io import BytesIO
-from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from datetime import date, timedelta
 
-import pytz
 from django.core.exceptions import ValidationError
-from django.core.files import File
 from django.utils import timezone as dj_timezone
 
-from ..models import (
-    BrandParentCompany,
-    FieldRepresentative,
-    PersonnelContact,
-    Product,
-    ProductAddition,
-    Store,
-    WorkCycle,
-)
-from ..types import (
-    BasicStoreInfo,
-    ImportedFieldRepInfo,
-    ImportedProductInfo,
-    ImportedProductStockData,
-    ImportedStoreData,
-)
-
-if TYPE_CHECKING:
-    from collections.abc import Generator
+from ..models import Product, Store, WorkCycle
 
 logger = logging.getLogger("main_logger")
 
 WORK_CYCLE_TIME_SPAN = timedelta(weeks=2)
-
-
-def import_field_reps(field_reps_info: dict[str, ImportedFieldRepInfo]) -> None:
-    new_field_reps = []
-    for field_rep_name, rep_info in field_reps_info.items():
-        work_email = rep_info["work_email"]
-        new_field_reps.append(FieldRepresentative(name=field_rep_name, work_email=work_email))
-
-    FieldRepresentative.objects.bulk_create(new_field_reps, ignore_conflicts=True)
 
 
 def import_new_stores(stores: list[str]) -> None:
@@ -61,127 +28,6 @@ def import_new_stores(stores: list[str]) -> None:
             continue
 
     Store.objects.bulk_create(new_stores, batch_size=100, ignore_conflicts=True)
-
-
-def import_territories(territory_info: dict[str, Any]) -> None:
-    all_stores: dict[str, ImportedStoreData] = territory_info["All Stores"]
-    field_rep_territories = {
-        name: territory_info[name] for name in territory_info if name != "All Stores"
-    }
-
-    new_stores: list[Store] = []
-    new_contacts: Generator[PersonnelContact, None, None]
-    stores_with_contacts = {}
-
-    logger.info("Importing territories")
-    for field_rep_name, store_list in field_rep_territories.items():
-        field_rep = FieldRepresentative.objects.get(name=field_rep_name)
-        new_stores.extend(
-            Store(name=store_name, field_representative=field_rep) for store_name in store_list
-        )
-    for store_name, store_info in all_stores.items():
-        new_stores.append(Store(name=store_name))
-        manager_names = store_info.get("manager_names")
-        if manager_names and all(manager_names):
-            stores_with_contacts[store_name] = manager_names
-
-    Store.objects.bulk_create(new_stores, batch_size=100, ignore_conflicts=True)
-
-    stores = Store.objects.filter(name__in=stores_with_contacts.keys())
-    new_contacts = (
-        PersonnelContact(
-            first_name=stores_with_contacts[store.name][0],
-            last_name=stores_with_contacts[store.name][1],
-            store=store,
-        )
-        for store in stores
-    )
-
-    PersonnelContact.objects.bulk_create(new_contacts, batch_size=100)
-
-
-def import_products(
-    products_info: dict[str, dict[str, ImportedProductInfo]],
-    images_zip_path: str | None = None,
-    brand_logos_zip: bytes | None = None,
-) -> None:
-    # new_products = []
-    for client_brand, products_dict in products_info.items():
-        logger.info("Importing products for: %s", client_brand)
-        parent_company = BrandParentCompany.objects.get_or_create(short_name=client_brand)[0]
-
-        new_products = (
-            Product(
-                upc=upc,
-                name=product_info["fs_name"],
-                parent_company=parent_company,
-                date_added=datetime.fromtimestamp(0, UTC),
-            )
-            for upc, product_info in products_dict.items()
-            if Product(upc=upc).is_valid_upc()
-        )
-
-        Product.objects.bulk_create(new_products, batch_size=100, ignore_conflicts=True)
-
-    if brand_logos_zip is not None:
-        logger.info("Importing brand logos")
-        brands = BrandParentCompany.objects.distinct("short_name").in_bulk(field_name="short_name")
-        with zipfile.ZipFile(BytesIO(brand_logos_zip)) as zf:
-            for filename in zf.namelist():
-                short_name = Path(filename).stem
-                if short_name in brands and not brands[short_name].third_party_logo:
-                    with zf.open(filename, "r") as fd:
-                        brands[short_name].third_party_logo.save(filename, File(fd), save=True)
-
-    if images_zip_path is not None:
-        logger.info("Importing product images")
-        products = Product.objects.distinct("upc").in_bulk(field_name="upc")
-        with zipfile.ZipFile(images_zip_path) as zf:
-            for filename in zf.namelist():
-                upc = Path(filename).stem
-                if upc in products and not products[upc].item_image:
-                    with zf.open(filename, "r") as fd:
-                        products[upc].item_image.save(filename, File(fd), save=True)
-
-
-def import_distribution_data(
-    stores_distribution_data: dict[str, dict[str, ImportedProductStockData]],
-) -> None:
-    for idx, (store_name, store_distribution_data) in enumerate(stores_distribution_data.items()):
-        len1 = len(stores_distribution_data)
-        store = Store.objects.get_or_create(name=store_name)[0]
-        logger.info("%d/%d - Store: %s", idx + 1, len1, store_name)
-
-        ####
-        new_products = (
-            Product(upc=upc, date_added=datetime.fromtimestamp(0, UTC))
-            for upc, product_distribution_data in store_distribution_data.items()
-            if Product(upc=upc).is_valid_upc()
-        )
-
-        Product.objects.bulk_create(new_products, batch_size=100, ignore_conflicts=True)
-        # products = Product.objects.filter(upc__in=store_distribution_data.keys())
-        products = Product.objects.in_bulk(store_distribution_data.keys(), field_name="upc")
-
-        new_product_additions = (
-            ProductAddition(
-                # product=get_product_from_queryset(products, upc),
-                product=products.get(upc),
-                # product = products.filter(upc=upc).first(),
-                store=store,
-                date_added=datetime.fromtimestamp(
-                    product_distribution_data.get("time_added", 0), UTC
-                ),
-                date_last_scanned=get_utc_datetime(product_distribution_data.get("date_scanned")),
-                is_carried=product_distribution_data.get("instock", False),
-            )
-            for upc, product_distribution_data in store_distribution_data.items()
-            if Product(upc=upc).is_valid_upc()
-        )
-
-        ProductAddition.objects.bulk_create(
-            new_product_additions, batch_size=100, ignore_conflicts=True
-        )
 
 
 def get_product_from_queryset(products: list[Product], upc: str) -> Product | None:
@@ -212,90 +58,6 @@ def get_missing_products(upcs_batch: list[str], products: list[Product]) -> list
             except ValidationError:
                 continue
     return missing_upcs
-
-
-def get_utc_datetime(datetime_str: str | None) -> datetime:
-    if datetime_str is None:
-        return datetime.fromtimestamp(0, UTC)
-
-    # input string has no timezone info; localized explicitly to EST below
-    datetime_object = datetime.strptime(datetime_str, "%Y-%m-%d at %I:%M:%S %p")  # noqa: DTZ007
-
-    est = pytz.timezone("EST")
-    local_time = est.localize(datetime_object)
-    return local_time.astimezone(pytz.utc)
-
-
-def get_store_count(territory_info: dict[str, Any]) -> int:
-    store_names_set: set[str] = set(territory_info["All Stores"].keys())
-
-    for rep_name, store_names_list in territory_info.items():
-        if rep_name == "All Stores":
-            continue
-
-        for store_name in store_names_list:
-            store_names_set.add(store_name)
-
-    return len(store_names_set)
-
-
-def get_stores_managers_dict(territory_info: dict[str, Any]) -> dict[str, BasicStoreInfo]:
-    # {store_name : {'first_name': '', 'last_name': ''}, {}, {}, ...}
-    stores_info: dict[str, BasicStoreInfo] = {}
-    for store_name, store_info in territory_info["All Stores"].items():
-        manager_names = store_info.get("manager_names")
-        if manager_names and all(manager_names):
-            stores_info[store_name] = {
-                "first_name": manager_names[0],
-                "last_name": manager_names[1],
-            }
-    return stores_info
-
-
-def get_product_count(
-    products_info: dict[str, dict[str, ImportedProductInfo]],
-    stores_distribution_data: dict[str, dict[str, ImportedProductStockData]],
-) -> int:
-    upcs = set()
-    for products_dict in products_info.values():
-        for upc in products_dict:
-            _temp_product = Product(upc=upc)
-            try:
-                _temp_product.clean()
-                upcs.add(upc)
-            except ValidationError:
-                continue
-
-    for distribution_data in stores_distribution_data.values():
-        for upc in distribution_data:
-            _temp_product = Product(upc=upc)
-            try:
-                _temp_product.clean()
-                upcs.add(upc)
-            except ValidationError:
-                continue
-
-    return len(upcs)
-
-
-def get_product_additions_count(
-    stores_distribution_data: dict[str, dict[str, ImportedProductStockData]],
-) -> int:
-    product_addition_set = set()
-    for store_name, store_data in stores_distribution_data.items():
-        for upc in store_data:
-            try:
-                product = Product(upc=upc)
-                product.clean()
-                product_addition_set.add(
-                    (
-                        store_name,
-                        upc,
-                    )
-                )
-            except ValidationError:
-                continue
-    return len(product_addition_set)
 
 
 def is_date_within_work_cycle(date_in_question: date, work_cycle: WorkCycle) -> bool:

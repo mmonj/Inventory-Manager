@@ -1,4 +1,3 @@
-import json
 import logging
 
 from django.contrib import messages
@@ -126,46 +125,6 @@ def uncarry_product_addition(
     product_addition.save(update_fields=["is_carried"])
 
     return JsonResponse({"message": "success"})
-
-
-@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
-@require_http_methods(["GET", "POST"])
-def import_json_data_files(request: HttpRequest) -> HttpResponse:
-    from products import util
-
-    if request.method == "GET":
-        return render(
-            request,
-            "stock_tracker/import_json_data_files.html",
-            {"form": forms.ImportJsonDataFiles()},
-        )
-
-    received_form = forms.ImportJsonDataFiles(request.POST, request.FILES)
-    if not received_form.is_valid():
-        return render(
-            request,
-            "stock_tracker/import_json_data_files.html",
-            {"form": received_form, "form_errors": received_form.errors},
-        )
-
-    field_reps_info = json.load(request.FILES["field_reps_json"])  # type: ignore[arg-type]
-    territory_info = json.load(request.FILES["territory_info_json"])  # type: ignore[arg-type]
-    products_info = json.load(request.FILES["product_names_json"])  # type: ignore[arg-type]
-    stores_distribution_data = json.load(request.FILES["store_distribution_data_json"])  # type: ignore[arg-type]
-    product_images_zip = request.FILES["product_images_zip"]
-    brand_logos_zip = request.FILES["brand_logos_zip"]
-
-    util.import_field_reps(field_reps_info)
-    util.import_territories(territory_info)
-    util.import_products(
-        products_info,
-        images_zip_path=product_images_zip.temporary_file_path(),  # type: ignore[union-attr]
-        brand_logos_zip=brand_logos_zip.read(),  # type: ignore[union-attr]
-    )
-    util.import_distribution_data(stores_distribution_data)
-
-    messages.success(request, "Your submission was successful")
-    return redirect("stock_tracker:import_json_data_files")
 
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))

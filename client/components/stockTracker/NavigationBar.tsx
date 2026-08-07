@@ -7,7 +7,6 @@ import { Context, reverse } from "@reactivated";
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
   faBarcode,
-  faFileImport,
   faHistory,
   faHome,
   faSignInAlt,
@@ -46,7 +45,6 @@ const authenticatedLinks: TLink[] = [
 
 const superuserLinks: TLink[] = [
   getLink("Add New Stores", reverse("stock_tracker:add_new_stores"), faStore),
-  getLink("Import Old Database", reverse("stock_tracker:import_json_data_files"), faFileImport),
 ];
 
 export function NavigationBar({ extraClassName = undefined }: Props) {

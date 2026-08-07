@@ -7,7 +7,6 @@ import {
   faBarcode,
   faDatabase,
   faExternalLinkAlt,
-  faFileImport,
   faHistory,
   faShieldAlt,
   faStore,
@@ -184,37 +183,6 @@ export function Template(_props: templates.StockTrackerIndex) {
                         >
                           <FontAwesomeIcon icon={faStore} className="me-2" />
                           Add New Stores
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* import_json_data_files */}
-                  <div className="col-md-6 col-lg-4">
-                    <div className="card h-100 border-0 shadow-sm hover-shadow transition">
-                      <div className="card-body d-flex flex-column p-4">
-                        <div className="mb-3">
-                          <div
-                            className="bg-warning bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
-                            style={{ width: "60px", height: "60px" }}
-                          >
-                            <FontAwesomeIcon
-                              icon={faFileImport}
-                              size="2x"
-                              className="text-warning"
-                            />
-                          </div>
-                        </div>
-                        <h5 className="card-title fw-bold mb-2">Import Old Database</h5>
-                        <p className="card-text text-muted flex-grow-1">
-                          Import legacy JSON data files into the database
-                        </p>
-                        <a
-                          href={reverse("stock_tracker:import_json_data_files")}
-                          className="btn btn-outline-warning btn-lg w-100 mt-3"
-                        >
-                          <FontAwesomeIcon icon={faFileImport} className="me-2" />
-                          Import Data Files
                         </a>
                       </div>
                     </div>
