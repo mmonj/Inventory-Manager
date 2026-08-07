@@ -111,8 +111,8 @@ export function Template(props: templates.StockTrackerScanner) {
           )}
           {isError && (
             <Alert variant="danger" className="text-center mx-2">
-              {errorMessages.map((error) => (
-                <div key={crypto.randomUUID()}>{error}</div>
+              {errorMessages.map((error, index) => (
+                <div key={index}>{error}</div>
               ))}
             </Alert>
           )}

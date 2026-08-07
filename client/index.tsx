@@ -1,6 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
+import { MotionConfig } from "motion/react";
+
 import { Provider, getServerData, getTemplate } from "@reactivated";
 
 import "@client/scss/bs-dark/bootstrap.scss";
@@ -13,8 +15,10 @@ const Template = await getTemplate(context);
 ReactDOM.hydrateRoot(
   document,
   <React.StrictMode>
-    <Provider value={context}>
-      <Template {...props} />
-    </Provider>
+    <MotionConfig reducedMotion="user">
+      <Provider value={context}>
+        <Template {...props} />
+      </Provider>
+    </MotionConfig>
   </React.StrictMode>
 );

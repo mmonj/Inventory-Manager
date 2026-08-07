@@ -18,8 +18,11 @@ export function ScheduledServiceOrderListItem(props: Props) {
   return (
     <motion.div
       layout
+      // react-doctor-disable-next-line react-doctor/no-layout-property-animation
       initial={{ opacity: 0, height: 0 }}
+      // react-doctor-disable-next-line react-doctor/no-layout-property-animation
       animate={{ opacity: 1, height: "auto" }}
+      // react-doctor-disable-next-line react-doctor/no-layout-property-animation
       exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.2 }}
       className="list-group-item d-flex justify-content-between align-items-start gap-2 overflow-hidden"

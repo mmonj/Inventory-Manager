@@ -254,8 +254,8 @@ export function ProductLocatorModal({
               <div className="d-flex align-items-center">
                 <FontAwesomeIcon icon={faExclamationTriangle} className="me-2 fs-5" />
                 <div>
-                  {locUpdateProps.errorMessages.map((msg) => (
-                    <div key={crypto.randomUUID()}>{msg}</div>
+                  {locUpdateProps.errorMessages.map((msg, index) => (
+                    <div key={index}>{msg}</div>
                   ))}
                 </div>
               </div>
@@ -275,8 +275,8 @@ export function ProductLocatorModal({
               <div className="d-flex align-items-center">
                 <FontAwesomeIcon icon={faExclamationTriangle} className="me-2 fs-5" />
                 <div>
-                  {relatedProductsFetch.errorMessages.map((msg) => (
-                    <div key={crypto.randomUUID()}>{msg}</div>
+                  {relatedProductsFetch.errorMessages.map((msg, index) => (
+                    <div key={index}>{msg}</div>
                   ))}
                 </div>
               </div>

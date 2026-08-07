@@ -104,8 +104,8 @@ export function Template(props: templates.StockTrackerScanHistory) {
           )}
           {productAdditionPaginationState.isError && (
             <Alert ref={paginationErrorMessage} className="p-2" variant="danger">
-              {productAdditionPaginationState.errorMessages.map((msg) => (
-                <div key={crypto.randomUUID()}>{msg}</div>
+              {productAdditionPaginationState.errorMessages.map((msg, index) => (
+                <div key={index}>{msg}</div>
               ))}
             </Alert>
           )}

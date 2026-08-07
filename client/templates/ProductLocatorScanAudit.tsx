@@ -142,7 +142,7 @@ export function Template(props: templates.ProductLocatorScanAudit) {
       <ol className="list-group list-group-numbered px-2 mw-rem-60 mx-auto">
         {scannedUpcs.map((upc) => (
           <li
-            key={crypto.randomUUID()}
+            key={upc}
             className="list-group-item d-flex justify-content-between align-items-start"
           >
             <div className="ms-2 me-auto product-container">
