@@ -50,7 +50,7 @@ class BrandParentCompanyAdmin(admin.ModelAdmin[BrandParentCompany]):
     def display_upc_prefixes(self, obj: BrandParentCompany) -> str:
         return ", ".join(obj.default_upc_prefixes or [])
 
-    display_upc_prefixes.short_description = "UPC prefix digit(s)"
+    display_upc_prefixes.short_description = "UPC prefix digit(s)"  # type: ignore[attr-defined]
 
 
 class ProductAdmin(admin.ModelAdmin[Product]):
@@ -76,7 +76,7 @@ class StoreGuidAdmin(admin.ModelAdmin[StoreGUID]):
         count: int = store_guid.stores__count  # type:ignore [attr-defined]
         return count
 
-    stores_count.admin_order_field = "stores__count"
+    stores_count.admin_order_field = "stores__count"  # type: ignore[attr-defined]
 
 
 class StoreAdmin(admin.ModelAdmin[Store]):
@@ -117,14 +117,14 @@ class StoreAdmin(admin.ModelAdmin[Store]):
             return None
         return store.field_representative.name
 
-    get_personnel_contact_first_name.admin_order_field = "contacts__first_name"
-    get_personnel_contact_first_name.short_description = "Contact first name"
+    get_personnel_contact_first_name.admin_order_field = "contacts__first_name"  # type: ignore[attr-defined]
+    get_personnel_contact_first_name.short_description = "Contact first name"  # type: ignore[attr-defined]
 
-    get_personnel_contact_last_name.admin_order_field = "contacts__last_name"
-    get_personnel_contact_last_name.short_description = "Contact last name"
+    get_personnel_contact_last_name.admin_order_field = "contacts__last_name"  # type: ignore[attr-defined]
+    get_personnel_contact_last_name.short_description = "Contact last name"  # type: ignore[attr-defined]
 
-    get_field_representative.admin_order_field = "field_representative__name"
-    get_field_representative.short_description = "Field Rep"
+    get_field_representative.admin_order_field = "field_representative__name"  # type: ignore[attr-defined]
+    get_field_representative.short_description = "Field Rep"  # type: ignore[attr-defined]
 
 
 class PersonnelContactAdmin(admin.ModelAdmin[PersonnelContact]):
@@ -166,7 +166,7 @@ class BarcodeSheetAdmin(admin.ModelAdmin[BarcodeSheet]):
             links.append(format_html('<a href="{}">{}</a>', url, addition.product))
         return format_html("<br>".join(links)) if links else "No products"
 
-    display_product_additions.short_description = "Product Additions"
+    display_product_additions.short_description = "Product Additions"  # type: ignore[attr-defined]
 
 
 # Register your models here.

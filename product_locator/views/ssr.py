@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -15,6 +15,7 @@ from ..forms import CreatePlanogramForm, PlanogramForm
 from ..models import Planogram, PlanogramUpdate, ProductScanAudit, Store
 
 if TYPE_CHECKING:
+    from ..models import TPlanoTypeValue
     from ..types import IImportedProductInfo
 
 logger = logging.getLogger("main_logger")
@@ -136,7 +137,7 @@ def scan_audit(request: HttpRequest) -> HttpResponse:
 def manage_planograms(request: HttpRequest) -> HttpResponse:
     stores = Store.objects.all()
     plano_type_choices = [
-        Planogram.TPlanoType(value=choice[0], label=choice[1])
+        Planogram.TPlanoType(value=cast("TPlanoTypeValue", choice[0]), label=choice[1])
         for choice in Planogram.PlanoType.choices
     ]
 
@@ -159,6 +160,9 @@ def manage_planograms(request: HttpRequest) -> HttpResponse:
 
     # save new planogram
     new_planogram = received_form.save()
+    # CreatePlanogramForm marks `store` as required=True, so it's always set after a valid save
+    if new_planogram.store is None:
+        raise ValueError("Newly-created planogram unexpectedly has no associated store")
     messages.success(
         request,
         f"Successfully created planogram '{new_planogram.name}' for store '{new_planogram.store.name}'.",

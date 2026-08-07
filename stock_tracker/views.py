@@ -238,12 +238,11 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
         BarcodeSheetInterface,
     )
 
-    if barcode_sheet.upcs_list is not None:
+    upcs_list = barcode_sheet.upcs_list
+    if upcs_list is not None:
         barcode_sheet_data["product_additions"] = sorted(
             barcode_sheet_data["product_additions"],
-            key=lambda product_addition: barcode_sheet.upcs_list.index(
-                product_addition["product"]["upc"]
-            ),
+            key=lambda product_addition: upcs_list.index(product_addition["product"]["upc"]),
         )
 
     num_products = len(barcode_sheet_data["product_additions"])

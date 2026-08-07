@@ -146,16 +146,29 @@ def bulk_create_and_get[TModel: models.Model](
     Returns:
         QuerySet[models.Model]: The successfully inserted records with primary keys.
     """
-    model_class.objects.bulk_create(items, batch_size=batch_size, ignore_conflicts=True)
+    # django-stubs can't see `.objects` on a plain `type[TModel]` bound to models.Model
+    model_class.objects.bulk_create(  # type: ignore[attr-defined]
+        items, batch_size=batch_size, ignore_conflicts=True
+    )
 
     filter_criteria = _get_filter_criteria(items, fields)
 
-    return model_class.objects.filter(**filter_criteria)
+    return model_class.objects.filter(**filter_criteria)  # type: ignore[attr-defined, no-any-return]
 
 
 def atomic_get_or_create[TModel: models.Model](
     instance: TModel, *, fields: list[str]
 ) -> tuple[TModel, TIsNewRecord]:
+    """
+    Save `instance`, or fetch the existing row if a concurrent insert already created it.
+
+    Unlike Django's built-in `get_or_create`, which does a SELECT before the INSERT (and so
+    is vulnerable to a race between two concurrent calls both seeing no existing row and both
+    attempting to insert), this always attempts the INSERT first. If it fails with
+    `IntegrityError` (e.g. a unique constraint on `fields`), that's treated as proof a
+    concurrent request already created the matching row, and that row is fetched instead of
+    letting the error propagate.
+    """
     model_class: type[TModel] = type(instance)
 
     try:
@@ -164,7 +177,7 @@ def atomic_get_or_create[TModel: models.Model](
             return instance, True
     except IntegrityError:
         filter_criteria = _get_filter_criteria([instance], fields)
-        return model_class.objects.get(**filter_criteria), False
+        return model_class.objects.get(**filter_criteria), False  # type: ignore[attr-defined]
 
 
 def _get_filter_criteria[T](items: list[T], unique_fieldnames: list[str]) -> dict[str, Any]:
