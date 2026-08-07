@@ -36,6 +36,11 @@ from .types import BarcodeSheetInterface, SheetTypeDescriptionInterface
 logger = logging.getLogger("main_logger")
 
 
+@require_http_methods(["GET"])
+def index(request: HttpRequest) -> HttpResponse:
+    return templates.StockTrackerIndex().render(request)
+
+
 @require_http_methods(["GET", "POST"])
 def login_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:

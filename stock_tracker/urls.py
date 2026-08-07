@@ -6,6 +6,7 @@ from .ajax import views as api_views
 app_name = "stock_tracker"
 
 ssr_urlpatterns = [
+    path("", ssr_views.index, name="index"),
     path("scanner/", ssr_views.scanner, name="scanner"),
     path("login/", ssr_views.login_view, name="login_view"),
     path("logout/", ssr_views.logout_view, name="logout_view"),

@@ -81,7 +81,7 @@ export function Template(_props: templates.HomepageIndex) {
                     </Badge>
                   </div>
                   <a
-                    href={reverse("stock_tracker:scanner")}
+                    href={reverse("stock_tracker:index")}
                     className="btn btn-primary btn-lg w-100 mt-auto"
                   >
                     <FontAwesomeIcon icon={faArrowRight} className="me-2" />

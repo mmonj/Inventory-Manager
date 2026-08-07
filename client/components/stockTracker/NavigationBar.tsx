@@ -60,7 +60,7 @@ export function NavigationBar({ extraClassName = undefined }: Props) {
       sticky="top"
     >
       <Container fluid>
-        <Navbar.Brand href={reverse("stock_tracker:scanner")} className="fw-bold text-primary">
+        <Navbar.Brand href={reverse("stock_tracker:index")} className="fw-bold text-primary">
           <span className="fs-5">Inventory Tracker</span>
         </Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />

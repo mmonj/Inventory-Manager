@@ -8,6 +8,11 @@ from .types import BarcodeSheetInterface, SheetTypeDescriptionInterface
 
 
 @template
+class StockTrackerIndex(NamedTuple):
+    pass
+
+
+@template
 class StockTrackerBarcodeSheet(NamedTuple):
     barcodeSheet: BarcodeSheetInterface  # noqa: N815 -- attribute name needs to comply with client-side expectation
     total_products: int
