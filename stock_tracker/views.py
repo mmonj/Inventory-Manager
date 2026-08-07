@@ -40,7 +40,8 @@ logger = logging.getLogger("main_logger")
 def login_view(request: HttpRequest) -> HttpResponse:
     if request.user.is_authenticated:
         logger.info(
-            f"User {request.user.get_username()} is already logged in. Redirecting to homepage index"
+            "User %s is already logged in. Redirecting to homepage index",
+            request.user.get_username(),
         )
         return redirect("root:index")
 
@@ -94,7 +95,7 @@ def add_new_stores(request: HttpRequest) -> HttpResponse:
     new_stores_from_post: str = received_form.cleaned_data["stores_text"]
     new_stores = [s for s in (f.strip() for f in new_stores_from_post.split("\n")) if s]
     logger.info(
-        f"Adding new stores from user input. {len(new_stores)} possible new stores submitted."
+        "Adding new stores from user input. %d possible new stores submitted.", len(new_stores)
     )
     import_new_stores(new_stores)
 
@@ -111,7 +112,10 @@ def scan_history(request: HttpRequest) -> HttpResponse:
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["POST"])
-def uncarry_product_addition(request: HttpRequest, product_addition_pk: int) -> HttpResponse:
+def uncarry_product_addition(
+    request: HttpRequest,  # noqa: ARG001 -- required by Django view signature
+    product_addition_pk: int,
+) -> HttpResponse:
     product_addition = ProductAddition.objects.get(pk=product_addition_pk)
     product_addition.is_carried = False
     product_addition.save(update_fields=["is_carried"])
@@ -250,8 +254,9 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
     ]
 
     logger.info(
-        f"Serving Barcode Sheet. Client: '{barcode_sheet.parent_company}' - "
-        f"Store: '{barcode_sheet.store.name}'"
+        "Serving Barcode Sheet. Client: '%s' - Store: '%s'",
+        barcode_sheet.parent_company,
+        barcode_sheet.store.name,
     )
 
     return templates.StockTrackerBarcodeSheet(
@@ -286,6 +291,7 @@ def get_manager_names(request: HttpRequest) -> HttpResponse:
                 request.POST.getlist("contact-id"),
                 request.POST.getlist("contact-first-name"),
                 request.POST.getlist("contact-last-name"),
+                strict=True,
             ):
                 existing_contact = personnel_contacts[int(contact_id)]
                 if (first_name, last_name) != (
@@ -308,6 +314,7 @@ def get_manager_names(request: HttpRequest) -> HttpResponse:
                 request.POST.getlist("store-id"),
                 request.POST.getlist("new-contact-first-name"),
                 request.POST.getlist("new-contact-last-name"),
+                strict=True,
             ):
                 personnel_contact = PersonnelContact(
                     first_name=first_name, last_name=last_name, store=stores[int(store_id)]
@@ -329,7 +336,7 @@ def set_product_distribution_order_status(request: HttpRequest) -> HttpResponse:
         product_addition.date_ordered = timezone.now()
         product_addition.save(update_fields=["date_ordered"])
 
-    logger.info(f"Marked Product Addition IDs {', '.join(product_id_list)} as ordered")
+    logger.info("Marked Product Addition IDs %s as ordered", ", ".join(product_id_list))
 
     messages.success(request, f"Submitted {len(product_id_list)} item(s) as ordered")
     return HttpResponseRedirect(request.META["HTTP_REFERER"])
@@ -350,11 +357,10 @@ def set_carried_product_additions(request: HttpRequest) -> HttpResponse:
 
     product_additions = ProductAddition.objects.filter(id__in=product_id_list)
     logger.info(
-        "Updating {} product additions from barcode sheet form for client '{}' for store: '{}'".format(
-            len(product_additions),
-            request.POST.get("parent-company"),
-            request.POST.get("store-name"),
-        )
+        "Updating %d product additions from barcode sheet form for client '%s' for store: '%s'",
+        len(product_additions),
+        request.POST.get("parent-company"),
+        request.POST.get("store-name"),
     )
 
     for product_addition in product_additions:

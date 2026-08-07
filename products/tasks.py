@@ -1,13 +1,15 @@
 import logging
 import re
 import time
-from datetime import datetime, timedelta
+from datetime import timedelta
+from http import HTTPStatus
 from io import BytesIO
 
 import redis
 import requests
 from django.conf import settings
 from django.core.files import File
+from django.utils import timezone
 from django_rq import job
 from PIL import Image, ImageChops, ImageOps
 
@@ -44,7 +46,7 @@ redis_client = redis.Redis(
 @job
 def get_external_product_images() -> None:
     logger.info("Received job to fetch product images from API")
-    yesterday_date = datetime.now().date() - timedelta(days=1)
+    yesterday_date = timezone.now().date() - timedelta(days=1)
     latest_products_with_no_image = Product.objects.filter(
         date_added__gt=yesterday_date, item_image=""
     )
@@ -83,7 +85,7 @@ def fetch_product_data(products_to_fetch_image: list[Product]) -> None:
         )
         resp: requests.Response = requests.get(endpoint_url, timeout=15)
 
-        if resp.status_code == 429:
+        if resp.status_code == HTTPStatus.TOO_MANY_REQUESTS:
             logger.error("Rate limit has been hit. Waiting 60 seconds")
             time.sleep(61)
             continue

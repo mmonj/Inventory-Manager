@@ -52,8 +52,8 @@ class FieldRepresentative(CommonModel):
 
 
 class BrandParentCompany(CommonModel):
-    short_name = models.CharField(max_length=50, unique=True, null=True)
-    expanded_name = models.CharField(max_length=50, null=True, blank=True)
+    short_name = models.CharField(max_length=50, unique=True, null=True)  # noqa: DJ001
+    expanded_name = models.CharField(max_length=50, null=True, blank=True)  # noqa: DJ001
     canonical_name = models.CharField(max_length=100, blank=True, default="")
     third_party_logo = models.ImageField(
         null=True, blank=True, upload_to="products/images/brand_logos"
@@ -95,7 +95,7 @@ def product_image_upload_location(instance: Product, filename: str) -> str:
 
 class Product(models.Model):
     upc = models.CharField(max_length=UPC_A_LENGTH, unique=True)
-    name = models.CharField(max_length=255, null=True, blank=True)
+    name = models.CharField(max_length=255, null=True, blank=True)  # noqa: DJ001
     parent_company = models.ForeignKey(
         BrandParentCompany, null=True, blank=True, on_delete=models.SET_NULL, related_name="upcs"
     )
@@ -228,8 +228,8 @@ class UpcCorrection(CommonModel):
 
 
 class PersonnelContact(CommonModel):
-    first_name = models.CharField(max_length=255, null=True)
-    last_name = models.CharField(max_length=255, null=True)
+    first_name = models.CharField(max_length=255, null=True)  # noqa: DJ001
+    last_name = models.CharField(max_length=255, null=True)  # noqa: DJ001
     store = models.ForeignKey(
         "Store", null=True, blank=True, on_delete=models.CASCADE, related_name="contacts"
     )
@@ -454,7 +454,7 @@ class BarcodeSheet(models.Model):
         BrandParentCompany, on_delete=models.SET_NULL, null=True, related_name="barcode_sheets"
     )
     product_additions = models.ManyToManyField(ProductAddition, related_name="barcode_sheets")
-    upcs_hash = models.TextField(null=True)
+    upcs_hash = models.TextField(null=True)  # noqa: DJ001
     upcs_list = models.JSONField(null=True, blank=True)
     datetime_created = models.DateTimeField(default=timezone.now)
     work_cycle = models.ForeignKey(

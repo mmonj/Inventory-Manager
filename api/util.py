@@ -21,7 +21,7 @@ def update_product_record_names(
     Bulk update existing products with product name if they don't contain it
 
     Args:
-        request_data (IGetStoreProductAdditions): request json payload received from client
+        normalized_products (list[IProduct]): normalized product info received from client
         parent_company (BrandParentCompany): db record of BrandParentCompany
 
     Returns:

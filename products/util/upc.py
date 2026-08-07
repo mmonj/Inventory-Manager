@@ -136,9 +136,9 @@ def get_valid_upc(raw_upc: str, product_name: str, company: BrandParentCompany) 
     elif len(raw_upc) == UPC_A_LENGTH + 3:
         candidate_upc = get_upc_from_length11(raw_upc[:11], upc_prefixes)
 
-    if len(raw_upc) == 11:  # noqa: PLR2004
+    if len(raw_upc) == UPC_A_LENGTH - 1:
         candidate_upc = get_upc_from_length11(raw_upc, upc_prefixes)
-    elif len(raw_upc) == 10:  # noqa: PLR2004
+    elif len(raw_upc) == UPC_A_LENGTH - 2:
         candidate_upc = get_upc_from_length10(raw_upc, upc_prefixes)
 
     return _validate_upc(candidate_upc, upc_prefixes, main_prefix)

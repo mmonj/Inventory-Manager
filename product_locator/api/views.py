@@ -7,7 +7,7 @@ from rest_framework.request import Request as DRFRequest
 from rest_framework.response import Response as DrfResponse
 
 from ..models import HomeLocation, ProductScanAudit
-from .serializers import HomeLocation_Products_Serializer, ScanAuditSerializer
+from .serializers import HomeLocationProductsSerializer, ScanAuditSerializer
 
 logger = logging.getLogger("main_logger")
 
@@ -23,7 +23,7 @@ def get_planogram_locations(request: DRFRequest) -> DrfResponse:
         .all()
     )
 
-    home_locations_json = HomeLocation_Products_Serializer(home_locations, many=True).data
+    home_locations_json = HomeLocationProductsSerializer(home_locations, many=True).data
 
     return DrfResponse(home_locations_json)
 

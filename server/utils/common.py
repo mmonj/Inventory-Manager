@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import Any
 
 import cattrs
 import requests
@@ -14,9 +14,6 @@ from rest_framework.exceptions import ValidationError
 
 from .typedefs import TResult, TSessionData
 
-T = TypeVar("T")
-
-TModel = TypeVar("TModel", bound=models.Model)
 TIsNewRecord = bool
 
 
@@ -24,7 +21,7 @@ def error_json_response(errors: list[str], *, status: int, **kwargs: Any) -> Jso
     return JsonResponse(errors, status=status, safe=False, **kwargs)
 
 
-def unwrap(result: TResult[T, Any]) -> T:
+def unwrap[T](result: TResult[T, Any]) -> T:
     """
     Return a TResult's success value, or raise its error.
 
@@ -37,15 +34,15 @@ def unwrap(result: TResult[T, Any]) -> T:
 
     if isinstance(result.err, BaseException):
         raise result.err
-    raise Exception(result.err)  # noqa: TRY002
+    raise Exception(result.err)  # noqa: TRY002 -- err's type is arbitrary, no specific exception fits
 
 
-def cast_type(data: Any, _interface_class: type[T]) -> T:
+def cast_type[T](data: Any, _interface_class: type[T]) -> T:
     temp: T = data
     return temp
 
 
-def validate_structure(data: Any, interface_class: type[T], is_api: bool = True) -> T:
+def validate_structure[T](data: Any, interface_class: type[T], is_api: bool = True) -> T:
     c = cattrs.Converter()
     try:
         obj = c.structure(data, interface_class)
@@ -63,7 +60,7 @@ def validate_structure(data: Any, interface_class: type[T], is_api: bool = True)
     return obj
 
 
-def validate_only_struct_keys(data: Any, interface_class: type[T]) -> T:
+def validate_only_struct_keys[T](data: Any, interface_class: type[T]) -> T:
     missing_keys: list[str] = []
     extra_keys: list[str] = []
 
@@ -86,7 +83,7 @@ def validate_only_struct_keys(data: Any, interface_class: type[T]) -> T:
     return data  # type: ignore [no-any-return]
 
 
-def validation_hook_generic(value: T, expected_type: type[T]) -> T:
+def validation_hook_generic[T](value: T, expected_type: type[T]) -> T:
     if not isinstance(value, expected_type):
         raise TypeError(f"Value of {value!r} has type {type(value)}. Expected {expected_type}.")
     return value
@@ -129,7 +126,7 @@ def session_dict_to_session_object(data: TSessionData) -> Session:
     return session
 
 
-def bulk_create_and_get(
+def bulk_create_and_get[TModel: models.Model](
     model_class: type[TModel],
     items: list[TModel],
     *,
@@ -156,7 +153,9 @@ def bulk_create_and_get(
     return model_class.objects.filter(**filter_criteria)
 
 
-def atomic_get_or_create(instance: TModel, *, fields: list[str]) -> tuple[TModel, TIsNewRecord]:
+def atomic_get_or_create[TModel: models.Model](
+    instance: TModel, *, fields: list[str]
+) -> tuple[TModel, TIsNewRecord]:
     model_class: type[TModel] = type(instance)
 
     try:
@@ -168,7 +167,7 @@ def atomic_get_or_create(instance: TModel, *, fields: list[str]) -> tuple[TModel
         return model_class.objects.get(**filter_criteria), False
 
 
-def _get_filter_criteria(items: list[T], unique_fieldnames: list[str]) -> dict[str, Any]:
+def _get_filter_criteria[T](items: list[T], unique_fieldnames: list[str]) -> dict[str, Any]:
     filter_criteria = {}
     for field in unique_fieldnames:
         if "__" in field:

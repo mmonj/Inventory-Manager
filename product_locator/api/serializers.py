@@ -25,7 +25,7 @@ class ProductWithHomeLocationsSerializer(serializers.ModelSerializer[Product]):
         fields = ["upc", "name", "home_locations"]
 
 
-class HomeLocation_Products_Serializer(serializers.ModelSerializer[HomeLocation]):
+class HomeLocationProductsSerializer(serializers.ModelSerializer[HomeLocation]):
     products = ProductWithHomeLocationsSerializer(many=True)
 
     class Meta:

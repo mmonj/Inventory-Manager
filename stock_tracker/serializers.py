@@ -118,7 +118,7 @@ class ProductAdditionSerializer(serializers.ModelSerializer[ProductAddition]):
 
     def get_is_new(self, product_addition: ProductAddition) -> bool:
         # could not return single comparison expression result: mypy complained it would return Any
-        if (
+        if (  # noqa: SIM103
             self.context["work_cycle"].start_date <= product_addition.date_added
             and product_addition.date_added <= self.context["work_cycle"].end_date
         ):

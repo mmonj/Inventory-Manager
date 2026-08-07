@@ -5,7 +5,7 @@ from typing import Any
 
 def get_json(file_name: str) -> Any:
     file = Path(__file__).with_name(file_name)
-    with open(file, encoding="utf8") as fd:
+    with file.open(encoding="utf8") as fd:
         return json.load(fd)
 
 

@@ -31,23 +31,22 @@ def index(request: HttpRequest) -> HttpResponse:
     )
 
 
+def _render_add_new_products_form(request: HttpRequest, form: PlanogramForm) -> HttpResponse:
+    stores = Store.objects.all()
+    return templates.ProductLocatorAddNewProducts(form=form, stores=list(stores)).render(request)
+
+
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET", "POST"])
-def add_new_products(request: HttpRequest) -> HttpResponse:
+def add_new_products(request: HttpRequest) -> HttpResponse:  # noqa: PLR0911 -- each return is a distinct form-validation rejection path
     if request.method == "GET":
-        stores = Store.objects.all()
-        return templates.ProductLocatorAddNewProducts(
-            form=PlanogramForm(), stores=list(stores)
-        ).render(request)
+        return _render_add_new_products_form(request, PlanogramForm())
 
     # if POST
     received_form = PlanogramForm(request.POST)
     if not received_form.is_valid():
         messages.error(request, "Invalid form submission.")
-        stores = Store.objects.all()
-        return templates.ProductLocatorAddNewProducts(
-            form=received_form, stores=list(stores)
-        ).render(request)
+        return _render_add_new_products_form(request, received_form)
 
     planogram: Planogram = received_form.cleaned_data["planogram_pk"]
     planogram_text_dump: str = received_form.cleaned_data["planogram_text_dump"]
@@ -56,10 +55,7 @@ def add_new_products(request: HttpRequest) -> HttpResponse:
 
     if not planogram_text_dump:
         messages.error(request, "You have submitted an empty planogram text dump.")
-        stores = Store.objects.all()
-        return templates.ProductLocatorAddNewProducts(
-            form=received_form, stores=list(stores)
-        ).render(request)
+        return _render_add_new_products_form(request, received_form)
 
     product_list: list[IImportedProductInfo]
     parse_errors: list[str]
@@ -70,24 +66,15 @@ def add_new_products(request: HttpRequest) -> HttpResponse:
         for error in parse_errors:
             messages.error(request, error)
 
-        stores = Store.objects.all()
-        return templates.ProductLocatorAddNewProducts(
-            form=received_form, stores=list(stores)
-        ).render(request)
+        return _render_add_new_products_form(request, received_form)
 
     if not product_list:
         messages.error(request, "You have submitted data that resulted in 0 items being parsed.")
-        stores = Store.objects.all()
-        return templates.ProductLocatorAddNewProducts(
-            form=received_form, stores=list(stores)
-        ).render(request)
+        return _render_add_new_products_form(request, received_form)
 
     if planogram.store is None:
         messages.error(request, "The selected planogram does not have an associated store.")
-        stores = Store.objects.all()
-        return templates.ProductLocatorAddNewProducts(
-            form=received_form, stores=list(stores)
-        ).render(request)
+        return _render_add_new_products_form(request, received_form)
 
     if is_reset_planogram:
         label: str = received_form.cleaned_data["label"]

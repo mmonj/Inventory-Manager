@@ -50,13 +50,15 @@ def log_product_scan(request: DRFRequest) -> DRFResponse:
     try:
         product, _ = Product.objects.get_or_create(upc=request_data.upc)
     except DjangoValidationError as ex:
-        raise DRFValidationError(ex.messages)
+        raise DRFValidationError(ex.messages) from ex
 
     store = Store.objects.get(pk=request_data.store_id)
     product_addition, _ = ProductAddition.objects.get_or_create(product=product, store=store)
 
     util.record_product_addition(product_addition, is_product_scanned=True)
-    logger.info(f"Set product addition record (carry) for '{product.upc}' for store '{store.name}'")
+    logger.info(
+        "Set product addition record (carry) for '%s' for store '%s'", product.upc, store.name
+    )
 
     return DRFResponse(BasicProductAddition(product_addition).data)
 

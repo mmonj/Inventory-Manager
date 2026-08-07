@@ -89,11 +89,11 @@ def parse_data(
             )
 
     for line in lines_not_matched:
-        logger.info(f"Regex was not matched on line: '{line}'")
+        logger.info("Regex was not matched on line: '%s'", line)
         errors.append(f"No data was parsed from line: {line}")
 
     for upc in invalid_upcs:
-        logger.info(f"Invalid UPC check digit: '{upc}'")
+        logger.info("Invalid UPC check digit: '%s'", upc)
         errors.append(f"Invalid UPC (failed check digit): {upc}")
 
     # assert_unique(product_list, "upc", key=lambda e: e["upc"])
@@ -114,10 +114,11 @@ def assert_unique(
     for product in product_list:
         value = key(product)
 
-        assert value not in uniques, f"{unique_type} duplicate found: {value} --> {product}"
+        if value in uniques:
+            raise ValueError(f"{unique_type} duplicate found: {value} --> {product}")
         uniques.add(value)
 
-    logger.info(f"Validated as unique all {unique_type} values")
+    logger.info("Validated as unique all %s values", unique_type)
 
 
 def fix_location_ocr_inaccuracies(location: str) -> str:
@@ -133,7 +134,8 @@ def fix_location_ocr_inaccuracies(location: str) -> str:
     if LOCATION_RE.match(location):
         return location
 
-    assert len(location) in [2, 3], f"Location string '{location}' is not the right length"
+    if len(location) not in (2, 3):
+        raise ValueError(f"Location string '{location}' is not the right length")
 
     result = ""
     for idx, char in enumerate(location):
@@ -141,9 +143,10 @@ def fix_location_ocr_inaccuracies(location: str) -> str:
             result += COMMON_OCR_CHAR_ERRORS.get(char, [char])[0]
         elif idx > 0 and char.isalpha():
             fixed_char = get_numeric_ocr_char(char)
-            assert fixed_char != "", (
-                f"Error in attempt to fix location {location}; fix not found for char: {char}"
-            )
+            if fixed_char == "":
+                raise ValueError(
+                    f"Error in attempt to fix location {location}; fix not found for char: {char}"
+                )
 
             result += fixed_char
         else:

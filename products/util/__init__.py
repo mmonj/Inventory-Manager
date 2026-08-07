@@ -1,6 +1,6 @@
 import logging
 import zipfile
-from datetime import UTC, date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -76,8 +76,9 @@ def import_territories(territory_info: dict[str, Any]) -> None:
     logger.info("Importing territories")
     for field_rep_name, store_list in field_rep_territories.items():
         field_rep = FieldRepresentative.objects.get(name=field_rep_name)
-        for store_name in store_list:
-            new_stores.append(Store(name=store_name, field_representative=field_rep))
+        new_stores.extend(
+            Store(name=store_name, field_representative=field_rep) for store_name in store_list
+        )
     for store_name, store_info in all_stores.items():
         new_stores.append(Store(name=store_name))
         manager_names = store_info.get("manager_names")
@@ -106,7 +107,7 @@ def import_products(
 ) -> None:
     # new_products = []
     for client_brand, products_dict in products_info.items():
-        logger.info(f"Importing products for: {client_brand}")
+        logger.info("Importing products for: %s", client_brand)
         parent_company = BrandParentCompany.objects.get_or_create(short_name=client_brand)[0]
 
         new_products = (
@@ -114,7 +115,7 @@ def import_products(
                 upc=upc,
                 name=product_info["fs_name"],
                 parent_company=parent_company,
-                date_added=datetime.fromtimestamp(0),
+                date_added=datetime.fromtimestamp(0, UTC),
             )
             for upc, product_info in products_dict.items()
             if Product(upc=upc).is_valid_upc()
@@ -149,11 +150,11 @@ def import_distribution_data(
     for idx, (store_name, store_distribution_data) in enumerate(stores_distribution_data.items()):
         len1 = len(stores_distribution_data)
         store = Store.objects.get_or_create(name=store_name)[0]
-        logger.info(f"{idx + 1}/{len1} - Store: {store_name}")
+        logger.info("%d/%d - Store: %s", idx + 1, len1, store_name)
 
         ####
         new_products = (
-            Product(upc=upc, date_added=datetime.fromtimestamp(0))
+            Product(upc=upc, date_added=datetime.fromtimestamp(0, UTC))
             for upc, product_distribution_data in store_distribution_data.items()
             if Product(upc=upc).is_valid_upc()
         )
@@ -217,13 +218,12 @@ def get_utc_datetime(datetime_str: str | None) -> datetime:
     if datetime_str is None:
         return datetime.fromtimestamp(0, UTC)
 
-    datetime_object = datetime.strptime(datetime_str, "%Y-%m-%d at %I:%M:%S %p")
+    # input string has no timezone info; localized explicitly to EST below
+    datetime_object = datetime.strptime(datetime_str, "%Y-%m-%d at %I:%M:%S %p")  # noqa: DTZ007
 
     est = pytz.timezone("EST")
     local_time = est.localize(datetime_object)
-    utc_time = local_time.astimezone(pytz.utc)
-
-    return utc_time
+    return local_time.astimezone(pytz.utc)
 
 
 def get_store_count(territory_info: dict[str, Any]) -> int:
@@ -283,7 +283,7 @@ def get_product_additions_count(
 ) -> int:
     product_addition_set = set()
     for store_name, store_data in stores_distribution_data.items():
-        for upc, product_data in store_data.items():
+        for upc in store_data:
             try:
                 product = Product(upc=upc)
                 product.clean()

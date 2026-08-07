@@ -3,6 +3,7 @@ from typing import Any
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 from django.test import TestCase
+from django.utils import timezone
 
 from . import models, util
 
@@ -10,7 +11,7 @@ from . import models, util
 def printdebug(*items: Any) -> None:
     print()
     for item in items:
-        print(f"    > Type: {type(item)} -> {item._strd()}")
+        print(f"    > Type: {type(item)} -> {item._strd()}")  # noqa: SLF001 -- debug-only helper
 
 
 # Create your tests here.
@@ -89,13 +90,11 @@ class ProductAdditionTest(TestCase):
         models.ProductAddition.objects.create(store=store1, product=product1)
 
     def test_attributes(self) -> None:
-        import datetime
-
         store1 = models.Store.objects.get(name="store11-name")
         product1 = models.Product.objects.get(upc="044600320649")
 
         product_addition = models.ProductAddition.objects.get(store=store1, product=product1)
-        self.assertEqual(product_addition.date_added, datetime.date.today())
+        self.assertEqual(product_addition.date_added, timezone.now().date())
         self.assertEqual(product_addition.is_carried, False)
 
     def test_duplicates(self) -> None:
@@ -214,7 +213,7 @@ class ImportTest(TestCase):
                 short_name=parent_company
             ).exists()
             self.assertTrue(is_company_exist)
-            for upc, info in products.items():
+            for upc in products:
                 is_product_exist = models.Product.objects.filter(upc=upc).exists()
                 self.assertTrue(is_product_exist)
 
@@ -224,7 +223,7 @@ class ImportTest(TestCase):
         for store_name, products in self.store_distribution_data.items():
             store = models.Store.objects.get(name=store_name)
 
-            for upc, distribution_data in products.items():  # type: ignore[attr-defined]
+            for upc in products:  # type: ignore[attr-defined]
                 product = models.Product.objects.get(upc=upc)
                 is_product_addition_exist = models.ProductAddition.objects.filter(
                     product=product, store=store

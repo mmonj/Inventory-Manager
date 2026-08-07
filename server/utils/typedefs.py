@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Generic, Literal, TypedDict, TypeVar, Union
+from typing import Any, Literal, TypedDict, TypeVar
 
 from django.contrib.auth.models import User
 from django.db import models
@@ -16,18 +16,18 @@ E = TypeVar("E")
 
 
 @dataclass
-class TSuccess(Generic[T]):
+class TSuccess[T]:
     value: T
     ok: Literal[True] = True
 
 
 @dataclass
-class TFailure(Generic[E]):
+class TFailure[E]:
     err: E
     ok: Literal[False] = False
 
 
-TResult = Union[TSuccess[E], TFailure[T]]
+TResult = TSuccess[E] | TFailure[T]
 
 
 class CommonModel(models.Model):
