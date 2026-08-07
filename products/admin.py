@@ -21,6 +21,7 @@ from .models import (
 
 class FieldRepresentativeAdmin(admin.ModelAdmin[FieldRepresentative]):
     list_display = ("name", "work_email")
+    search_fields = ("name", "work_email")
 
 
 class UpcCorrectionInline(admin.TabularInline[UpcCorrection, BrandParentCompany]):
