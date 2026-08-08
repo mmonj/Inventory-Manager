@@ -274,6 +274,9 @@ class Store(models.Model):
         related_name="stores",
     )
     date_created = models.DateField(default=timezone.now)
+    # Last time this store showed up in a rep's synced schedule data
+    # (updated by create_records_from_schedule). Null until the first sync.
+    last_seen = models.DateTimeField(null=True, blank=True, default=timezone.now)
     guid = models.CharField(max_length=150, blank=True, default="")
     site_id = models.IntegerField(blank=True, null=True, default=None, unique=True)
     address_1 = models.CharField(max_length=100, blank=True, default="")
