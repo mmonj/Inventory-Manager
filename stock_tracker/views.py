@@ -12,7 +12,7 @@ from django.http import (
     HttpResponseServerError,
     JsonResponse,
 )
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
@@ -50,7 +50,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
         return redirect("root:index")
 
     if request.method == "GET":
-        return render(request, "stock_tracker/login.html")
+        return templates.StockTrackerLogin(is_invalid_credentials=False).render(request)
     # Attempt to sign user in
     username = request.POST["username"]
     password = request.POST["password"]
@@ -65,7 +65,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
             return redirect(next_url)
 
         return redirect("root:index")
-    return render(request, "stock_tracker/login.html", {"is_invalid_credentials": True})
+    return templates.StockTrackerLogin(is_invalid_credentials=True).render(request)
 
 
 @require_http_methods(["GET"])
@@ -86,15 +86,11 @@ def scanner(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def add_new_stores(request: HttpRequest) -> HttpResponse:
     if request.method == "GET":
-        return render(request, "stock_tracker/add_new_stores.html", {"form": forms.NewStoresForm()})
+        return templates.StockTrackerAddNewStores(form=forms.NewStoresForm()).render(request)
 
     received_form = forms.NewStoresForm(request.POST)
     if not received_form.is_valid():
-        return render(
-            request,
-            "stock_tracker/add_new_stores.html",
-            {"form": received_form, "form_errors": received_form.errors},
-        )
+        return templates.StockTrackerAddNewStores(form=received_form).render(request)
 
     new_stores_from_post: str = received_form.cleaned_data["stores_text"]
     new_stores = [s for s in (f.strip() for f in new_stores_from_post.split("\n")) if s]

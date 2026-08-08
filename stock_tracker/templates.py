@@ -4,12 +4,23 @@ from reactivated import Pick, template
 
 from products.models import BarcodeSheet, FieldRepresentative
 
+from .forms import NewStoresForm
 from .types import BarcodeSheetInterface, SheetTypeDescriptionInterface
 
 
 @template
 class StockTrackerIndex(NamedTuple):
     pass
+
+
+@template
+class StockTrackerLogin(NamedTuple):
+    is_invalid_credentials: bool
+
+
+@template
+class StockTrackerAddNewStores(NamedTuple):
+    form: NewStoresForm
 
 
 @template
