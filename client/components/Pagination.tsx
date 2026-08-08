@@ -1,8 +1,16 @@
 import React, { useMemo } from "react";
 
-import { interfaces } from "@reactivated";
-
 import classNames from "classnames";
+
+// Mirrors server/utils/typedefs.py's TPaginationData
+export interface TPaginationData {
+  current_page: number;
+  total_pages: number;
+  has_previous: boolean;
+  has_next: boolean;
+  previous_page_number: number;
+  next_page_number: number;
+}
 
 interface IPageLinkProps {
   page: number;
@@ -35,7 +43,7 @@ function navigateToPage(page: number) {
   window.location.href = url.toString();
 }
 
-export function Pagination(props: interfaces.TPaginationData) {
+export function Pagination(props: TPaginationData) {
   const pageNumbers = useMemo(() => {
     const startPage = Math.max(1, props.current_page - 2);
     const endPage = Math.min(props.total_pages, props.current_page + 2);

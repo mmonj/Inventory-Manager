@@ -10,6 +10,9 @@
 
         {% if user.is_authenticated %}
         <li class="nav-item">
+          <a class="nav-link" href="{% url 'stock_tracker:scanner' %}">Scanner</a>
+        </li>
+        <li class="nav-item">
           <a class="nav-link" href="{% url 'stock_tracker:scan_history' %}">Scan History</a>
         </li>
         <li class="nav-item">

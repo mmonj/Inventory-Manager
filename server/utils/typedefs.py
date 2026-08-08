@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Literal, TypedDict, TypeVar
+from typing import Any, Literal, NamedTuple, TypedDict, TypeVar
 
 from django.contrib.auth.models import User
 from django.db import models
@@ -9,6 +9,15 @@ from django.http import HttpRequest
 class TSessionData(TypedDict):
     cookies: dict[str, str]
     headers: dict[str, str]
+
+
+class TPaginationData(NamedTuple):
+    current_page: int  # current page number
+    total_pages: int  # total number of pages
+    has_previous: bool  # whether there's a previous page
+    has_next: bool  # whether there's a next page
+    previous_page_number: int  # previous page number (or None)
+    next_page_number: int  # next page number (or None)
 
 
 T = TypeVar("T")

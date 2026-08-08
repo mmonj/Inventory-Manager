@@ -38,6 +38,7 @@ interface Props {
 }
 
 const authenticatedLinks: TLink[] = [
+  getLink("Scanner", reverse("stock_tracker:scanner"), faBarcode),
   getLink("Scan History", reverse("stock_tracker:scan_history"), faHistory),
   getLink("Barcode Sheets", reverse("stock_tracker:barcode_sheet_history"), faBarcode),
   getLink("Manager Update Form", reverse("stock_tracker:get_manager_names"), faUserEdit),

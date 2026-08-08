@@ -3,6 +3,7 @@ from typing import Any
 
 import cattrs
 import requests
+from django.core.paginator import Page, Paginator
 from django.db import IntegrityError, models, transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import redirect
@@ -12,7 +13,7 @@ from requests.adapters import HTTPAdapter, Retry
 from requests.utils import cookiejar_from_dict, dict_from_cookiejar
 from rest_framework.exceptions import ValidationError
 
-from .typedefs import TResult, TSessionData
+from .typedefs import TFailure, TPaginationData, TResult, TSessionData, TSuccess
 
 TIsNewRecord = bool
 
@@ -199,6 +200,42 @@ def _get_filter_criteria[T](items: list[T], unique_fieldnames: list[str]) -> dic
 
         filter_criteria[f"{field}__in"] = filter_values
     return filter_criteria
+
+
+def get_pagination_data[TModelSubclass: models.Model](
+    queryset: models.QuerySet[TModelSubclass], *, page: int, page_size: int
+) -> TResult[tuple[Page[TModelSubclass], TPaginationData], ValueError]:
+    """
+    Paginate queryset and return the requested page alongside its TPaginationData.
+
+    `Paginator.get_page` silently clamps an out-of-range or non-integer `page` to the
+    nearest valid page instead of raising - so `page` is checked against the resolved
+    page's actual number and reported as a TFailure on mismatch, rather than letting the
+    caller believe it got the page it asked for when it didn't.
+    """
+    paginator = Paginator(queryset, page_size)
+    page_obj = paginator.get_page(page)
+
+    if page_obj.number != page:
+        return TFailure(
+            ValueError(f"Page {page} does not exist (there are {paginator.num_pages} page(s))")
+        )
+
+    return TSuccess(
+        (
+            page_obj,
+            TPaginationData(
+                current_page=page_obj.number,
+                total_pages=paginator.num_pages,
+                has_previous=page_obj.has_previous(),
+                has_next=page_obj.has_next(),
+                previous_page_number=page_obj.previous_page_number()
+                if page_obj.has_previous()
+                else 0,
+                next_page_number=page_obj.next_page_number() if page_obj.has_next() else 0,
+            ),
+        )
+    )
 
 
 def conditional_redirect(
