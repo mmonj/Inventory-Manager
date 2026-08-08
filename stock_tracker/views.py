@@ -21,6 +21,7 @@ from django.views.decorators.http import require_http_methods
 
 from products.models import (
     BarcodeSheet,
+    BrandParentCompany,
     FieldRepresentative,
     PersonnelContact,
     ProductAddition,
@@ -107,7 +108,10 @@ def add_new_stores(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET"])
 def scan_history(request: HttpRequest) -> HttpResponse:
     field_reps = FieldRepresentative.objects.prefetch_related("stores").all()
-    return templates.StockTrackerScanHistory(field_reps=list(field_reps)).render(request)
+    brand_parent_companies = BrandParentCompany.objects.order_by("expanded_name", "short_name")
+    return templates.StockTrackerScanHistory(
+        field_reps=list(field_reps), brand_parent_companies=list(brand_parent_companies)
+    ).render(request)
 
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))

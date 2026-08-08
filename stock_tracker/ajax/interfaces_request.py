@@ -6,6 +6,10 @@ class ProductAdditionsGETRequest:
     store_id: int
     # page number which to fetch
     page: int
+    # optional substring filter on the associated Product's name; empty string means no filter
+    product_name: str = ""
+    # comma-separated BrandParentCompany pks to filter by; empty string means no filter (all)
+    brand_parent_company_ids: str = ""
 
 
 @frozen

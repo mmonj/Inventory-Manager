@@ -6,7 +6,7 @@ import { m } from "motion/react";
 import { format } from "date-fns";
 
 import { useFetch } from "@client/hooks/useFetch";
-import { uncarry_product_addition } from "@client/util/stockTracker";
+import { getBrandCompanyLabel, uncarry_product_addition } from "@client/util/stockTracker";
 import { BasicProductAddition } from "@client/util/stockTracker/ajaxInterfaces";
 
 import { LoadingSpinner } from "../LoadingSpinner";
@@ -60,9 +60,7 @@ export function ProductAdditionListItem({
         <div className="truncated-text-container">
           <p className="truncated-text mb-1">{productAddition.product.name}</p>
           <small className="text-muted">
-            {productAddition.product.parent_company.expanded_name ??
-              productAddition.product.parent_company.short_name ??
-              "Unknown brand"}
+            {getBrandCompanyLabel(productAddition.product.parent_company)}
           </small>
         </div>
 

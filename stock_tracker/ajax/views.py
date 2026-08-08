@@ -33,6 +33,19 @@ def get_product_additions_by_store(request: DRFRequest) -> DRFResponse:
         .order_by("-date_last_scanned", "-id")
     )
 
+    if request_data.product_name != "":
+        product_additions = product_additions.filter(
+            product__name__icontains=request_data.product_name
+        )
+
+    if request_data.brand_parent_company_ids != "":
+        brand_parent_company_ids = [
+            int(pk) for pk in request_data.brand_parent_company_ids.split(",") if pk
+        ]
+        product_additions = product_additions.filter(
+            product__parent_company__pk__in=brand_parent_company_ids
+        )
+
     pagination_result = get_pagination_data(
         product_additions, page=request_data.page, page_size=num_records_limit
     )

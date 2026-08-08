@@ -218,7 +218,7 @@ def get_pagination_data[TModelSubclass: models.Model](
 
     if page_obj.number != page:
         return TFailure(
-            ValueError(f"Page {page} does not exist (there are {paginator.num_pages} page(s))")
+            ValueError(f"Page {page} does not exist — there are {paginator.num_pages} page(s)")
         )
 
     return TSuccess(

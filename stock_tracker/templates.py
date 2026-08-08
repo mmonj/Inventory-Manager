@@ -2,7 +2,7 @@ from typing import NamedTuple
 
 from reactivated import Pick, template
 
-from products.models import BarcodeSheet, FieldRepresentative
+from products.models import BarcodeSheet, BrandParentCompany, FieldRepresentative
 
 from .forms import NewStoresForm
 from .types import BarcodeSheetInterface, SheetTypeDescriptionInterface
@@ -81,3 +81,4 @@ class StockTrackerScanner(NamedTuple):
 @template
 class StockTrackerScanHistory(NamedTuple):
     field_reps: list[Pick[FieldRepresentative, "pk", "name", "stores.pk", "stores.name"]]
+    brand_parent_companies: list[Pick[BrandParentCompany, "pk", "short_name", "expanded_name"]]

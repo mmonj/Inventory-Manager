@@ -2,7 +2,7 @@ import { reverse } from "@reactivated";
 
 import { ApiResponse } from "@client/types";
 
-import { BasicProductAddition } from "./ajaxInterfaces";
+import { BasicBrandParentCompany, BasicProductAddition } from "./ajaxInterfaces";
 
 export async function postLogProductScan(
   upc: string,
@@ -31,6 +31,8 @@ export function getProductAdditions(
   payloadData: {
     store_id: number;
     page: number; // page number which to fetch
+    product_name?: string; // optional substring filter on the associated Product's name
+    brand_parent_company_ids?: string; // optional comma-separated BrandParentCompany pks
   }
 ): Promise<ApiResponse<BasicProductAddition[]>> {
   const endpointUrl = new URL(
@@ -47,6 +49,12 @@ export function getProductAdditions(
       "X-CSRFToken": csrfToken,
     },
   });
+}
+
+export const UNKNOWN_BRAND_COMPANY_LABEL = "Unknown brand";
+
+export function getBrandCompanyLabel(brandCompany: BasicBrandParentCompany): string {
+  return brandCompany.expanded_name ?? brandCompany.short_name ?? UNKNOWN_BRAND_COMPANY_LABEL;
 }
 
 export function uncarry_product_addition(product_addition_id: number, csrfToken: string) {
