@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import Prefetch
 from django.http import (
     HttpRequest,
     HttpResponse,
@@ -78,7 +79,9 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET"])
 def scanner(request: HttpRequest) -> HttpResponse:
-    field_reps = FieldRepresentative.objects.prefetch_related("stores").all()
+    field_reps = FieldRepresentative.objects.prefetch_related(
+        Prefetch("stores", queryset=Store.objects.filter(last_seen__isnull=False))
+    ).all()
 
     return templates.StockTrackerScanner(field_reps=list(field_reps)).render(request)
 
@@ -107,7 +110,9 @@ def add_new_stores(request: HttpRequest) -> HttpResponse:
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET"])
 def scan_history(request: HttpRequest) -> HttpResponse:
-    field_reps = FieldRepresentative.objects.prefetch_related("stores").all()
+    field_reps = FieldRepresentative.objects.prefetch_related(
+        Prefetch("stores", queryset=Store.objects.filter(last_seen__isnull=False))
+    ).all()
     brand_parent_companies = BrandParentCompany.objects.order_by("expanded_name", "short_name")
     return templates.StockTrackerScanHistory(
         field_reps=list(field_reps), brand_parent_companies=list(brand_parent_companies)
