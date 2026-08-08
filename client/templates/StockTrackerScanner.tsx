@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 
 import { Context, templates } from "@reactivated";
+import { AnimatePresence, LazyMotion, domAnimation } from "motion/react";
 import { Alert } from "react-bootstrap";
 
 import { BarcodeScanner } from "@client/components/BarcodeScanner";
@@ -85,48 +86,52 @@ export function Template(props: templates.StockTrackerScanner) {
   }
 
   return (
-    <Layout title="Scanner" className="p-3" navbar={<NavigationBar />}>
-      {store === null && (
-        <section className="mw-rem-50 mx-auto p-2">
-          <h1 className="text-center">Scanner</h1>
-          <FieldRepStoreSelector
-            propType="fieldReps"
-            field_reps={props.field_reps}
-            handleStoreSubmission={handleStoreSubmission}
-          />
-        </section>
-      )}
+    <LazyMotion features={domAnimation}>
+      <Layout title="Scanner" className="p-3" navbar={<NavigationBar />}>
+        {store === null && (
+          <section className="mw-rem-50 mx-auto p-2">
+            <h1 className="text-center">Scanner</h1>
+            <FieldRepStoreSelector
+              propType="fieldReps"
+              field_reps={props.field_reps}
+              handleStoreSubmission={handleStoreSubmission}
+            />
+          </section>
+        )}
 
-      {store !== null && (
-        <section id="scanner-container" className="mw-rem-60 mx-auto">
-          <div id="scanner-store-indicator">
-            <h3 className="text-center p-2">{store.name}</h3>
-            <BarcodeScanner scanSuccessCallback={onScanSuccess} scanErrorCallback={onScanError} />
-          </div>
-
-          {isLoading && (
-            <div className="d-flex justify-content-center">
-              <LoadingSpinner isBlockElement={true} />
+        {store !== null && (
+          <section id="scanner-container" className="mw-rem-60 mx-auto">
+            <div id="scanner-store-indicator">
+              <h3 className="text-center p-2">{store.name}</h3>
+              <BarcodeScanner scanSuccessCallback={onScanSuccess} scanErrorCallback={onScanError} />
             </div>
-          )}
-          {isError && (
-            <Alert variant="danger" className="text-center mx-2">
-              {errorMessages.map((error, index) => (
-                <div key={index}>{error}</div>
-              ))}
-            </Alert>
-          )}
-          <ol id="scanner-results" className="list-group list-group-numbered px-2">
-            {productAdditions.map((productAddition) => (
-              <NewScanListItem
-                key={productAddition.id}
-                productAddition={productAddition}
-                onProductDeleteHandler={onProductDelete}
-              />
-            ))}
-          </ol>
-        </section>
-      )}
-    </Layout>
+
+            {isLoading && (
+              <div className="d-flex justify-content-center">
+                <LoadingSpinner isBlockElement={true} />
+              </div>
+            )}
+            {isError && (
+              <Alert variant="danger" className="text-center mx-2">
+                {errorMessages.map((error, index) => (
+                  <div key={index}>{error}</div>
+                ))}
+              </Alert>
+            )}
+            <ol id="scanner-results" className="list-group list-group-numbered px-2">
+              <AnimatePresence initial={false}>
+                {productAdditions.map((productAddition) => (
+                  <NewScanListItem
+                    key={productAddition.id}
+                    productAddition={productAddition}
+                    onProductDeleteHandler={onProductDelete}
+                  />
+                ))}
+              </AnimatePresence>
+            </ol>
+          </section>
+        )}
+      </Layout>
+    </LazyMotion>
   );
 }

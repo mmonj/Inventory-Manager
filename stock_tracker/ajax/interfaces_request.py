@@ -6,7 +6,6 @@ class ProductAdditionsGETRequest:
     store_id: int
     # page number which to fetch
     page: int
-    sort_by: str
 
 
 @frozen

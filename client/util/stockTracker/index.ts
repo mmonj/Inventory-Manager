@@ -31,7 +31,6 @@ export function getProductAdditions(
   payloadData: {
     store_id: number;
     page: number; // page number which to fetch
-    sort_by: string;
   }
 ): Promise<ApiResponse<BasicProductAddition[]>> {
   const endpointUrl = new URL(

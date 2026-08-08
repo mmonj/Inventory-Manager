@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 
 import { Context, templates } from "@reactivated";
+import { AnimatePresence, LazyMotion, domAnimation } from "motion/react";
 import { Alert } from "react-bootstrap";
 
 import { Layout } from "@client/components/Layout";
@@ -23,11 +24,20 @@ export function Template(props: templates.StockTrackerScanHistory) {
 
   const paginationErrorMessage = React.useRef<HTMLDivElement>(null);
 
-  async function handleGetProductAdditions(storePk: number) {
+  const storesByPk = React.useMemo(() => {
+    const map = new Map<number, IStore>();
+    for (const field_rep of props.field_reps) {
+      for (const store of field_rep.stores) {
+        map.set(store.pk, store);
+      }
+    }
+    return map;
+  }, [props.field_reps]);
+
+  async function handleGetProductAdditions(storePk: number, page: number) {
     const productAdditionsCallback = () =>
       getProductAdditions(djangoContext.csrf_token, {
-        page: nextPageNumber,
-        sort_by: "",
+        page,
         store_id: storePk,
       });
 
@@ -35,22 +45,21 @@ export function Template(props: templates.StockTrackerScanHistory) {
       await productAdditionPaginationState.fetchData(productAdditionsCallback);
     if (isSuccess) {
       setProductAdditions((prev) => [...prev, ...result]);
-      setNextPageNumber((prev) => prev + 1);
+      setNextPageNumber(page + 1);
     } else {
       paginationErrorMessage.current?.scrollIntoView();
     }
   }
 
   async function handleStoreSubmission(storePk: string) {
-    for (const field_rep of props.field_reps) {
-      for (const store of field_rep.stores) {
-        if (store.pk === parseInt(storePk)) {
-          setChosenStore(() => store);
-          await handleGetProductAdditions(store.pk);
-          return;
-        }
-      }
+    const store = storesByPk.get(parseInt(storePk));
+    if (store === undefined) {
+      return;
     }
+
+    setChosenStore(store);
+    setProductAdditions([]);
+    await handleGetProductAdditions(store.pk, 1);
   }
 
   function handleProductAdditionDeletion(productAdditionPk: number) {
@@ -60,57 +69,61 @@ export function Template(props: templates.StockTrackerScanHistory) {
   }
 
   return (
-    <Layout title="Scan History" className="p-3" navbar={<NavigationBar />}>
-      <section className="m-2 px-2 mw-rem-60 mx-auto">
-        <h1 className="text-center">Scan History</h1>
-        {chosenStore === null && (
-          <FieldRepStoreSelector
-            propType="fieldReps"
-            field_reps={props.field_reps}
-            handleStoreSubmission={handleStoreSubmission}
-          />
-        )}
-
-        {chosenStore !== null && (
-          <ol className="list-group">
-            <h1 className="text-center my-3">{chosenStore.name}</h1>
-            {productAdditions.map((productAddition) => (
-              <ProductAdditionListItem
-                key={productAddition.id}
-                productAddition={productAddition}
-                productAdditionDeletionHandler={handleProductAdditionDeletion}
-              />
-            ))}
-          </ol>
-        )}
-
-        <div
-          onClick={() => handleGetProductAdditions(chosenStore!.pk)}
-          role="button"
-          className="my-3 text-center text-bold"
-        >
-          {chosenStore !== null && !productAdditionPaginationState.isLoading && (
-            <Alert className="p-2" style={{ fontWeight: "500" }}>
-              Load more product additions
-            </Alert>
+    <LazyMotion features={domAnimation}>
+      <Layout title="Scan History" className="p-3" navbar={<NavigationBar />}>
+        <section className="m-2 px-2 mw-rem-60 mx-auto">
+          <h1 className="text-center">Scan History</h1>
+          {chosenStore === null && (
+            <FieldRepStoreSelector
+              propType="fieldReps"
+              field_reps={props.field_reps}
+              handleStoreSubmission={handleStoreSubmission}
+            />
           )}
-          {productAdditionPaginationState.isLoading && (
+
+          {chosenStore !== null && (
             <>
-              <Alert className="p-2" style={{ fontWeight: "500" }}>
-                Loading further product additions{" "}
-                <LoadingSpinner isBlockElement={false} size={"sm"} className="text-center" />
-              </Alert>
+              <ol className="list-group">
+                <h1 className="text-center my-3">{chosenStore.name}</h1>
+                <AnimatePresence initial={false}>
+                  {productAdditions.map((productAddition) => (
+                    <ProductAdditionListItem
+                      key={productAddition.id}
+                      productAddition={productAddition}
+                      productAdditionDeletionHandler={handleProductAdditionDeletion}
+                    />
+                  ))}
+                </AnimatePresence>
+              </ol>
+
+              <div
+                onClick={() => handleGetProductAdditions(chosenStore.pk, nextPageNumber)}
+                role="button"
+                className="my-3 text-center text-bold"
+              >
+                {!productAdditionPaginationState.isLoading && (
+                  <Alert className="p-2" style={{ fontWeight: "500" }}>
+                    Load more product additions
+                  </Alert>
+                )}
+                {productAdditionPaginationState.isLoading && (
+                  <Alert className="p-2" style={{ fontWeight: "500" }}>
+                    Loading further product additions{" "}
+                    <LoadingSpinner isBlockElement={false} size={"sm"} className="text-center" />
+                  </Alert>
+                )}
+                {productAdditionPaginationState.isError && (
+                  <Alert ref={paginationErrorMessage} className="p-2" variant="danger">
+                    {productAdditionPaginationState.errorMessages.map((msg, index) => (
+                      <div key={index}>{msg}</div>
+                    ))}
+                  </Alert>
+                )}
+              </div>
             </>
           )}
-          {productAdditionPaginationState.isError && (
-            <Alert ref={paginationErrorMessage} className="p-2" variant="danger">
-              {productAdditionPaginationState.errorMessages.map((msg, index) => (
-                <div key={index}>{msg}</div>
-              ))}
-            </Alert>
-          )}
-        </div>
-      </section>
-    </Layout>
+        </section>
+      </Layout>
+    </LazyMotion>
   );
 }

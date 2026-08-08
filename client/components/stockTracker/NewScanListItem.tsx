@@ -1,6 +1,7 @@
 import React, { useContext } from "react";
 
 import { Context } from "@reactivated";
+import { m } from "motion/react";
 
 import { useFetch } from "@client/hooks/useFetch";
 import { uncarry_product_addition } from "@client/util/stockTracker";
@@ -18,18 +19,30 @@ export function NewScanListItem({ productAddition, onProductDeleteHandler }: Pro
   const djangoContext = useContext(Context);
 
   async function onDeleteClick(productAddition: BasicProductAddition) {
-    const fetchCallback = () => {
-      return uncarry_product_addition(productAddition.id!, djangoContext.csrf_token);
-    };
+    if (productAddition.id === undefined || productAddition.product.upc === undefined) {
+      return;
+    }
+    const productAdditionId = productAddition.id;
+    const upc = productAddition.product.upc;
+
+    const fetchCallback = () =>
+      uncarry_product_addition(productAdditionId, djangoContext.csrf_token);
 
     const [isSuccess] = await fetchData(fetchCallback);
     if (isSuccess) {
-      onProductDeleteHandler(productAddition.product.upc!);
+      onProductDeleteHandler(upc);
     }
   }
 
   return (
-    <li className="list-group-item d-flex justify-content-between align-items-start collapse show">
+    <m.li
+      layout
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.2 }}
+      className="list-group-item d-flex justify-content-between align-items-start overflow-hidden"
+    >
       <div className="ms-2 me-auto product-container">
         <div className="fw-bold upc-container">{productAddition.product.upc}</div>
         <div className="product-name">{productAddition.product.name}</div>
@@ -44,6 +57,6 @@ export function NewScanListItem({ productAddition, onProductDeleteHandler }: Pro
           Delete
         </button>
       )}
-    </li>
+    </m.li>
   );
 }

@@ -1,6 +1,7 @@
 import React from "react";
 
 import { Context } from "@reactivated";
+import { m } from "motion/react";
 
 import { format } from "date-fns";
 
@@ -23,22 +24,33 @@ export function ProductAdditionListItem({
   const djangoContext = React.useContext(Context);
 
   const dateLastScanned =
-    productAddition.date_last_scanned === null
+    productAddition.date_last_scanned === null || productAddition.date_last_scanned === undefined
       ? ""
-      : format(new Date(productAddition.date_last_scanned!), "MMMM d, yyyy, hh:mm a");
+      : format(new Date(productAddition.date_last_scanned), "MMMM d, yyyy, hh:mm a");
 
   async function handleDeleteClick() {
-    const fetchCallback = () => {
-      return uncarry_product_addition(productAddition.id!, djangoContext.csrf_token);
-    };
+    if (productAddition.id === undefined) {
+      return;
+    }
+    const productAdditionId = productAddition.id;
+
+    const fetchCallback = () =>
+      uncarry_product_addition(productAdditionId, djangoContext.csrf_token);
     const [isSuccess] = await productAdditionDeleteState.fetchData(fetchCallback);
     if (isSuccess) {
-      productAdditionDeletionHandler(productAddition.id!);
+      productAdditionDeletionHandler(productAdditionId);
     }
   }
 
   return (
-    <li className="list-group-item product-list-item">
+    <m.li
+      layout
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.2 }}
+      className="list-group-item product-list-item overflow-hidden"
+    >
       <div className="d-flex w-100 justify-content-between">
         <h5 className="mb-1">{productAddition.product.upc}</h5>
 
@@ -48,8 +60,8 @@ export function ProductAdditionListItem({
         <div className="truncated-text-container">
           <p className="truncated-text mb-1">{productAddition.product.name}</p>
           <small className="text-muted">
-            {productAddition.product.parent_company?.expanded_name ??
-              productAddition.product.parent_company?.short_name ??
+            {productAddition.product.parent_company.expanded_name ??
+              productAddition.product.parent_company.short_name ??
               "Unknown brand"}
           </small>
         </div>
@@ -65,6 +77,6 @@ export function ProductAdditionListItem({
         )}
         {productAdditionDeleteState.isLoading && <LoadingSpinner isBlockElement={false} />}
       </div>
-    </li>
+    </m.li>
   );
 }
