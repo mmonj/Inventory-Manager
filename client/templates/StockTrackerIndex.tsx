@@ -6,12 +6,21 @@ import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
   faArrowCircleRight,
   faBarcode,
+  faCalendarAlt,
+  faCalendarCheck,
+  faChartBar,
   faDatabase,
+  faEdit,
   faExternalLinkAlt,
   faHistory,
+  faListCheck,
+  faMapMarkedAlt,
+  faPencilAlt,
   faShieldAlt,
   faStore,
+  faUserCheck,
   faUserEdit,
+  faUserShield,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -123,6 +132,72 @@ export function Template(_props: templates.StockTrackerIndex) {
     },
   ];
 
+  const qtToolCards: DashboardCardInfo[] = [
+    {
+      title: "View Qt Territory",
+      description: "View and manage Qt territory assignments with interactive maps and scheduling",
+      href: reverse("survey_worker:qt_territory_viewer"),
+      icon: faMapMarkedAlt,
+      buttonIcon: faArrowCircleRight,
+      buttonLabel: "Launch Territory Viewer",
+      colorVariant: "primary",
+      buttonVariant: "outline",
+    },
+    {
+      title: "Schedule Calendar",
+      description: "View a rep's schedule as a calendar and schedule or unschedule service orders",
+      href: reverse("survey_worker:qt_schedule_calendar"),
+      icon: faCalendarAlt,
+      buttonIcon: faCalendarCheck,
+      buttonLabel: "Open Schedule Calendar",
+      colorVariant: "success",
+      buttonVariant: "outline",
+    },
+  ];
+
+  const qtAdminCards: DashboardCardInfo[] = [
+    {
+      title: "View Login Sessions",
+      description: "Monitor and manage active user login sessions",
+      href: reverse("survey_worker:qt_view_login_sessions"),
+      icon: faUserCheck,
+      buttonIcon: faUserShield,
+      buttonLabel: "View Sessions",
+      colorVariant: "info",
+      buttonVariant: "outline",
+    },
+    {
+      title: "View Schedule JSON",
+      description: "View territory JSON data",
+      href: reverse("survey_worker:qt_view_schedules"),
+      icon: faCalendarAlt,
+      buttonIcon: faCalendarCheck,
+      buttonLabel: "View Schedules",
+      colorVariant: "success",
+      buttonVariant: "outline",
+    },
+    {
+      title: "Update Schedule",
+      description: "Update and modify schedules for Qt territories",
+      href: reverse("survey_worker:qt_update_schedule"),
+      icon: faEdit,
+      buttonIcon: faPencilAlt,
+      buttonLabel: "Update Schedule",
+      colorVariant: "danger",
+      buttonVariant: "outline",
+    },
+    {
+      title: "Autofill Logs",
+      description: "View detailed logs for all autofill actions",
+      href: reverse("survey_worker:qt_view_autofill_logs"),
+      icon: faChartBar,
+      buttonIcon: faListCheck,
+      buttonLabel: "View Logs",
+      colorVariant: "secondary",
+      buttonVariant: "outline",
+    },
+  ];
+
   return (
     <Layout
       title="Inventory Tracker Dashboard"
@@ -150,6 +225,19 @@ export function Template(_props: templates.StockTrackerIndex) {
             </div>
           </div>
 
+          {/* Qt Tools Section */}
+          <div className="mb-5">
+            <h3 className="h5 text-secondary mb-3">
+              <FontAwesomeIcon icon={faMapMarkedAlt} className="me-2" />
+              Qt Tools
+            </h3>
+            <div className="row g-4">
+              {qtToolCards.map((card) => (
+                <DashboardCard key={card.title} {...card} />
+              ))}
+            </div>
+          </div>
+
           {user.is_superuser && (
             <>
               {/* Administrative Tools Section */}
@@ -160,6 +248,19 @@ export function Template(_props: templates.StockTrackerIndex) {
                 </h3>
                 <div className="row g-4">
                   {adminCards.map((card) => (
+                    <DashboardCard key={card.title} {...card} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Qt Administrative Tools Section */}
+              <div className="mb-4">
+                <h3 className="h5 text-secondary mb-3">
+                  <FontAwesomeIcon icon={faShieldAlt} className="me-2" />
+                  Qt Administrative Tools
+                </h3>
+                <div className="row g-4">
+                  {qtAdminCards.map((card) => (
                     <DashboardCard key={card.title} {...card} />
                   ))}
                 </div>

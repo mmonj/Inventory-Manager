@@ -27,7 +27,7 @@ import {
   ScheduledServiceOrderListItem,
   UnscheduledServiceOrderListItem,
 } from "@client/components/QtScheduleCalendar";
-import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
+import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { useErrorToasts } from "@client/hooks/useErrorToasts";
 import { fetchByReactivated } from "@client/util/commonUtil";
 import {

@@ -7,7 +7,7 @@ import { format } from "date-fns/esm";
 import Form from "react-bootstrap/Form";
 
 import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
-import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
+import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { buildUrlFromFormData, fetchByReactivated } from "@client/util/commonUtil";
 
 import { Layout } from "../components/Layout";

@@ -7,8 +7,6 @@ import {
   faArrowRight,
   faBarcode,
   faBox,
-  faClipboardList,
-  faMapMarkedAlt,
   faMapMarkerAlt,
   faSearchLocation,
 } from "@fortawesome/free-solid-svg-icons";
@@ -51,7 +49,7 @@ export function Template(_props: templates.HomepageIndex) {
           {/* cards */}
           <Row className="g-4">
             {/* Inventory Tracker Card */}
-            <Col lg={4}>
+            <Col lg={6}>
               <Card className="h-100 border-0 shadow-sm hover-shadow transition">
                 <div className="position-relative overflow-hidden" style={{ height: "200px" }}>
                   <img
@@ -92,7 +90,7 @@ export function Template(_props: templates.HomepageIndex) {
             </Col>
 
             {/* Product Locator Card */}
-            <Col lg={4}>
+            <Col lg={6}>
               <Card className="h-100 border-0 shadow-sm hover-shadow transition">
                 <div className="position-relative overflow-hidden" style={{ height: "200px" }}>
                   <img
@@ -131,44 +129,6 @@ export function Template(_props: templates.HomepageIndex) {
                   >
                     <FontAwesomeIcon icon={faArrowRight} className="me-2" />
                     Go to Product Locator
-                  </a>
-                </Card.Body>
-              </Card>
-            </Col>
-
-            {/* Survey Worker Card */}
-            <Col lg={4}>
-              <Card className="h-100 border-0 shadow-sm hover-shadow transition">
-                <div className="position-relative overflow-hidden" style={{ height: "200px" }}>
-                  <img
-                    src={context.STATIC_URL + "public/survey-logo.png"}
-                    className="card-img-top w-100 h-100 object-fit-cover"
-                    alt="survey-logo"
-                  />
-                  <div className="position-absolute top-0 start-0 w-100 h-100 bg-info bg-opacity-10"></div>
-                </div>
-                <Card.Body className="d-flex flex-column p-4">
-                  <div className="mb-3">
-                    <div className="d-flex align-items-center mb-2">
-                      <div className="bg-info bg-opacity-10 rounded-circle p-2 me-2">
-                        <FontAwesomeIcon icon={faClipboardList} size="lg" className="text-info" />
-                      </div>
-                      <h5 className="card-title mb-0 fw-bold">Survey Worker</h5>
-                    </div>
-                  </div>
-                  <p className="card-text text-muted flex-grow-1">Find and launch work surveys</p>
-                  <div className="d-flex gap-2 mb-3">
-                    <Badge bg="warning" className="bg-opacity-10 text-warning">
-                      <FontAwesomeIcon icon={faMapMarkedAlt} className="me-1" />
-                      Territory Map
-                    </Badge>
-                  </div>
-                  <a
-                    href={reverse("survey_worker:index")}
-                    className="btn btn-info btn-lg w-100 mt-auto"
-                  >
-                    <FontAwesomeIcon icon={faArrowRight} className="me-2" />
-                    Go to Survey Launcher
                   </a>
                 </Card.Body>
               </Card>

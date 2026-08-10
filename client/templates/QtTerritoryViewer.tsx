@@ -13,7 +13,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { Layout } from "@client/components/Layout";
 import { StoreList } from "@client/components/qtSurveyWorker/StoreList";
-import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
+import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { matchesSearch } from "@client/util/qtSurveyWorker/scheduleUtils";
 
 // const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMapLeaflet"));
@@ -174,8 +174,8 @@ export function Template(props: templates.QtTerritoryViewer) {
               <FontAwesomeIcon icon={faMapLocationDot} size="3x" className="mb-3 opacity-50" />
               <h4 className="card-title mb-2">No territory data available</h4>
               <p className="card-text mb-0 text-secondary">
-                No enabled field representative has synced schedule data for the current work
-                cycle yet.
+                No enabled field representative has synced schedule data for the current work cycle
+                yet.
               </p>
             </div>
           </div>

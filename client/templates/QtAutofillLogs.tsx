@@ -17,7 +17,7 @@ import {
 
 import { Layout } from "@client/components/Layout";
 import { Pagination } from "@client/components/Pagination";
-import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
+import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 
 function getMessageTypeVariant(messageType: string): string {
   switch (messageType.toLowerCase()) {

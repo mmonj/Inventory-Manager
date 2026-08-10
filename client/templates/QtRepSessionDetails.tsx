@@ -8,7 +8,7 @@ import { format } from "date-fns/esm";
 import Container from "react-bootstrap/Container";
 import Stack from "react-bootstrap/Stack";
 
-import { NavigationBar } from "@client/components/qtSurveyWorker/NavigationBar";
+import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 
 import { Layout } from "../components/Layout";
 

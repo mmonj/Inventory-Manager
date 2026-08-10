@@ -7,11 +7,17 @@ import { Context, reverse } from "@reactivated";
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
   faBarcode,
+  faCalendarAlt,
+  faCalendarCheck,
+  faChartBar,
+  faEdit,
   faHistory,
   faHome,
+  faMapMarkedAlt,
   faSignInAlt,
   faSignOutAlt,
   faStore,
+  faUserCheck,
   faUserEdit,
   faUserShield,
 } from "@fortawesome/free-solid-svg-icons";
@@ -42,10 +48,16 @@ const authenticatedLinks: TLink[] = [
   getLink("Scan History", reverse("stock_tracker:scan_history"), faHistory),
   getLink("Barcode Sheets", reverse("stock_tracker:barcode_sheet_history"), faBarcode),
   getLink("Manager Update Form", reverse("stock_tracker:get_manager_names"), faUserEdit),
+  getLink("Territory Viewer", reverse("survey_worker:qt_territory_viewer"), faMapMarkedAlt),
+  getLink("Schedule", reverse("survey_worker:qt_schedule_calendar"), faCalendarAlt),
 ];
 
 const superuserLinks: TLink[] = [
   getLink("Add New Stores", reverse("stock_tracker:add_new_stores"), faStore),
+  getLink("View Login Sessions", reverse("survey_worker:qt_view_login_sessions"), faUserCheck),
+  getLink("View Schedule JSON", reverse("survey_worker:qt_view_schedules"), faCalendarCheck),
+  getLink("Update Qt Schedule", reverse("survey_worker:qt_update_schedule"), faEdit),
+  getLink("Autofill Logs", reverse("survey_worker:qt_view_autofill_logs"), faChartBar),
 ];
 
 export function NavigationBar({ extraClassName = undefined }: Props) {
