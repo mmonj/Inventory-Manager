@@ -429,6 +429,22 @@ export function Template(props: templates.QtScheduleCalendar) {
     [unscheduledServiceOrders]
   );
 
+  // Naive average: total hours of the selected SOs divided evenly across the selected
+  // dates. Doesn't account for the backend's per-store/location bucketing (see
+  // build_auto_schedule_groups) - that's the backend's job, this is just a rough estimate
+  // for the user while picking dates/SOs.
+  const autoScheduleAverageHoursPerDay = React.useMemo(() => {
+    if (autoScheduleSelectedSoIds.size === 0 || autoScheduleSelectedDates.length === 0) {
+      return null;
+    }
+
+    const totalHours = unscheduledServiceOrders
+      .filter((so) => autoScheduleSelectedSoIds.has(so.ServiceOrderId))
+      .reduce((sum, so) => sum + so.EstimatedTime, 0);
+
+    return totalHours / autoScheduleSelectedDates.length;
+  }, [unscheduledServiceOrders, autoScheduleSelectedSoIds, autoScheduleSelectedDates]);
+
   // only SOs currently visible in the Unscheduled list count as selected -
   // dropping a SO out of view (via date/job-client filtering) also drops its selection
   React.useEffect(() => {
@@ -1159,6 +1175,8 @@ export function Template(props: templates.QtScheduleCalendar) {
                     <strong>
                       {autoScheduleSelectedSoIds.size} SO(s), {autoScheduleSelectedDates.length}{" "}
                       date(s) selected
+                      {autoScheduleAverageHoursPerDay !== null &&
+                        ` (~${autoScheduleAverageHoursPerDay.toFixed(2)} avg hrs/day)`}
                     </strong>
                   </Alert>
                 )}
