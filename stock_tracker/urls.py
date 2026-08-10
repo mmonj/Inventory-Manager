@@ -57,6 +57,7 @@ ajax_urlpatterns = [
         name="uncarry_product_addition_by_id",
     ),
     path("log_product_scan/", api_views.log_product_scan, name="log_product_scan"),
+    path("get_barcode_sheets/", api_views.get_barcode_sheets, name="get_barcode_sheets"),
 ]
 
 urlpatterns = ssr_urlpatterns + ajax_urlpatterns

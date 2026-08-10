@@ -8,7 +8,7 @@ import { faFilter } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { Layout } from "@client/components/Layout";
-import { LoadingSpinner } from "@client/components/LoadingSpinner";
+import { LoadMoreButton } from "@client/components/LoadMoreButton";
 import { FieldRepStoreSelector } from "@client/components/StoreSelector";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { ProductAdditionListItem } from "@client/components/stockTracker/ProductAdditionListItem";
@@ -247,7 +247,12 @@ export function Template(props: templates.StockTrackerScanHistory) {
                 onSubmit={(event) => void handleFiltersSubmit(event)}
               />
 
-              <div
+              <LoadMoreButton
+                ref={paginationErrorMessage}
+                label="product additions"
+                isLoading={productAdditionPaginationState.isLoading}
+                isError={productAdditionPaginationState.isError}
+                errorMessages={productAdditionPaginationState.errorMessages}
                 onClick={() =>
                   handleGetProductAdditions(
                     chosenStore.pk,
@@ -256,28 +261,7 @@ export function Template(props: templates.StockTrackerScanHistory) {
                     selectedBrandCompanyIds
                   )
                 }
-                role="button"
-                className="my-3 text-center text-bold"
-              >
-                {!productAdditionPaginationState.isLoading && (
-                  <Alert className="p-2" style={{ fontWeight: "500" }}>
-                    Load more product additions
-                  </Alert>
-                )}
-                {productAdditionPaginationState.isLoading && (
-                  <Alert className="p-2" style={{ fontWeight: "500" }}>
-                    Loading further product additions{" "}
-                    <LoadingSpinner isBlockElement={false} size={"sm"} className="text-center" />
-                  </Alert>
-                )}
-                {productAdditionPaginationState.isError && (
-                  <Alert ref={paginationErrorMessage} className="p-2" variant="danger">
-                    {productAdditionPaginationState.errorMessages.map((msg, index) => (
-                      <div key={index}>{msg}</div>
-                    ))}
-                  </Alert>
-                )}
-              </div>
+              />
             </>
           )}
         </section>

@@ -21,3 +21,11 @@ class ProductAdditionUncarryRequest:
 class LogProductScanRequest:
     upc: str
     store_id: int
+
+
+@frozen
+class BarcodeSheetsGETRequest:
+    # page number which to fetch
+    page: int
+    # optional FieldRepresentative pk to filter by; empty string means no filter (all reps)
+    field_representative_id: str = ""

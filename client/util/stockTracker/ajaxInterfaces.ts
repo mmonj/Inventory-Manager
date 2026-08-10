@@ -15,3 +15,20 @@ export interface BasicProductAddition {
   is_carried?: boolean;
   product: BasicProduct;
 }
+
+export interface BasicStore {
+  name?: string;
+}
+
+export interface BasicWorkCycle {
+  start_date?: string;
+}
+
+export interface BasicBarcodeSheet {
+  id?: number;
+  store: BasicStore;
+  parent_company: BasicBrandParentCompany | null;
+  work_cycle: BasicWorkCycle | null;
+  datetime_created?: string;
+  product_additions_count?: number;
+}

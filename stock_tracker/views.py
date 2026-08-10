@@ -135,27 +135,11 @@ def uncarry_product_addition(
 def barcode_sheet_history(
     request: HttpRequest, field_representative_id: int | None = None
 ) -> HttpResponse:
-    fields_to_prefetch = ["store", "parent_company", "product_additions", "work_cycle"]
-    num_fields = 25
-
-    field_representatives = FieldRepresentative.objects.all()
-    if field_representative_id is None:
-        recent_barcode_sheets = (
-            BarcodeSheet.objects.all()
-            .order_by("-id")
-            .prefetch_related(*fields_to_prefetch)[:num_fields]
-        )
-    else:
-        recent_barcode_sheets = (
-            BarcodeSheet.objects.filter(store__field_representative=field_representative_id)
-            .order_by("-id")
-            .prefetch_related(*fields_to_prefetch)[:num_fields]
-        )
+    field_representatives = FieldRepresentative.objects.filter(is_enabled=True)
 
     return templates.StockTrackerBarcodeSheetsHistory(
         current_field_rep_id=field_representative_id,
         field_representatives=list(field_representatives),
-        recent_barcode_sheets=list(recent_barcode_sheets),
     ).render(request)
 
 

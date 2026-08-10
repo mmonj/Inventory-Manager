@@ -7,16 +7,17 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.request import Request as DRFRequest
 from rest_framework.response import Response as DRFResponse
 
-from products.models import Product, ProductAddition, Store
+from products.models import BarcodeSheet, Product, ProductAddition, Store
 from server.utils.common import get_pagination_data, validate_structure
 from stock_tracker import util
 
 from .interfaces_request import (
+    BarcodeSheetsGETRequest,
     LogProductScanRequest,
     ProductAdditionsGETRequest,
     ProductAdditionUncarryRequest,
 )
-from .interfaces_response import BasicProductAddition
+from .interfaces_response import BasicBarcodeSheet, BasicProductAddition
 
 logger = logging.getLogger("main_logger")
 
@@ -57,6 +58,34 @@ def get_product_additions_by_store(request: DRFRequest) -> DRFResponse:
 
     return DRFResponse(
         BasicProductAddition(list(page_obj.object_list), many=True, read_only=True).data
+    )
+
+
+@api_view(["GET"])
+def get_barcode_sheets(request: DRFRequest) -> DRFResponse:
+    request_data = validate_structure(request.GET, BarcodeSheetsGETRequest)
+
+    num_records_limit = 25
+
+    barcode_sheets = BarcodeSheet.objects.prefetch_related(
+        "store", "parent_company", "work_cycle", "product_additions"
+    ).order_by("-id")
+
+    if request_data.field_representative_id != "":
+        barcode_sheets = barcode_sheets.filter(
+            store__field_representative=int(request_data.field_representative_id)
+        )
+
+    pagination_result = get_pagination_data(
+        barcode_sheets, page=request_data.page, page_size=num_records_limit
+    )
+    if not pagination_result.ok:
+        raise DRFValidationError(str(pagination_result.err))
+
+    page_obj, _ = pagination_result.value
+
+    return DRFResponse(
+        BasicBarcodeSheet(list(page_obj.object_list), many=True, read_only=True).data
     )
 
 

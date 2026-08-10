@@ -2,7 +2,7 @@ import { reverse } from "@reactivated";
 
 import { ApiResponse } from "@client/types";
 
-import { BasicBrandParentCompany, BasicProductAddition } from "./ajaxInterfaces";
+import { BasicBarcodeSheet, BasicBrandParentCompany, BasicProductAddition } from "./ajaxInterfaces";
 
 export async function postLogProductScan(
   upc: string,
@@ -37,6 +37,29 @@ export function getProductAdditions(
 ): Promise<ApiResponse<BasicProductAddition[]>> {
   const endpointUrl = new URL(
     reverse("stock_tracker:get_product_additions_by_store"),
+    document.location.origin
+  );
+  for (const [payloadKey, payloadValue] of Object.entries(payloadData)) {
+    endpointUrl.searchParams.set(payloadKey, payloadValue.toString());
+  }
+
+  return fetch(endpointUrl, {
+    method: "GET",
+    headers: {
+      "X-CSRFToken": csrfToken,
+    },
+  });
+}
+
+export function getBarcodeSheets(
+  csrfToken: string,
+  payloadData: {
+    page: number; // page number which to fetch
+    field_representative_id?: number; // optional FieldRepresentative pk to filter by
+  }
+): Promise<ApiResponse<BasicBarcodeSheet[]>> {
+  const endpointUrl = new URL(
+    reverse("stock_tracker:get_barcode_sheets"),
     document.location.origin
   );
   for (const [payloadKey, payloadValue] of Object.entries(payloadData)) {

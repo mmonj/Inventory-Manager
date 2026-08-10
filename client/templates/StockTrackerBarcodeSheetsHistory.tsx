@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 import {
   Badge,
@@ -11,20 +11,60 @@ import {
   Row,
 } from "react-bootstrap";
 
-import { reverse, templates } from "@reactivated";
-
-import { Layout } from "@client/components/Layout";
-import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
+import { Context, reverse, templates } from "@reactivated";
 
 import { format } from "date-fns";
 
+import { Layout } from "@client/components/Layout";
+import { LoadMoreButton } from "@client/components/LoadMoreButton";
+import { LoadingSpinner } from "@client/components/LoadingSpinner";
+import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
+import { useFetch } from "@client/hooks/useFetch";
+import { getBarcodeSheets } from "@client/util/stockTracker";
+import { BasicBarcodeSheet } from "@client/util/stockTracker/ajaxInterfaces";
+
 export function Template(props: templates.StockTrackerBarcodeSheetsHistory) {
+  const djangoContext = React.useContext(Context);
+  const [barcodeSheets, setBarcodeSheets] = useState<BasicBarcodeSheet[]>([]);
+  const [nextPageNumber, setNextPageNumber] = useState(1);
+  const barcodeSheetPaginationState = useFetch<BasicBarcodeSheet[]>();
+  const paginationErrorMessage = React.useRef<HTMLDivElement>(null);
+  const hasFetchedInitialPage = React.useRef(false);
+
   let currentFieldRepName = "";
   props.field_representatives.forEach((field_rep) => {
     if (field_rep.pk === props.current_field_rep_id) {
       currentFieldRepName = field_rep.name;
     }
   });
+
+  async function handleGetBarcodeSheets(page: number) {
+    const barcodeSheetsCallback = () =>
+      getBarcodeSheets(djangoContext.csrf_token, {
+        page,
+        ...(props.current_field_rep_id !== null && {
+          field_representative_id: props.current_field_rep_id,
+        }),
+      });
+
+    const [isSuccess, result] = await barcodeSheetPaginationState.fetchData(barcodeSheetsCallback);
+    if (isSuccess) {
+      setBarcodeSheets((prev) => [...prev, ...result]);
+      setNextPageNumber(page + 1);
+    } else {
+      paginationErrorMessage.current?.scrollIntoView();
+    }
+  }
+
+  // fetch the first page on mount - the field-rep filter is a full page navigation (href), so
+  // this only ever needs to run once per mount
+  React.useEffect(() => {
+    if (hasFetchedInitialPage.current) {
+      return;
+    }
+    hasFetchedInitialPage.current = true;
+    void handleGetBarcodeSheets(1);
+  }, []);
 
   return (
     <Layout title="Barcode Sheet History" navbar={<NavigationBar />}>
@@ -59,21 +99,31 @@ export function Template(props: templates.StockTrackerBarcodeSheetsHistory) {
               </DropdownButton>
             </div>
 
-            {props.recent_barcode_sheets.length === 0 ? (
+            {barcodeSheets.length === 0 && barcodeSheetPaginationState.isLoading && (
               <div className="text-center py-5">
-                <div className="text-muted">
-                  <i className="fs-1 mb-3 d-block">📋</i>
-                  <h4>No barcode sheets found</h4>
-                  <p>No barcode sheets are available for this field representative.</p>
-                </div>
+                <LoadingSpinner isBlockElement />
               </div>
-            ) : (
+            )}
+
+            {barcodeSheets.length === 0 &&
+              !barcodeSheetPaginationState.isLoading &&
+              !barcodeSheetPaginationState.isError && (
+                <div className="text-center py-5">
+                  <div className="text-muted">
+                    <i className="fs-1 mb-3 d-block">📋</i>
+                    <h4>No barcode sheets found</h4>
+                    <p>No barcode sheets are available for this field representative.</p>
+                  </div>
+                </div>
+              )}
+
+            {barcodeSheets.length > 0 && (
               <Row className="g-3">
-                {props.recent_barcode_sheets.map((barcode_sheet) => {
+                {barcodeSheets.map((barcode_sheet) => {
                   const search_params = `?sheet-type=out-of-dist`;
 
                   return (
-                    <Col key={barcode_sheet.pk} xs={12} md={6} xl={4}>
+                    <Col key={barcode_sheet.id} xs={12} md={6} xl={4}>
                       <Card className="shadow-sm border-0 h-100 hover-shadow transition">
                         <Card.Header className="bg-primary bg-opacity-10 border-0">
                           <div className="p-2">
@@ -81,7 +131,12 @@ export function Template(props: templates.StockTrackerBarcodeSheetsHistory) {
                               {barcode_sheet.parent_company?.expanded_name}
                             </h5>
                             <Badge bg="secondary" pill>
-                              Cycle: {barcode_sheet.work_cycle?.start_date}
+                              Cycle:{" "}
+                              {barcode_sheet.work_cycle?.start_date !== undefined &&
+                                format(
+                                  new Date(barcode_sheet.work_cycle.start_date),
+                                  "MMM d, yyyy"
+                                )}
                             </Badge>
                           </div>
                         </Card.Header>
@@ -91,26 +146,28 @@ export function Template(props: templates.StockTrackerBarcodeSheetsHistory) {
                             <i className="bi bi-calendar-event me-2"></i>
                             Created on{" "}
                             <strong>
-                              {format(new Date(barcode_sheet.datetime_created), "MMMM d, yyyy")}
+                              {barcode_sheet.datetime_created !== undefined &&
+                                format(new Date(barcode_sheet.datetime_created), "MMMM d, yyyy")}
                             </strong>{" "}
                             at{" "}
                             <strong>
-                              {format(new Date(barcode_sheet.datetime_created), "hh:mm a")}
+                              {barcode_sheet.datetime_created !== undefined &&
+                                format(new Date(barcode_sheet.datetime_created), "hh:mm a")}
                             </strong>
                           </div>
                           <div className="text-muted small mb-3">
                             <i className="bi bi-box-seam me-2"></i>
                             <Badge bg="info" className="me-1">
-                              {barcode_sheet.product_additions.length}
+                              {barcode_sheet.product_additions_count}
                             </Badge>
-                            {barcode_sheet.product_additions.length === 1 ? "item" : "items"} in
-                            this document
+                            {barcode_sheet.product_additions_count === 1 ? "item" : "items"} in this
+                            document
                           </div>
                           <div className="mt-auto">
                             <a
                               href={
                                 reverse("stock_tracker:get_barcode_sheet", {
-                                  barcode_sheet_id: barcode_sheet.pk,
+                                  barcode_sheet_id: barcode_sheet.id ?? 0,
                                 }) + search_params
                               }
                               className="btn btn-primary w-100"
@@ -125,6 +182,17 @@ export function Template(props: templates.StockTrackerBarcodeSheetsHistory) {
                   );
                 })}
               </Row>
+            )}
+
+            {barcodeSheets.length > 0 && (
+              <LoadMoreButton
+                ref={paginationErrorMessage}
+                label="barcode sheets"
+                isLoading={barcodeSheetPaginationState.isLoading}
+                isError={barcodeSheetPaginationState.isError}
+                errorMessages={barcodeSheetPaginationState.errorMessages}
+                onClick={() => void handleGetBarcodeSheets(nextPageNumber)}
+              />
             )}
           </Col>
         </Row>
