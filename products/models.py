@@ -35,6 +35,7 @@ class WorkCycle(CommonModel):
 class FieldRepresentative(CommonModel):
     name = models.CharField(max_length=255)
     work_email = models.EmailField(max_length=255, unique=True)
+    is_enabled = models.BooleanField(default=True)
 
     class Meta:
         db_table = "field_representatives"
