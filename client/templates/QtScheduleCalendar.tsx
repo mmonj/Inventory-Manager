@@ -1152,9 +1152,9 @@ export function Template(props: templates.QtScheduleCalendar) {
                 {isAutoScheduleMode && (
                   <Alert variant="info" className="mb-0 py-2 rounded-bottom-0">
                     <div className="mb-1">
-                      Check off service orders in the Unscheduled list below, then pick one or more
-                      dates on the calendar. Clicking &quot;Execute Auto-Schedule for Selected&quot;
-                      will automatically assign the selected service orders to those dates.
+                      Select one or more dates on the calendar, then check off service orders in the
+                      Unscheduled list. Clicking &quot;Execute Auto-Schedule for Selected&quot; will
+                      automatically assign the selected service orders to those dates.
                     </div>
                     <strong>
                       {autoScheduleSelectedSoIds.size} SO(s), {autoScheduleSelectedDates.length}{" "}
