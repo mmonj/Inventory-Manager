@@ -46,7 +46,7 @@ redis_client = redis.Redis(
 @job
 def get_external_product_images() -> None:
     logger.info("Received job to fetch product images from API")
-    yesterday_date = timezone.now().date() - timedelta(days=1)
+    yesterday_date = timezone.localdate() - timedelta(days=1)
     latest_products_with_no_image = Product.objects.filter(
         date_added__gt=yesterday_date, item_image=""
     )

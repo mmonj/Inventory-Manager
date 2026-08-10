@@ -85,7 +85,10 @@ def get_current_work_cycle() -> WorkCycle:
     Returns:
         products.WorkCycle: latest products.WorkCycle instance
     """
-    today_date = dj_timezone.now().date()
+    # localdate(), not now().date() -- now() is UTC-aware, and .date() on it extracts the UTC
+    # date rather than the local (TIME_ZONE) wall-clock date, which rolled cycles over up to
+    # ~4-5 hours early (e.g. Saturday 9pm EST/EDT already reading as Sunday in UTC).
+    today_date = dj_timezone.localdate()
     latest_work_cycle = WorkCycle.objects.order_by("-end_date").first()
     if latest_work_cycle is None:
         raise ValueError("No latest work cycle available")

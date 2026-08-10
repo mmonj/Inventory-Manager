@@ -72,7 +72,7 @@ class StoreSerializer(serializers.ModelSerializer[Store]):
         fields = ("id", "name", "contacts", "num_days_ago_first_seen")
 
     def get_num_days_ago_first_seen(self, store: Store) -> int:
-        time_since_store_creation = timezone.now().date() - store.date_created
+        time_since_store_creation = timezone.localdate() - store.date_created
         return time_since_store_creation.days
 
 
