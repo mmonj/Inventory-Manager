@@ -2,6 +2,7 @@ import React from "react";
 
 import { Context, reverse, templates } from "@reactivated";
 
+import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
   faArrowCircleRight,
   faBarcode,
@@ -17,9 +18,110 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 
+interface DashboardCardInfo {
+  title: string;
+  description: string;
+  href: string;
+  icon: IconDefinition;
+  buttonIcon: IconDefinition;
+  buttonLabel: string;
+  colorVariant: string;
+  buttonVariant: "solid" | "outline";
+}
+
+function DashboardCard(props: DashboardCardInfo) {
+  const buttonClassName =
+    props.buttonVariant === "solid"
+      ? `btn btn-${props.colorVariant} btn-lg w-100 mt-3`
+      : `btn btn-outline-${props.colorVariant} btn-lg w-100 mt-3`;
+
+  return (
+    <div className="col-md-6 col-lg-4">
+      <div className="card h-100 border-0 shadow-sm hover-shadow transition">
+        <div className="card-body d-flex flex-column p-4">
+          <div className="mb-3">
+            <div
+              className={`bg-${props.colorVariant} bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center`}
+              style={{ width: "60px", height: "60px" }}
+            >
+              <FontAwesomeIcon
+                icon={props.icon}
+                size="2x"
+                className={`text-${props.colorVariant}`}
+              />
+            </div>
+          </div>
+          <h5 className="card-title fw-bold mb-2">{props.title}</h5>
+          <p className="card-text text-muted flex-grow-1">{props.description}</p>
+          <a href={props.href} className={buttonClassName}>
+            <FontAwesomeIcon icon={props.buttonIcon} className="me-2" />
+            {props.buttonLabel}
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Template(_props: templates.StockTrackerIndex) {
   const context = React.useContext(Context);
   const { user } = context;
+
+  const toolCards: DashboardCardInfo[] = [
+    {
+      title: "Scanner",
+      description: "Scan barcodes in-store to quickly log which products a store carries",
+      href: reverse("stock_tracker:scanner"),
+      icon: faBarcode,
+      buttonIcon: faArrowCircleRight,
+      buttonLabel: "Open Scanner",
+      colorVariant: "primary",
+      buttonVariant: "solid",
+    },
+    {
+      title: "Scan History",
+      description: "View previously scanned and recorded product additions",
+      href: reverse("stock_tracker:scan_history"),
+      icon: faHistory,
+      buttonIcon: faHistory,
+      buttonLabel: "View Scan History",
+      colorVariant: "success",
+      buttonVariant: "outline",
+    },
+    {
+      title: "Barcode Sheets",
+      description: "View barcode sheets documenting which products were surveyed at each store",
+      href: reverse("stock_tracker:barcode_sheet_history"),
+      icon: faBarcode,
+      buttonIcon: faBarcode,
+      buttonLabel: "View Barcode Sheets",
+      colorVariant: "info",
+      buttonVariant: "outline",
+    },
+    {
+      title: "Manager Update Form",
+      description: "Update store manager contact names",
+      href: reverse("stock_tracker:get_manager_names"),
+      icon: faUserEdit,
+      buttonIcon: faUserEdit,
+      buttonLabel: "Update Manager Names",
+      colorVariant: "secondary",
+      buttonVariant: "outline",
+    },
+  ];
+
+  const adminCards: DashboardCardInfo[] = [
+    {
+      title: "Add New Stores",
+      description: "Bulk-add new store records to the database",
+      href: reverse("stock_tracker:add_new_stores"),
+      icon: faStore,
+      buttonIcon: faStore,
+      buttonLabel: "Add New Stores",
+      colorVariant: "danger",
+      buttonVariant: "outline",
+    },
+  ];
 
   return (
     <Layout
@@ -42,113 +144,9 @@ export function Template(_props: templates.StockTrackerIndex) {
               Tools
             </h3>
             <div className="row g-4">
-              {/* scanner */}
-              <div className="col-md-6 col-lg-4">
-                <div className="card h-100 border-0 shadow-sm hover-shadow transition">
-                  <div className="card-body d-flex flex-column p-4">
-                    <div className="mb-3">
-                      <div
-                        className="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
-                        style={{ width: "60px", height: "60px" }}
-                      >
-                        <FontAwesomeIcon icon={faBarcode} size="2x" className="text-primary" />
-                      </div>
-                    </div>
-                    <h5 className="card-title fw-bold mb-2">Scanner</h5>
-                    <p className="card-text text-muted flex-grow-1">
-                      Scan barcodes in-store to quickly log which products a store carries
-                    </p>
-                    <a
-                      href={reverse("stock_tracker:scanner")}
-                      className="btn btn-primary btn-lg w-100 mt-3"
-                    >
-                      <FontAwesomeIcon icon={faArrowCircleRight} className="me-2" />
-                      Open Scanner
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              {/* scan_history */}
-              <div className="col-md-6 col-lg-4">
-                <div className="card h-100 border-0 shadow-sm hover-shadow transition">
-                  <div className="card-body d-flex flex-column p-4">
-                    <div className="mb-3">
-                      <div
-                        className="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
-                        style={{ width: "60px", height: "60px" }}
-                      >
-                        <FontAwesomeIcon icon={faHistory} size="2x" className="text-success" />
-                      </div>
-                    </div>
-                    <h5 className="card-title fw-bold mb-2">Scan History</h5>
-                    <p className="card-text text-muted flex-grow-1">
-                      View previously scanned and recorded product additions
-                    </p>
-                    <a
-                      href={reverse("stock_tracker:scan_history")}
-                      className="btn btn-outline-success btn-lg w-100 mt-3"
-                    >
-                      <FontAwesomeIcon icon={faHistory} className="me-2" />
-                      View Scan History
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              {/* barcode_sheet_history */}
-              <div className="col-md-6 col-lg-4">
-                <div className="card h-100 border-0 shadow-sm hover-shadow transition">
-                  <div className="card-body d-flex flex-column p-4">
-                    <div className="mb-3">
-                      <div
-                        className="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
-                        style={{ width: "60px", height: "60px" }}
-                      >
-                        <FontAwesomeIcon icon={faBarcode} size="2x" className="text-info" />
-                      </div>
-                    </div>
-                    <h5 className="card-title fw-bold mb-2">Barcode Sheets</h5>
-                    <p className="card-text text-muted flex-grow-1">
-                      View barcode sheets documenting which products were surveyed at each store
-                    </p>
-                    <a
-                      href={reverse("stock_tracker:barcode_sheet_history")}
-                      className="btn btn-outline-info btn-lg w-100 mt-3"
-                    >
-                      <FontAwesomeIcon icon={faBarcode} className="me-2" />
-                      View Barcode Sheets
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              {/* get_manager_names */}
-              <div className="col-md-6 col-lg-4">
-                <div className="card h-100 border-0 shadow-sm hover-shadow transition">
-                  <div className="card-body d-flex flex-column p-4">
-                    <div className="mb-3">
-                      <div
-                        className="bg-secondary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
-                        style={{ width: "60px", height: "60px" }}
-                      >
-                        <FontAwesomeIcon icon={faUserEdit} size="2x" className="text-secondary" />
-                      </div>
-                    </div>
-                    <h5 className="card-title fw-bold mb-2">Manager Update Form</h5>
-                    <p className="card-text text-muted flex-grow-1">
-                      Update store manager contact names
-                    </p>
-                    <a
-                      href={reverse("stock_tracker:get_manager_names")}
-                      className="btn btn-outline-secondary btn-lg w-100 mt-3"
-                    >
-                      <FontAwesomeIcon icon={faUserEdit} className="me-2" />
-                      Update Manager Names
-                    </a>
-                  </div>
-                </div>
-              </div>
+              {toolCards.map((card) => (
+                <DashboardCard key={card.title} {...card} />
+              ))}
             </div>
           </div>
 
@@ -161,32 +159,9 @@ export function Template(_props: templates.StockTrackerIndex) {
                   Administrative Tools
                 </h3>
                 <div className="row g-4">
-                  {/* add_new_stores */}
-                  <div className="col-md-6 col-lg-4">
-                    <div className="card h-100 border-0 shadow-sm hover-shadow transition">
-                      <div className="card-body d-flex flex-column p-4">
-                        <div className="mb-3">
-                          <div
-                            className="bg-danger bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
-                            style={{ width: "60px", height: "60px" }}
-                          >
-                            <FontAwesomeIcon icon={faStore} size="2x" className="text-danger" />
-                          </div>
-                        </div>
-                        <h5 className="card-title fw-bold mb-2">Add New Stores</h5>
-                        <p className="card-text text-muted flex-grow-1">
-                          Bulk-add new store records to the database
-                        </p>
-                        <a
-                          href={reverse("stock_tracker:add_new_stores")}
-                          className="btn btn-outline-danger btn-lg w-100 mt-3"
-                        >
-                          <FontAwesomeIcon icon={faStore} className="me-2" />
-                          Add New Stores
-                        </a>
-                      </div>
-                    </div>
-                  </div>
+                  {adminCards.map((card) => (
+                    <DashboardCard key={card.title} {...card} />
+                  ))}
                 </div>
               </div>
 
