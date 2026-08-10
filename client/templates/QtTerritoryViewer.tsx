@@ -8,7 +8,7 @@ import {
 } from "@reactivated";
 import { Dropdown, DropdownButton, Modal } from "react-bootstrap";
 
-import { faTimes } from "@fortawesome/free-solid-svg-icons";
+import { faMapLocationDot, faTimes } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { Layout } from "@client/components/Layout";
@@ -169,7 +169,16 @@ export function Template(props: templates.QtTerritoryViewer) {
     return (
       <Layout title="Territory Viewer" navbar={<NavigationBar />}>
         <div className="container mt-4">
-          <div className="alert alert-info display-6 text-center">No data available!</div>
+          <div className="card text-center py-5">
+            <div className="card-body">
+              <FontAwesomeIcon icon={faMapLocationDot} size="3x" className="mb-3 opacity-50" />
+              <h4 className="card-title mb-2">No territory data available</h4>
+              <p className="card-text mb-0 text-secondary">
+                No enabled field representative has synced schedule data for the current work
+                cycle yet.
+              </p>
+            </div>
+          </div>
         </div>
       </Layout>
     );
