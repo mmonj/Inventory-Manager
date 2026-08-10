@@ -3,7 +3,6 @@ import logging
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
 from django.db.models import Prefetch
 from django.http import (
     HttpRequest,
@@ -24,7 +23,6 @@ from products.models import (
     BarcodeSheet,
     BrandParentCompany,
     FieldRepresentative,
-    PersonnelContact,
     ProductAddition,
     Store,
 )
@@ -233,66 +231,6 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
         sheetTypeInfo=result_sheet_type_info,
         possibleSheetTypesInfo=possible_sheet_types_info,
     ).render(request)
-
-
-@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
-@require_http_methods(["GET", "POST"])
-def get_manager_names(request: HttpRequest) -> HttpResponse:
-    if request.method == "GET":
-        field_reps = FieldRepresentative.objects.prefetch_related(
-            "stores", "stores__contacts"
-        ).all()
-
-        return templates.StocktrackerStoreManagerNames(field_reps=list(field_reps)).render(request)
-
-    # if POST
-    #
-    # if user has chosen to update existing contact names
-    if "contact-id" in request.POST:
-        with transaction.atomic():
-            personnel_contacts = PersonnelContact.objects.select_for_update().in_bulk(
-                request.POST.getlist("contact-id")
-            )
-
-            updated_contacts = []
-            for contact_id, first_name, last_name in zip(
-                request.POST.getlist("contact-id"),
-                request.POST.getlist("contact-first-name"),
-                request.POST.getlist("contact-last-name"),
-                strict=True,
-            ):
-                existing_contact = personnel_contacts[int(contact_id)]
-                if (first_name, last_name) != (
-                    existing_contact.first_name,
-                    existing_contact.last_name,
-                ):
-                    existing_contact.first_name = first_name
-                    existing_contact.last_name = last_name
-                    updated_contacts.append(existing_contact)
-
-            PersonnelContact.objects.bulk_update(updated_contacts, ["first_name", "last_name"])
-
-    # indicates if user has chosen to add a new contact to a store that previously had none
-    if "store-id" in request.POST:
-        with transaction.atomic():
-            new_contacts = []
-            stores = Store.objects.select_for_update().in_bulk(request.POST.getlist("store-id"))
-
-            for store_id, first_name, last_name in zip(
-                request.POST.getlist("store-id"),
-                request.POST.getlist("new-contact-first-name"),
-                request.POST.getlist("new-contact-last-name"),
-                strict=True,
-            ):
-                personnel_contact = PersonnelContact(
-                    first_name=first_name, last_name=last_name, store=stores[int(store_id)]
-                )
-                new_contacts.append(personnel_contact)
-
-            PersonnelContact.objects.bulk_create(new_contacts)
-
-    messages.success(request, "Submitted contact names successfully")
-    return redirect("stock_tracker:get_manager_names")
 
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))

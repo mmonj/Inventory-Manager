@@ -28,7 +28,6 @@ ssr_urlpatterns = [
         ssr_views.get_barcode_sheet,
         name="get_barcode_sheet",
     ),
-    path("store_manager_names/", ssr_views.get_manager_names, name="get_manager_names"),
     path(
         "set_carried_product_additions/",
         ssr_views.set_carried_product_additions,

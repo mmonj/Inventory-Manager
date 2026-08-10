@@ -50,22 +50,6 @@ class StockTrackerBarcodeSheetsHistory(NamedTuple):
 
 
 @template
-class StocktrackerStoreManagerNames(NamedTuple):
-    field_reps: list[
-        Pick[
-            FieldRepresentative,
-            "pk",
-            "name",
-            "stores.pk",
-            "stores.name",
-            "stores.contacts.pk",
-            "stores.contacts.first_name",
-            "stores.contacts.last_name",
-        ]
-    ]
-
-
-@template
 class StockTrackerScanner(NamedTuple):
     field_reps: list[
         Pick[

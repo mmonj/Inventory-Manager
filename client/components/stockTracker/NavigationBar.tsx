@@ -18,7 +18,6 @@ import {
   faSignOutAlt,
   faStore,
   faUserCheck,
-  faUserEdit,
   faUserShield,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -47,7 +46,6 @@ const authenticatedLinks: TLink[] = [
   getLink("Scanner", reverse("stock_tracker:scanner"), faBarcode),
   getLink("Scan History", reverse("stock_tracker:scan_history"), faHistory),
   getLink("Barcode Sheets", reverse("stock_tracker:barcode_sheet_history"), faBarcode),
-  getLink("Manager Update Form", reverse("stock_tracker:get_manager_names"), faUserEdit),
   getLink("Territory Viewer", reverse("survey_worker:qt_territory_viewer"), faMapMarkedAlt),
   getLink("Schedule", reverse("survey_worker:qt_schedule_calendar"), faCalendarAlt),
 ];

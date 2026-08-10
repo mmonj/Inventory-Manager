@@ -19,7 +19,6 @@ import {
   faShieldAlt,
   faStore,
   faUserCheck,
-  faUserEdit,
   faUserShield,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -105,16 +104,6 @@ export function Template(_props: templates.StockTrackerIndex) {
       buttonIcon: faBarcode,
       buttonLabel: "View Barcode Sheets",
       colorVariant: "info",
-      buttonVariant: "outline",
-    },
-    {
-      title: "Manager Update Form",
-      description: "Update store manager contact names",
-      href: reverse("stock_tracker:get_manager_names"),
-      icon: faUserEdit,
-      buttonIcon: faUserEdit,
-      buttonLabel: "Update Manager Names",
-      colorVariant: "secondary",
       buttonVariant: "outline",
     },
   ];
