@@ -188,12 +188,18 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
     if sheet_query_info is None:
         return HttpResponseNotFound()
 
+    num_products = get_object_or_404(BarcodeSheet, id=barcode_sheet_id).product_additions.count()
+
     barcode_sheet = get_object_or_404(
         BarcodeSheet.objects.prefetch_related(
             "store",
             "parent_company",
-            "product_additions",
-            "product_additions__product",
+            Prefetch(
+                "product_additions",
+                queryset=ProductAddition.objects.filter(
+                    is_carried__in=sheet_query_info["is_carried_list"]
+                ).prefetch_related("product"),
+            ),
         ),
         id=barcode_sheet_id,
     )
@@ -212,13 +218,6 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
             barcode_sheet_data["product_additions"],
             key=lambda product_addition: upc_order[product_addition["product"]["upc"]],
         )
-
-    num_products = len(barcode_sheet_data["product_additions"])
-    barcode_sheet_data["product_additions"] = [
-        p
-        for p in barcode_sheet_data["product_additions"]
-        if p["is_carried"] in sheet_query_info["is_carried_list"]
-    ]
 
     logger.info(
         "Serving Barcode Sheet. Client: '%s' - Store: '%s'",
