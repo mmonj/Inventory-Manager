@@ -10,16 +10,17 @@ interface Props extends templates.StockTrackerBarcodeSheet {
 export function BarcodeSheetHeader(props: Props) {
   return (
     <section>
-      <div id="company-logo-container" className="p-3 text-center">
-        <img src={props.barcodeSheet.parent_company.third_party_logo_url} alt="" />
+      <div className="company-logo-container p-3 text-center">
+        <img
+          src={props.barcodeSheet.parent_company.third_party_logo_url}
+          alt={`${props.barcodeSheet.parent_company.expanded_name} logo`}
+        />
       </div>
-      <h5 id="store-name-title" className="text-center">
-        {props.barcodeSheet.store_name}
-      </h5>
-      <h6 id="item-count-indicator" className="text-center mb-3">
+      <h5 className="text-center">{props.barcodeSheet.store_name}</h5>
+      <h6 className="text-center mb-3">
         {`${props.barcodeSheet.product_additions.length} shown / ${props.total_products} total items`}
       </h6>
-      <div id="sheet-type-container" className="dropdown mb-3 text-center">
+      <div className="sheet-type-container dropdown mb-3 text-center">
         <DropdownButton
           as={ButtonGroup}
           title={props.sheetTypeInfo.sheetTypeVerbose}
@@ -47,8 +48,7 @@ export function BarcodeSheetHeader(props: Props) {
               <button
                 onClick={() => props.setIsEditMode((prevMode) => !prevMode)}
                 type="button"
-                id="edit-item-stock"
-                className="btn btn-primary"
+                className="edit-item-stock btn btn-primary"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

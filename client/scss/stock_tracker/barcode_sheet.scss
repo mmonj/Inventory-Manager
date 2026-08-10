@@ -2,23 +2,23 @@ main.barcode-sheet-main {
   max-width: initial !important;
 }
 
-#company-logo-container {
+.company-logo-container {
   height: 8rem;
   max-width: 90%;
   margin: auto;
 }
 
-#company-logo-container img {
+.company-logo-container img {
   max-height: 100%;
   max-width: 100%;
   object-fit: contain;
 }
 
-#edit-item-stock:active {
+.edit-item-stock:active {
   transform: scale(97%);
 }
 
-#edit-item-stock > svg {
+.edit-item-stock > svg {
   width: 1.5rem;
   height: 1.5rem;
   fill: rgb(243, 243, 243);
@@ -32,10 +32,12 @@ main.barcode-sheet-main {
 
 .barcode-sheet-main .form-check-input:checked {
   --checked-shadow-color: #0d6efd;
-  box-shadow: 3px 3px 10px var(--checked-shadow-color), -3px -3px 10px var(--checked-shadow-color);
+  box-shadow:
+    3px 3px 10px var(--checked-shadow-color),
+    -3px -3px 10px var(--checked-shadow-color);
 }
 
-#products-container {
+.products-container {
   list-style-type: none;
   padding-left: 0;
   max-width: 100%;
@@ -82,4 +84,18 @@ main.barcode-sheet-main {
   object-fit: contain;
   max-width: 100%;
   max-height: 100%;
+}
+
+@media print {
+  // interactive/navigational chrome has no place on a printed sheet
+  .barcode-sheet-main .navbar,
+  .barcode-sheet-main .sheet-type-container,
+  .barcode-sheet-main .checkbox-stock-update,
+  .barcode-sheet-main form > .text-center:last-of-type {
+    display: none !important;
+  }
+
+  .barcode-sheet-main .product-container {
+    break-inside: avoid;
+  }
 }

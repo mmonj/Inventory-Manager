@@ -207,9 +207,10 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
 
     upcs_list = barcode_sheet.upcs_list
     if upcs_list is not None:
+        upc_order = {upc: index for index, upc in enumerate(upcs_list)}
         barcode_sheet_data["product_additions"] = sorted(
             barcode_sheet_data["product_additions"],
-            key=lambda product_addition: upcs_list.index(product_addition["product"]["upc"]),
+            key=lambda product_addition: upc_order[product_addition["product"]["upc"]],
         )
 
     num_products = len(barcode_sheet_data["product_additions"])
@@ -236,16 +237,21 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["POST"])
 def set_product_distribution_order_status(request: HttpRequest) -> HttpResponse:
+    redirect_route: str | None = request.META.get("HTTP_REFERER")
+    if redirect_route is None:
+        return HttpResponseServerError()
+
     product_id_list = request.POST.getlist("product-addition-id")
-    product_additions = ProductAddition.objects.filter(id__in=product_id_list)
+    product_additions = list(ProductAddition.objects.filter(id__in=product_id_list))
+    now = timezone.now()
     for product_addition in product_additions:
-        product_addition.date_ordered = timezone.now()
-        product_addition.save(update_fields=["date_ordered"])
+        product_addition.date_ordered = now
+    ProductAddition.objects.bulk_update(product_additions, ["date_ordered"])
 
     logger.info("Marked Product Addition IDs %s as ordered", ", ".join(product_id_list))
 
     messages.success(request, f"Submitted {len(product_id_list)} item(s) as ordered")
-    return HttpResponseRedirect(request.META["HTTP_REFERER"])
+    return HttpResponseRedirect(redirect_route)
 
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
@@ -261,7 +267,7 @@ def set_carried_product_additions(request: HttpRequest) -> HttpResponse:
         messages.error(request, "Error. Received 0 new products to update")
         return HttpResponseRedirect(redirect_route)
 
-    product_additions = ProductAddition.objects.filter(id__in=product_id_list)
+    product_additions = list(ProductAddition.objects.filter(id__in=product_id_list))
     logger.info(
         "Updating %d product additions from barcode sheet form for client '%s' for store: '%s'",
         len(product_additions),
@@ -269,8 +275,7 @@ def set_carried_product_additions(request: HttpRequest) -> HttpResponse:
         request.POST.get("store-name"),
     )
 
-    for product_addition in product_additions:
-        util.record_product_addition(product_addition, is_product_scanned=True)
+    util.record_product_additions(product_additions, is_product_scanned=True)
 
     messages.success(request, f"Submitted {len(product_id_list)} item(s) as In-Distribution")
     return HttpResponseRedirect(redirect_route)
@@ -289,7 +294,7 @@ def set_not_carried_product_additions(request: HttpRequest) -> HttpResponse:
         messages.error(request, "Error. Received 0 new products to update")
         return HttpResponseRedirect(redirect_route)
 
-    product_additions = ProductAddition.objects.filter(id__in=product_id_list)
+    product_additions = list(ProductAddition.objects.filter(id__in=product_id_list))
     logger.info(
         "Updating %s product additions from barcode sheet form for client '%s' for store: '%s'",
         len(product_additions),
@@ -297,8 +302,7 @@ def set_not_carried_product_additions(request: HttpRequest) -> HttpResponse:
         request.POST.get("store-name"),
     )
 
-    for product_addition in product_additions:
-        util.set_not_carried(product_addition)
+    util.set_not_carried_bulk(product_additions)
 
     messages.success(request, f"Submitted {len(product_id_list)} item(s) as Not-Carried")
     return HttpResponseRedirect(redirect_route)

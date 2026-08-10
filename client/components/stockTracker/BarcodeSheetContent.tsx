@@ -32,15 +32,24 @@ export function BarcodeSheetContent(props: Props) {
     }
   }
 
+  if (props.barcodeSheet.product_additions.length === 0) {
+    return (
+      <section className="mx-auto my-2 p-2 pb-4 text-center py-5">
+        <div className="text-muted">
+          <i className="fs-1 mb-3 d-block">📋</i>
+          <h4>No products match this filter</h4>
+          <p>No items on this sheet are currently {props.sheetTypeInfo.sheetTypeVerbose}.</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="mx-auto my-2 p-2 pb-4">
       <form onSubmit={handleSubmit} id="stock-update-form" method="POST">
         <CSRFToken />
 
-        <ul
-          id="products-container"
-          className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 mx-auto"
-        >
+        <ul className="products-container row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 mx-auto">
           {/* product-container receives a 'hidden' attribute by default. This will be overridden by the client-side javascript */}
 
           {props.barcodeSheet.product_additions.map((product_addition, idx) => (
