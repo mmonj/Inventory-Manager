@@ -115,6 +115,17 @@ main.barcode-sheet-main {
     display: none !important;
   }
 
+  // "N shown / M total items" only matters for the on-screen filtering UI, not a printed copy.
+  .barcode-sheet-main .item-count-indicator {
+    display: none !important;
+  }
+
+  // "New" and "Previously ordered" badges are workflow hints for the in-app view; they'd just
+  // be visual noise on a printed sheet.
+  .barcode-sheet-main .new-item-indicator-container {
+    display: none !important;
+  }
+
   .barcode-sheet-main .product-container {
     break-inside: avoid;
   }

@@ -23,8 +23,8 @@ export function BarcodeSheetHeader(props: Props) {
           alt={`${props.barcodeSheet.parent_company.expanded_name} logo`}
         />
       </div>
-      <h5 className="text-center">{props.barcodeSheet.store_name}</h5>
-      <h6 className="text-center mb-3">
+      <h5 className="text-center mb-3">{props.barcodeSheet.store_name}</h5>
+      <h6 className="item-count-indicator text-center mb-3">
         {`${props.visibleProductAdditions.length} shown / ${props.barcodeSheet.product_additions.length} total items`}
       </h6>
       <div className="sheet-type-container dropdown mb-3 text-center">
