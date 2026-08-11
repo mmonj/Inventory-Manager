@@ -2,6 +2,9 @@ import React, { useMemo, useState } from "react";
 
 import { templates } from "@reactivated";
 
+import { faPrint } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+
 import { Layout } from "@client/components/Layout";
 import { BarcodeSheetContent } from "@client/components/stockTracker/BarcodeSheetContent";
 import { BarcodeSheetHeader } from "@client/components/stockTracker/BarcodeSheetHeader";
@@ -52,6 +55,15 @@ export function Template(props: templates.StockTrackerBarcodeSheet) {
       bsTheme="dark"
       className="barcode-sheet-main"
     >
+      <button
+        onClick={() => window.print()}
+        type="button"
+        title="Print / Save as PDF"
+        className="print-button btn btn-outline-secondary rounded-circle bg-black"
+      >
+        <FontAwesomeIcon icon={faPrint} size="lg" />
+      </button>
+
       <BarcodeSheetHeader
         {...props}
         sheetTypeInfo={sheetTypeInfo}

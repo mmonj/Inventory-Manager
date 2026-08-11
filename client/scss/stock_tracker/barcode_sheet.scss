@@ -1,9 +1,12 @@
 main.barcode-sheet-main {
   max-width: initial !important;
+  position: relative;
 }
 
 .company-logo-container {
-  height: 8rem;
+  --company-logo-height: 8rem;
+
+  height: var(--company-logo-height);
   max-width: 90%;
   margin: auto;
 }
@@ -86,9 +89,26 @@ main.barcode-sheet-main {
   max-height: 100%;
 }
 
+.print-button.btn {
+  position: sticky;
+  top: 1rem;
+  margin-top: 1rem;
+  margin-left: auto;
+  margin-right: 1rem;
+  z-index: 1030;
+  width: 3rem;
+  height: 3rem;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.15);
+}
+
 @media print {
-  // interactive/navigational chrome has no place on a printed sheet
-  .barcode-sheet-main .navbar,
+  // interactive/navigational elements shouldn't be included on a printed page, so we hide them.
+  .navbar,
+  .print-button.btn,
   .barcode-sheet-main .sheet-type-container,
   .barcode-sheet-main .checkbox-stock-update,
   .barcode-sheet-main form > .text-center:last-of-type {
@@ -97,5 +117,9 @@ main.barcode-sheet-main {
 
   .barcode-sheet-main .product-container {
     break-inside: avoid;
+  }
+
+  .barcode-sheet-main .company-logo-container {
+    height: calc(var(--company-logo-height) * 0.8);
   }
 }
