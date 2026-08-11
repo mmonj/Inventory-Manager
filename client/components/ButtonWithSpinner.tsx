@@ -6,6 +6,8 @@ interface Props {
   className?: string;
   fetchState: { isLoading: boolean; isError: boolean; errorMessages: string[] };
   type: "button" | "submit" | "reset" | undefined;
+  // Matches react-bootstrap's own Spinner `variant` prop type (a handful of named theme colors,
+  // but also accepts any string since it's just applied as a `text-{variant}` class).
   spinnerVariant?:
     | "primary"
     | "secondary"
@@ -15,7 +17,8 @@ interface Props {
     | "info"
     | "light"
     | "dark"
-    | "black";
+    | "black"
+    | "white";
   // Extra condition to disable on, on top of fetchState.isLoading (e.g. nothing selected yet).
   disabled?: boolean;
   onClick?: () => void;

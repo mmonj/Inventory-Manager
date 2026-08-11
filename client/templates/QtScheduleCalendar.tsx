@@ -849,10 +849,18 @@ export function Template(props: templates.QtScheduleCalendar) {
           <div className="position-relative">
             {isCalendarBusy && (
               <div
-                className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+                className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center"
                 style={{ background: "rgba(0, 0, 0, 0.4)", zIndex: 10 }}
               >
-                <div className="d-flex flex-column align-items-center text-black">
+                {/* fixed to the viewport (not centered against the full, possibly very tall,
+                overlay height) so the indicator stays vertically centered on screen as the user
+                scrolls, instead of sitting far down the page on a long list. position: sticky
+                doesn't reliably apply here since its parent is position: absolute, not a normal
+                scroll-participating container. */}
+                <div
+                  className="d-flex flex-column align-items-center text-black position-fixed"
+                  style={{ top: "50%", transform: "translateY(-50%)" }}
+                >
                   <Spinner
                     animation="border"
                     role="status"
