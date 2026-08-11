@@ -843,7 +843,7 @@ export function Template(props: templates.QtScheduleCalendar) {
                 className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
                 style={{ background: "rgba(0, 0, 0, 0.4)", zIndex: 10 }}
               >
-                <div className="d-flex flex-column align-items-center text-white">
+                <div className="d-flex flex-column align-items-center text-black">
                   <Spinner
                     animation="border"
                     role="status"
@@ -851,7 +851,9 @@ export function Template(props: templates.QtScheduleCalendar) {
                   >
                     <span className="visually-hidden">Loading...</span>
                   </Spinner>
-                  <div className="fs-5 fw-semibold mt-3">Auto-scheduling in progress…</div>
+                  <div className="fs-5 fw-semibold mt-3 text-black">
+                    Auto-scheduling in progress…
+                  </div>
                 </div>
               </div>
             )}
