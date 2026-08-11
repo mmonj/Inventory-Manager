@@ -15,12 +15,13 @@ import {
 
 import { Context, interfaces, reverse, templates } from "@reactivated";
 
-import { faFilter, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
+import { faCopy, faFilter, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
 import { ErrorToastStack } from "@client/components/ErrorToastStack";
 import {
+  CopyScheduleModal,
   ICalendarDaySummary,
   JobClientFilterModal,
   ScheduleCalendarGrid,
@@ -92,6 +93,7 @@ export function Template(props: templates.QtScheduleCalendar) {
   );
   const [isBulkUnscheduleMode, setIsBulkUnscheduleMode] = React.useState(false);
   const [bulkUnscheduleSelectedDates, setBulkUnscheduleSelectedDates] = React.useState<Date[]>([]);
+  const [showCopyScheduleModal, setShowCopyScheduleModal] = React.useState(false);
 
   const selectedDateKey = selectedDate ? toDateKey(selectedDate) : null;
 
@@ -158,7 +160,7 @@ export function Template(props: templates.QtScheduleCalendar) {
     hasFetchedInitialSchedule.current = true;
     setSelectedRepId(storedId);
     void fetchScheduleForRep(storedId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
+    // intentionally run once on mount, not on every rep_details/fetchScheduleForRep change
   }, []);
 
   const schedule = localSchedule;
@@ -1257,19 +1259,32 @@ export function Template(props: templates.QtScheduleCalendar) {
                           "Select a date to view scheduled service orders"
                         )}
                       </span>
-                      <ButtonWithSpinner
-                        type="button"
-                        className="btn btn-dark btn-sm"
-                        disabled={
-                          selectedDate === undefined ||
-                          physicalVisitServiceOrdersForSelectedDate.length === 0
-                        }
-                        spinnerVariant="white"
-                        fetchState={clearDateFetch}
-                        onClick={() => void handleClearScheduledDate()}
-                      >
-                        Clear Date
-                      </ButtonWithSpinner>
+                      <div className="d-flex align-items-center gap-2">
+                        <Button
+                          variant="outline-light"
+                          size="sm"
+                          disabled={
+                            selectedDate === undefined || serviceOrdersForSelectedDate.length === 0
+                          }
+                          onClick={() => setShowCopyScheduleModal(true)}
+                        >
+                          <FontAwesomeIcon icon={faCopy} className="me-1" />
+                          Copy
+                        </Button>
+                        <ButtonWithSpinner
+                          type="button"
+                          className="btn btn-dark btn-sm"
+                          disabled={
+                            selectedDate === undefined ||
+                            physicalVisitServiceOrdersForSelectedDate.length === 0
+                          }
+                          spinnerVariant="white"
+                          fetchState={clearDateFetch}
+                          onClick={() => void handleClearScheduledDate()}
+                        >
+                          Clear Date
+                        </ButtonWithSpinner>
+                      </div>
                     </Card.Header>
                     {selectedDate === undefined ? (
                       <div className="text-muted p-3">
@@ -1312,6 +1327,13 @@ export function Template(props: templates.QtScheduleCalendar) {
           jobClients={allJobClients}
           selectedJobClients={selectedJobClients}
           onChange={setSelectedJobClients}
+        />
+
+        <CopyScheduleModal
+          show={showCopyScheduleModal}
+          onHide={() => setShowCopyScheduleModal(false)}
+          serviceOrders={groupedServiceOrdersForSelectedDate}
+          date={selectedDate}
         />
       </Layout>
     </LazyMotion>

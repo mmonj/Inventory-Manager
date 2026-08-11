@@ -1,3 +1,4 @@
+export { CopyScheduleModal } from "./CopyScheduleModal";
 export { JobClientFilterModal } from "./JobClientFilterModal";
 export { ScheduleCalendarGrid } from "./ScheduleCalendarGrid";
 export type { ICalendarDaySummary } from "./ScheduleCalendarGrid";
