@@ -101,9 +101,9 @@ export function BarcodeSheetContent(props: Props) {
         <ul className="products-container row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 mx-auto">
           {/* product-container receives a 'hidden' attribute by default. This will be overridden by the client-side javascript */}
 
-          {props.visibleProductAdditions.map((product_addition, idx) => (
+          {props.visibleProductAdditions.map((product_addition) => (
             <li
-              key={idx}
+              key={product_addition.id}
               className="col product-container card text-center border-0 my-1"
               data-is_carried={product_addition.is_carried}
             >
