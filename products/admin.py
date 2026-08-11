@@ -8,6 +8,8 @@ from .models import (
     BarcodeSheet,
     BrandParentCompany,
     FieldRepresentative,
+    Message,
+    MessageRecipient,
     PersonnelContact,
     PrefixMapping,
     Product,
@@ -170,6 +172,29 @@ class BarcodeSheetAdmin(admin.ModelAdmin[BarcodeSheet]):
     display_product_additions.short_description = "Product Additions"  # type: ignore[attr-defined]
 
 
+class MessageRecipientInline(admin.TabularInline[MessageRecipient, Message]):
+    model = MessageRecipient
+    extra = 1
+    fields = ("user", "is_read", "read_at")
+    readonly_fields = ("read_at",)
+
+
+class MessageAdmin(admin.ModelAdmin[Message]):
+    search_fields = ("sender__username", "title", "body_md")
+    list_display = ("sender", "title", "datetime_created", "num_recipients")
+    inlines = (MessageRecipientInline,)
+
+    def num_recipients(self, message: Message) -> int:
+        return message.recipient_links.count()
+
+
+class MessageRecipientAdmin(admin.ModelAdmin[MessageRecipient]):
+    search_fields = ("user__username", "message__title")
+    list_display = ("user", "message", "is_read", "read_at")
+    list_filter = ("is_read",)
+    autocomplete_fields = ("user", "message")
+
+
 # Register your models here.
 admin.site.register(WorkCycle)
 admin.site.register(FieldRepresentative, FieldRepresentativeAdmin)
@@ -180,3 +205,5 @@ admin.site.register(Store, StoreAdmin)
 admin.site.register(ProductAddition, ProductAdditionAdmin)
 admin.site.register(PersonnelContact, PersonnelContactAdmin)
 admin.site.register(BarcodeSheet, BarcodeSheetAdmin)
+admin.site.register(Message, MessageAdmin)
+admin.site.register(MessageRecipient, MessageRecipientAdmin)

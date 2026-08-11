@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 import requests
 from checkdigit import gs1
+from django.contrib.auth.models import User
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -471,3 +472,42 @@ class BarcodeSheet(models.Model):
 
     def __str__(self) -> str:
         return f"Barcode Sheet: {self.work_cycle}: {self.parent_company} {self.store.name}"
+
+
+class Message(CommonModel):
+    sender = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="sent_messages"
+    )
+    recipients: models.ManyToManyField[User, MessageRecipient] = models.ManyToManyField(
+        User, through="MessageRecipient", related_name="received_messages"
+    )
+    title = models.CharField(max_length=255)
+    body_md = models.TextField()
+
+    class Meta:
+        db_table = "messages"
+
+    def __str__(self) -> str:
+        return f"Message from {self.sender or 'system'}: {self.title}"
+
+
+class MessageRecipient(CommonModel):
+    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name="recipient_links")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="message_links")
+    is_read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "message_recipients"
+        unique_together = ("message", "user")
+
+    def __str__(self) -> str:
+        return f"MessageRecipient(user={self.user}, message_id={self.message_id}, is_read={self.is_read})"
+
+    def mark_read(self) -> None:
+        if self.is_read:
+            return
+
+        self.is_read = True
+        self.read_at = timezone.now()
+        self.save(update_fields=["is_read", "read_at"])
