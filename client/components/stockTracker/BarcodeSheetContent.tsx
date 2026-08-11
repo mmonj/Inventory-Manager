@@ -1,6 +1,7 @@
 import React, { useContext } from "react";
 
 import { CSRFToken, Context, reverse, templates } from "@reactivated";
+import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
 import { Button } from "react-bootstrap";
 
 type TProductAddition =
@@ -98,68 +99,84 @@ export function BarcodeSheetContent(props: Props) {
       <form onSubmit={handleSubmit} id="stock-update-form" method="POST">
         <CSRFToken />
 
-        <ul className="products-container row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 mx-auto">
-          {/* product-container receives a 'hidden' attribute by default. This will be overridden by the client-side javascript */}
+        <LazyMotion features={domAnimation}>
+          <ul className="products-container row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 mx-auto">
+            {/* product-container receives a 'hidden' attribute by default. This will be overridden by the client-side javascript */}
 
-          {props.visibleProductAdditions.map((product_addition) => (
-            <li
-              key={product_addition.id}
-              className="col product-container card text-center border-0 my-1"
-              data-is_carried={product_addition.is_carried}
-            >
-              <div className="new-item-indicator-container mb-1">
-                {product_addition.is_new && (
-                  <img
-                    src={djangoContext.STATIC_URL + "public/stock_tracker/images/new_item_icon.png"}
-                    alt="New Product Indicator"
-                  ></img>
-                )}
-                {product_addition.date_ordered !== null && (
-                  <img
-                    src={djangoContext.STATIC_URL + "public/stock_tracker/images/ordered_icon.png"}
-                    alt="Item Previously Ordered"
-                  ></img>
-                )}
-              </div>
-              <div className="product-images-container d-flex justify-content-center">
-                <div className="barcode-container">
-                  <img
-                    src={`data:image/png;base64,${product_addition.product.barcode_b64}`}
-                    className="barcode-image"
-                    alt="Product Barcode"
-                  />
-                  <div className="d-flex justify-content-center">
-                    <div className="upc-number">
-                      {product_addition.product.upc_sections.map((upc_section, idx) => (
-                        <span key={idx} className="upc-section mx-1">
-                          {upc_section}
-                        </span>
-                      ))}
+            {/* popLayout takes an exiting card out of flow (position: absolute) for the
+            duration of its exit animation, so its siblings reflow immediately into the
+            gap instead of being squeezed/jumping around the still-animating exiting card. */}
+            <AnimatePresence mode="popLayout">
+              {props.visibleProductAdditions.map((product_addition) => (
+                <m.li
+                  key={product_addition.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.2 }}
+                  className="col product-container card text-center border-0 my-1"
+                  data-is_carried={product_addition.is_carried}
+                >
+                  <div className="new-item-indicator-container mb-1">
+                    {product_addition.is_new && (
+                      <img
+                        src={
+                          djangoContext.STATIC_URL + "public/stock_tracker/images/new_item_icon.png"
+                        }
+                        alt="New Product Indicator"
+                      ></img>
+                    )}
+                    {product_addition.date_ordered !== null && (
+                      <img
+                        src={
+                          djangoContext.STATIC_URL + "public/stock_tracker/images/ordered_icon.png"
+                        }
+                        alt="Item Previously Ordered"
+                      ></img>
+                    )}
+                  </div>
+                  <div className="product-images-container d-flex justify-content-center">
+                    <div className="barcode-container">
+                      <img
+                        src={`data:image/png;base64,${product_addition.product.barcode_b64}`}
+                        className="barcode-image"
+                        alt="Product Barcode"
+                      />
+                      <div className="d-flex justify-content-center">
+                        <div className="upc-number">
+                          {product_addition.product.upc_sections.map((upc_section, idx) => (
+                            <span key={idx} className="upc-section mx-1">
+                              {upc_section}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="product-image-container">
+                      <img
+                        src={product_addition.product.item_image_url}
+                        className="product-image"
+                        alt="Product Image"
+                      />
                     </div>
                   </div>
-                </div>
-                <div className="product-image-container">
-                  <img
-                    src={product_addition.product.item_image_url}
-                    className="product-image"
-                    alt="Product Image"
-                  />
-                </div>
-              </div>
-              <div className="card-body">
-                <label className="card-text">{product_addition.product.name}</label>
-              </div>
-              {props.isEditMode && (
-                <input
-                  name="product-addition-id"
-                  value={product_addition.id}
-                  type="checkbox"
-                  className="form-check-input checkbox-stock-update p-2"
-                />
-              )}
-            </li>
-          ))}
-        </ul>
+                  <div className="card-body">
+                    <label className="card-text">{product_addition.product.name}</label>
+                  </div>
+                  {props.isEditMode && (
+                    <input
+                      name="product-addition-id"
+                      value={product_addition.id}
+                      type="checkbox"
+                      className="form-check-input checkbox-stock-update p-2"
+                    />
+                  )}
+                </m.li>
+              ))}
+            </AnimatePresence>
+          </ul>
+        </LazyMotion>
 
         <div className="text-center">
           <input
