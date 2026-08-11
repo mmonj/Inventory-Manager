@@ -11,9 +11,56 @@ interface Props extends templates.StockTrackerBarcodeSheet {
   isEditMode: boolean;
 }
 
+interface SubmitAction {
+  id: string;
+  label: string;
+  formAction: string;
+  // Message to confirm() before submitting, or null to submit without confirming. Only
+  // "Submit as ordered" currently asks for confirmation.
+  confirmMessage: ((itemCount: number) => string) | null;
+}
+
+function getSubmitActions(props: Props): SubmitAction[] {
+  if (!props.isEditMode) {
+    return [];
+  }
+
+  if (props.sheetTypeInfo.sheetType === "out-of-dist") {
+    return [
+      {
+        id: "btn-stock-update",
+        label: "Submit as In-Distribution",
+        formAction: reverse("stock_tracker:set_carried_product_additions"),
+        confirmMessage: null,
+      },
+      {
+        id: "btn-stock-order",
+        label: "Submit as ordered",
+        formAction: reverse("stock_tracker:set_product_distribution_order_status"),
+        confirmMessage: (itemCount) =>
+          `You have marked ${itemCount} item(s) as ordered. Are you sure?`,
+      },
+    ];
+  }
+
+  if (props.sheetTypeInfo.sheetType === "in-dist") {
+    return [
+      {
+        id: "btn-stock-uncarry",
+        label: "Submit as Not-Carried",
+        formAction: reverse("stock_tracker:set_not_carried_product_additions"),
+        confirmMessage: null,
+      },
+    ];
+  }
+
+  return [];
+}
+
 export function BarcodeSheetContent(props: Props) {
-  const [isDistributionUpdate, setIsDistributionUpdate] = React.useState(true);
   const djangoContext = useContext(Context);
+  const [selectedAction, setSelectedAction] = React.useState<SubmitAction | null>(null);
+  const submitActions = getSubmitActions(props);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     const formData = new FormData(event.target as HTMLFormElement);
@@ -25,10 +72,8 @@ export function BarcodeSheetContent(props: Props) {
       return;
     }
 
-    if (!isDistributionUpdate) {
-      const isAccept = confirm(
-        `You have marked ${allProductAdditionIds.length} item(s) as ordered. Are you sure?`
-      );
+    if (selectedAction?.confirmMessage != null) {
+      const isAccept = confirm(selectedAction.confirmMessage(allProductAdditionIds.length));
       if (!isAccept) {
         event.preventDefault();
         return;
@@ -128,42 +173,19 @@ export function BarcodeSheetContent(props: Props) {
             name="parent-company"
             value={props.barcodeSheet.parent_company.short_name}
           />
-          {props.isEditMode && props.sheetTypeInfo.sheetType === "out-of-dist" && (
+          {submitActions.map((action) => (
             <Button
-              onClick={() => setIsDistributionUpdate(() => true)}
-              id="btn-stock-update"
+              key={action.id}
+              onClick={() => setSelectedAction(action)}
+              id={action.id}
               type="submit"
-              formAction={reverse("stock_tracker:set_carried_product_additions")}
+              formAction={action.formAction}
               variant="primary"
               className="mx-3 my-2"
             >
-              Submit as In-Distribution
+              {action.label}
             </Button>
-          )}
-          {props.isEditMode && props.sheetTypeInfo.sheetType === "out-of-dist" && (
-            <Button
-              onClick={() => setIsDistributionUpdate(() => false)}
-              id="btn-stock-order"
-              type="submit"
-              variant="primary"
-              className="mx-3 my-2"
-              formAction={reverse("stock_tracker:set_product_distribution_order_status")}
-            >
-              Submit as ordered
-            </Button>
-          )}
-          {props.isEditMode && props.sheetTypeInfo.sheetType === "in-dist" && (
-            <Button
-              onClick={() => setIsDistributionUpdate(() => true)}
-              id="btn-stock-uncarry"
-              type="submit"
-              formAction={reverse("stock_tracker:set_not_carried_product_additions")}
-              variant="primary"
-              className="mx-3 my-2"
-            >
-              Submit as Not-Carried
-            </Button>
-          )}
+          ))}
         </div>
       </form>
     </section>
