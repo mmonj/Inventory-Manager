@@ -781,21 +781,29 @@ export function Template(props: templates.QtScheduleCalendar) {
 
         <h1 className="my-4">Schedule</h1>
 
-        <Form.Group className="mb-4" style={{ maxWidth: "24rem" }}>
-          <Form.Label>Select Rep</Form.Label>
-          <Form.Select
-            value={selectedRepId ?? -1}
-            onChange={handleSelectRep}
-            disabled={fetchRepSchedule.isLoading}
-          >
-            <option value={-1}>Select a rep...</option>
-            {props.rep_details.map((rep) => (
-              <option key={rep.id} value={rep.id}>
-                {rep.username}
-              </option>
-            ))}
-          </Form.Select>
-        </Form.Group>
+        <div className="position-relative">
+          {isCalendarBusy && (
+            <div
+              className="position-absolute top-0 start-0 w-100 h-100"
+              style={{ background: "rgba(0, 0, 0, 0.4)", zIndex: 10 }}
+            />
+          )}
+          <Form.Group className="mb-4" style={{ maxWidth: "24rem" }}>
+            <Form.Label>Select Rep</Form.Label>
+            <Form.Select
+              value={selectedRepId ?? -1}
+              onChange={handleSelectRep}
+              disabled={fetchRepSchedule.isLoading || isCalendarBusy}
+            >
+              <option value={-1}>Select a rep...</option>
+              {props.rep_details.map((rep) => (
+                <option key={rep.id} value={rep.id}>
+                  {rep.username}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
+        </div>
 
         {fetchRepSchedule.isLoading && schedule === null && (
           <div className="d-flex flex-column align-items-center justify-content-center text-center py-5 my-3 bg-body-tertiary border rounded-3">
@@ -911,7 +919,7 @@ export function Template(props: templates.QtScheduleCalendar) {
                       type="search"
                       size="sm"
                       className="py-2"
-                      placeholder="Search by description or address..."
+                      placeholder="Search by job title or address..."
                       value={unscheduledSearchQuery}
                       onChange={(event) => setUnscheduledSearchQuery(event.target.value)}
                     />
