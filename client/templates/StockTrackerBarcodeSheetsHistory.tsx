@@ -14,6 +14,7 @@ import {
 import { Context, reverse, templates } from "@reactivated";
 
 import { format } from "date-fns";
+import { LazyMotion, domAnimation, m } from "motion/react";
 
 import { Layout } from "@client/components/Layout";
 import { LoadMoreButton } from "@client/components/LoadMoreButton";
@@ -118,70 +119,82 @@ export function Template(props: templates.StockTrackerBarcodeSheetsHistory) {
               )}
 
             {barcodeSheets.length > 0 && (
-              <Row className="g-3">
-                {barcodeSheets.map((barcode_sheet) => {
-                  const search_params = `?sheet-type=out-of-dist`;
+              <LazyMotion features={domAnimation}>
+                <Row className="g-3">
+                  {barcodeSheets.map((barcode_sheet) => {
+                    const search_params = `?sheet-type=out-of-dist`;
 
-                  return (
-                    <Col key={barcode_sheet.id} xs={12} md={6} xl={4}>
-                      <Card className="shadow-sm border-0 h-100 hover-shadow transition">
-                        <Card.Header className="bg-primary bg-opacity-10 border-0">
-                          <div className="p-2">
-                            <h5 className="mb-2 fw-bold">
-                              {barcode_sheet.parent_company?.expanded_name}
-                            </h5>
-                            <Badge bg="secondary" pill>
-                              Cycle:{" "}
-                              {barcode_sheet.work_cycle?.start_date !== undefined &&
-                                format(
-                                  new Date(barcode_sheet.work_cycle.start_date),
-                                  "MMM d, yyyy"
-                                )}
-                            </Badge>
-                          </div>
-                        </Card.Header>
-                        <Card.Body className="d-flex flex-column">
-                          <h4 className="mb-3 text-primary">{barcode_sheet.store.name}</h4>
-                          <div className="text-muted small mb-2">
-                            <i className="bi bi-calendar-event me-2"></i>
-                            Created on{" "}
-                            <strong>
-                              {barcode_sheet.datetime_created !== undefined &&
-                                format(new Date(barcode_sheet.datetime_created), "MMMM d, yyyy")}
-                            </strong>{" "}
-                            at{" "}
-                            <strong>
-                              {barcode_sheet.datetime_created !== undefined &&
-                                format(new Date(barcode_sheet.datetime_created), "hh:mm a")}
-                            </strong>
-                          </div>
-                          <div className="text-muted small mb-3">
-                            <i className="bi bi-box-seam me-2"></i>
-                            <Badge bg="info" className="me-1">
-                              {barcode_sheet.product_additions_count}
-                            </Badge>
-                            {barcode_sheet.product_additions_count === 1 ? "item" : "items"} in this
-                            document
-                          </div>
-                          <div className="mt-auto">
-                            <a
-                              href={
-                                reverse("stock_tracker:get_barcode_sheet", {
-                                  barcode_sheet_id: barcode_sheet.id ?? 0,
-                                }) + search_params
-                              }
-                              className="btn btn-primary w-100"
-                            >
-                              <i className="bi bi-eye me-2"></i>
-                              View Sheet
-                            </a>
-                          </div>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                  );
-                })}
-              </Row>
+                    return (
+                      <Col key={barcode_sheet.id} xs={12} md={6} xl={4}>
+                        <m.div
+                          className="h-100"
+                          initial={{ opacity: 0, y: 16 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <Card className="shadow-sm border-0 h-100 hover-shadow transition">
+                            <Card.Header className="bg-primary bg-opacity-10 border-0">
+                              <div className="p-2">
+                                <h5 className="mb-2 fw-bold">
+                                  {barcode_sheet.parent_company?.expanded_name}
+                                </h5>
+                                <Badge bg="secondary" pill>
+                                  Cycle:{" "}
+                                  {barcode_sheet.work_cycle?.start_date !== undefined &&
+                                    format(
+                                      new Date(barcode_sheet.work_cycle.start_date),
+                                      "MMM d, yyyy"
+                                    )}
+                                </Badge>
+                              </div>
+                            </Card.Header>
+                            <Card.Body className="d-flex flex-column">
+                              <h4 className="mb-3 text-primary">{barcode_sheet.store.name}</h4>
+                              <div className="text-muted small mb-2">
+                                <i className="bi bi-calendar-event me-2"></i>
+                                Created on{" "}
+                                <strong>
+                                  {barcode_sheet.datetime_created !== undefined &&
+                                    format(
+                                      new Date(barcode_sheet.datetime_created),
+                                      "MMMM d, yyyy"
+                                    )}
+                                </strong>{" "}
+                                at{" "}
+                                <strong>
+                                  {barcode_sheet.datetime_created !== undefined &&
+                                    format(new Date(barcode_sheet.datetime_created), "hh:mm a")}
+                                </strong>
+                              </div>
+                              <div className="text-muted small mb-3">
+                                <i className="bi bi-box-seam me-2"></i>
+                                <Badge bg="info" className="me-1">
+                                  {barcode_sheet.product_additions_count}
+                                </Badge>
+                                {barcode_sheet.product_additions_count === 1 ? "item" : "items"} in
+                                this document
+                              </div>
+                              <div className="mt-auto">
+                                <a
+                                  href={
+                                    reverse("stock_tracker:get_barcode_sheet", {
+                                      barcode_sheet_id: barcode_sheet.id ?? 0,
+                                    }) + search_params
+                                  }
+                                  className="btn btn-primary w-100"
+                                >
+                                  <i className="bi bi-eye me-2"></i>
+                                  View Sheet
+                                </a>
+                              </div>
+                            </Card.Body>
+                          </Card>
+                        </m.div>
+                      </Col>
+                    );
+                  })}
+                </Row>
+              </LazyMotion>
             )}
 
             {barcodeSheets.length > 0 && (
