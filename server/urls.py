@@ -26,6 +26,7 @@ from . import views
 root_patterns = [
     path("", views.index, name="index"),
     path("inbox/", views.inbox, name="inbox"),
+    path("inbox/get_messages/", views.get_inbox_messages, name="get_inbox_messages"),
     path(
         "inbox/mark_read/<int:message_recipient_id>/",
         views.mark_message_read,

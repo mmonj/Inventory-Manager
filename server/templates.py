@@ -4,6 +4,20 @@ from reactivated import Pick, interface, template
 
 from products.models import MessageRecipient
 
+TMessageRecipient = Pick[
+    MessageRecipient,
+    Literal[
+        "id",
+        "is_read",
+        "read_at",
+        "datetime_created",
+        "message.title",
+        "message.body_md",
+        "message.datetime_created",
+        "message.sender.username",
+    ],
+]
+
 
 @template
 class HomepageIndex(NamedTuple):
@@ -12,24 +26,15 @@ class HomepageIndex(NamedTuple):
 
 @template
 class Inbox(NamedTuple):
-    message_recipients: list[
-        Pick[
-            MessageRecipient,
-            Literal[
-                "id",
-                "is_read",
-                "read_at",
-                "datetime_created",
-                "message.title",
-                "message.body_md",
-                "message.datetime_created",
-                "message.sender.username",
-            ],
-        ]
-    ]
+    message_recipients: list[TMessageRecipient]
 
 
 @interface
 class MarkMessageRead(NamedTuple):
     success: bool
     unread_message_count: int
+
+
+@interface
+class GetInboxMessages(NamedTuple):
+    message_recipients: list[TMessageRecipient]
