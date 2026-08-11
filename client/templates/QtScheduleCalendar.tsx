@@ -59,9 +59,12 @@ export function Template(props: templates.QtScheduleCalendar) {
   const scheduleServiceOrderFetch = useFetch<interfaces.QtScheduleServiceOrder>();
   const unscheduleServiceOrderFetch = useFetch<interfaces.QtUnscheduleServiceOrder>();
   const swapServiceOrdersFetch = useFetch<interfaces.QtSwapServiceOrders>();
-  const clearScheduledDateFetch = useFetch<interfaces.QtClearScheduledDate>();
   const executeAutoScheduleFetch = useFetch<interfaces.QtExecuteAutoSchedule>();
   const executeBulkUnscheduleFetch = useFetch<interfaces.QtExecuteBulkUnschedule>();
+  // Clear Date uses the same execute_bulk_unschedule endpoint as the Bulk-Unschedule button
+  // (just scoped to the one selected date), but keeps its own useFetch instance so the two
+  // buttons' loading/error states don't interfere with each other.
+  const clearDateFetch = useFetch<interfaces.QtExecuteBulkUnschedule>();
   const errorToasts = useErrorToasts();
 
   // guard against a duplicate initial fetch if the mount effect below somehow fires twice
@@ -160,14 +163,20 @@ export function Template(props: templates.QtScheduleCalendar) {
 
   const schedule = localSchedule;
 
-  // Auto-scheduling POSTs then immediately refetches the schedule (see
-  // handleExecuteAutoSchedule) - both legs need to block interaction with the content below,
+  // Auto-scheduling, Bulk-Unschedule, and Clear Date all POST then immediately refetch the
+  // schedule (see handleExecuteAutoSchedule/handleExecuteBulkUnschedule/
+  // handleClearScheduledDate) - both legs need to block interaction with the content below,
   // since the calendar/unscheduled list would otherwise be actionable against a schedule
-  // that's either not yet applied or about to be replaced. Tracked separately from
-  // executeAutoScheduleFetch.isLoading (which only covers the POST) so it also stays true
-  // through the follow-up refetch.
+  // that's either not yet applied or about to be replaced. Each is tracked separately from its
+  // fetch hook's isLoading (which only covers the POST) so it also stays true through the
+  // follow-up refetch.
   const [isAutoScheduleRefetching, setIsAutoScheduleRefetching] = React.useState(false);
+  const [isBulkUnscheduleRefetching, setIsBulkUnscheduleRefetching] = React.useState(false);
+  const [isClearDateRefetching, setIsClearDateRefetching] = React.useState(false);
   const isAutoScheduling = executeAutoScheduleFetch.isLoading || isAutoScheduleRefetching;
+  const isBulkUnscheduling = executeBulkUnscheduleFetch.isLoading || isBulkUnscheduleRefetching;
+  const isClearingDate = clearDateFetch.isLoading || isClearDateRefetching;
+  const isCalendarBusy = isAutoScheduling || isBulkUnscheduling || isClearingDate;
 
   // memoized so a re-render without a real schedule change doesn't produce a new array
   // reference each time - downstream useMemo/useEffect hooks key off this by reference
@@ -550,6 +559,60 @@ export function Template(props: templates.QtScheduleCalendar) {
     }
   }
 
+  // Shared by Bulk-Unschedule and Clear Date - both call execute_bulk_unschedule (Clear Date
+  // just scopes it to the one selected date) and follow the same success/failure/partial-
+  // failure handling: refetch the schedule regardless of outcome (the server unscheduled
+  // whatever it could, so guessing the result locally would risk drifting from reality), then
+  // report aborted_early/per-SO failures without treating them as a hard failure.
+  async function executeUnscheduleDates(
+    dateKeys: string[],
+    fetcher: typeof executeBulkUnscheduleFetch,
+    setRefetching: (value: boolean) => void,
+    failureAlertPrefix: string,
+    onSuccess: () => void
+  ): Promise<void> {
+    if (selectedRepId === null || dateKeys.length === 0) {
+      return;
+    }
+
+    const [isSuccess, result, errorMessages] = await fetcher.fetchData(() =>
+      fetchByReactivated<interfaces.QtExecuteBulkUnschedule>(
+        reverse("survey_worker:qt_execute_bulk_unschedule"),
+        context.csrf_token,
+        "POST",
+        new URLSearchParams({
+          rep_id: selectedRepId.toString(),
+          dates: dateKeys.join(","),
+        }),
+        "application/x-www-form-urlencoded"
+      )
+    );
+
+    if (!isSuccess) {
+      errorToasts.showError(failureAlertPrefix, errorMessages);
+      return;
+    }
+
+    onSuccess();
+
+    // force-bypass the cache/freshness-delta since we just mutated the schedule server-side
+    setRefetching(true);
+    await fetchScheduleForRep(selectedRepId, true);
+    setRefetching(false);
+
+    const failures = result.results.filter((r) => !r.success);
+    if (result.aborted_early || failures.length > 0) {
+      alert(
+        (result.aborted_early ? "Stopped early after too many consecutive failures. " : "") +
+          (failures.length > 0
+            ? `${failures.length} service order(s) failed to unschedule: ${failures
+                .map((f) => f.service_order_id)
+                .join(", ")}`
+            : "")
+      );
+    }
+  }
+
   async function handleExecuteBulkUnschedule() {
     if (selectedRepId === null || bulkUnscheduleSelectedDates.length === 0) {
       return;
@@ -566,44 +629,16 @@ export function Template(props: templates.QtScheduleCalendar) {
       return;
     }
 
-    const [isSuccess, result, errorMessages] = await executeBulkUnscheduleFetch.fetchData(() =>
-      fetchByReactivated<interfaces.QtExecuteBulkUnschedule>(
-        reverse("survey_worker:qt_execute_bulk_unschedule"),
-        context.csrf_token,
-        "POST",
-        new URLSearchParams({
-          rep_id: selectedRepId.toString(),
-          dates: dateKeys.join(","),
-        }),
-        "application/x-www-form-urlencoded"
-      )
+    await executeUnscheduleDates(
+      dateKeys,
+      executeBulkUnscheduleFetch,
+      setIsBulkUnscheduleRefetching,
+      "Failed to bulk-unschedule service orders",
+      () => {
+        setBulkUnscheduleSelectedDates([]);
+        setIsBulkUnscheduleMode(false);
+      }
     );
-
-    if (!isSuccess) {
-      errorToasts.showError("Failed to bulk-unschedule service orders", errorMessages);
-      return;
-    }
-
-    setBulkUnscheduleSelectedDates([]);
-    setIsBulkUnscheduleMode(false);
-
-    // the server unscheduled whatever it could - refetch rather than guessing it locally;
-    // force-bypass the cache/freshness-delta since we just mutated the schedule server-side
-    await fetchScheduleForRep(selectedRepId, true);
-
-    const failures = result.results.filter((r) => !r.success);
-    if (result.aborted_early || failures.length > 0) {
-      alert(
-        (result.aborted_early
-          ? "Bulk-unschedule stopped early after too many consecutive failures. "
-          : "") +
-          (failures.length > 0
-            ? `${failures.length} service order(s) failed to unschedule: ${failures
-                .map((f) => f.service_order_id)
-                .join(", ")}`
-            : "")
-      );
-    }
   }
 
   const isTodayAllowed = React.useMemo(() => {
@@ -682,56 +717,30 @@ export function Template(props: templates.QtScheduleCalendar) {
   async function handleClearScheduledDate() {
     if (
       selectedRepId === null ||
-      schedule === null ||
+      selectedDate === undefined ||
       physicalVisitServiceOrdersForSelectedDate.length === 0
     ) {
       return;
     }
 
-    const serviceOrderIds = physicalVisitServiceOrdersForSelectedDate.map(
-      (so) => so.ServiceOrderId
-    );
-
     if (
       !confirm(
-        `Unschedule ${serviceOrderIds.length} physical-visit service order(s) on ${formatWeekdayShortDate(
-          selectedDate!
-        )}?\n\nNon-physical-visit tickets (e.g. drive-time) will not be affected.`
+        `Unschedule ${physicalVisitServiceOrdersForSelectedDate.length} physical-visit service ` +
+          `order(s) on ${formatWeekdayShortDate(
+            selectedDate
+          )}?\n\nNon-physical-visit tickets (e.g. drive-time) will not be affected.`
       )
     ) {
       return;
     }
 
-    const [isSuccess, result, errorMessages] = await clearScheduledDateFetch.fetchData(() =>
-      fetchByReactivated<interfaces.QtClearScheduledDate>(
-        reverse("survey_worker:qt_clear_scheduled_date"),
-        context.csrf_token,
-        "POST",
-        new URLSearchParams({
-          rep_id: selectedRepId.toString(),
-          service_order_ids: serviceOrderIds.join(","),
-        }),
-        "application/x-www-form-urlencoded"
-      )
+    await executeUnscheduleDates(
+      [toDateKey(selectedDate)],
+      clearDateFetch,
+      setIsClearDateRefetching,
+      "Failed to clear date",
+      () => {}
     );
-
-    if (!isSuccess) {
-      errorToasts.showError("Failed to clear date", errorMessages);
-      return;
-    }
-
-    const succeeded = result.results.filter((r) => r.success).map((r) => r.service_order_id);
-    const failures = result.results.filter((r) => !r.success);
-
-    rescheduleServiceOrdersLocally(succeeded, schedule.UnscheduledDate);
-
-    if (failures.length > 0) {
-      alert(
-        `Cleared date with ${failures.length} failure(s): ${failures
-          .map((f) => `SO ${f.service_order_id}`)
-          .join(", ")}`
-      );
-    }
   }
 
   return (
@@ -838,7 +847,7 @@ export function Template(props: templates.QtScheduleCalendar) {
 
         {selectedRepId !== null && schedule !== null && (
           <div className="position-relative">
-            {isAutoScheduling && (
+            {isCalendarBusy && (
               <div
                 className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
                 style={{ background: "rgba(0, 0, 0, 0.4)", zIndex: 10 }}
@@ -852,7 +861,9 @@ export function Template(props: templates.QtScheduleCalendar) {
                     <span className="visually-hidden">Loading...</span>
                   </Spinner>
                   <div className="fs-5 fw-semibold mt-3 text-black">
-                    Auto-scheduling in progress…
+                    {isAutoScheduling && "Auto-scheduling in progress…"}
+                    {isBulkUnscheduling && "Bulk-unscheduling in progress…"}
+                    {isClearingDate && "Clearing date…"}
                   </div>
                 </div>
               </div>
@@ -1112,10 +1123,8 @@ export function Template(props: templates.QtScheduleCalendar) {
                     {isSwapMode && (
                       <ButtonWithSpinner
                         type="button"
-                        className={classNames("btn btn-warning btn-sm", {
-                          disabled:
-                            swapSelectedDates.length !== 2 && !swapServiceOrdersFetch.isLoading,
-                        })}
+                        className="btn btn-warning btn-sm"
+                        disabled={swapSelectedDates.length !== 2}
                         spinnerVariant="black"
                         fetchState={swapServiceOrdersFetch}
                         onClick={() => swapSelectedDates.length === 2 && handleExecuteSwap()}
@@ -1126,12 +1135,11 @@ export function Template(props: templates.QtScheduleCalendar) {
                     {isAutoScheduleMode && (
                       <ButtonWithSpinner
                         type="button"
-                        className={classNames("btn btn-primary btn-sm", {
-                          disabled:
-                            (autoScheduleSelectedSoIds.size === 0 ||
-                              autoScheduleSelectedDates.length === 0) &&
-                            !executeAutoScheduleFetch.isLoading,
-                        })}
+                        className="btn btn-primary btn-sm"
+                        disabled={
+                          autoScheduleSelectedSoIds.size === 0 ||
+                          autoScheduleSelectedDates.length === 0
+                        }
                         fetchState={executeAutoScheduleFetch}
                         spinnerVariant="dark"
                         onClick={() => void handleExecuteAutoSchedule()}
@@ -1142,11 +1150,8 @@ export function Template(props: templates.QtScheduleCalendar) {
                     {isBulkUnscheduleMode && (
                       <ButtonWithSpinner
                         type="button"
-                        className={classNames("btn btn-warning btn-sm", {
-                          disabled:
-                            bulkUnscheduleSelectedDates.length === 0 &&
-                            !executeBulkUnscheduleFetch.isLoading,
-                        })}
+                        className="btn btn-warning btn-sm"
+                        disabled={bulkUnscheduleSelectedDates.length === 0}
                         fetchState={executeBulkUnscheduleFetch}
                         spinnerVariant="black"
                         onClick={() => void handleExecuteBulkUnschedule()}
@@ -1236,18 +1241,19 @@ export function Template(props: templates.QtScheduleCalendar) {
                           "Select a date to view scheduled service orders"
                         )}
                       </span>
-                      <Button
-                        variant="dark"
-                        size="sm"
+                      <ButtonWithSpinner
+                        type="button"
+                        className="btn btn-dark btn-sm"
                         disabled={
                           selectedDate === undefined ||
-                          physicalVisitServiceOrdersForSelectedDate.length === 0 ||
-                          clearScheduledDateFetch.isLoading
+                          physicalVisitServiceOrdersForSelectedDate.length === 0
                         }
+                        spinnerVariant="white"
+                        fetchState={clearDateFetch}
                         onClick={() => void handleClearScheduledDate()}
                       >
                         Clear Date
-                      </Button>
+                      </ButtonWithSpinner>
                     </Card.Header>
                     {selectedDate === undefined ? (
                       <div className="text-muted p-3">

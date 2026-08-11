@@ -16,17 +16,19 @@ interface Props {
     | "light"
     | "dark"
     | "black";
+  // Extra condition to disable on, on top of fetchState.isLoading (e.g. nothing selected yet).
+  disabled?: boolean;
   onClick?: () => void;
   children: React.ReactNode;
 }
 
-export function ButtonWithSpinner({ className = "", ...props }: Props) {
+export function ButtonWithSpinner({ className = "", disabled = false, ...props }: Props) {
   return (
     <button
       className={className}
       type={props.type}
       onClick={props.onClick}
-      disabled={props.fetchState.isLoading}
+      disabled={disabled || props.fetchState.isLoading}
     >
       {props.children}{" "}
       {props.fetchState.isLoading && (
