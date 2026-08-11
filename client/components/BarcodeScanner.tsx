@@ -85,6 +85,7 @@ function Html5QrcodePlugin({
   const djangoContext = useContext(Context);
 
   const scanSoundRef = useRef<HTMLAudioElement | null>(null);
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const previousScanInfoRef = useRef({
     decodedText: "", // UPC
     timeScannedMs: 0,
@@ -134,10 +135,12 @@ function Html5QrcodePlugin({
 
     const scanner = new Html5QrcodeScanner(viewportElementId, config, true);
     scanner.render(initialScanSuccessCallback, scanErrorCallback);
+    scannerRef.current = scanner;
 
     // cleanup function when component will unmount
     return () => {
       console.log("unmounted");
+      scannerRef.current = null;
       setTimeout(() => {
         scanner.clear().catch((error) => {
           console.error("Failed to clear html5QrcodeScanner. ", error);
@@ -145,6 +148,36 @@ function Html5QrcodePlugin({
       }, 1000);
     };
   }, []);
+
+  // Some browsers/OSes reset applied camera constraints (e.g. zoom) once the video track is
+  // backgrounded, so re-apply the current zoom whenever the tab/app becomes visible again. The
+  // zoom slider element's displayed value is reset separately here too -- it's driven by its own
+  // "input" event listener below, which only fires on user interaction, so it wouldn't otherwise
+  // notice the browser silently resetting the underlying track's zoom.
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState !== "visible" || scannerRef.current === null) return;
+
+      scannerRef.current
+        .applyVideoConstraints({
+          advanced: [{ zoom: scannerZoom }],
+        } as unknown as MediaTrackConstraints)
+        .then(() => {
+          const inputElm = document.querySelector<HTMLInputElement>(scannerSliderSelector);
+          if (inputElm !== null) {
+            inputElm.value = String(scannerZoom);
+          }
+        })
+        .catch((error: unknown) => {
+          console.error("Failed to re-apply zoom after visibility change. ", error);
+        });
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [scannerZoom, scannerSliderSelector]);
 
   // sync zoom state with scanner's zoom slider element
   useEffect(() => {
