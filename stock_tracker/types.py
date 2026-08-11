@@ -39,7 +39,3 @@ class SheetTypeInterface(TypedDict):
 
 class SheetTypeDescriptionInterface(SheetTypeInterface):
     sheetTypeVerbose: SheetTypeVerbose
-
-
-class SheetQueryInfoInterface(SheetTypeInterface):
-    is_carried_list: list[bool]

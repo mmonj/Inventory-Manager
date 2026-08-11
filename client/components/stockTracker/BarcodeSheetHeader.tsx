@@ -3,7 +3,14 @@ import React from "react";
 import { templates } from "@reactivated";
 import { ButtonGroup, Dropdown, DropdownButton } from "react-bootstrap";
 
+import { sheetTypeType } from "@client/types";
+
+type TProductAddition =
+  templates.StockTrackerBarcodeSheet["barcodeSheet"]["product_additions"][number];
+
 interface Props extends templates.StockTrackerBarcodeSheet {
+  visibleProductAdditions: TProductAddition[];
+  onChangeSheetType: (sheetType: sheetTypeType) => void;
   setIsEditMode: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
@@ -18,7 +25,7 @@ export function BarcodeSheetHeader(props: Props) {
       </div>
       <h5 className="text-center">{props.barcodeSheet.store_name}</h5>
       <h6 className="text-center mb-3">
-        {`${props.barcodeSheet.product_additions.length} shown / ${props.total_products} total items`}
+        {`${props.visibleProductAdditions.length} shown / ${props.barcodeSheet.product_additions.length} total items`}
       </h6>
       <div className="sheet-type-container dropdown mb-3 text-center">
         <DropdownButton
@@ -33,7 +40,7 @@ export function BarcodeSheetHeader(props: Props) {
                 props.sheetTypeInfo.sheetType === possiblesheetInfo.sheetType ? "active" : ""
               }
               key={idx}
-              href={"?sheet-type=" + encodeURIComponent(possiblesheetInfo.sheetType)}
+              onClick={() => props.onChangeSheetType(possiblesheetInfo.sheetType)}
               eventKey={idx}
             >
               {possiblesheetInfo.sheetTypeVerbose}

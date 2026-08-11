@@ -3,7 +3,11 @@ import React, { useContext } from "react";
 import { CSRFToken, Context, reverse, templates } from "@reactivated";
 import { Button } from "react-bootstrap";
 
+type TProductAddition =
+  templates.StockTrackerBarcodeSheet["barcodeSheet"]["product_additions"][number];
+
 interface Props extends templates.StockTrackerBarcodeSheet {
+  visibleProductAdditions: TProductAddition[];
   isEditMode: boolean;
 }
 
@@ -32,7 +36,7 @@ export function BarcodeSheetContent(props: Props) {
     }
   }
 
-  if (props.barcodeSheet.product_additions.length === 0) {
+  if (props.visibleProductAdditions.length === 0) {
     return (
       <section className="mx-auto my-2 p-2 pb-4 text-center py-5">
         <div className="text-muted">
@@ -52,7 +56,7 @@ export function BarcodeSheetContent(props: Props) {
         <ul className="products-container row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-5 row-cols-xxl-6 mx-auto">
           {/* product-container receives a 'hidden' attribute by default. This will be overridden by the client-side javascript */}
 
-          {props.barcodeSheet.product_additions.map((product_addition, idx) => (
+          {props.visibleProductAdditions.map((product_addition, idx) => (
             <li
               key={idx}
               className="col product-container card text-center border-0 my-1"

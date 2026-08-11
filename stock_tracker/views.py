@@ -167,22 +167,16 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
     if result_sheet_type_info is None:
         return HttpResponseNotFound()
 
-    # get barcode sheet
-    sheet_query_info = util.get_sheet_query_info(sheet_type)
-    if sheet_query_info is None:
-        return HttpResponseNotFound()
-
-    num_products = get_object_or_404(BarcodeSheet, id=barcode_sheet_id).product_additions.count()
-
+    # get barcode sheet - all product_additions are fetched regardless of sheet_type; the
+    # client filters by is_carried itself (see BarcodeSheetContent), so switching sheet type
+    # doesn't require a new request.
     barcode_sheet = get_object_or_404(
         BarcodeSheet.objects.prefetch_related(
             "store",
             "parent_company",
             Prefetch(
                 "product_additions",
-                queryset=ProductAddition.objects.filter(
-                    is_carried__in=sheet_query_info["is_carried_list"]
-                ).prefetch_related("product"),
+                queryset=ProductAddition.objects.prefetch_related("product"),
             ),
         ),
         id=barcode_sheet_id,
@@ -211,7 +205,6 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
 
     return templates.StockTrackerBarcodeSheet(
         barcodeSheet=barcode_sheet_data,
-        total_products=num_products,
         sheetTypeInfo=result_sheet_type_info,
         possibleSheetTypesInfo=possible_sheet_types_info,
     ).render(request)

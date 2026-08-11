@@ -26,7 +26,6 @@ class StockTrackerAddNewStores(NamedTuple):
 @template
 class StockTrackerBarcodeSheet(NamedTuple):
     barcodeSheet: BarcodeSheetInterface  # noqa: N815 -- attribute name needs to comply with client-side expectation
-    total_products: int
     sheetTypeInfo: SheetTypeDescriptionInterface  # noqa: N815 -- attribute name needs to comply with client-side expectation
     possibleSheetTypesInfo: list[SheetTypeDescriptionInterface]  # noqa: N815 -- attribute name needs to comply with client-side expectation
 
