@@ -163,9 +163,11 @@ def get_barcode_sheet(request: HttpRequest, barcode_sheet_id: int) -> HttpRespon
         },
     ]
 
-    result_sheet_type_info = util.get_sheet_type_info(sheet_type, possible_sheet_types_info)
-    if result_sheet_type_info is None:
+    sheet_type_info_result = util.get_sheet_type_info(sheet_type, possible_sheet_types_info)
+    if not sheet_type_info_result.ok:
         return HttpResponseNotFound()
+
+    result_sheet_type_info = sheet_type_info_result.value
 
     # get barcode sheet - all product_additions are fetched regardless of sheet_type; the
     # client filters by is_carried itself (see BarcodeSheetContent), so switching sheet type

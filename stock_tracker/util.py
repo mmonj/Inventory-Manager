@@ -1,4 +1,5 @@
 from products.models import ProductAddition
+from server.utils.typedefs import TFailure, TResult, TSuccess
 
 from .types import SheetTypeDescriptionInterface
 
@@ -39,8 +40,8 @@ def set_not_carried_bulk(product_additions: list[ProductAddition]) -> None:
 
 def get_sheet_type_info(
     sheet_type: str, possible_sheet_types_info: list[SheetTypeDescriptionInterface]
-) -> SheetTypeDescriptionInterface | None:
+) -> TResult[SheetTypeDescriptionInterface, ValueError]:
     for possible_sheet_type in possible_sheet_types_info:
         if sheet_type == possible_sheet_type["sheetType"]:
-            return possible_sheet_type
-    return None
+            return TSuccess(possible_sheet_type)
+    return TFailure(ValueError(f"Unknown sheet type: {sheet_type!r}"))
