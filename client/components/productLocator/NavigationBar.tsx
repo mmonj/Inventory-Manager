@@ -17,6 +17,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
+import { AlertsBellIcon } from "../AlertsBellIcon";
 import { NavLink } from "../NavLink";
 
 interface TLink {
@@ -90,6 +91,8 @@ export function NavigationBar() {
           </Nav>
 
           <Nav className="mb-2 mb-lg-0 align-items-center">
+            {djangoContext.user.is_authenticated && <AlertsBellIcon />}
+
             {djangoContext.user.is_superuser && (
               <Nav.Link
                 href="/admin"

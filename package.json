@@ -47,6 +47,7 @@
     "react-dom": "^19.0.0",
     "react-json-view-lite": "^2.5.0",
     "react-leaflet": "^5.0.0",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^6.16.0",
     "react-select": "^5.10.2",
     "reactivated": "^0.51.0",

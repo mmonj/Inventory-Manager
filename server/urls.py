@@ -25,6 +25,12 @@ from . import views
 # root-level URL patterns with 'root:' namespace
 root_patterns = [
     path("", views.index, name="index"),
+    path("inbox/", views.inbox, name="inbox"),
+    path(
+        "inbox/mark_read/<int:message_recipient_id>/",
+        views.mark_message_read,
+        name="mark_message_read",
+    ),
 ]
 
 if settings.DEBUG:
