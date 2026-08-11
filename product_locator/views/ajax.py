@@ -11,7 +11,7 @@ from rest_framework.request import Request as DrfRequest
 
 from server.utils.common import validate_structure
 
-from .. import util
+from .. import planogram_parser, util
 from ..models import HomeLocation, Planogram, PlanogramUpdate, Product, ProductScanAudit
 from . import interfaces_response
 from .interfaces_request import (
@@ -19,6 +19,7 @@ from .interfaces_request import (
     IAddNewProductLocation,
     IAppendScanAudit,
     INewScanAuditRequest,
+    ISubmitPlanogramProducts,
 )
 
 logger = logging.getLogger("main_logger")
@@ -164,8 +165,55 @@ def apply_planogram_update(request: DrfRequest, planogram_update_id: int) -> Htt
     if planogram_update.is_applied:
         raise DrfValidationError("This planogram update has already been applied.")
 
-    util.apply_planogram_update(planogram_update, request)
+    _num_products_added, product_errors = util.apply_planogram_update(planogram_update)
+    if product_errors:
+        raise DrfValidationError(product_errors)
 
     return interfaces_response.IPlanogramUpdateApplied(planogram_update=planogram_update).render(
         request
     )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def submit_planogram_products(request: DrfRequest) -> HttpResponse:
+    request_data = validate_structure(request.data, ISubmitPlanogramProducts)
+
+    planogram = (
+        Planogram.objects.select_related("store").filter(pk=request_data.planogram_id).first()
+    )
+    if planogram is None:
+        raise DrfNotFound(f"Planogram with ID {request_data.planogram_id} not found")
+
+    if not request_data.planogram_text_dump.strip():
+        raise DrfValidationError("You have submitted an empty planogram text dump.")
+
+    product_list, parse_errors = planogram_parser.parse_data(request_data.planogram_text_dump)
+    if parse_errors:
+        raise DrfValidationError(parse_errors)
+
+    if not product_list:
+        raise DrfValidationError("You have submitted data that resulted in 0 items being parsed.")
+
+    if planogram.store is None:
+        raise DrfValidationError("The selected planogram does not have an associated store.")
+
+    if request_data.is_reset_planogram:
+        label = request_data.label.strip()
+        if not label:
+            raise DrfValidationError("A label is required when resetting a planogram.")
+
+        planogram_update = util.create_planogram_update(label, product_list, planogram)
+        return interfaces_response.ISubmitPlanogramProductsResult(
+            num_products_added=None, num_products_parsed=None, planogram_update=planogram_update
+        ).render(request)
+
+    num_products_added, product_errors = util.add_location_records(product_list, planogram)
+    if product_errors:
+        raise DrfValidationError(product_errors)
+
+    return interfaces_response.ISubmitPlanogramProductsResult(
+        num_products_added=num_products_added,
+        num_products_parsed=len(product_list),
+        planogram_update=None,
+    ).render(request)

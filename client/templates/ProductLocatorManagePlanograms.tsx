@@ -4,10 +4,11 @@ import { CSRFToken, Context, interfaces, reverse, templates } from "@reactivated
 import { Alert, Badge, Button, Card, ListGroup } from "react-bootstrap";
 import Select from "react-select";
 
-import { faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faPencilAlt, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Layout } from "@client/components/Layout";
 import { LoadingSpinner } from "@client/components/LoadingSpinner";
+import { EditPlanogramModal } from "@client/components/productLocator/EditPlanogramModal";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { fetchByReactivated } from "@client/util/commonUtil";
@@ -16,8 +17,23 @@ type SelectOption = { value: number; label: string };
 
 export function Template(props: templates.ProductLocatorManagePlanograms) {
   const [selectedStore, setSelectedStore] = useState<SelectOption | null>(null);
+  const [editingPlanogram, setEditingPlanogram] = useState<{ pk: number; name: string } | null>(
+    null
+  );
   const djangoContext = useContext(Context);
   const planogramsFetcher = useFetch<interfaces.IPlanogramsByStore>();
+
+  async function refetchPlanograms() {
+    if (selectedStore) {
+      await planogramsFetcher.fetchData(() =>
+        fetchByReactivated<interfaces.IPlanogramsByStore>(
+          reverse("product_locator:get_planograms_by_store", { store_id: selectedStore.value }),
+          djangoContext.csrf_token,
+          "GET"
+        )
+      );
+    }
+  }
 
   const storeOptions: SelectOption[] = props.stores.map((store) => ({
     value: store.pk,
@@ -58,16 +74,7 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
         "DELETE"
       );
 
-      // Refresh the planograms list
-      if (selectedStore) {
-        await planogramsFetcher.fetchData(() =>
-          fetchByReactivated<interfaces.IPlanogramsByStore>(
-            reverse("product_locator:get_planograms_by_store", { store_id: selectedStore.value }),
-            djangoContext.csrf_token,
-            "GET"
-          )
-        );
-      }
+      await refetchPlanograms();
     } catch (error) {
       alert(`Failed to delete planogram: ${String(error)}`);
     }
@@ -161,6 +168,16 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
                                 {planogram.plano_type_info.label}
                               </Badge>
                               <Button
+                                variant="outline-primary"
+                                size="sm"
+                                onClick={() =>
+                                  setEditingPlanogram({ pk: planogram.pk, name: planogram.name })
+                                }
+                                title="Edit planogram products"
+                              >
+                                <FontAwesomeIcon icon={faPencilAlt} />
+                              </Button>
+                              <Button
                                 variant="outline-danger"
                                 size="sm"
                                 onClick={() => handleDeletePlanogram(planogram.pk, planogram.name)}
@@ -228,6 +245,15 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
           </Card>
         )}
       </section>
+
+      {editingPlanogram && (
+        <EditPlanogramModal
+          show={true}
+          onHide={() => setEditingPlanogram(null)}
+          planogram={editingPlanogram}
+          onSuccess={refetchPlanograms}
+        />
+      )}
     </Layout>
   );
 }

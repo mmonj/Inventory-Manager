@@ -2,12 +2,7 @@ import React from "react";
 
 import { _Types } from "@reactivated";
 
-import {
-  PreliminarySelectProps,
-  PreliminaryTextAreaProps,
-  SelectProps,
-  TextAreaProps,
-} from "@client/types";
+import { PreliminaryTextAreaProps, TextAreaProps } from "@client/types";
 
 export type CoreWidget = _Types["globals"]["Widget"];
 
@@ -42,28 +37,6 @@ export const TextInput = (props: {
       value={props.value ?? ""}
       onChange={(event) => props.onChange(event.target.value)}
     />
-  );
-};
-
-export const Select = (props: PreliminarySelectProps) => {
-  // eslint-disable-next-line unused-imports/no-unused-vars
-  const { template_name, attrs, tag, is_hidden, optgroups, ...finalProps } = {
-    ...props,
-    ...props.attrs,
-    value: props.value ?? "",
-  };
-
-  return (
-    <select {...(finalProps satisfies SelectProps)}>
-      {props.optgroups.map((optgroup) => {
-        const optgroupValue = (optgroup[1][0].value ?? "").toString();
-        return (
-          <option key={optgroupValue} value={optgroupValue}>
-            {optgroup[1][0].label}
-          </option>
-        );
-      })}
-    </select>
   );
 };
 

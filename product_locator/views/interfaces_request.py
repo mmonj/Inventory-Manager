@@ -24,3 +24,11 @@ class IAddNewProductLocation:
     product_name: str
     planogram_id: str
     location: str
+
+
+@frozen
+class ISubmitPlanogramProducts:
+    planogram_id: int
+    planogram_text_dump: str
+    is_reset_planogram: bool
+    label: str

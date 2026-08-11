@@ -1,8 +1,7 @@
 import logging
 
-from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.http import HttpRequest
+from django.db import transaction
 
 from .models import HomeLocation, Planogram, PlanogramUpdate, Product
 from .types import IImportedProductInfo, TPlanoSnapshot
@@ -13,41 +12,55 @@ logger = logging.getLogger("main_logger")
 def add_location_records(
     product_list: list[IImportedProductInfo],
     planogram: Planogram,
-    request: HttpRequest,
-) -> int:
-    new_locations = [
-        HomeLocation(name=product_data["location"], planogram=planogram)
-        for product_data in product_list
-    ]
-
-    logger.info("Bulk creating %d new locations", len(new_locations))
-
-    HomeLocation.objects.bulk_create(new_locations, 100, ignore_conflicts=True)
-    home_locations: dict[str, HomeLocation] = {loc.name: loc for loc in planogram.locations.all()}
-
-    num_products_added = 0
+) -> tuple[int, list[str]]:
+    """
+    Validates every product's UPC before writing anything. If any product is invalid, no
+    HomeLocation/Product/relation writes from this call are persisted (all-or-nothing import).
+    """
+    product_errors: list[str] = []
     for product_data in product_list:
-        product = Product.objects.filter(upc=product_data["upc"]).first()
-        if product is None:
-            try:
-                product = Product.objects.create(upc=product_data["upc"], name=product_data["name"])
-            except ValidationError as ex:
-                logger.exception("Errors in creating new product: %s", ex.messages)
-                for msg in ex.messages:
-                    messages.error(
-                        request,
-                        f"{' '.join(product_data.values())}: {msg}",  # type:ignore [arg-type]
-                    )
-                continue
-
-        num_products_added += 1
-        home_location = home_locations.get(product_data["location"])
-        if home_location is None:
+        if Product.objects.filter(upc=product_data["upc"]).exists():
             continue
 
-        product.home_locations.add(home_location)
+        try:
+            Product(upc=product_data["upc"], name=product_data["name"]).clean()
+        except ValidationError as ex:
+            logger.exception("Errors in creating new product: %s", ex.messages)
+            product_errors.extend(
+                f"{' '.join(product_data.values())}: {msg}"  # type:ignore [arg-type]
+                for msg in ex.messages
+            )
 
-    return num_products_added
+    if product_errors:
+        return 0, product_errors
+
+    with transaction.atomic():
+        new_locations = [
+            HomeLocation(name=product_data["location"], planogram=planogram)
+            for product_data in product_list
+        ]
+
+        logger.info("Bulk creating %d new locations", len(new_locations))
+
+        HomeLocation.objects.bulk_create(new_locations, 100, ignore_conflicts=True)
+        home_locations: dict[str, HomeLocation] = {
+            loc.name: loc for loc in planogram.locations.all()
+        }
+
+        num_products_added = 0
+        for product_data in product_list:
+            product = Product.objects.filter(upc=product_data["upc"]).first()
+            if product is None:
+                product = Product.objects.create(upc=product_data["upc"], name=product_data["name"])
+
+            num_products_added += 1
+            home_location = home_locations.get(product_data["location"])
+            if home_location is None:
+                continue
+
+            product.home_locations.add(home_location)
+
+    return num_products_added, []
 
 
 def build_plano_snapshot(planogram: Planogram) -> TPlanoSnapshot:
@@ -89,20 +102,26 @@ def create_planogram_update(
     )
 
 
-def apply_planogram_update(planogram_update: PlanogramUpdate, request: HttpRequest) -> int:
+def apply_planogram_update(planogram_update: PlanogramUpdate) -> tuple[int, list[str]]:
     planogram = planogram_update.planogram
-
-    planogram.locations.all().delete()
-    logger.info("Deleted all existing home locations for planogram: %s", planogram)
 
     product_list: list[IImportedProductInfo] = [
         {"location": location, "upc": product["upc"], "name": product["name"]}
         for location, product in planogram_update.new_plano.items()
     ]
 
-    num_products_added = add_location_records(product_list, planogram, request)
+    with transaction.atomic():
+        planogram.locations.all().delete()
+        logger.info("Deleted all existing home locations for planogram: %s", planogram)
 
-    planogram_update.is_applied = True
-    planogram_update.save(update_fields=["is_applied"])
+        num_products_added, product_errors = add_location_records(product_list, planogram)
+        if product_errors:
+            # Roll back the delete too -- an invalid UPC must not leave the planogram cleared
+            # out with nothing re-added.
+            transaction.set_rollback(True)
+            return 0, product_errors
 
-    return num_products_added
+        planogram_update.is_applied = True
+        planogram_update.save(update_fields=["is_applied"])
+
+    return num_products_added, product_errors

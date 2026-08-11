@@ -1,5 +1,4 @@
 import {
-  DjangoFormsWidgetsSelect,
   DjangoFormsWidgetsTextarea,
   ReactivatedSerializationWidgetsTextareaAttrs,
   StockTrackerTypesSheetTypeDescriptionInterface,
@@ -49,16 +48,6 @@ export interface TextAreaProps
   onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   cols: number;
   rows: number;
-}
-
-export interface PreliminarySelectProps extends DjangoFormsWidgetsSelect {
-  className?: string;
-  onChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
-}
-
-export interface SelectProps extends Omit<DjangoFormsWidgetsSelect, FilteredKeysType> {
-  className?: string;
-  onChange: (event: React.ChangeEvent<HTMLSelectElement>) => void;
 }
 
 export const BarcodeSheetSchema = z.object({

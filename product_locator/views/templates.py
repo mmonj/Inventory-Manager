@@ -2,7 +2,6 @@ from typing import NamedTuple
 
 from reactivated import Pick, template
 
-from ..forms import PlanogramForm
 from ..models import Planogram, ProductScanAudit, Store
 from ..types import IPlanoProduct
 
@@ -11,12 +10,6 @@ from ..types import IPlanoProduct
 class ProductLocatorIndex(NamedTuple):
     stores: list[Pick[Store, "pk", "name"]]
     planograms: list[Pick[Planogram, "pk", "name", "date_start", "date_end", "store.pk"]]
-
-
-@template
-class ProductLocatorAddNewProducts(NamedTuple):
-    form: PlanogramForm
-    stores: list[Pick[Store, "pk", "name"]]
 
 
 @template
