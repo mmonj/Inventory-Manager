@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 
-import { CSRFToken, Context, interfaces, reverse, templates } from "@reactivated";
+import { Context, interfaces, reverse, templates } from "@reactivated";
+import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
 import { Alert, Badge, Button, Card, ListGroup } from "react-bootstrap";
 import Select from "react-select";
 
@@ -22,6 +23,7 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
   );
   const djangoContext = useContext(Context);
   const planogramsFetcher = useFetch<interfaces.IPlanogramsByStore>();
+  const createPlanogramFetcher = useFetch<interfaces.IPlanogramCreated>();
 
   async function refetchPlanograms() {
     if (selectedStore) {
@@ -77,6 +79,36 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
       await refetchPlanograms();
     } catch (error) {
       alert(`Failed to delete planogram: ${String(error)}`);
+    }
+  }
+
+  async function handleCreatePlanogram(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedStore) return;
+
+    const formElement = event.currentTarget;
+    const formData = new FormData(formElement);
+    const name = formData.get("name") as string;
+    const planoType = formData.get("plano_type") as string;
+
+    const [isSuccess] = await createPlanogramFetcher.fetchData(() =>
+      fetchByReactivated<interfaces.IPlanogramCreated>(
+        reverse("product_locator:create_planogram"),
+        djangoContext.csrf_token,
+        "POST",
+        JSON.stringify({ name, plano_type: planoType, store_id: selectedStore.value })
+      )
+    );
+
+    if (isSuccess) {
+      formElement.reset();
+
+      try {
+        await refetchPlanograms();
+      } catch (error) {
+        console.error("Failed to refresh planograms after creating a new one:", error);
+      }
     }
   }
 
@@ -142,53 +174,68 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
                     </small>
                   </div>
                   <ListGroup variant="flush">
-                    {[...planogramsFetcher.data.planograms]
-                      .sort(
-                        (a, b) =>
-                          new Date(b.date_start).getTime() - new Date(a.date_start).getTime()
-                      )
-                      .map((planogram) => {
-                        const isSeasonal = planogram.plano_type_info.value === "seasonal";
-                        return (
-                          <ListGroup.Item
-                            key={planogram.pk}
-                            className="d-flex justify-content-between align-items-center"
-                          >
-                            <div>
-                              <h6 className="mb-1 fw-bold">{planogram.name}</h6>
-                              <small className="text-muted">
-                                Started: {new Date(planogram.date_start).toLocaleDateString()}
-                              </small>
-                            </div>
-                            <div className="d-flex align-items-center gap-2">
-                              <Badge
-                                bg={isSeasonal ? "warning" : "info"}
-                                text={isSeasonal ? "light" : "white"}
+                    <LazyMotion features={domAnimation}>
+                      <AnimatePresence mode="popLayout">
+                        {[...planogramsFetcher.data.planograms]
+                          .sort(
+                            (a, b) =>
+                              new Date(b.date_start).getTime() - new Date(a.date_start).getTime()
+                          )
+                          .map((planogram) => {
+                            const isSeasonal = planogram.plano_type_info.value === "seasonal";
+                            return (
+                              <ListGroup.Item
+                                key={planogram.pk}
+                                as={m.div}
+                                layout
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                transition={{ duration: 0.2 }}
+                                className="d-flex justify-content-between align-items-center"
                               >
-                                {planogram.plano_type_info.label}
-                              </Badge>
-                              <Button
-                                variant="outline-primary"
-                                size="sm"
-                                onClick={() =>
-                                  setEditingPlanogram({ pk: planogram.pk, name: planogram.name })
-                                }
-                                title="Edit planogram products"
-                              >
-                                <FontAwesomeIcon icon={faPencilAlt} />
-                              </Button>
-                              <Button
-                                variant="outline-danger"
-                                size="sm"
-                                onClick={() => handleDeletePlanogram(planogram.pk, planogram.name)}
-                                title="Delete planogram"
-                              >
-                                <FontAwesomeIcon icon={faTrash} />
-                              </Button>
-                            </div>
-                          </ListGroup.Item>
-                        );
-                      })}
+                                <div>
+                                  <h6 className="mb-1 fw-bold">{planogram.name}</h6>
+                                  <small className="text-muted">
+                                    Started: {new Date(planogram.date_start).toLocaleDateString()}
+                                  </small>
+                                </div>
+                                <div className="d-flex align-items-center gap-2">
+                                  <Badge
+                                    bg={isSeasonal ? "warning" : "info"}
+                                    text={isSeasonal ? "light" : "white"}
+                                  >
+                                    {planogram.plano_type_info.label}
+                                  </Badge>
+                                  <Button
+                                    variant="outline-primary"
+                                    size="sm"
+                                    onClick={() =>
+                                      setEditingPlanogram({
+                                        pk: planogram.pk,
+                                        name: planogram.name,
+                                      })
+                                    }
+                                    title="Edit planogram products"
+                                  >
+                                    <FontAwesomeIcon icon={faPencilAlt} />
+                                  </Button>
+                                  <Button
+                                    variant="outline-danger"
+                                    size="sm"
+                                    onClick={() =>
+                                      handleDeletePlanogram(planogram.pk, planogram.name)
+                                    }
+                                    title="Delete planogram"
+                                  >
+                                    <FontAwesomeIcon icon={faTrash} />
+                                  </Button>
+                                </div>
+                              </ListGroup.Item>
+                            );
+                          })}
+                      </AnimatePresence>
+                    </LazyMotion>
                   </ListGroup>
                 </>
               )}
@@ -205,10 +252,7 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
               </h5>
             </Card.Header>
             <Card.Body className="p-4">
-              <form method="POST" action={reverse("product_locator:manage_planograms")}>
-                <CSRFToken />
-                <input type="hidden" name="store" value={selectedStore.value} />
-
+              <form onSubmit={handleCreatePlanogram}>
                 <div className="mb-3">
                   <label htmlFor="name" className="form-label fw-bold">
                     Planogram Name
@@ -237,9 +281,27 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
                   </select>
                 </div>
 
-                <Button type="submit" variant="success" className="w-100">
+                <Button
+                  type="submit"
+                  variant="success"
+                  className="w-100"
+                  disabled={createPlanogramFetcher.isLoading}
+                >
                   Create Planogram
+                  {createPlanogramFetcher.isLoading && (
+                    <LoadingSpinner isBlockElement={false} spinnerVariant="light" size="sm" />
+                  )}
                 </Button>
+
+                {createPlanogramFetcher.isError && (
+                  <Alert variant="danger" className="mt-3 mb-0">
+                    <ul className="mb-0">
+                      {createPlanogramFetcher.errorMessages.map((error, idx) => (
+                        <li key={idx}>{error}</li>
+                      ))}
+                    </ul>
+                  </Alert>
+                )}
               </form>
             </Card.Body>
           </Card>

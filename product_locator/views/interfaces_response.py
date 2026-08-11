@@ -100,3 +100,8 @@ class ISubmitPlanogramProductsResult(NamedTuple):
     num_products_added: int | None
     num_products_parsed: int | None
     planogram_update: Pick[PlanogramUpdate, "pk", "label"] | None
+
+
+@interface
+class IPlanogramCreated(NamedTuple):
+    planogram: Pick[Planogram, "pk", "name", "date_start", "date_end", "plano_type_info"]

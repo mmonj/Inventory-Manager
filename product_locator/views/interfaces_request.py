@@ -32,3 +32,10 @@ class ISubmitPlanogramProducts:
     planogram_text_dump: str
     is_reset_planogram: bool
     label: str
+
+
+@frozen
+class ICreatePlanogram:
+    name: str
+    plano_type: str
+    store_id: int

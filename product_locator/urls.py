@@ -57,6 +57,11 @@ ajax = [
         ajax_views.submit_planogram_products,
         name="submit_planogram_products",
     ),
+    path(
+        "ajax/create_planogram/",
+        ajax_views.create_planogram,
+        name="create_planogram",
+    ),
 ]
 
 api = [

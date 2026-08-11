@@ -12,12 +12,13 @@ from rest_framework.request import Request as DrfRequest
 from server.utils.common import validate_structure
 
 from .. import planogram_parser, util
-from ..models import HomeLocation, Planogram, PlanogramUpdate, Product, ProductScanAudit
+from ..models import HomeLocation, Planogram, PlanogramUpdate, Product, ProductScanAudit, Store
 from . import interfaces_response
 from .interfaces_request import (
     GetProductLocationRequest,
     IAddNewProductLocation,
     IAppendScanAudit,
+    ICreatePlanogram,
     INewScanAuditRequest,
     ISubmitPlanogramProducts,
 )
@@ -217,3 +218,25 @@ def submit_planogram_products(request: DrfRequest) -> HttpResponse:
         num_products_parsed=len(product_list),
         planogram_update=None,
     ).render(request)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_planogram(request: DrfRequest) -> HttpResponse:
+    request_data = validate_structure(request.data, ICreatePlanogram)
+
+    store = Store.objects.filter(pk=request_data.store_id).first()
+    if store is None:
+        raise DrfNotFound(f"Store with ID {request_data.store_id} not found")
+
+    planogram = Planogram(name=request_data.name, plano_type=request_data.plano_type, store=store)
+    try:
+        planogram.full_clean()
+    except ValidationError as ex:
+        raise DrfValidationError(ex.messages) from ex
+
+    planogram.save()
+
+    logger.info("Created planogram '%s' for store '%s'", planogram.name, store.name)
+
+    return interfaces_response.IPlanogramCreated(planogram=planogram).render(request)
