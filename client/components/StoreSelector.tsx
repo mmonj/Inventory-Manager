@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import Button from "react-bootstrap/Button";
 import Select, { ActionMeta, SingleValue } from "react-select";
@@ -10,6 +10,17 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IFieldRep, IStore } from "@client/templates/StockTrackerScanner";
 
 const LOCALSTORAGE_LAST_REP_ID_VIEWED_KEY = "SurveyLauncherLastRepViewed";
+// Sentinel value for the "All Reps" <option>
+const ALL_REPS_VALUE = "-1";
+// A single rep's store list only shows stores scanned within this window.
+// "All Reps" will show all stores regardless of this window.
+const RECENTLY_SEEN_STORE_WINDOW_DAYS = 90;
+
+function isRecentlySeen(store: IStore): boolean {
+  if (store.last_seen === null || store.last_seen === undefined) return false;
+  const daysSinceLastSeen = (Date.now() - new Date(store.last_seen).getTime()) / 86_400_000;
+  return daysSinceLastSeen <= RECENTLY_SEEN_STORE_WINDOW_DAYS;
+}
 
 type BaseProps = {
   handleStoreSubmission: (storePk: string) => void;
@@ -57,12 +68,19 @@ function filterOption(option: FilterOptionOption<TSelectOption>, inputValue: str
 function StoreSelector({ stores, selectedStore, setSelectedStore }: StoreSelectorProps) {
   const [searchInput, setSearchInput] = useState<string>("");
 
-  const options: TSelectOption[] = stores
-    .map((store) => ({
-      value: store.pk,
-      label: store.name ?? "_error: Store name is null",
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+  // Memoized since this is a full map+sort of `stores`, which can be all-reps-combined
+  // (potentially hundreds+ of stores) rather than one rep's subset - without this, every
+  // unrelated re-render (e.g. typing in the search box) would redo that work for no reason.
+  const options: TSelectOption[] = useMemo(
+    () =>
+      stores
+        .map((store) => ({
+          value: store.pk,
+          label: store.name ?? "_error: Store name is null",
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    [stores]
+  );
 
   function handleInputChange(
     inputValue: SingleValue<TSelectOption>,
@@ -113,6 +131,24 @@ export function FieldRepStoreSelector({
   const [selectedStore, setSelectedStore] = useState<TSelectOption | null>(null);
   const fieldRepRef = useRef<HTMLSelectElement>(null);
 
+  const fieldReps = props.propType === "fieldReps" ? props.field_reps : null;
+
+  // Flattened, deduplicated (a store can be shared across reps) list of every store across
+  // every field rep - null when propType isn't "fieldReps" ("All Reps" is only meaningful in
+  // that mode). Memoized since this scans every rep's stores, which "All Reps" selection
+  // would otherwise redo on every render.
+  const allRepsStores = useMemo(() => {
+    if (fieldReps === null) return [];
+
+    const storesByPk = new Map<number, IStore>();
+    for (const field_rep of fieldReps) {
+      for (const store of field_rep.stores) {
+        storesByPk.set(store.pk, store);
+      }
+    }
+    return Array.from(storesByPk.values());
+  }, [fieldReps]);
+
   React.useEffect(() => {
     props.actionOnStoreSelectChange?.();
 
@@ -128,11 +164,16 @@ export function FieldRepStoreSelector({
     setSelectedStore(() => null);
     localStorage.setItem(LOCALSTORAGE_LAST_REP_ID_VIEWED_KEY, fieldRepRef.current.value);
 
+    if (fieldRepRef.current.value === ALL_REPS_VALUE) {
+      setListedStores(() => allRepsStores);
+      return;
+    }
+
     const fieldRepPk = fieldRepRef.current.value;
     const fieldRep = props.field_reps.find((field_rep) => field_rep.pk === parseInt(fieldRepPk));
 
     if (fieldRep === undefined) throw new Error(`Field Rep pk "${fieldRepPk}" not found`);
-    setListedStores(() => fieldRep.stores);
+    setListedStores(() => fieldRep.stores.filter(isRecentlySeen));
   }
 
   function restoreFromLocalstorage() {
@@ -140,12 +181,17 @@ export function FieldRepStoreSelector({
 
     const lastRepIdViewed = localStorage.getItem(LOCALSTORAGE_LAST_REP_ID_VIEWED_KEY);
     if (lastRepIdViewed === null) return;
+    if (fieldRepRef.current === null) return;
+
+    if (lastRepIdViewed === ALL_REPS_VALUE) {
+      fieldRepRef.current.value = ALL_REPS_VALUE;
+      return;
+    }
 
     const fieldRepData = props.field_reps.find(
       (fieldRepData) => fieldRepData.pk === Number.parseInt(lastRepIdViewed)
     );
     if (fieldRepData === undefined) return;
-    if (fieldRepRef.current === null) return;
 
     fieldRepRef.current.value = fieldRepData.pk.toString();
   }
@@ -185,6 +231,7 @@ export function FieldRepStoreSelector({
               id="field-representative-select"
               required
             >
+              <option value={ALL_REPS_VALUE}>All Reps</option>
               {props.field_reps.map((field_rep) => (
                 <option key={field_rep.pk} value={field_rep.pk}>
                   {field_rep.name}

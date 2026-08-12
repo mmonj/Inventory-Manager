@@ -1,4 +1,3 @@
-import datetime
 import logging
 
 from django.contrib import messages
@@ -36,15 +35,15 @@ from .types import BarcodeSheetInterface, SheetTypeDescriptionInterface
 
 logger = logging.getLogger("main_logger")
 
-# Stores not scanned within this window are excluded from the scanner/scan history store
-# pickers - an old, no-longer-relevant "last seen" store just adds noise to the list.
-RECENTLY_SEEN_STORE_WINDOW = datetime.timedelta(days=90)
 
-
-def get_recently_seen_stores_queryset() -> models.QuerySet[Store]:
-    return Store.objects.filter(
-        last_seen__isnull=False, last_seen__gte=timezone.now() - RECENTLY_SEEN_STORE_WINDOW
-    )
+def get_seen_stores_queryset() -> models.QuerySet[Store]:
+    """
+    All stores that have been scanned at least once. The scanner/scan history store pickers
+    send every one of these to the client (not filtered by recency) so the "All Reps" view
+    isn't artificially narrowed - client/components/StoreSelector.tsx applies its own recency
+    filter when a single rep (not "All Reps") is selected instead.
+    """
+    return Store.objects.filter(last_seen__isnull=False)
 
 
 @require_http_methods(["GET"])
@@ -90,7 +89,7 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET"])
 def scanner(request: HttpRequest) -> HttpResponse:
     field_reps = FieldRepresentative.objects.filter(is_enabled=True).prefetch_related(
-        Prefetch("stores", queryset=get_recently_seen_stores_queryset())
+        Prefetch("stores", queryset=get_seen_stores_queryset())
     )
 
     return templates.StockTrackerScanner(field_reps=list(field_reps)).render(request)
@@ -121,7 +120,7 @@ def add_new_stores(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET"])
 def scan_history(request: HttpRequest) -> HttpResponse:
     field_reps = FieldRepresentative.objects.filter(is_enabled=True).prefetch_related(
-        Prefetch("stores", queryset=get_recently_seen_stores_queryset())
+        Prefetch("stores", queryset=get_seen_stores_queryset())
     )
     brand_parent_companies = BrandParentCompany.objects.order_by("expanded_name", "short_name")
     return templates.StockTrackerScanHistory(

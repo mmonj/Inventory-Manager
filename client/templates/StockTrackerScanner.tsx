@@ -20,6 +20,10 @@ import "@client/scss/stock_tracker/scanner.scss";
 export interface IStore {
   pk: number;
   name: string | null;
+  // Only present when sourced from stock_tracker's Store model (propType "fieldReps") - used
+  // by StoreSelector.tsx's single-rep recency filter. product_locator's unrelated Store model
+  // (propType "stores") has no such field.
+  last_seen?: string | null;
 }
 
 export interface IFieldRep {

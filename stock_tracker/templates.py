@@ -45,11 +45,14 @@ class StockTrackerScanner(NamedTuple):
             "name",
             "stores.pk",
             "stores.name",
+            "stores.last_seen",
         ]
     ]
 
 
 @template
 class StockTrackerScanHistory(NamedTuple):
-    field_reps: list[Pick[FieldRepresentative, "pk", "name", "stores.pk", "stores.name"]]
+    field_reps: list[
+        Pick[FieldRepresentative, "pk", "name", "stores.pk", "stores.name", "stores.last_seen"]
+    ]
     brand_parent_companies: list[Pick[BrandParentCompany, "pk", "short_name", "expanded_name"]]
