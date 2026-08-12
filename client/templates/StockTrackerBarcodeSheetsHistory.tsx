@@ -22,13 +22,14 @@ import { LoadingSpinner } from "@client/components/LoadingSpinner";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { getBarcodeSheets } from "@client/util/stockTracker";
-import { BasicBarcodeSheet } from "@client/util/stockTracker/ajaxInterfaces";
+import { BasicBarcodeSheet, TPaginatedResponse } from "@client/util/stockTracker/ajaxInterfaces";
 
 export function Template(props: templates.StockTrackerBarcodeSheetsHistory) {
   const djangoContext = React.useContext(Context);
   const [barcodeSheets, setBarcodeSheets] = useState<BasicBarcodeSheet[]>([]);
   const [nextPageNumber, setNextPageNumber] = useState(1);
-  const barcodeSheetPaginationState = useFetch<BasicBarcodeSheet[]>();
+  const [hasNext, setHasNext] = useState(true);
+  const barcodeSheetPaginationState = useFetch<TPaginatedResponse<BasicBarcodeSheet>>();
   const paginationErrorMessage = React.useRef<HTMLDivElement>(null);
   const hasFetchedInitialPage = React.useRef(false);
 
@@ -50,8 +51,9 @@ export function Template(props: templates.StockTrackerBarcodeSheetsHistory) {
 
     const [isSuccess, result] = await barcodeSheetPaginationState.fetchData(barcodeSheetsCallback);
     if (isSuccess) {
-      setBarcodeSheets((prev) => [...prev, ...result]);
+      setBarcodeSheets((prev) => [...prev, ...result.results]);
       setNextPageNumber(page + 1);
+      setHasNext(result.has_next);
     } else {
       paginationErrorMessage.current?.scrollIntoView();
     }
@@ -211,6 +213,7 @@ export function Template(props: templates.StockTrackerBarcodeSheetsHistory) {
                 isLoading={barcodeSheetPaginationState.isLoading}
                 isError={barcodeSheetPaginationState.isError}
                 errorMessages={barcodeSheetPaginationState.errorMessages}
+                hasNext={hasNext}
                 onClick={() => void handleGetBarcodeSheets(nextPageNumber)}
               />
             )}

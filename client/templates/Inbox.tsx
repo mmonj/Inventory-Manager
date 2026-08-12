@@ -33,6 +33,7 @@ export function Template(props: templates.Inbox) {
   // page 1 is already rendered server-side via props.message_recipients, so the next page to
   // fetch via "Load more" starts at 2 - same pattern as StockTrackerScanHistory.tsx.
   const [nextPageNumber, setNextPageNumber] = React.useState(2);
+  const [hasNext, setHasNext] = React.useState(props.has_next);
   const paginationErrorMessage = React.useRef<HTMLDivElement>(null);
 
   async function handleLoadMoreMessages() {
@@ -47,6 +48,7 @@ export function Template(props: templates.Inbox) {
     if (isSuccess) {
       setMessageRecipients((current) => [...current, ...result.message_recipients]);
       setNextPageNumber((current) => current + 1);
+      setHasNext(result.has_next);
     } else {
       paginationErrorMessage.current?.scrollIntoView();
     }
@@ -150,6 +152,7 @@ export function Template(props: templates.Inbox) {
             isLoading={messageRecipientsPaginationState.isLoading}
             isError={messageRecipientsPaginationState.isError}
             errorMessages={messageRecipientsPaginationState.errorMessages}
+            hasNext={hasNext}
             onClick={() => void handleLoadMoreMessages()}
           />
         )}

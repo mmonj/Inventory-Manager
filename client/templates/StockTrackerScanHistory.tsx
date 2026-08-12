@@ -2,7 +2,7 @@ import React, { useState } from "react";
 
 import { Context, templates } from "@reactivated";
 import { AnimatePresence, LazyMotion, domAnimation } from "motion/react";
-import { Alert, Button } from "react-bootstrap";
+import { Alert, Button, Card } from "react-bootstrap";
 
 import { faFilter } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -15,7 +15,7 @@ import { ProductAdditionListItem } from "@client/components/stockTracker/Product
 import { ScanHistoryFiltersModal } from "@client/components/stockTracker/ScanHistoryFiltersModal";
 import { useFetch } from "@client/hooks/useFetch";
 import { getProductAdditions } from "@client/util/stockTracker";
-import { BasicProductAddition } from "@client/util/stockTracker/ajaxInterfaces";
+import { BasicProductAddition, TPaginatedResponse } from "@client/util/stockTracker/ajaxInterfaces";
 
 import { IStore } from "./StockTrackerScanner";
 
@@ -23,8 +23,9 @@ export function Template(props: templates.StockTrackerScanHistory) {
   const djangoContext = React.useContext(Context);
   const [chosenStore, setChosenStore] = useState<IStore | null>(null);
   const [productAdditions, setProductAdditions] = useState<BasicProductAddition[]>([]);
-  const productAdditionPaginationState = useFetch<BasicProductAddition[]>();
+  const productAdditionPaginationState = useFetch<TPaginatedResponse<BasicProductAddition>>();
   const [nextPageNumber, setNextPageNumber] = useState(1);
+  const [hasNext, setHasNext] = useState(true);
   // The filters actually applied to the current results, as opposed to the modal's draft
   // (possibly unsubmitted) values - kept separate so opening/toggling/typing in the modal has
   // no effect until the modal's single Search button is clicked, and "load more" keeps using
@@ -85,8 +86,9 @@ export function Template(props: templates.StockTrackerScanHistory) {
     const [isSuccess, result] =
       await productAdditionPaginationState.fetchData(productAdditionsCallback);
     if (isSuccess) {
-      setProductAdditions((prev) => [...prev, ...result]);
+      setProductAdditions((prev) => [...prev, ...result.results]);
       setNextPageNumber(page + 1);
+      setHasNext(result.has_next);
     } else {
       paginationErrorMessage.current?.scrollIntoView();
     }
@@ -224,6 +226,21 @@ export function Template(props: templates.StockTrackerScanHistory) {
                 </Alert>
               )}
 
+              {productAdditions.length === 0 &&
+                !productAdditionPaginationState.isLoading &&
+                !productAdditionPaginationState.isError && (
+                  <Card className="text-center py-5">
+                    <Card.Body className="text-muted">
+                      <Card.Title as="h4">No product additions found</Card.Title>
+                      <Card.Text>
+                        {productNameFilter !== "" || isBrandCompanyFilterActive
+                          ? "No product additions match the current filters."
+                          : "No product additions are available for this store."}
+                      </Card.Text>
+                    </Card.Body>
+                  </Card>
+                )}
+
               <ol className="list-group">
                 <AnimatePresence initial={false}>
                   {productAdditions.map((productAddition) => (
@@ -247,21 +264,24 @@ export function Template(props: templates.StockTrackerScanHistory) {
                 onSubmit={(event) => void handleFiltersSubmit(event)}
               />
 
-              <LoadMoreButton
-                ref={paginationErrorMessage}
-                label="product additions"
-                isLoading={productAdditionPaginationState.isLoading}
-                isError={productAdditionPaginationState.isError}
-                errorMessages={productAdditionPaginationState.errorMessages}
-                onClick={() =>
-                  handleGetProductAdditions(
-                    chosenStore.pk,
-                    nextPageNumber,
-                    productNameFilter,
-                    selectedBrandCompanyIds
-                  )
-                }
-              />
+              {productAdditions.length > 0 && (
+                <LoadMoreButton
+                  ref={paginationErrorMessage}
+                  label="product additions"
+                  isLoading={productAdditionPaginationState.isLoading}
+                  isError={productAdditionPaginationState.isError}
+                  errorMessages={productAdditionPaginationState.errorMessages}
+                  hasNext={hasNext}
+                  onClick={() =>
+                    handleGetProductAdditions(
+                      chosenStore.pk,
+                      nextPageNumber,
+                      productNameFilter,
+                      selectedBrandCompanyIds
+                    )
+                  }
+                />
+              )}
             </>
           )}
         </section>

@@ -32,3 +32,8 @@ export interface BasicBarcodeSheet {
   datetime_created?: string;
   product_additions_count?: number;
 }
+
+export interface TPaginatedResponse<T> {
+  results: T[];
+  has_next: boolean;
+}

@@ -2,7 +2,12 @@ import { reverse } from "@reactivated";
 
 import { ApiResponse } from "@client/types";
 
-import { BasicBarcodeSheet, BasicBrandParentCompany, BasicProductAddition } from "./ajaxInterfaces";
+import {
+  BasicBarcodeSheet,
+  BasicBrandParentCompany,
+  BasicProductAddition,
+  TPaginatedResponse,
+} from "./ajaxInterfaces";
 
 export async function postLogProductScan(
   upc: string,
@@ -34,7 +39,7 @@ export function getProductAdditions(
     product_name?: string; // optional substring filter on the associated Product's name
     brand_parent_company_ids?: string; // optional comma-separated BrandParentCompany pks
   }
-): Promise<ApiResponse<BasicProductAddition[]>> {
+): Promise<ApiResponse<TPaginatedResponse<BasicProductAddition>>> {
   const endpointUrl = new URL(
     reverse("stock_tracker:get_product_additions_by_store"),
     document.location.origin
@@ -57,7 +62,7 @@ export function getBarcodeSheets(
     page: number; // page number which to fetch
     field_representative_id?: number; // optional FieldRepresentative pk to filter by
   }
-): Promise<ApiResponse<BasicBarcodeSheet[]>> {
+): Promise<ApiResponse<TPaginatedResponse<BasicBarcodeSheet>>> {
   const endpointUrl = new URL(
     reverse("stock_tracker:get_barcode_sheets"),
     document.location.origin

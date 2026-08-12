@@ -34,9 +34,11 @@ def inbox(request: AuthenticatedRequest) -> HttpResponse:
     pagination_result = get_pagination_data(
         get_inbox_message_recipients_queryset(request.user.id), page=1, page_size=INBOX_PAGE_SIZE
     )
-    page_obj, _ = unwrap(pagination_result)
+    page_obj, pagination_data = unwrap(pagination_result)
 
-    return templates.Inbox(message_recipients=list(page_obj.object_list)).render(request)
+    return templates.Inbox(
+        message_recipients=list(page_obj.object_list), has_next=pagination_data.has_next
+    ).render(request)
 
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
@@ -54,9 +56,11 @@ def get_inbox_messages(request: AuthenticatedRequest) -> HttpResponse:
     if not pagination_result.ok:
         return error_json_response([str(pagination_result.err)], status=400)
 
-    page_obj, _ = pagination_result.value
+    page_obj, pagination_data = pagination_result.value
 
-    return templates.GetInboxMessages(message_recipients=list(page_obj.object_list)).render(request)
+    return templates.GetInboxMessages(
+        message_recipients=list(page_obj.object_list), has_next=pagination_data.has_next
+    ).render(request)
 
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))

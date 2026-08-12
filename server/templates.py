@@ -27,6 +27,7 @@ class HomepageIndex(NamedTuple):
 @template
 class Inbox(NamedTuple):
     message_recipients: list[TMessageRecipient]
+    has_next: bool
 
 
 @interface
@@ -38,6 +39,7 @@ class MarkMessageRead(NamedTuple):
 @interface
 class GetInboxMessages(NamedTuple):
     message_recipients: list[TMessageRecipient]
+    has_next: bool
 
 
 @interface

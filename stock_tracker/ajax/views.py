@@ -53,11 +53,16 @@ def get_product_additions_by_store(request: DRFRequest) -> DRFResponse:
     if not pagination_result.ok:
         raise DRFValidationError(str(pagination_result.err))
 
-    page_obj, _ = pagination_result.value
+    page_obj, pagination_data = pagination_result.value
     logger.info(request_data.page)
 
     return DRFResponse(
-        BasicProductAddition(list(page_obj.object_list), many=True, read_only=True).data
+        {
+            "results": BasicProductAddition(
+                list(page_obj.object_list), many=True, read_only=True
+            ).data,
+            "has_next": pagination_data.has_next,
+        }
     )
 
 
@@ -82,10 +87,15 @@ def get_barcode_sheets(request: DRFRequest) -> DRFResponse:
     if not pagination_result.ok:
         raise DRFValidationError(str(pagination_result.err))
 
-    page_obj, _ = pagination_result.value
+    page_obj, pagination_data = pagination_result.value
 
     return DRFResponse(
-        BasicBarcodeSheet(list(page_obj.object_list), many=True, read_only=True).data
+        {
+            "results": BasicBarcodeSheet(
+                list(page_obj.object_list), many=True, read_only=True
+            ).data,
+            "has_next": pagination_data.has_next,
+        }
     )
 
 
