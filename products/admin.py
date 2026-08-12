@@ -10,10 +10,12 @@ from .models import (
     FieldRepresentative,
     Message,
     MessageRecipient,
+    MessageRecipientPushDelivery,
     PersonnelContact,
     PrefixMapping,
     Product,
     ProductAddition,
+    PushSubscription,
     Store,
     StoreGUID,
     UpcCorrection,
@@ -195,6 +197,23 @@ class MessageRecipientAdmin(admin.ModelAdmin[MessageRecipient]):
     autocomplete_fields = ("user", "message")
 
 
+class PushSubscriptionAdmin(admin.ModelAdmin[PushSubscription]):
+    search_fields = ("user__username", "endpoint")
+    list_display = ("user", "endpoint", "datetime_created")
+
+
+class MessageRecipientPushDeliveryAdmin(admin.ModelAdmin[MessageRecipientPushDelivery]):
+    search_fields = ("message_recipient__user__username", "message_recipient__message__title")
+    list_display = (
+        "message_recipient",
+        "push_subscription",
+        "delivered_at",
+        "failed_at",
+    )
+    list_filter = ("delivered_at", "failed_at")
+    autocomplete_fields = ("message_recipient", "push_subscription")
+
+
 # Register your models here.
 admin.site.register(WorkCycle)
 admin.site.register(FieldRepresentative, FieldRepresentativeAdmin)
@@ -207,3 +226,5 @@ admin.site.register(PersonnelContact, PersonnelContactAdmin)
 admin.site.register(BarcodeSheet, BarcodeSheetAdmin)
 admin.site.register(Message, MessageAdmin)
 admin.site.register(MessageRecipient, MessageRecipientAdmin)
+admin.site.register(PushSubscription, PushSubscriptionAdmin)
+admin.site.register(MessageRecipientPushDelivery, MessageRecipientPushDeliveryAdmin)

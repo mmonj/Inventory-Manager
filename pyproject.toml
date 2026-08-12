@@ -31,6 +31,7 @@ dependencies = [
     "pydantic>=2.10",
     "python-barcode>=0.16.1",
     "pytz>=2025.2",
+    "pywebpush>=2.4.0",
     "reactivated==0.51.0",
     "redis>=7.0.1",
     "requests>=2.25.0",

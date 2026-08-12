@@ -18,6 +18,8 @@ from server.utils.typedefs import CommonModel, TFailure, TResult, TSuccess
 from .types import UPC_A_LENGTH
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from .types import TParsedAddress
 
 
@@ -494,26 +496,42 @@ class Message(CommonModel):
         return f"Message from {self.sender or 'system'}: {self.title}"
 
     @classmethod
-    def send_to_superusers(
-        cls, *, title: str, body_md: str, ref_str: str | None = None
+    def send_to_users(
+        cls, *, user_ids: Iterable[int], title: str, body_md: str, ref_str: str | None = None
     ) -> Message | None:
         """
+        Create a message addressed to the given users (as MessageRecipient rows) and push a
+        notification to each of their registered devices (see push.send_push_to_users).
+
         Returns None without sending if ref_str is given and already used by an existing
         Message - pass a stable ref_str to avoid re-alerting on an already-flagged condition.
         """
+        from . import push  # local import: push -> models would otherwise be circular
+
         if ref_str is not None and cls.objects.filter(ref_str=ref_str).exists():
             return None
 
         message = cls.objects.create(sender=None, title=title, body_md=body_md, ref_str=ref_str)
 
+        user_ids = list(user_ids)
+        MessageRecipient.objects.bulk_create(
+            [MessageRecipient(message=message, user_id=user_id) for user_id in user_ids]
+        )
+
+        push.send_push_to_users(message, user_ids)
+
+        return message
+
+    @classmethod
+    def send_to_superusers(
+        cls, *, title: str, body_md: str, ref_str: str | None = None
+    ) -> Message | None:
         superuser_ids = User.objects.filter(is_superuser=True, is_active=True).values_list(
             "id", flat=True
         )
-        MessageRecipient.objects.bulk_create(
-            [MessageRecipient(message=message, user_id=user_id) for user_id in superuser_ids]
+        return cls.send_to_users(
+            user_ids=superuser_ids, title=title, body_md=body_md, ref_str=ref_str
         )
-
-        return message
 
 
 class MessageRecipient(CommonModel):
@@ -536,3 +554,51 @@ class MessageRecipient(CommonModel):
         self.is_read = True
         self.read_at = timezone.now()
         self.save(update_fields=["is_read", "read_at"])
+
+
+class PushSubscription(CommonModel):
+    """
+    One browser/device's Web Push registration for a user, as returned by the client's
+    PushManager.subscribe(). A user can have several (phone, desktop, etc) - each is pushed
+    to independently, tracked via MessageRecipientPushDelivery.
+    """
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="push_subscriptions")
+    endpoint = models.URLField(max_length=1000, unique=True)
+    p256dh_key = models.CharField(max_length=255)
+    auth_key = models.CharField(max_length=255)
+
+    class Meta:
+        db_table = "push_subscriptions"
+
+    def __str__(self) -> str:
+        return f"PushSubscription(user={self.user}, endpoint={self.endpoint[:50]})"
+
+
+class MessageRecipientPushDelivery(CommonModel):
+    """
+    One delivery attempt of a MessageRecipient's message to one of that user's
+    PushSubscriptions. Tracked per-subscription (not as a single field on MessageRecipient)
+    so a user with multiple devices can have some succeed and some fail/retry independently.
+    """
+
+    message_recipient = models.ForeignKey(
+        MessageRecipient, on_delete=models.CASCADE, related_name="push_deliveries"
+    )
+    push_subscription = models.ForeignKey(
+        PushSubscription, on_delete=models.CASCADE, related_name="push_deliveries"
+    )
+    delivered_at = models.DateTimeField(null=True, blank=True)
+    failed_at = models.DateTimeField(null=True, blank=True)
+    error = models.TextField(blank=True, default="")
+
+    class Meta:
+        db_table = "message_recipient_push_deliveries"
+        unique_together = ("message_recipient", "push_subscription")
+
+    def __str__(self) -> str:
+        return (
+            f"MessageRecipientPushDelivery(message_recipient={self.message_recipient_id}, "
+            f"push_subscription={self.push_subscription_id}, "
+            f"delivered={self.delivered_at is not None})"
+        )

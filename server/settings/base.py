@@ -170,6 +170,14 @@ CSRF_TRUSTED_ORIGINS = os.environ["DJANGO_CSRF_TRUSTED_ORIGINS"].split()
 # expect this key to be embedded in page source.
 GOOGLE_MAPS_JS_API_KEY = os.environ["G_MAPS_JS_API_KEY"]
 
+# Web Push (VAPID). VAPID_PRIVATE_KEY is a server secret (signs push requests so push
+# services can verify they came from us) - never expose it client-side. VAPID_PUBLIC_KEY is
+# the client-facing counterpart passed to PushManager.subscribe(). VAPID_ADMIN_EMAIL is a
+# contact address push services may use to reach us about a misbehaving sender.
+VAPID_PRIVATE_KEY = os.environ["VAPID_PRIVATE_KEY"]
+VAPID_PUBLIC_KEY = os.environ["VAPID_PUBLIC_KEY"]
+VAPID_ADMIN_EMAIL = os.environ["VAPID_ADMIN_EMAIL"]
+
 CORS_URLS_REGEX = r"^/(api|product_locator/api|survey_worker/api)/.*$"
 CORS_ALLOW_ALL_ORIGINS = True
 
