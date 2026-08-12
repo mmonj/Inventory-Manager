@@ -1,8 +1,10 @@
+import datetime
 import logging
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.db import models
 from django.db.models import Prefetch
 from django.http import (
     HttpRequest,
@@ -33,6 +35,16 @@ from . import forms, serializers, templates, util
 from .types import BarcodeSheetInterface, SheetTypeDescriptionInterface
 
 logger = logging.getLogger("main_logger")
+
+# Stores not scanned within this window are excluded from the scanner/scan history store
+# pickers - an old, no-longer-relevant "last seen" store just adds noise to the list.
+RECENTLY_SEEN_STORE_WINDOW = datetime.timedelta(days=90)
+
+
+def get_recently_seen_stores_queryset() -> models.QuerySet[Store]:
+    return Store.objects.filter(
+        last_seen__isnull=False, last_seen__gte=timezone.now() - RECENTLY_SEEN_STORE_WINDOW
+    )
 
 
 @require_http_methods(["GET"])
@@ -78,7 +90,7 @@ def logout_view(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET"])
 def scanner(request: HttpRequest) -> HttpResponse:
     field_reps = FieldRepresentative.objects.filter(is_enabled=True).prefetch_related(
-        Prefetch("stores", queryset=Store.objects.filter(last_seen__isnull=False))
+        Prefetch("stores", queryset=get_recently_seen_stores_queryset())
     )
 
     return templates.StockTrackerScanner(field_reps=list(field_reps)).render(request)
@@ -109,7 +121,7 @@ def add_new_stores(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET"])
 def scan_history(request: HttpRequest) -> HttpResponse:
     field_reps = FieldRepresentative.objects.filter(is_enabled=True).prefetch_related(
-        Prefetch("stores", queryset=Store.objects.filter(last_seen__isnull=False))
+        Prefetch("stores", queryset=get_recently_seen_stores_queryset())
     )
     brand_parent_companies = BrandParentCompany.objects.order_by("expanded_name", "short_name")
     return templates.StockTrackerScanHistory(
