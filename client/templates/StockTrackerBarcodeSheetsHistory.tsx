@@ -32,7 +32,7 @@ export function Template(props: templates.StockTrackerBarcodeSheetsHistory) {
   const paginationErrorMessage = React.useRef<HTMLDivElement>(null);
   const hasFetchedInitialPage = React.useRef(false);
 
-  let currentFieldRepName = "";
+  let currentFieldRepName = props.current_field_rep_id === null ? "All Reps" : "";
   props.field_representatives.forEach((field_rep) => {
     if (field_rep.pk === props.current_field_rep_id) {
       currentFieldRepName = field_rep.name;
@@ -85,6 +85,13 @@ export function Template(props: templates.StockTrackerBarcodeSheetsHistory) {
                 variant="outline-primary"
                 size="lg"
               >
+                <Dropdown.Item
+                  className={props.current_field_rep_id === null ? "active" : ""}
+                  href={reverse("stock_tracker:barcode_sheet_history")}
+                >
+                  All Reps
+                </Dropdown.Item>
+                <Dropdown.Divider />
                 {props.field_representatives.map((field_rep, idx) => (
                   <Dropdown.Item
                     className={field_rep.pk === props.current_field_rep_id ? "active" : ""}

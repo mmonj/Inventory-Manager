@@ -24,7 +24,9 @@ from .models import (
 
 
 class FieldRepresentativeAdmin(admin.ModelAdmin[FieldRepresentative]):
-    list_display = ("name", "work_email")
+    list_display = ("name", "work_email", "is_enabled")
+    list_editable = ("is_enabled",)
+    list_filter = ("is_enabled",)
     search_fields = ("name", "work_email")
 
 
