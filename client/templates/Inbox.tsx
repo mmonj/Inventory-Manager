@@ -12,6 +12,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { Layout } from "@client/components/Layout";
 import { LoadMoreButton } from "@client/components/LoadMoreButton";
+import { PushNotificationToggle } from "@client/components/PushNotificationToggle";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { fetchByReactivated } from "@client/util/commonUtil";
@@ -87,10 +88,13 @@ export function Template(props: templates.Inbox) {
   return (
     <LazyMotion features={domAnimation}>
       <Layout title="Inbox" navbar={<NavigationBar />} className="mw-rem-60 mx-auto px-2 mb-4">
-        <h1 className="my-4">
-          <FontAwesomeIcon icon={faInbox} className="me-2" />
-          Inbox
-        </h1>
+        <div className="d-flex align-items-center justify-content-between my-4">
+          <h1 className="mb-0">
+            <FontAwesomeIcon icon={faInbox} className="me-2" />
+            Inbox
+          </h1>
+          <PushNotificationToggle />
+        </div>
 
         {messageRecipients.length === 0 && (
           <div className="text-muted text-center py-5">No messages.</div>

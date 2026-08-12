@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Context } from "@reactivated";
+import { Context, reverse } from "@reactivated";
 
 import { ContribMessages } from "./ContribMessages";
 
@@ -32,6 +32,7 @@ export const Layout = ({ bsTheme = "light", ...props }: Props) => {
           type="image/x-icon"
           href={`${djangoContext.STATIC_URL}public/favicon.png`}
         />
+        <link rel="manifest" href={reverse("root:pwa_manifest")} />
 
         {props.extraExternalStyles?.map((style, idx) => (
           <link

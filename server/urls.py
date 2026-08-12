@@ -32,6 +32,14 @@ root_patterns = [
         views.mark_message_read,
         name="mark_message_read",
     ),
+    path("sw.js", views.service_worker, name="service_worker"),
+    path("manifest.json", views.pwa_manifest, name="pwa_manifest"),
+    path("save_push_subscription/", views.save_push_subscription, name="save_push_subscription"),
+    path(
+        "delete_push_subscription/",
+        views.delete_push_subscription,
+        name="delete_push_subscription",
+    ),
 ]
 
 if settings.DEBUG:

@@ -38,3 +38,13 @@ class MarkMessageRead(NamedTuple):
 @interface
 class GetInboxMessages(NamedTuple):
     message_recipients: list[TMessageRecipient]
+
+
+@interface
+class SavePushSubscription(NamedTuple):
+    success: bool
+
+
+@interface
+class DeletePushSubscription(NamedTuple):
+    success: bool

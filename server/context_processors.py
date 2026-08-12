@@ -22,6 +22,7 @@ class TContextProvider(TypedDict):
     user: UserInfo
     global_settings: TGlobalSettings | None
     google_maps_js_api_key: str
+    vapid_public_key: str
 
 
 def context_provider(request: HttpRequest) -> TContextProvider:
@@ -46,4 +47,5 @@ def context_provider(request: HttpRequest) -> TContextProvider:
             else None
         ),
         "google_maps_js_api_key": settings.GOOGLE_MAPS_JS_API_KEY,
+        "vapid_public_key": settings.VAPID_PUBLIC_KEY,
     }
