@@ -483,12 +483,37 @@ class Message(CommonModel):
     )
     title = models.CharField(max_length=255)
     body_md = models.TextField()
+    # Opaque dedup key for system-generated messages - null for regular/manually-sent
+    # messages, which have no natural dedup identity. See send_to_superusers.
+    ref_str = models.CharField(max_length=255, null=True, blank=True, unique=True)
 
     class Meta:
         db_table = "messages"
 
     def __str__(self) -> str:
         return f"Message from {self.sender or 'system'}: {self.title}"
+
+    @classmethod
+    def send_to_superusers(
+        cls, *, title: str, body_md: str, ref_str: str | None = None
+    ) -> Message | None:
+        """
+        Returns None without sending if ref_str is given and already used by an existing
+        Message - pass a stable ref_str to avoid re-alerting on an already-flagged condition.
+        """
+        if ref_str is not None and cls.objects.filter(ref_str=ref_str).exists():
+            return None
+
+        message = cls.objects.create(sender=None, title=title, body_md=body_md, ref_str=ref_str)
+
+        superuser_ids = User.objects.filter(is_superuser=True, is_active=True).values_list(
+            "id", flat=True
+        )
+        MessageRecipient.objects.bulk_create(
+            [MessageRecipient(message=message, user_id=user_id) for user_id in superuser_ids]
+        )
+
+        return message
 
 
 class MessageRecipient(CommonModel):
