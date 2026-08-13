@@ -7,6 +7,7 @@ import {
   SurveyWorkerQtraxWebsiteTypedefsAddress,
   SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
   reverse,
+  templates,
 } from "@reactivated";
 
 import { faLocationCrosshairs } from "@fortawesome/free-solid-svg-icons";
@@ -17,9 +18,11 @@ import { fetchByReactivated } from "@client/util/commonUtil";
 import { GoogleMap, InfoWindow, Marker, useJsApiLoader } from "@react-google-maps/api";
 
 import { MapPopupContent } from "./MapPopupContent";
+import { RecentlySeenStorePopupContent } from "./RecentlySeenStorePopupContent";
 import { RepAddressPopupContent, TRepAddressResolved } from "./RepAddressPopupContent";
 import {
   CURRENT_LOCATION_MARKER_ICON,
+  RECENTLY_SEEN_STORE_MARKER_ICON,
   REP_ADDRESS_MARKER_ICON,
   SERVICE_ORDER_MARKER_ICON,
 } from "./markerIcons";
@@ -34,6 +37,9 @@ interface TRepAddressInput {
   lng: number | null;
 }
 
+type TRecentlySeenStore =
+  templates.QtTerritoryViewer["recently_seen_stores_by_rep"][number]["stores"][number];
+
 interface Props {
   groupedByStore: Record<
     number,
@@ -46,16 +52,24 @@ interface Props {
   // orders, and rendered as its own violet marker so it's visually distinct from the green
   // service-order markers. Geocoded client-side on load if lat/lng aren't already resolved.
   repAddress: TRepAddressInput | null;
+  // Stores seen recently but no longer in groupedByStore (their SO was already submitted) -
+  // rendered as red pins.
+  recentlySeenStores: TRecentlySeenStore[];
 }
 
 const mapContainerStyle = { height: "100%", width: "100%" };
 
-export default function TerritoryMapGMaps({ groupedByStore, repAddress }: Props) {
+export default function TerritoryMapGMaps({
+  groupedByStore,
+  repAddress,
+  recentlySeenStores,
+}: Props) {
   const context = useContext(Context);
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: context.google_maps_js_api_key,
   });
   const [activeSiteId, setActiveSiteId] = useState<number | null>(null);
+  const [activeRecentlySeenStoreId, setActiveRecentlySeenStoreId] = useState<number | null>(null);
   const [isRepAddressActive, setIsRepAddressActive] = useState(false);
   // Geocoded client-side (see effect below) when repAddress.lat/lng aren't already resolved.
   const [geocodedRepAddress, setGeocodedRepAddress] = useState<TRepAddressResolved | null>(null);
@@ -187,6 +201,26 @@ export default function TerritoryMapGMaps({ groupedByStore, repAddress }: Props)
             )}
           </Marker>
         ))}
+        {recentlySeenStores.map((store) => {
+          if (store.latitude === null || store.longitude === null) {
+            return null;
+          }
+
+          return (
+            <Marker
+              key={store.id}
+              position={{ lat: store.latitude, lng: store.longitude }}
+              icon={RECENTLY_SEEN_STORE_MARKER_ICON}
+              onClick={() => setActiveRecentlySeenStoreId(store.id)}
+            >
+              {activeRecentlySeenStoreId === store.id && (
+                <InfoWindow onCloseClick={() => setActiveRecentlySeenStoreId(null)}>
+                  <RecentlySeenStorePopupContent store={store} />
+                </InfoWindow>
+              )}
+            </Marker>
+          );
+        })}
         {resolvedRepAddress !== null && (
           <Marker
             position={{ lat: resolvedRepAddress.lat, lng: resolvedRepAddress.lng }}

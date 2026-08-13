@@ -18,6 +18,8 @@ function getMarkerPinIcon(fillColor: string, strokeColor: string): google.maps.S
 
 export const SERVICE_ORDER_MARKER_ICON = getMarkerPinIcon("#22c55e", "#15803d");
 export const REP_ADDRESS_MARKER_ICON = getMarkerPinIcon("#c052f3", "#b535f1");
+// Stores seen recently but no longer in the rep's active schedule.
+export const RECENTLY_SEEN_STORE_MARKER_ICON = getMarkerPinIcon("#ef4444", "#b91c1c");
 
 // Classic Google "My Location" blue-dot look - a plain circle rather than the pin shape used
 // for the other markers, so it reads as "you are here" instead of a place.

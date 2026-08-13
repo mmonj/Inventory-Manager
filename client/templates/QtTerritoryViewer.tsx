@@ -47,7 +47,7 @@ type TGroupedStoreRecord = Record<
 >;
 
 export function Template(props: templates.QtTerritoryViewer) {
-  const [selectedRepDetailId, setSelectedRepDetailId] = useState<number | null>(
+  const [selectedSyncDataId, setSelectedSyncDataId] = useState<number | null>(
     props.rep_sync_datalist[0]?.id ?? null
   );
   const [showMap, setShowMap] = useState(false);
@@ -56,7 +56,7 @@ export function Template(props: templates.QtTerritoryViewer) {
   const [filteredStores, setFilteredStores] = useState<TGroupedStoreRecord>({});
   const djangoContext = React.useContext(Context);
 
-  const selectedRepData = props.rep_sync_datalist.find((r) => r.id === selectedRepDetailId);
+  const selectedRepData = props.rep_sync_datalist.find((r) => r.id === selectedSyncDataId);
   const serviceOrders = selectedRepData?.schedule?.ServiceOrders ?? [];
 
   // get unique due dates and sort them, excluding weekdays
@@ -92,6 +92,25 @@ export function Template(props: templates.QtTerritoryViewer) {
 
     return _groupedByStore;
   }, [serviceOrders]);
+
+  // Recently-seen stores for the selected rep, deduped against groupedByStore. Keys off
+  // selectedRepData.rep_detail.id (a QtRepDetail.id), not selectedSyncDataId (a QtSyncData.id).
+  const recentlySeenStores = React.useMemo(() => {
+    if (selectedRepData === undefined) {
+      return [];
+    }
+
+    const forSelectedRep = props.recently_seen_stores_by_rep.find(
+      (entry) => entry.rep_detail_id === selectedRepData.rep_detail.id
+    );
+    if (forSelectedRep === undefined) {
+      return [];
+    }
+
+    return forSelectedRep.stores.filter(
+      (store) => store.site_id === null || !(store.site_id in groupedByStore)
+    );
+  }, [props.recently_seen_stores_by_rep, selectedRepData, groupedByStore]);
 
   let totalWorkHours = 0;
   Object.values(filteredStores).forEach(({ jobs }) => {
@@ -151,7 +170,7 @@ export function Template(props: templates.QtTerritoryViewer) {
     setFilteredStores(groupedByStore);
     // reset the initial date flag when rep changes
     initialDateSet.current = false;
-  }, [selectedRepDetailId]);
+  }, [selectedSyncDataId]);
 
   // load last selected representative ID on mount
   useEffect(() => {
@@ -160,7 +179,7 @@ export function Template(props: templates.QtTerritoryViewer) {
       const storedId = parseInt(lastSelectedRepId);
 
       if (!isNaN(storedId) && props.rep_sync_datalist.some((rep) => rep.id === storedId)) {
-        setSelectedRepDetailId(storedId);
+        setSelectedSyncDataId(storedId);
       }
     }
   }, []);
@@ -186,7 +205,7 @@ export function Template(props: templates.QtTerritoryViewer) {
 
   function handleRepChange(repId: number) {
     setStoreFilterValue("");
-    setSelectedRepDetailId(repId);
+    setSelectedSyncDataId(repId);
 
     localStorage.setItem("lastSelectedRepId", repId.toString());
   }
@@ -218,7 +237,7 @@ export function Template(props: templates.QtTerritoryViewer) {
                 <Dropdown.Item
                   key={rep.id}
                   onClick={() => handleRepChange(rep.id)}
-                  active={selectedRepDetailId === rep.id}
+                  active={selectedSyncDataId === rep.id}
                 >
                   {rep.rep_detail.username}
                 </Dropdown.Item>
@@ -307,7 +326,7 @@ export function Template(props: templates.QtTerritoryViewer) {
         </div>
 
         {/* territory map */}
-        {selectedRepDetailId !== null && (
+        {selectedSyncDataId !== null && (
           <Modal
             show={showMap}
             onHide={() => setShowMap(false)}
@@ -325,6 +344,7 @@ export function Template(props: templates.QtTerritoryViewer) {
               <Suspense fallback={<div>Loading map...</div>}>
                 <TerritoryMap
                   groupedByStore={filteredStores}
+                  recentlySeenStores={recentlySeenStores}
                   repAddress={
                     selectedRepData !== undefined && selectedRepData.rep_detail.address !== ""
                       ? {
