@@ -1,10 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 
 import { Button } from "react-bootstrap";
 
 import { templates } from "@reactivated";
 
-import { faExternalLinkAlt } from "@fortawesome/free-solid-svg-icons";
+import { faCopy, faExternalLinkAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 type TRecentlySeenStore =
@@ -15,7 +15,18 @@ function formatLastSeen(isoString: string): string {
 }
 
 export function RecentlySeenStorePopupContent({ store }: { store: TRecentlySeenStore }) {
+  const [clipboardMessage, setClipboardMessage] = useState<string | null>(null);
   const fullAddress = `${store.address_1}, ${store.city}, ${store.state} ${store.zip_code}`;
+
+  function handleCopyAddress() {
+    setClipboardMessage("Copied!");
+    setTimeout(() => {
+      setClipboardMessage(null);
+    }, 1500);
+
+    // store.name is already the full formatted name
+    void navigator.clipboard.writeText(store.name);
+  }
 
   return (
     <div style={{ minWidth: "240px" }}>
@@ -27,11 +38,20 @@ export function RecentlySeenStorePopupContent({ store }: { store: TRecentlySeenS
             {store.city}, {store.state} {store.zip_code}
           </div>
         </div>
+
+        <Button
+          variant="outline-secondary"
+          size="sm"
+          className="w-100 mt-2"
+          onClick={handleCopyAddress}
+        >
+          <FontAwesomeIcon icon={faCopy} className="me-1" />
+          {clipboardMessage !== null ? clipboardMessage : "Copy Address"}
+        </Button>
       </div>
 
-      <div className="small text-white mb-3">
+      <div className="small text-white my-3">
         Last seen: {store.last_seen !== null ? formatLastSeen(store.last_seen) : "Unknown"}
-        <div className="text-white-50">Not in the current schedule - likely already submitted.</div>
       </div>
 
       <Button

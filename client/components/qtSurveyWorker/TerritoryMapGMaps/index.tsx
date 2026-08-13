@@ -68,9 +68,14 @@ export default function TerritoryMapGMaps({
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: context.google_maps_js_api_key,
   });
-  const [activeSiteId, setActiveSiteId] = useState<number | null>(null);
-  const [activeRecentlySeenStoreId, setActiveRecentlySeenStoreId] = useState<number | null>(null);
-  const [isRepAddressActive, setIsRepAddressActive] = useState(false);
+  // A single piece of state for "which marker's InfoWindow is open" - only one popup can be
+  // open across all marker types at once, so setting one via setActiveMarker automatically
+  // closes whatever was previously open, regardless of type.
+  type TActiveMarker =
+    | { type: "serviceOrder"; siteId: number }
+    | { type: "recentlySeenStore"; storeId: number }
+    | { type: "repAddress" };
+  const [activeMarker, setActiveMarker] = useState<TActiveMarker | null>(null);
   // Geocoded client-side (see effect below) when repAddress.lat/lng aren't already resolved.
   const [geocodedRepAddress, setGeocodedRepAddress] = useState<TRepAddressResolved | null>(null);
   const [currentLocation, setCurrentLocation] = useState<google.maps.LatLngLiteral | null>(null);
@@ -192,10 +197,10 @@ export default function TerritoryMapGMaps({
             key={siteId}
             position={{ lat: group.address.Latitude, lng: group.address.Longitude }}
             icon={SERVICE_ORDER_MARKER_ICON}
-            onClick={() => setActiveSiteId(Number(siteId))}
+            onClick={() => setActiveMarker({ type: "serviceOrder", siteId: Number(siteId) })}
           >
-            {activeSiteId === Number(siteId) && (
-              <InfoWindow onCloseClick={() => setActiveSiteId(null)}>
+            {activeMarker?.type === "serviceOrder" && activeMarker.siteId === Number(siteId) && (
+              <InfoWindow onCloseClick={() => setActiveMarker(null)}>
                 <MapPopupContent locationGroup={group} />
               </InfoWindow>
             )}
@@ -211,10 +216,10 @@ export default function TerritoryMapGMaps({
               key={store.id}
               position={{ lat: store.latitude, lng: store.longitude }}
               icon={RECENTLY_SEEN_STORE_MARKER_ICON}
-              onClick={() => setActiveRecentlySeenStoreId(store.id)}
+              onClick={() => setActiveMarker({ type: "recentlySeenStore", storeId: store.id })}
             >
-              {activeRecentlySeenStoreId === store.id && (
-                <InfoWindow onCloseClick={() => setActiveRecentlySeenStoreId(null)}>
+              {activeMarker?.type === "recentlySeenStore" && activeMarker.storeId === store.id && (
+                <InfoWindow onCloseClick={() => setActiveMarker(null)}>
                   <RecentlySeenStorePopupContent store={store} />
                 </InfoWindow>
               )}
@@ -225,10 +230,10 @@ export default function TerritoryMapGMaps({
           <Marker
             position={{ lat: resolvedRepAddress.lat, lng: resolvedRepAddress.lng }}
             icon={REP_ADDRESS_MARKER_ICON}
-            onClick={() => setIsRepAddressActive(true)}
+            onClick={() => setActiveMarker({ type: "repAddress" })}
           >
-            {isRepAddressActive && (
-              <InfoWindow onCloseClick={() => setIsRepAddressActive(false)}>
+            {activeMarker?.type === "repAddress" && (
+              <InfoWindow onCloseClick={() => setActiveMarker(null)}>
                 <RepAddressPopupContent repAddress={resolvedRepAddress} />
               </InfoWindow>
             )}
