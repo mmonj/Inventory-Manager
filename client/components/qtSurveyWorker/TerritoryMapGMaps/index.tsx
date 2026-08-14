@@ -147,6 +147,26 @@ export default function TerritoryMapGMaps({
     );
   }
 
+  // Keep the blue dot current for as long as the map is mounted
+  // Independent of the manual "Show your location" button
+  useEffect(() => {
+    if (!isLoaded) {
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setCurrentLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+        setLocationError(null);
+      },
+      (error) => {
+        setLocationError(`Failed to get your location: ${error.message}`);
+      }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [isLoaded]);
+
   // Auto-request the user's location once, right after the map first mounts and centers on
   // its default (rep address / first service order) - this is a second, follow-up step, not
   // a replacement for that initial centering, so it doesn't touch `defaultCenter` itself.
