@@ -120,7 +120,11 @@ export function EditPlanogramModal(props: Props) {
             <Button variant="outline-secondary" onClick={handleHide} type="button">
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={submitFetcher.isLoading}>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={submitFetcher.isLoading || planogramTextDump.trim() === ""}
+            >
               <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
               Submit
               {submitFetcher.isLoading && (
