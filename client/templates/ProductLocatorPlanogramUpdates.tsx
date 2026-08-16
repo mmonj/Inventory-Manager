@@ -195,8 +195,20 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                         </small>
                         <hr className="flex-grow-1 ms-2" />
                       </div>
+                      <p className="text-warning fw-semibold mb-2">
+                        Empty out{" "}
+                        <span style={{ fontFamily: 'Consolas, "Courier New", monospace' }}>
+                          {chain[chain.length - 1].toLocation}
+                        </span>{" "}
+                        entirely first — its contents have no new location.
+                      </p>
+                      {/* chaseProductMoves discovers each chain by walking forward from its
+                          starting location, but the moves must physically be carried out in
+                          the opposite order: the last hop's location has nowhere further to
+                          go, so it must be emptied first to make room for the hop before it,
+                          and so on back to the start. */}
                       <ListGroup variant="flush" className="border rounded">
-                        {chain.map((move) => {
+                        {[...chain].reverse().map((move) => {
                           const moveKey = move.fromLocation;
                           const isCompleted = completedMoves.has(moveKey);
                           return (
