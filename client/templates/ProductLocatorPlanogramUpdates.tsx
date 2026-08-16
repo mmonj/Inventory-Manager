@@ -10,7 +10,7 @@ import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { fetchByReactivated } from "@client/util/commonUtil";
 import {
-  IProductMove,
+  IProductMoveChain,
   chaseProductMoves,
   findEmptiedLocations,
 } from "@client/util/productLocator/chaseMoves";
@@ -24,6 +24,10 @@ function getChangedLocations(planogramUpdate: TPlanogramUpdate): string[] {
   return [...allLocations].filter((location) => {
     const oldProduct = old_plano[location];
     const newProduct = new_plano[location];
+    // old_plano/new_plano are sparse dicts at runtime (only locations with a product are
+    // keyed), but tsconfig lacks noUncheckedIndexedAccess, so TS treats these lookups as
+    // always-defined.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     return oldProduct?.upc !== newProduct?.upc;
   });
 }
@@ -46,7 +50,7 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
     });
   }
 
-  const moveChains: IProductMove[][] = selectedUpdate
+  const moveChains: IProductMoveChain[] = selectedUpdate
     ? chaseProductMoves(
         selectedUpdate.old_plano,
         selectedUpdate.new_plano,
@@ -187,7 +191,7 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                 {moveChains.length === 0 ? (
                   <p className="text-muted mb-0">No product location changes detected.</p>
                 ) : (
-                  moveChains.map((chain, chainIdx) => (
+                  moveChains.map(({ moves, isCircular }, chainIdx) => (
                     <div key={chainIdx} className={chainIdx > 0 ? "mt-4" : ""}>
                       <div className="d-flex align-items-center mb-2">
                         <small className="text-uppercase text-muted fw-bold">
@@ -195,20 +199,37 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                         </small>
                         <hr className="flex-grow-1 ms-2" />
                       </div>
-                      <p className="text-warning fw-semibold mb-2">
-                        Empty out{" "}
-                        <span style={{ fontFamily: 'Consolas, "Courier New", monospace' }}>
-                          {chain[chain.length - 1].toLocation}
-                        </span>{" "}
-                        entirely first — its contents have no new location.
+                      <p
+                        className="text-muted mb-2"
+                        style={{ fontFamily: 'Consolas, "Courier New", monospace' }}
+                      >
+                        {moves[0].fromLocation}
+                        {moves.map((move) => ` → ${move.toLocation}`).join("")}
                       </p>
+                      {isCircular ? (
+                        <p className="text-info fw-semibold mb-2">
+                          This chain is circular — everything gets shifted, no products get
+                          discarded.
+                        </p>
+                      ) : (
+                        <p className="text-warning fw-semibold mb-2">
+                          Empty out{" "}
+                          <span style={{ fontFamily: 'Consolas, "Courier New", monospace' }}>
+                            {moves[moves.length - 1].toLocation}
+                          </span>{" "}
+                          entirely first — its contents have no new location.
+                        </p>
+                      )}
                       {/* chaseProductMoves discovers each chain by walking forward from its
                           starting location, but the moves must physically be carried out in
                           the opposite order: the last hop's location has nowhere further to
                           go, so it must be emptied first to make room for the hop before it,
-                          and so on back to the start. */}
+                          and so on back to the start. For a circular chain there is no true
+                          dead end (the walk stopped because it looped back on itself), so this
+                          reversal is still a reasonable execution order even though nothing
+                          actually needs emptying first. */}
                       <ListGroup variant="flush" className="border rounded">
-                        {[...chain].reverse().map((move) => {
+                        {[...moves].reverse().map((move) => {
                           const moveKey = move.fromLocation;
                           const isCompleted = completedMoves.has(moveKey);
                           return (
