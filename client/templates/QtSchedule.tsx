@@ -54,7 +54,7 @@ import "@client/scss/react-day-picker.scss";
 
 const LAST_SELECTED_REP_ID_KEY = "calendar-rep-id-last-used";
 
-export function Template(props: templates.QtScheduleCalendar) {
+export function Template(props: templates.QtSchedule) {
   const context = React.useContext(Context);
   const fetchRepSchedule = useFetch<interfaces.QtViewRepDetail>();
   const scheduleServiceOrderFetch = useFetch<interfaces.QtScheduleServiceOrder>();

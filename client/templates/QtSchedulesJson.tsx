@@ -15,7 +15,7 @@ import { useFetch } from "../hooks/useFetch";
 
 import "@client/scss/react-json-viewer.scss";
 
-export function Template(props: templates.QtScheduleView) {
+export function Template(props: templates.QtSchedulesJson) {
   const context = React.useContext(Context);
   const fetchRepSchedule = useFetch<interfaces.QtViewRepDetail>();
 

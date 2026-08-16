@@ -48,13 +48,13 @@ const authenticatedLinks: TLink[] = [
   getLink("Scan History", reverse("stock_tracker:scan_history"), faHistory),
   getLink("Barcode Sheets", reverse("stock_tracker:barcode_sheet_history"), faBarcode),
   getLink("Territory Viewer", reverse("survey_worker:qt_territory_viewer"), faMapMarkedAlt),
-  getLink("Schedule", reverse("survey_worker:qt_schedule_calendar"), faCalendarAlt),
+  getLink("Schedule", reverse("survey_worker:qt_schedule"), faCalendarAlt),
 ];
 
 const superuserLinks: TLink[] = [
   getLink("Add New Stores", reverse("stock_tracker:add_new_stores"), faStore),
   getLink("View Login Sessions", reverse("survey_worker:qt_view_login_sessions"), faUserCheck),
-  getLink("View Schedule JSON", reverse("survey_worker:qt_view_schedules"), faCalendarCheck),
+  getLink("View Schedule JSON", reverse("survey_worker:qt_schedules_json"), faCalendarCheck),
   getLink("Update Qt Schedule", reverse("survey_worker:qt_update_schedule"), faEdit),
   getLink("Autofill Logs", reverse("survey_worker:qt_view_autofill_logs"), faChartBar),
 ];
