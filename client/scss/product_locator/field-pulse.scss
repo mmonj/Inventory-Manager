@@ -1,0 +1,14 @@
+// Applied briefly to form fields that get auto-populated (e.g. from the "related products"
+// search in ProductLocatorModal) to visually confirm the value just changed.
+.field-pulse {
+  animation: field-pulse-glow 1s ease-out;
+}
+
+@keyframes field-pulse-glow {
+  0% {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0);
+  }
+}

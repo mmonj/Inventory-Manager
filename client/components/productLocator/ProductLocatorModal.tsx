@@ -23,6 +23,21 @@ import { getRelatedProducts, postNewProductLocation } from "@client/util/product
 
 import { LoadingSpinner } from "../LoadingSpinner";
 
+import "@client/scss/product_locator/field-pulse.scss";
+
+const FIELD_PULSE_DURATION_MS = 1000;
+
+function animateWithPulse(element: HTMLElement | null) {
+  if (element === null) return;
+
+  element.classList.remove("field-pulse");
+  // Force reflow so re-adding the class restarts the animation if it's still running
+  // from a previous selection.
+  void element.offsetWidth;
+  element.classList.add("field-pulse");
+  window.setTimeout(() => element.classList.remove("field-pulse"), FIELD_PULSE_DURATION_MS);
+}
+
 interface Props {
   modalShow: boolean;
   onHide: () => void;
@@ -96,6 +111,10 @@ export function ProductLocatorModal({
     selectedPlanogramDropdownRef.current!.value =
       selectedRelatedProductLocation.planogram.pk.toString();
     newLocationValueRef.current!.value = selectedRelatedProductLocation.name;
+
+    animateWithPulse(productNameRef.current);
+    animateWithPulse(selectedPlanogramDropdownRef.current);
+    animateWithPulse(newLocationValueRef.current);
   }
 
   return (
