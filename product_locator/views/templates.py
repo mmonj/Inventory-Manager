@@ -8,6 +8,11 @@ from ..types import IPlanoProduct
 
 @template
 class ProductLocatorIndex(NamedTuple):
+    pass
+
+
+@template
+class ProductLocatorScanner(NamedTuple):
     stores: list[Pick[Store, "pk", "name"]]
     planograms: list[Pick[Planogram, "pk", "name", "date_start", "date_end", "store.pk"]]
 

@@ -8,6 +8,7 @@ app_name = "product_locator"
 
 pages = [
     path("", ssr_views.index, name="index"),
+    path("scanner/", ssr_views.scanner, name="scanner"),
     path("manage_planograms/", ssr_views.manage_planograms, name="manage_planograms"),
     path("scan_audit/", ssr_views.scan_audit, name="scan_audit"),
     path("planogram_updates/", ssr_views.planogram_updates, name="planogram_updates"),

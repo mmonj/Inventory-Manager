@@ -1,234 +1,172 @@
-import React, { useState } from "react";
+import React from "react";
 
-import Alert from "react-bootstrap/Alert";
-import Badge from "react-bootstrap/Badge";
-import Button from "react-bootstrap/Button";
-import Card from "react-bootstrap/Card";
+import { Context, reverse, templates } from "@reactivated";
 
-import { Context, interfaces, reverse, templates } from "@reactivated";
-
+import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
-  faCheckCircle,
-  faExclamationTriangle,
-  faPlusCircle,
+  faArrowCircleRight,
+  faBarcode,
+  faClipboardCheck,
+  faCog,
+  faSearchLocation,
+  faShieldAlt,
+  faShuffle,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
-import { BarcodeScanner } from "@client/components/BarcodeScanner";
 import { Layout } from "@client/components/Layout";
-import { LoadingSpinner } from "@client/components/LoadingSpinner";
-import { FieldRepStoreSelector } from "@client/components/StoreSelector";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
-import { ProductLocatorModal } from "@client/components/productLocator/ProductLocatorModal";
-import { LocationItem } from "@client/components/productLocator/productLocatorIndex";
-import { useFetch } from "@client/hooks/useFetch";
-import { getProductLocation } from "@client/util/productLocator";
 
-import "@client/scss/stock_tracker/scanner.scss";
-import "@client/scss/product_locator/location-item.scss";
-
-type TStore = templates.ProductLocatorIndex["stores"][number];
-
-function scanErrorCallback(errorMessage: string) {
-  console.log("Error occurred on scan. Message:", errorMessage);
+interface DashboardCardInfo {
+  title: string;
+  description: string;
+  href: string;
+  icon: IconDefinition;
+  buttonIcon: IconDefinition;
+  buttonLabel: string;
+  colorVariant: string;
+  buttonVariant: "solid" | "outline";
 }
 
-function handleStoreSubmission(storePk: string): void {
-  const newUrl = new URL(window.location.href);
-  newUrl.searchParams.set("store-id", storePk);
-  window.location.href = newUrl.href;
-}
-
-export function Template(props: templates.ProductLocatorIndex) {
-  const [store, setStore] = useState<TStore | null>(null);
-  const [scannedUpc, setScannedUpc] = useState("");
-  const [modalShow, setModalShow] = useState(false);
-  const getProductFetcher = useFetch<interfaces.IProductLocations>();
-  const djangoContext = React.useContext(Context);
-
-  // Get store from query param `store-id`
-  const storeIdFromQueryParam =
-    new URL(djangoContext.request.url).searchParams.get("store-id") ?? "";
-  const storeFromQueryParam = props.stores.find(
-    (store) => store.pk === parseInt(storeIdFromQueryParam)
-  );
-  if (storeFromQueryParam !== undefined && storeFromQueryParam.pk !== store?.pk) {
-    setStore(() => storeFromQueryParam);
-  }
-
-  async function scanSuccessCallback(decodedText: string): Promise<void> {
-    console.log("Scanned code:", decodedText);
-    setScannedUpc(() => decodedText);
-
-    await getProductFetcher.fetchData(() =>
-      getProductLocation(decodedText, store!.pk, reverse("product_locator:get_product_location"))
-    );
-  }
+function DashboardCard(props: DashboardCardInfo) {
+  const buttonClassName =
+    props.buttonVariant === "solid"
+      ? `btn btn-${props.colorVariant} btn-lg w-100 mt-3`
+      : `btn btn-outline-${props.colorVariant} btn-lg w-100 mt-3`;
 
   return (
-    <Layout title="Product Locator" navbar={<NavigationBar />}>
-      <div className="min-vh-100 py-4">
-        <section id="store-select-container" className="mw-rem-60 mx-auto px-3">
-          {!store && (
-            <Card className="shadow-sm border-0">
-              <Card.Body className="p-4">
-                <div className="text-center mb-4">
-                  <h2 className="fw-bold text-primary mb-2">Product Locator</h2>
-                  <p className="text-muted">Select a store to scan and locate products</p>
-                </div>
-                <FieldRepStoreSelector
-                  stores={props.stores}
-                  propType="stores"
-                  handleStoreSubmission={handleStoreSubmission}
-                />
-              </Card.Body>
-            </Card>
-          )}
-          {!!store && (
-            <section id="scanner-container" className="mw-rem-60 mx-auto">
-              <Card className="shadow-sm border-0 mb-4">
-                <Card.Header className="bg-primary text-white py-3">
-                  <h5 className="card-title text-dark text-center mb-0 fw-bold">
-                    <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
-                    {store.name}
-                  </h5>
-                </Card.Header>
-                <Card.Body className="p-4">
-                  <BarcodeScanner {...{ scanSuccessCallback, scanErrorCallback }} />
-                </Card.Body>
-              </Card>
-
-              {getProductFetcher.isLoading && (
-                <Card className="shadow-sm border-0 mb-4">
-                  <Card.Body className="p-5">
-                    <div className="d-flex flex-column align-items-center">
-                      <LoadingSpinner isBlockElement={true} />
-                      <p className="text-muted mt-3">Searching for product...</p>
-                    </div>
-                  </Card.Body>
-                </Card>
-              )}
-
-              {getProductFetcher.isError && (
-                <Alert variant="danger" className="shadow-sm border-0">
-                  <div className="d-flex align-items-center">
-                    <FontAwesomeIcon icon={faExclamationTriangle} className="me-2 fs-4" />
-                    <div>
-                      {getProductFetcher.errorMessages.map((message, idx) => (
-                        <div key={idx}>{message}</div>
-                      ))}
-                    </div>
-                  </div>
-                </Alert>
-              )}
-
-              {getProductFetcher.data &&
-                getProductFetcher.data.product.home_locations.length > 0 && (
-                  <Card className="shadow-sm border-0 mb-4">
-                    <Card.Header className="bg-success text-white py-3">
-                      <h6 className="mb-0 fw-bold">
-                        <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
-                        Active Locations
-                      </h6>
-                    </Card.Header>
-                    <Card.Body className="p-3">
-                      <div className="mb-3 pb-2 border-bottom">
-                        <strong>Product:</strong> {getProductFetcher.data.product.name}
-                      </div>
-                      <div className="list-group list-group-flush">
-                        {getProductFetcher.data.product.home_locations.map((location) => {
-                          if (location.planogram.date_end !== null) return null;
-
-                          return <LocationItem key={location.pk} location={location} />;
-                        })}
-                      </div>
-                    </Card.Body>
-                  </Card>
-                )}
-
-              {getProductFetcher.data &&
-                getProductFetcher.data.product.home_locations.some(
-                  (loc) => loc.planogram.date_end !== null
-                ) && (
-                  <Card
-                    className="shadow-sm border-0 border-danger mb-4"
-                    style={{ borderWidth: "2px !important" }}
-                  >
-                    <Card.Header className="bg-danger text-white py-3">
-                      <h6 className="mb-0 fw-bold">
-                        <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
-                        Outdated Locations
-                      </h6>
-                    </Card.Header>
-                    <Card.Body className="p-3">
-                      <div className="mb-3 pb-2 border-bottom">
-                        <strong>Product:</strong> {getProductFetcher.data.product.name}
-                      </div>
-                      <div className="list-group list-group-flush">
-                        {getProductFetcher.data.product.home_locations
-                          .filter((location) => location.planogram.date_end !== null)
-                          .map((location) => (
-                            <LocationItem
-                              key={location.pk}
-                              location={location}
-                              locationType="outdated"
-                            />
-                          ))}
-                      </div>
-                    </Card.Body>
-                  </Card>
-                )}
-
-              {getProductFetcher.data?.product.home_locations.length === 0 && (
-                <Alert variant="warning" className="shadow-sm border-0 text-center py-4">
-                  <FontAwesomeIcon
-                    icon={faExclamationTriangle}
-                    size="2x"
-                    className="mb-3 text-warning"
-                  />
-                  <h5 className="fw-bold mb-2 text-light">No Locations Found for This Store</h5>
-                  <p className="mb-2">
-                    <strong>Name:</strong> {getProductFetcher.data.product.name}
-                  </p>
-                  <p className="mb-0">
-                    UPC{" "}
-                    <Badge bg="secondary" className="mx-1">
-                      {getProductFetcher.data.product.upc}
-                    </Badge>{" "}
-                    has no locations assigned to this store
-                  </p>
-                </Alert>
-              )}
-
-              {(!!getProductFetcher.data || getProductFetcher.isError) && (
-                <div className="my-4 text-center">
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    className="shadow-sm"
-                    onClick={() => setModalShow(true)}
-                  >
-                    <FontAwesomeIcon icon={faPlusCircle} className="me-2" />
-                    Add location for this UPC
-                  </Button>
-                </div>
-              )}
-            </section>
-          )}
-        </section>
-        <section>
-          {!!store && modalShow && (
-            <ProductLocatorModal
-              scannedUpc={scannedUpc}
-              planograms={props.planograms}
-              productName={getProductFetcher.data?.product.name ?? undefined}
-              storeId={store.pk}
-              modalShow={modalShow}
-              onHide={() => setModalShow(() => false)}
-            />
-          )}
-        </section>
+    <div className="col-md-6 col-lg-4">
+      <div className="card h-100 border-0 shadow-sm hover-shadow transition">
+        <div className="card-body d-flex flex-column p-4">
+          <div className="mb-3">
+            <div
+              className={`bg-${props.colorVariant} bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center`}
+              style={{ width: "60px", height: "60px" }}
+            >
+              <FontAwesomeIcon
+                icon={props.icon}
+                size="2x"
+                className={`text-${props.colorVariant}`}
+              />
+            </div>
+          </div>
+          <h5 className="card-title fw-bold mb-2">{props.title}</h5>
+          <p className="card-text text-muted flex-grow-1">{props.description}</p>
+          <a href={props.href} className={buttonClassName}>
+            <FontAwesomeIcon icon={props.buttonIcon} className="me-2" />
+            {props.buttonLabel}
+          </a>
+        </div>
       </div>
+    </div>
+  );
+}
+
+export function Template(_props: templates.ProductLocatorIndex) {
+  const context = React.useContext(Context);
+  const { user } = context;
+
+  const toolCards: DashboardCardInfo[] = [
+    {
+      title: "Scanner",
+      description: "Scan barcodes in-store to quickly find where a product belongs",
+      href: reverse("product_locator:scanner"),
+      icon: faBarcode,
+      buttonIcon: faArrowCircleRight,
+      buttonLabel: "Open Scanner",
+      colorVariant: "primary",
+      buttonVariant: "solid",
+    },
+    {
+      title: "Scan Audit",
+      description: "Review which products have been scanned during a store audit",
+      href: reverse("product_locator:scan_audit"),
+      icon: faClipboardCheck,
+      buttonIcon: faClipboardCheck,
+      buttonLabel: "View Scan Audit",
+      colorVariant: "success",
+      buttonVariant: "outline",
+    },
+  ];
+
+  const adminCards: DashboardCardInfo[] = [
+    {
+      title: "Manage Planograms",
+      description: "Create, edit, and reset store planograms",
+      href: reverse("product_locator:manage_planograms"),
+      icon: faCog,
+      buttonIcon: faCog,
+      buttonLabel: "Manage Planograms",
+      colorVariant: "danger",
+      buttonVariant: "outline",
+    },
+    {
+      title: "Planogram Updates",
+      description: "Review and apply queued planogram updates",
+      href: reverse("product_locator:planogram_updates"),
+      icon: faShuffle,
+      buttonIcon: faShuffle,
+      buttonLabel: "View Planogram Updates",
+      colorVariant: "danger",
+      buttonVariant: "outline",
+    },
+  ];
+
+  return (
+    <Layout
+      title="Product Locator Dashboard"
+      navbar={<NavigationBar />}
+      className="container-fluid py-5"
+    >
+      <div className="row justify-content-center">
+        <div className="col-lg-10 col-xl-9">
+          {/* Header Section */}
+          <div className="text-center mb-5">
+            <h1 className="display-4 fw-bold mb-3">Product Locator Dashboard</h1>
+            <p className="lead text-muted">Scan, locate, and manage product planograms</p>
+          </div>
+
+          {/* Main Section */}
+          <div className="mb-5">
+            <h3 className="h5 text-secondary mb-3">
+              <FontAwesomeIcon icon={faSearchLocation} className="me-2" />
+              Tools
+            </h3>
+            <div className="row g-4">
+              {toolCards.map((card) => (
+                <DashboardCard key={card.title} {...card} />
+              ))}
+            </div>
+          </div>
+
+          {user.is_superuser && (
+            <div className="mb-4">
+              <h3 className="h5 text-secondary mb-3">
+                <FontAwesomeIcon icon={faShieldAlt} className="me-2" />
+                Administrative Tools
+              </h3>
+              <div className="row g-4">
+                {adminCards.map((card) => (
+                  <DashboardCard key={card.title} {...card} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <style>{`
+        .hover-shadow {
+          transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+        .hover-shadow:hover {
+          box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15) !important;
+          transform: translateY(-5px);
+        }
+        .transition {
+          transition: all 0.3s ease-in-out;
+        }
+      `}</style>
     </Layout>
   );
 }

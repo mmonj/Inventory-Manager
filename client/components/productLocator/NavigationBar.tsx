@@ -6,6 +6,7 @@ import { Context, reverse } from "@reactivated";
 
 import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
+  faBarcode,
   faClipboardCheck,
   faCog,
   faHome,
@@ -35,6 +36,7 @@ function getLink(name: string, path: string, icon?: IconDefinition) {
 }
 
 const authenticatedLinks: TLink[] = [
+  getLink("Scanner", reverse("product_locator:scanner"), faBarcode),
   getLink("Scan Audit", reverse("product_locator:scan_audit"), faClipboardCheck),
 ];
 

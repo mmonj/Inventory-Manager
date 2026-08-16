@@ -16,13 +16,18 @@ if TYPE_CHECKING:
 logger = logging.getLogger("main_logger")
 
 
-@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
 @require_http_methods(["GET"])
 def index(request: HttpRequest) -> HttpResponse:
+    return templates.ProductLocatorIndex().render(request)
+
+
+@login_required(login_url=reverse_lazy("stock_tracker:login_view"))
+@require_http_methods(["GET"])
+def scanner(request: HttpRequest) -> HttpResponse:
     stores = Store.objects.all()
     planograms = Planogram.objects.all().select_related("store")
 
-    return templates.ProductLocatorIndex(stores=list(stores), planograms=list(planograms)).render(
+    return templates.ProductLocatorScanner(stores=list(stores), planograms=list(planograms)).render(
         request
     )
 
