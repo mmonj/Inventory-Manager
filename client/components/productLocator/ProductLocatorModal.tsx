@@ -152,7 +152,9 @@ export function ProductLocatorModal({
                 />
                 <OverlayTrigger
                   trigger={["hover", "focus", "click"]}
-                  overlay={<Tooltip>Search by name for closest match</Tooltip>}
+                  overlay={
+                    <Tooltip>Search by name for the same product that has a different UPC</Tooltip>
+                  }
                 >
                   <Button
                     onClick={handleSearchRelatedNames}
@@ -160,7 +162,7 @@ export function ProductLocatorModal({
                     variant="outline-primary"
                     size="lg"
                     className="px-3"
-                    aria-label="Search by name for closest match"
+                    aria-label="Search by name for the same product that has a different UPC"
                   >
                     {!relatedProductsFetch.isLoading && <FontAwesomeIcon icon={faSearch} />}
                     {relatedProductsFetch.isLoading && (

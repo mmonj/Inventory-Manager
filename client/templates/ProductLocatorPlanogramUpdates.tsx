@@ -216,7 +216,7 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                                 <strong>
                                   {move.fromLocation} → {move.toLocation}
                                 </strong>{" "}
-                                - Product {move.product.name} ({move.product.upc})
+                                - {move.product.name} ({move.product.upc})
                               </span>
                               <FontAwesomeIcon
                                 icon={faCircleCheck}
