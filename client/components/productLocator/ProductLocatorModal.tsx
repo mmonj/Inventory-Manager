@@ -3,6 +3,8 @@ import React from "react";
 import { Alert } from "react-bootstrap";
 import Button from "react-bootstrap/Button";
 import Modal from "react-bootstrap/Modal";
+import OverlayTrigger from "react-bootstrap/OverlayTrigger";
+import Tooltip from "react-bootstrap/Tooltip";
 
 import { Context, Planogram_0344C0Aff5, interfaces, reverse } from "@reactivated";
 
@@ -148,19 +150,24 @@ export function ProductLocatorModal({
                   className="form-control form-control-lg"
                   required
                 />
-                <Button
-                  onClick={handleSearchRelatedNames}
-                  type="button"
-                  variant="outline-primary"
-                  size="lg"
-                  className="px-3"
-                  title="Search for related products"
+                <OverlayTrigger
+                  trigger={["hover", "focus", "click"]}
+                  overlay={<Tooltip>Search by name for closest match</Tooltip>}
                 >
-                  {!relatedProductsFetch.isLoading && <FontAwesomeIcon icon={faSearch} />}
-                  {relatedProductsFetch.isLoading && (
-                    <LoadingSpinner isBlockElement={false} size="sm" />
-                  )}
-                </Button>
+                  <Button
+                    onClick={handleSearchRelatedNames}
+                    type="button"
+                    variant="outline-primary"
+                    size="lg"
+                    className="px-3"
+                    aria-label="Search by name for closest match"
+                  >
+                    {!relatedProductsFetch.isLoading && <FontAwesomeIcon icon={faSearch} />}
+                    {relatedProductsFetch.isLoading && (
+                      <LoadingSpinner isBlockElement={false} size="sm" />
+                    )}
+                  </Button>
+                </OverlayTrigger>
               </div>
             </div>
 
