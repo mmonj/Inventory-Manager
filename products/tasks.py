@@ -13,10 +13,12 @@ from django.utils import timezone
 from django_rq import job
 from PIL import Image, ImageChops, ImageOps
 
-from .models import Product
+from .models import Product, ProductAddition
 from .types import IUpcItemDbData, IUpcItemDbItem
 
 PRODUCT_LOOKUP_ENDPOINT = "https://api.upcitemdb.com/prod/trial/lookup?upc={upc_lookup_str}"
+# How long a ProductAddition may sit ordered before it is marked as carried.
+ORDERED_TO_CARRIED_DELAY = timedelta(days=14)
 IMAGE_HOSTNAME_PREFERENCES = [
     "target.scene7.com",
     "pics.drugstore.com",
@@ -62,6 +64,24 @@ def get_external_product_images() -> None:
     logger.info("Fetching data from API for %s products", len(products_to_fetch_image))
     fetch_product_data(products_to_fetch_image)
     logger.info("Finished searching for products\n")
+
+
+@job
+def carry_ordered_products() -> None:
+    """
+    Mark a ProductAddition as carried once it's been ordered for ORDERED_TO_CARRIED_DELAY.
+    Meant to be run as a scheduled job.
+    """
+    cutoff = timezone.localdate() - ORDERED_TO_CARRIED_DELAY
+    newly_carried_count = ProductAddition.objects.filter(
+        is_carried=False, date_ordered__isnull=False, date_ordered__lte=cutoff
+    ).update(is_carried=True, date_last_scanned=timezone.now())
+
+    logger.info(
+        "Marked %s product addition(s) as carried after being ordered for %s days",
+        newly_carried_count,
+        ORDERED_TO_CARRIED_DELAY.days,
+    )
 
 
 def add_upcs_to_redis_store(*upcs: str) -> None:
