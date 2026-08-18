@@ -43,7 +43,10 @@ function formatLastRefreshed(isoString: string): string {
 
   if (hoursSince < 1) {
     const minutesSince = Math.max(1, Math.floor(hoursSince * 60));
-    return `${minutesSince} minute${minutesSince === 1 ? "" : "s"} ago`;
+    if (minutesSince < 2) {
+      return "Just now";
+    }
+    return `${minutesSince} minutes ago`;
   }
 
   const wholeHoursSince = Math.floor(hoursSince);
