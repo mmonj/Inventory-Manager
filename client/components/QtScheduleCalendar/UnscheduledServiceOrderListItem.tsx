@@ -1,5 +1,6 @@
 import React from "react";
 
+import classNames from "classnames";
 import { m } from "motion/react";
 
 import { TServiceOrder } from "@client/util/qtSurveyWorker/scheduleUtils";
@@ -11,6 +12,8 @@ interface Props {
   so: TServiceOrder;
   action: React.ReactNode;
   checkbox?: React.ReactNode;
+  // Visually greys out the row
+  isDisabled?: boolean;
 }
 
 export function UnscheduledServiceOrderListItem(props: Props) {
@@ -26,7 +29,10 @@ export function UnscheduledServiceOrderListItem(props: Props) {
       // react-doctor-disable-next-line react-doctor/no-layout-property-animation
       exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.2 }}
-      className="list-group-item d-flex justify-content-between align-items-start gap-4 overflow-hidden"
+      className={classNames(
+        "list-group-item d-flex justify-content-between align-items-start gap-4 overflow-hidden",
+        { "text-muted bg-body-tertiary": props.isDisabled === true }
+      )}
     >
       {props.checkbox !== undefined && (
         <div className="flex-shrink-0 d-flex align-items-start pt-1">{props.checkbox}</div>

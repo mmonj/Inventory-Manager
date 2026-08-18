@@ -1069,6 +1069,7 @@ export function Template(props: templates.QtSchedule) {
                           <UnscheduledServiceOrderListItem
                             key={so.ServiceOrderId}
                             so={so}
+                            isDisabled
                             action={
                               <span
                                 className="text-muted small text-end d-inline-block"
