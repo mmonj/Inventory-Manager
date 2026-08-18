@@ -2,7 +2,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db import models
 from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import get_template
 from django.urls import reverse_lazy
 from django.views.decorators.http import require_http_methods
@@ -26,6 +26,9 @@ def get_inbox_message_recipients_queryset(user_id: int) -> models.QuerySet[Messa
 
 # Create your views here.
 def index(request: HttpRequest) -> HttpResponse:
+    if not request.user.is_superuser:
+        return redirect("stock_tracker:index")
+
     return templates.HomepageIndex().render(request)
 
 
