@@ -474,7 +474,7 @@ export function Template(props: templates.QtTerritoryViewer) {
                   <Suspense fallback={<div>Loading map...</div>}>
                     <TerritoryMap
                       groupedByStore={filteredStores}
-                      recentlySeenStores={recentlySeenStores}
+                      recentlySeenStores={filteredNoCurrentTicketStores}
                       repAddress={
                         selectedRepDetail !== undefined && selectedRepDetail.address !== ""
                           ? {

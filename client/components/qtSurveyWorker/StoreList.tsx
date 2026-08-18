@@ -210,12 +210,12 @@ export function StoreList({ groupedByStore, unscheduledDate, noCurrentTicketStor
               <Accordion.Item
                 key={store.id}
                 eventKey={store.id.toString()}
-                className="mb-3 border-0 shadow-sm"
+                className="mb-3 border-0 shadow-sm opacity-75"
               >
-                <Accordion.Header className="bg-white">
+                <Accordion.Header className="bg-body-secondary">
                   <div className="w-100 pe-3">
                     <div className="d-flex justify-content-between align-items-start mb-2">
-                      <h5 className="mb-0 text-primary fw-bold">
+                      <h5 className="mb-0 text-secondary fw-bold">
                         {store.name || "(Unnamed Store)"}
                       </h5>
                       <Badge bg="secondary" pill className="ms-2">
@@ -236,7 +236,7 @@ export function StoreList({ groupedByStore, unscheduledDate, noCurrentTicketStor
                     </div>
                   </div>
                 </Accordion.Header>
-                <Accordion.Body className="bg-light">
+                <Accordion.Body className="bg-body-secondary">
                   <div className="d-flex justify-content-end mb-3">
                     <Button
                       href={
