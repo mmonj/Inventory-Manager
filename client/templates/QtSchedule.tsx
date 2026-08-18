@@ -1,17 +1,7 @@
 import React from "react";
 
-import classNames from "classnames";
 import { AnimatePresence, LazyMotion, domAnimation } from "motion/react";
-import {
-  Alert,
-  Button,
-  Card,
-  Form,
-  ListGroup,
-  Spinner,
-  Toast,
-  ToastContainer,
-} from "react-bootstrap";
+import { Alert, Button, Card, Form, ListGroup, Spinner } from "react-bootstrap";
 
 import { Context, interfaces, reverse, templates } from "@reactivated";
 
@@ -19,7 +9,6 @@ import { faCopy, faFilter, faTriangleExclamation } from "@fortawesome/free-solid
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
-import { ErrorToastStack } from "@client/components/ErrorToastStack";
 import {
   CopyScheduleModal,
   ICalendarDaySummary,
@@ -29,7 +18,6 @@ import {
   UnscheduledServiceOrderListItem,
 } from "@client/components/QtScheduleCalendar";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
-import { useErrorToasts } from "@client/hooks/useErrorToasts";
 import { fetchByReactivated } from "@client/util/commonUtil";
 import {
   TSchedule,
@@ -46,6 +34,7 @@ import {
   toDateKey,
   withServiceOrdersRescheduled,
 } from "@client/util/qtSurveyWorker/scheduleUtils";
+import { toast } from "@client/util/toast";
 
 import { Layout } from "../components/Layout";
 import { useFetch } from "../hooks/useFetch";
@@ -66,7 +55,6 @@ export function Template(props: templates.QtSchedule) {
   // (just scoped to the one selected date), but keeps its own useFetch instance so the two
   // buttons' loading/error states don't interfere with each other.
   const clearDateFetch = useFetch<interfaces.QtExecuteBulkUnschedule>();
-  const errorToasts = useErrorToasts();
 
   // guard against a duplicate initial fetch if the mount effect below somehow fires twice
   // to work around hydration remounts
@@ -75,10 +63,6 @@ export function Template(props: templates.QtSchedule) {
   const [selectedRepId, setSelectedRepId] = React.useState<number | null>(null);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
   const [localSchedule, setLocalSchedule] = React.useState<TSchedule | null>(null);
-  const [scheduleFreshnessToast, setScheduleFreshnessToast] = React.useState<{
-    isCached: boolean;
-    show: boolean;
-  } | null>(null);
   const [isSwapMode, setIsSwapMode] = React.useState(false);
   const [swapSelectedDates, setSwapSelectedDates] = React.useState<Date[]>([]);
   const [unscheduledOrderBy, setUnscheduledOrderBy] =
@@ -107,7 +91,14 @@ export function Template(props: templates.QtSchedule) {
     // while the new one loads would be wrong.
     if (fetchRepSchedule.data !== null) {
       setLocalSchedule(fetchRepSchedule.data.rep_sync_data.schedule);
-      setScheduleFreshnessToast({ isCached: fetchRepSchedule.data.is_cached, show: true });
+
+      if (context.user.is_superuser) {
+        if (fetchRepSchedule.data.is_cached) {
+          toast.warning("Showing cached schedule data.");
+        } else {
+          toast.success("Fetched fresh schedule data.");
+        }
+      }
     }
   }, [fetchRepSchedule.data]);
 
@@ -222,7 +213,7 @@ export function Template(props: templates.QtSchedule) {
     );
 
     if (!isSuccess) {
-      errorToasts.showError("Failed to schedule service order", errorMessages);
+      toast.error("Failed to schedule service order", ...errorMessages);
       return;
     }
 
@@ -257,7 +248,7 @@ export function Template(props: templates.QtSchedule) {
     );
 
     if (!isSuccess) {
-      errorToasts.showError("Failed to unschedule service order", errorMessages);
+      toast.error("Failed to unschedule service order", ...errorMessages);
       return;
     }
 
@@ -320,7 +311,7 @@ export function Template(props: templates.QtSchedule) {
     );
 
     if (!isSuccess) {
-      errorToasts.showError("Failed to swap service orders", errorMessages);
+      toast.error("Failed to swap service orders", ...errorMessages);
       return;
     }
 
@@ -531,7 +522,7 @@ export function Template(props: templates.QtSchedule) {
     );
 
     if (!isSuccess) {
-      errorToasts.showError("Failed to auto-schedule service orders", errorMessages);
+      toast.error("Failed to auto-schedule service orders", ...errorMessages);
       return;
     }
 
@@ -591,7 +582,7 @@ export function Template(props: templates.QtSchedule) {
     );
 
     if (!isSuccess) {
-      errorToasts.showError(failureAlertPrefix, errorMessages);
+      toast.error(failureAlertPrefix, ...errorMessages);
       return;
     }
 
@@ -748,39 +739,6 @@ export function Template(props: templates.QtSchedule) {
   return (
     <LazyMotion features={domAnimation}>
       <Layout title="Schedule" navbar={<NavigationBar />} className="mw-rem-90 mx-auto px-2 mb-4">
-        <ToastContainer
-          position="top-end"
-          containerPosition="fixed"
-          className="p-3"
-          style={{ zIndex: 1100 }}
-        >
-          <Toast
-            show={context.user.is_superuser && scheduleFreshnessToast?.show === true}
-            onClose={() =>
-              setScheduleFreshnessToast((current) => current && { ...current, show: false })
-            }
-            delay={4000}
-            autohide
-            bg={scheduleFreshnessToast?.isCached === true ? "warning" : "success"}
-          >
-            <Toast.Header closeButton={true}>
-              <strong className="me-auto">Schedule Data</strong>
-            </Toast.Header>
-            <Toast.Body
-              className={classNames({
-                "text-dark": scheduleFreshnessToast?.isCached === true,
-                "text-white": scheduleFreshnessToast?.isCached !== true,
-              })}
-            >
-              {scheduleFreshnessToast?.isCached === true
-                ? "Showing cached schedule data."
-                : "Fetched fresh schedule data."}
-            </Toast.Body>
-          </Toast>
-
-          <ErrorToastStack toasts={errorToasts.toasts} onDismiss={errorToasts.dismiss} />
-        </ToastContainer>
-
         <h1 className="my-4">Schedule</h1>
 
         <div className="position-relative">

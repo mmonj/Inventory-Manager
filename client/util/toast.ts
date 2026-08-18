@@ -6,7 +6,8 @@ export type TToastVariant = "success" | "error" | "info" | "warning";
 export interface IToast {
   id: number;
   variant: TToastVariant;
-  message: string;
+  // Each entry renders on its own line
+  messages: string[];
 }
 
 type TListener = (toasts: IToast[]) => void;
@@ -28,9 +29,9 @@ function dismiss(id: number) {
   notify();
 }
 
-function show(variant: TToastVariant, message: string): number {
+function show(variant: TToastVariant, messages: string[]): number {
   const id = nextToastId++;
-  toasts = [...toasts, { id, variant, message }];
+  toasts = [...toasts, { id, variant, messages }];
   notify();
 
   setTimeout(() => dismiss(id), AUTOHIDE_DELAY_MS);
@@ -49,9 +50,9 @@ export function subscribeToasts(listener: TListener): () => void {
 }
 
 export const toast = {
-  success: (message: string) => show("success", message),
-  error: (message: string) => show("error", message),
-  info: (message: string) => show("info", message),
-  warning: (message: string) => show("warning", message),
+  success: (...messages: string[]) => show("success", messages),
+  error: (...messages: string[]) => show("error", messages),
+  info: (...messages: string[]) => show("info", messages),
+  warning: (...messages: string[]) => show("warning", messages),
   dismiss,
 };

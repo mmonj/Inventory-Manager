@@ -12,13 +12,6 @@ const VARIANT_BG: Record<TToastVariant, string> = {
   warning: "warning",
 };
 
-const VARIANT_TEXT_CLASS: Record<TToastVariant, string> = {
-  success: "text-white",
-  error: "text-white",
-  info: "text-dark",
-  warning: "text-dark",
-};
-
 const VARIANT_TITLE: Record<TToastVariant, string> = {
   success: "Success",
   error: "Error",
@@ -49,7 +42,9 @@ export function ToastHost() {
               "text-white": VARIANT_TITLE[t.variant] == "Warning",
             })}
           >
-            {t.message}
+            {t.messages.map((message, idx) => (
+              <div key={idx}>{message}</div>
+            ))}
           </Toast.Body>
         </Toast>
       ))}
