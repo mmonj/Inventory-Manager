@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect, useState } from "react";
 
 import {
   Context,
+  SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore,
   SurveyWorkerQtraxWebsiteTypedefsAddress,
   SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
   templates,
@@ -54,6 +55,9 @@ export function Template(props: templates.QtTerritoryViewer) {
   const [storeFilterValue, setStoreFilterValue] = useState("");
   const [selectedDueDate, setSelectedDueDate] = useState<string>("");
   const [filteredStores, setFilteredStores] = useState<TGroupedStoreRecord>({});
+  const [filteredNoCurrentTicketStores, setFilteredNoCurrentTicketStores] = useState<
+    SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore[]
+  >([]);
   const djangoContext = React.useContext(Context);
 
   const selectedRepData = props.rep_sync_datalist.find((r) => r.id === selectedSyncDataId);
@@ -161,13 +165,23 @@ export function Template(props: templates.QtTerritoryViewer) {
       });
 
       setFilteredStores(filtered);
+
+      // Stores with no assigned tickets: have no jobs to filter by due date, so only the search box
+      // applies, so the 'due date' filter doesn't hide them
+      setFilteredNoCurrentTicketStores(
+        recentlySeenStores.filter((store) => {
+          const searchableText = `${store.city}, ${store.state} | ${store.address_1} | ${store.name}`;
+          return matchesSearch(searchableText, storeFilterValue);
+        })
+      );
     }, 300);
 
     return () => clearTimeout(timeoutVal);
-  }, [storeFilterValue, groupedByStore, selectedDueDate]);
+  }, [storeFilterValue, groupedByStore, selectedDueDate, recentlySeenStores]);
 
   useEffect(() => {
     setFilteredStores(groupedByStore);
+    setFilteredNoCurrentTicketStores(recentlySeenStores);
     // reset the initial date flag when rep changes
     initialDateSet.current = false;
   }, [selectedSyncDataId]);
@@ -246,7 +260,10 @@ export function Template(props: templates.QtTerritoryViewer) {
           </div>
 
           <div>
-            <strong>{Object.keys(filteredStores).length} stores shown</strong>
+            <strong>
+              {Object.keys(filteredStores).length + filteredNoCurrentTicketStores.length} stores
+              shown
+            </strong>
             <div className="text-secondary">
               Last refreshed:{" "}
               {selectedRepData?.schedule_last_refreshed != null
@@ -362,7 +379,11 @@ export function Template(props: templates.QtTerritoryViewer) {
         )}
 
         {/* store list */}
-        <StoreList groupedByStore={filteredStores} />
+        <StoreList
+          groupedByStore={filteredStores}
+          unscheduledDate={selectedRepData?.schedule?.UnscheduledDate}
+          noCurrentTicketStores={filteredNoCurrentTicketStores}
+        />
       </div>
     </Layout>
   );
