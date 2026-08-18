@@ -2,13 +2,12 @@ import React, { useState } from "react";
 
 import { Button } from "react-bootstrap";
 
-import { templates } from "@reactivated";
+import { interfaces } from "@reactivated";
 
 import { faCopy, faExternalLinkAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
-type TRecentlySeenStore =
-  templates.QtTerritoryViewer["recently_seen_stores_by_rep"][number]["stores"][number];
+type TRecentlySeenStore = interfaces.QtTerritoryRepData["recently_seen_stores"][number];
 
 function formatLastSeen(isoString: string): string {
   return new Date(isoString).toLocaleDateString();

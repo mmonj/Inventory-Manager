@@ -5,22 +5,33 @@ import {
   SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore,
   SurveyWorkerQtraxWebsiteTypedefsAddress,
   SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
+  interfaces,
+  reverse,
   templates,
 } from "@reactivated";
-import { Dropdown, DropdownButton, Modal } from "react-bootstrap";
+import { Alert, Dropdown, DropdownButton, ListGroup, Modal, Spinner } from "react-bootstrap";
 
-import { faMapLocationDot, faTimes } from "@fortawesome/free-solid-svg-icons";
+import {
+  faArrowsRotate,
+  faMapLocationDot,
+  faTimes,
+  faTriangleExclamation,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
+import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
 import { Layout } from "@client/components/Layout";
 import { StoreList } from "@client/components/qtSurveyWorker/StoreList";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
+import { useFetch } from "@client/hooks/useFetch";
+import { fetchByReactivated } from "@client/util/commonUtil";
 import { matchesSearch } from "@client/util/qtSurveyWorker/scheduleUtils";
 
 // const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMapLeaflet"));
 const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMapGMaps"));
 
 const RELATIVE_TIME_THRESHOLD_HOURS = 12;
+const LAST_SELECTED_REP_ID_KEY = "lastSelectedRepId";
 
 function formatLastRefreshed(isoString: string): string {
   const refreshedDate = new Date(isoString);
@@ -48,8 +59,8 @@ type TGroupedStoreRecord = Record<
 >;
 
 export function Template(props: templates.QtTerritoryViewer) {
-  const [selectedSyncDataId, setSelectedSyncDataId] = useState<number | null>(
-    props.rep_sync_datalist[0]?.id ?? null
+  const [selectedRepId, setSelectedRepId] = useState<number | null>(
+    props.rep_details[0]?.id ?? null
   );
   const [showMap, setShowMap] = useState(false);
   const [storeFilterValue, setStoreFilterValue] = useState("");
@@ -58,10 +69,41 @@ export function Template(props: templates.QtTerritoryViewer) {
   const [filteredNoCurrentTicketStores, setFilteredNoCurrentTicketStores] = useState<
     SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore[]
   >([]);
+  // Per-rep schedule/recently-seen-store data, fetched on demand via qt_territory_rep_data
+  // (territory_rep_data_view), keyed by QtRepDetail.id - the same id selectedRepId holds.
+  // Once a rep's data has been fetched, reselecting it from the dropdown does not refetch -
+  // that's what the Refresh button (use_cache=off) is for.
+  const [repDataById, setRepDataById] = useState<Map<number, interfaces.QtTerritoryRepData>>(
+    new Map()
+  );
+  const territoryRepDataFetch = useFetch<interfaces.QtTerritoryRepData>();
   const djangoContext = React.useContext(Context);
 
-  const selectedRepData = props.rep_sync_datalist.find((r) => r.id === selectedSyncDataId);
-  const serviceOrders = selectedRepData?.schedule?.ServiceOrders ?? [];
+  const selectedRepDetail = props.rep_details.find((r) => r.id === selectedRepId);
+  const selectedRepData = selectedRepId === null ? undefined : repDataById.get(selectedRepId);
+  const serviceOrders = selectedRepData?.rep_sync_data.schedule?.ServiceOrders ?? [];
+
+  async function fetchTerritoryRepData(repId: number, useCacheOverride?: "off") {
+    const baseUrl = reverse("survey_worker:qt_territory_rep_data", { rep_id: repId });
+    // useCacheOverride overrides the page URL's use_cache param
+    const useCache =
+      useCacheOverride ?? new URLSearchParams(window.location.search).get("use_cache");
+    const url = useCache !== null ? `${baseUrl}?use_cache=${useCache}` : baseUrl;
+
+    const [isSuccess, result] = await territoryRepDataFetch.fetchData(() =>
+      fetchByReactivated<interfaces.QtTerritoryRepData>(url, djangoContext.csrf_token, "GET")
+    );
+
+    if (!isSuccess) {
+      return;
+    }
+
+    setRepDataById((current) => {
+      const next = new Map(current);
+      next.set(repId, result);
+      return next;
+    });
+  }
 
   // get unique due dates and sort them, excluding weekdays
   const uniqueDueDates = React.useMemo(() => {
@@ -97,24 +139,17 @@ export function Template(props: templates.QtTerritoryViewer) {
     return _groupedByStore;
   }, [serviceOrders]);
 
-  // Recently-seen stores for the selected rep, deduped against groupedByStore. Keys off
-  // selectedRepData.rep_detail.id (a QtRepDetail.id), not selectedSyncDataId (a QtSyncData.id).
+  // Recently-seen stores for the selected rep (already scoped to this rep by the ajax
+  // response), deduped against groupedByStore so a store never gets both a green and red pin.
   const recentlySeenStores = React.useMemo(() => {
     if (selectedRepData === undefined) {
       return [];
     }
 
-    const forSelectedRep = props.recently_seen_stores_by_rep.find(
-      (entry) => entry.rep_detail_id === selectedRepData.rep_detail.id
-    );
-    if (forSelectedRep === undefined) {
-      return [];
-    }
-
-    return forSelectedRep.stores.filter(
+    return selectedRepData.recently_seen_stores.filter(
       (store) => store.site_id === null || !(store.site_id in groupedByStore)
     );
-  }, [props.recently_seen_stores_by_rep, selectedRepData, groupedByStore]);
+  }, [selectedRepData, groupedByStore]);
 
   let totalWorkHours = 0;
   Object.values(filteredStores).forEach(({ jobs }) => {
@@ -184,21 +219,34 @@ export function Template(props: templates.QtTerritoryViewer) {
     setFilteredNoCurrentTicketStores(recentlySeenStores);
     // reset the initial date flag when rep changes
     initialDateSet.current = false;
-  }, [selectedSyncDataId]);
+  }, [selectedRepId]);
+
+  // Fetch the selected rep's data whenever selection changes to a rep we haven't already
+  // fetched - reselecting an already-loaded rep does not refetch (Refresh Schedule is the only
+  // way to force a fresh fetch once loaded).
+  useEffect(() => {
+    if (selectedRepId === null || repDataById.has(selectedRepId)) {
+      return;
+    }
+
+    void fetchTerritoryRepData(selectedRepId);
+    // fetchTerritoryRepData/repDataById intentionally excluded - this should only re-run when
+    // the selected rep id itself changes, not on every fetch-state/cache update it causes
+  }, [selectedRepId]);
 
   // load last selected representative ID on mount
   useEffect(() => {
-    const lastSelectedRepId = localStorage.getItem("lastSelectedRepId");
+    const lastSelectedRepId = localStorage.getItem(LAST_SELECTED_REP_ID_KEY);
     if (lastSelectedRepId !== null && lastSelectedRepId !== "") {
       const storedId = parseInt(lastSelectedRepId);
 
-      if (!isNaN(storedId) && props.rep_sync_datalist.some((rep) => rep.id === storedId)) {
-        setSelectedSyncDataId(storedId);
+      if (!isNaN(storedId) && props.rep_details.some((rep) => rep.id === storedId)) {
+        setSelectedRepId(storedId);
       }
     }
   }, []);
 
-  if (props.rep_sync_datalist.length === 0) {
+  if (props.rep_details.length === 0) {
     return (
       <Layout title="Territory Viewer" navbar={<NavigationBar />}>
         <div className="container mt-4">
@@ -219,9 +267,17 @@ export function Template(props: templates.QtTerritoryViewer) {
 
   function handleRepChange(repId: number) {
     setStoreFilterValue("");
-    setSelectedSyncDataId(repId);
+    setSelectedRepId(repId);
 
-    localStorage.setItem("lastSelectedRepId", repId.toString());
+    localStorage.setItem(LAST_SELECTED_REP_ID_KEY, repId.toString());
+  }
+
+  async function handleRefreshSchedule() {
+    if (selectedRepId === null) {
+      return;
+    }
+
+    await fetchTerritoryRepData(selectedRepId, "off");
   }
 
   return (
@@ -243,147 +299,197 @@ export function Template(props: templates.QtTerritoryViewer) {
             <label className="form-label fw-semibold">Field Representative:</label>
             <DropdownButton
               id="rep-select"
-              title={selectedRepData?.rep_detail.username ?? "Select Representative"}
+              title={selectedRepDetail?.username ?? "Select Representative"}
               variant="secondary"
               className="w-100"
             >
-              {props.rep_sync_datalist.map((rep) => (
+              {props.rep_details.map((rep) => (
                 <Dropdown.Item
                   key={rep.id}
                   onClick={() => handleRepChange(rep.id)}
-                  active={selectedSyncDataId === rep.id}
+                  active={selectedRepId === rep.id}
                 >
-                  {rep.rep_detail.username}
+                  {rep.username}
                 </Dropdown.Item>
               ))}
             </DropdownButton>
           </div>
 
-          <div>
-            <strong>
-              {Object.keys(filteredStores).length + filteredNoCurrentTicketStores.length} stores
-              shown
-            </strong>
-            <div className="text-secondary">
-              Last refreshed:{" "}
-              {selectedRepData?.schedule_last_refreshed != null
-                ? formatLastRefreshed(selectedRepData.schedule_last_refreshed)
-                : "N/A"}
+          <div className="text-secondary d-flex align-items-center gap-2">
+            <ButtonWithSpinner
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              disabled={selectedRepId === null}
+              fetchState={territoryRepDataFetch}
+              onClick={() => void handleRefreshSchedule()}
+            >
+              <FontAwesomeIcon icon={faArrowsRotate} className="me-1" />
+              Refresh Schedule
+            </ButtonWithSpinner>
+          </div>
+        </div>
+
+        {/* Everything below depends on the selected rep's schedule data - while it's still
+        loading (no cached data yet for this rep), show a loading card in its place instead of
+        rendering stats/filters/the map button against data that isn't there yet. */}
+        {territoryRepDataFetch.isError && selectedRepData === undefined ? (
+          <Alert variant="danger" className="d-flex">
+            <FontAwesomeIcon icon={faTriangleExclamation} className="fs-3 me-3 flex-shrink-0" />
+            <div>
+              <Alert.Heading as="h4" className="fw-bold">
+                Failed to fetch territory data
+              </Alert.Heading>
+              <ListGroup variant="flush">
+                {territoryRepDataFetch.errorMessages.map((message, idx) => (
+                  <ListGroup.Item key={idx} variant="danger" className="px-0 py-1 border-0">
+                    {message}
+                  </ListGroup.Item>
+                ))}
+              </ListGroup>
+            </div>
+          </Alert>
+        ) : territoryRepDataFetch.isLoading && selectedRepData === undefined ? (
+          <div className="d-flex flex-column align-items-center justify-content-center text-center py-5 my-3 bg-body-tertiary border rounded-3">
+            <Spinner animation="border" role="status" style={{ width: "3.5rem", height: "3.5rem" }}>
+              <span className="visually-hidden">Loading...</span>
+            </Spinner>
+            <div className="fs-4 fw-semibold mt-3">Loading territory data…</div>
+            <div className="text-muted">
+              Fetching data for {selectedRepDetail?.username ?? "rep"}
             </div>
           </div>
-          <div>
-            <strong>Total Work Hours: </strong>
-            {totalWorkHours.toFixed(2)} hrs
-          </div>
-        </div>
+        ) : (
+          <>
+            <div className="mb-4">
+              <div>
+                <strong>
+                  {Object.keys(filteredStores).length + filteredNoCurrentTicketStores.length} stores
+                  shown
+                </strong>
+                <div className="text-secondary">
+                  Schedule last refreshed:{" "}
+                  {selectedRepData?.rep_sync_data.schedule_last_refreshed != null
+                    ? formatLastRefreshed(selectedRepData.rep_sync_data.schedule_last_refreshed)
+                    : "N/A"}
+                </div>
+              </div>
+              <div>
+                <strong>Total Work Hours: </strong>
+                {totalWorkHours.toFixed(2)} hrs
+              </div>
+            </div>
 
-        <div className="mb-3">
-          <button className="btn btn-primary" onClick={() => setShowMap((prev) => !prev)}>
-            <img src={`${djangoContext.STATIC_URL}public/geo-alt-fill.svg`} alt="Map" />
-            &nbsp;&nbsp;
-            {showMap ? "Hide Map" : "Show Map"}
-          </button>
-        </div>
-
-        <div className="mb-2">
-          <label className="form-label fw-semibold">Show Tickets due by:</label>
-          <DropdownButton
-            id="due-date-select"
-            title={
-              selectedDueDate === "" ? "All Dates" : new Date(selectedDueDate).toLocaleDateString()
-            }
-            variant="secondary"
-            className="w-100"
-          >
-            <Dropdown.Item
-              onClick={() => {
-                initialDateSet.current = true;
-                setSelectedDueDate("");
-              }}
-              active={selectedDueDate === ""}
-            >
-              All Dates
-            </Dropdown.Item>
-            {uniqueDueDates.map((date) => (
-              <Dropdown.Item
-                key={date}
-                onClick={() => {
-                  initialDateSet.current = true;
-                  setSelectedDueDate(date);
-                }}
-                active={selectedDueDate === date}
-              >
-                {new Date(date).toLocaleDateString()}
-              </Dropdown.Item>
-            ))}
-          </DropdownButton>
-        </div>
-
-        <div className="mb-3">
-          <div className="input-group">
-            <input
-              type="text"
-              id="filter-stores"
-              className="form-control"
-              placeholder="Filter by Store + Address + Job Descriptions"
-              value={storeFilterValue}
-              onChange={(e) => setStoreFilterValue(e.target.value)}
-            />
-            {storeFilterValue !== "" && (
-              <button
-                type="button"
-                className="btn bg-transparent"
-                style={{ marginLeft: "-40px", zIndex: "100" }}
-                onClick={() => setStoreFilterValue("")}
-              >
-                <FontAwesomeIcon icon={faTimes} color={"#d9d9d9"} />
+            <div className="mb-3">
+              <button className="btn btn-primary" onClick={() => setShowMap((prev) => !prev)}>
+                <img src={`${djangoContext.STATIC_URL}public/geo-alt-fill.svg`} alt="Map" />
+                &nbsp;&nbsp;
+                {showMap ? "Hide Map" : "Show Map"}
               </button>
-            )}
-          </div>
-        </div>
+            </div>
 
-        {/* territory map */}
-        {selectedSyncDataId !== null && (
-          <Modal
-            show={showMap}
-            onHide={() => setShowMap(false)}
-            backdrop="static"
-            size="lg"
-            aria-labelledby="map-modal"
-            centered
-          >
-            <Modal.Header closeButton>
-              <Modal.Title id="map-modal" className="w-75 text-truncate">
-                Map: {selectedRepData?.rep_detail.username ?? "Unknown Rep"}
-              </Modal.Title>
-            </Modal.Header>
-            <Modal.Body className="p-0" style={{ height: "70vh" }}>
-              <Suspense fallback={<div>Loading map...</div>}>
-                <TerritoryMap
-                  groupedByStore={filteredStores}
-                  recentlySeenStores={recentlySeenStores}
-                  repAddress={
-                    selectedRepData !== undefined && selectedRepData.rep_detail.address !== ""
-                      ? {
-                          repId: selectedRepData.rep_detail.id,
-                          address: selectedRepData.rep_detail.address,
-                          lat: selectedRepData.rep_detail.address_latitude,
-                          lng: selectedRepData.rep_detail.address_longitude,
-                        }
-                      : null
-                  }
+            <div className="mb-2">
+              <label className="form-label fw-semibold">Show Tickets due by:</label>
+              <DropdownButton
+                id="due-date-select"
+                title={
+                  selectedDueDate === ""
+                    ? "All Dates"
+                    : new Date(selectedDueDate).toLocaleDateString()
+                }
+                variant="secondary"
+                className="w-100"
+              >
+                <Dropdown.Item
+                  onClick={() => {
+                    initialDateSet.current = true;
+                    setSelectedDueDate("");
+                  }}
+                  active={selectedDueDate === ""}
+                >
+                  All Dates
+                </Dropdown.Item>
+                {uniqueDueDates.map((date) => (
+                  <Dropdown.Item
+                    key={date}
+                    onClick={() => {
+                      initialDateSet.current = true;
+                      setSelectedDueDate(date);
+                    }}
+                    active={selectedDueDate === date}
+                  >
+                    {new Date(date).toLocaleDateString()}
+                  </Dropdown.Item>
+                ))}
+              </DropdownButton>
+            </div>
+
+            <div className="mb-3">
+              <div className="input-group">
+                <input
+                  type="text"
+                  id="filter-stores"
+                  className="form-control"
+                  placeholder="Filter by Store + Address + Job Descriptions"
+                  value={storeFilterValue}
+                  onChange={(e) => setStoreFilterValue(e.target.value)}
                 />
-              </Suspense>
-            </Modal.Body>
-          </Modal>
-        )}
+                {storeFilterValue !== "" && (
+                  <button
+                    type="button"
+                    className="btn bg-transparent"
+                    style={{ marginLeft: "-40px", zIndex: "100" }}
+                    onClick={() => setStoreFilterValue("")}
+                  >
+                    <FontAwesomeIcon icon={faTimes} color={"#d9d9d9"} />
+                  </button>
+                )}
+              </div>
+            </div>
 
-        {/* store list */}
-        <StoreList
-          groupedByStore={filteredStores}
-          unscheduledDate={selectedRepData?.schedule?.UnscheduledDate}
-          noCurrentTicketStores={filteredNoCurrentTicketStores}
-        />
+            {/* territory map */}
+            {selectedRepId !== null && (
+              <Modal
+                show={showMap}
+                onHide={() => setShowMap(false)}
+                backdrop="static"
+                size="lg"
+                aria-labelledby="map-modal"
+                centered
+              >
+                <Modal.Header closeButton>
+                  <Modal.Title id="map-modal" className="w-75 text-truncate">
+                    Map: {selectedRepDetail?.username ?? "Unknown Rep"}
+                  </Modal.Title>
+                </Modal.Header>
+                <Modal.Body className="p-0" style={{ height: "70vh" }}>
+                  <Suspense fallback={<div>Loading map...</div>}>
+                    <TerritoryMap
+                      groupedByStore={filteredStores}
+                      recentlySeenStores={recentlySeenStores}
+                      repAddress={
+                        selectedRepDetail !== undefined && selectedRepDetail.address !== ""
+                          ? {
+                              repId: selectedRepDetail.id,
+                              address: selectedRepDetail.address,
+                              lat: selectedRepDetail.address_latitude,
+                              lng: selectedRepDetail.address_longitude,
+                            }
+                          : null
+                      }
+                    />
+                  </Suspense>
+                </Modal.Body>
+              </Modal>
+            )}
+
+            {/* store list */}
+            <StoreList
+              groupedByStore={filteredStores}
+              unscheduledDate={selectedRepData?.rep_sync_data.schedule?.UnscheduledDate}
+              noCurrentTicketStores={filteredNoCurrentTicketStores}
+            />
+          </>
+        )}
       </div>
     </Layout>
   );

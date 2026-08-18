@@ -237,7 +237,7 @@ export function StoreList({ groupedByStore, unscheduledDate, noCurrentTicketStor
                   </div>
                 </Accordion.Header>
                 <Accordion.Body className="bg-light">
-                  <div className="d-flex justify-content-end">
+                  <div className="d-flex justify-content-end mb-3">
                     <Button
                       href={
                         "https://www.google.com/maps/search/?api=1&query=" +
@@ -254,6 +254,9 @@ export function StoreList({ groupedByStore, unscheduledDate, noCurrentTicketStor
                       Open in Maps
                     </Button>
                   </div>
+                  <p className="text-muted mb-0">
+                    No pending tickets are currently available for this store.
+                  </p>
                 </Accordion.Body>
               </Accordion.Item>
             ))}

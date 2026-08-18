@@ -6,8 +6,8 @@ import {
   Context,
   SurveyWorkerQtraxWebsiteTypedefsAddress,
   SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
+  interfaces,
   reverse,
-  templates,
 } from "@reactivated";
 
 import { faLocationCrosshairs } from "@fortawesome/free-solid-svg-icons";
@@ -37,8 +37,7 @@ interface TRepAddressInput {
   lng: number | null;
 }
 
-type TRecentlySeenStore =
-  templates.QtTerritoryViewer["recently_seen_stores_by_rep"][number]["stores"][number];
+type TRecentlySeenStore = interfaces.QtTerritoryRepData["recently_seen_stores"][number];
 
 interface Props {
   groupedByStore: Record<

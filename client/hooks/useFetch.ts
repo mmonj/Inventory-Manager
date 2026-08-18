@@ -28,7 +28,6 @@ export function useFetch<T>() {
       })
       .then((data: T) => {
         setData(() => data);
-        setIsLoading(() => false);
         setIsError(() => false);
         setErrorMessages(() => []);
 
@@ -38,19 +37,20 @@ export function useFetch<T>() {
       })
       .catch(async function (errorResp: ApiResponse<IHttpError | TNotFoundErrorList | Error>) {
         setData(() => null);
-        setIsLoading(() => false);
         setIsError(() => true);
-        if (errorResp instanceof Error) {
-          const messages = [errorResp.message];
-          setErrorMessages(() => messages);
-          return [false, errorResp, messages] as const;
-        } else {
-          const data = await (errorResp as ApiResponse<IHttpError | TNotFoundErrorList>).json();
-          const messages = getErrorList(data);
-          setErrorMessages(() => messages);
 
-          return [false, errorResp, messages] as const;
+        let messages: string[];
+        if (errorResp instanceof Error) {
+          messages = [errorResp.message];
+        } else {
+          messages = await getErrorList(errorResp as ApiResponse<IHttpError | TNotFoundErrorList>);
         }
+        setErrorMessages(() => messages);
+
+        return [false, errorResp, messages] as const;
+      })
+      .finally(() => {
+        setIsLoading(() => false);
       });
   };
 

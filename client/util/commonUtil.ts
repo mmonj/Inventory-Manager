@@ -1,12 +1,17 @@
 import { SurveyWorkerQtraxWebsiteTypedefsAddress } from "@reactivated";
 
-import { ApiPromise, IHttpError, TNotFoundErrorList } from "@client/types";
+import { ApiPromise, ApiResponse, IHttpError, TNotFoundErrorList } from "@client/types";
 
-export function getErrorList(data: IHttpError | TNotFoundErrorList): string[] {
-  if (Array.isArray(data)) {
-    return data;
-  } else {
-    return [data.detail];
+// Parses an error response body into a list. try/catch
+// around .json() since the body may not always be JSON
+export async function getErrorList(
+  errorResp: ApiResponse<IHttpError | TNotFoundErrorList>
+): Promise<string[]> {
+  try {
+    const data = await errorResp.json();
+    return Array.isArray(data) ? data : [data.detail];
+  } catch {
+    return ["Unexpected error occurred"];
   }
 }
 
