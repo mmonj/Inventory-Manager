@@ -26,6 +26,7 @@ import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { fetchByReactivated } from "@client/util/commonUtil";
 import { matchesSearch } from "@client/util/qtSurveyWorker/scheduleUtils";
+import { toast } from "@client/util/toast";
 
 // const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMapLeaflet"));
 const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMapGMaps"));
@@ -98,7 +99,7 @@ export function Template(props: templates.QtTerritoryViewer) {
     );
 
     if (!isSuccess) {
-      return;
+      return false;
     }
 
     setRepDataById((current) => {
@@ -106,6 +107,8 @@ export function Template(props: templates.QtTerritoryViewer) {
       next.set(repId, result);
       return next;
     });
+
+    return true;
   }
 
   // get unique due dates and sort them, excluding weekdays
@@ -280,7 +283,10 @@ export function Template(props: templates.QtTerritoryViewer) {
       return;
     }
 
-    await fetchTerritoryRepData(selectedRepId, "off");
+    const isSuccess = await fetchTerritoryRepData(selectedRepId, "off");
+    if (isSuccess) {
+      toast.success("Schedule refreshed.");
+    }
   }
 
   return (
