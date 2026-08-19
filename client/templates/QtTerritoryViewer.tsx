@@ -13,6 +13,7 @@ import { Alert, Dropdown, DropdownButton, ListGroup, Modal, Spinner } from "reac
 
 import {
   faArrowsRotate,
+  faFilter,
   faMapLocationDot,
   faTimes,
   faTriangleExclamation,
@@ -22,6 +23,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
 import { Layout } from "@client/components/Layout";
 import { StoreList } from "@client/components/qtSurveyWorker/StoreList";
+import { TerritoryFilterModal } from "@client/components/qtSurveyWorker/TerritoryFilterModal";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { fetchByReactivated } from "@client/util/commonUtil";
@@ -73,6 +75,9 @@ export function Template(props: templates.QtTerritoryViewer) {
   const [filteredNoCurrentTicketStores, setFilteredNoCurrentTicketStores] = useState<
     SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore[]
   >([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showStoresWithoutPendingTickets, setShowStoresWithoutPendingTickets] = useState(true);
+  const [selectedJobClients, setSelectedJobClients] = useState<Set<string>>(new Set());
   // Per-rep schedule/recently-seen-store data, fetched on demand via qt_territory_rep_data
   // (territory_rep_data_view), keyed by QtRepDetail.id - the same id selectedRepId holds.
   // Once a rep's data has been fetched, reselecting it from the dropdown does not refetch -
@@ -86,6 +91,18 @@ export function Template(props: templates.QtTerritoryViewer) {
   const selectedRepDetail = props.rep_details.find((r) => r.id === selectedRepId);
   const selectedRepData = selectedRepId === null ? undefined : repDataById.get(selectedRepId);
   const serviceOrders = selectedRepData?.rep_sync_data.schedule?.ServiceOrders ?? [];
+
+  const allJobClients = React.useMemo(
+    () => Array.from(new Set(serviceOrders.map((so) => so.JobClient))).sort(),
+    [serviceOrders]
+  );
+
+  React.useEffect(() => {
+    setSelectedJobClients(new Set(allJobClients));
+  }, [allJobClients]);
+
+  const isJobClientFilterActive = selectedJobClients.size < allJobClients.length;
+  const isFilterActive = !showStoresWithoutPendingTickets || isJobClientFilterActive;
 
   async function fetchTerritoryRepData(repId: number, useCacheOverride?: "off") {
     const baseUrl = reverse("survey_worker:qt_territory_rep_data", { rep_id: repId });
@@ -135,6 +152,10 @@ export function Template(props: templates.QtTerritoryViewer) {
     const _groupedByStore: TGroupedStoreRecord = {};
 
     for (const so of serviceOrders) {
+      if (!selectedJobClients.has(so.JobClient)) {
+        continue;
+      }
+
       const siteId = so.Address.SiteId;
       if (!(siteId in _groupedByStore)) {
         _groupedByStore[siteId] = { address: so.Address, jobs: [] };
@@ -143,7 +164,7 @@ export function Template(props: templates.QtTerritoryViewer) {
     }
 
     return _groupedByStore;
-  }, [serviceOrders]);
+  }, [serviceOrders, selectedJobClients]);
 
   // Recently-seen stores for the selected rep (already scoped to this rep by the ajax
   // response), deduped against groupedByStore so a store never gets both a green and red pin.
@@ -210,19 +231,27 @@ export function Template(props: templates.QtTerritoryViewer) {
       // Stores with no assigned tickets: have no jobs to filter by due date, so only the search box
       // applies, so the 'due date' filter doesn't hide them
       setFilteredNoCurrentTicketStores(
-        recentlySeenStores.filter((store) => {
-          const searchableText = `${store.city}, ${store.state} | ${store.address_1} | ${store.name}`;
-          return matchesSearch(searchableText, storeFilterValue);
-        })
+        showStoresWithoutPendingTickets
+          ? recentlySeenStores.filter((store) => {
+              const searchableText = `${store.city}, ${store.state} | ${store.address_1} | ${store.name}`;
+              return matchesSearch(searchableText, storeFilterValue);
+            })
+          : []
       );
     }, 300);
 
     return () => clearTimeout(timeoutVal);
-  }, [storeFilterValue, groupedByStore, selectedDueDate, recentlySeenStores]);
+  }, [
+    storeFilterValue,
+    groupedByStore,
+    selectedDueDate,
+    recentlySeenStores,
+    showStoresWithoutPendingTickets,
+  ]);
 
   useEffect(() => {
     setFilteredStores(groupedByStore);
-    setFilteredNoCurrentTicketStores(recentlySeenStores);
+    setFilteredNoCurrentTicketStores(showStoresWithoutPendingTickets ? recentlySeenStores : []);
     // reset the initial date flag when rep changes
     initialDateSet.current = false;
   }, [selectedRepId]);
@@ -335,8 +364,34 @@ export function Template(props: templates.QtTerritoryViewer) {
               <FontAwesomeIcon icon={faArrowsRotate} className="me-1" />
               Refresh Schedule
             </ButtonWithSpinner>
+            <button
+              type="button"
+              className={`btn btn-sm ${isFilterActive ? "btn-warning" : "btn-outline-secondary"}`}
+              onClick={() => setShowFilters(true)}
+            >
+              <FontAwesomeIcon icon={faFilter} className="me-1" />
+              Filters
+            </button>
           </div>
         </div>
+
+        {isFilterActive && (
+          <div className="p-2 mb-3 bg-warning-subtle text-warning-emphasis small rounded">
+            <FontAwesomeIcon icon={faTriangleExclamation} className="me-1" />
+            Filters active
+            {!showStoresWithoutPendingTickets && " — stores with no pending tickets are hidden"}
+            {isJobClientFilterActive &&
+              ` — showing ${selectedJobClients.size} of ${allJobClients.length} job clients`}
+            .{" "}
+            <button
+              type="button"
+              className="btn btn-link btn-sm p-0 align-baseline"
+              onClick={() => setShowFilters(true)}
+            >
+              Edit filters
+            </button>
+          </div>
+        )}
 
         {/* Everything below depends on the selected rep's schedule data - while it's still
         loading (no cached data yet for this rep), show a loading card in its place instead of
@@ -470,6 +525,24 @@ export function Template(props: templates.QtTerritoryViewer) {
                     Map: {selectedRepDetail?.username ?? "Unknown Rep"}
                   </Modal.Title>
                 </Modal.Header>
+                {isFilterActive && (
+                  <div className="p-2 bg-warning-subtle text-warning-emphasis small">
+                    <FontAwesomeIcon icon={faTriangleExclamation} className="me-1" />
+                    Filters active
+                    {!showStoresWithoutPendingTickets &&
+                      " — stores with no pending tickets are hidden"}
+                    {isJobClientFilterActive &&
+                      ` — showing ${selectedJobClients.size} of ${allJobClients.length} job clients`}
+                    .{" "}
+                    <button
+                      type="button"
+                      className="btn btn-link btn-sm p-0 align-baseline"
+                      onClick={() => setShowFilters(true)}
+                    >
+                      Edit filters
+                    </button>
+                  </div>
+                )}
                 <Modal.Body className="p-0" style={{ height: "70vh" }}>
                   <Suspense fallback={<div>Loading map...</div>}>
                     <TerritoryMap
@@ -499,6 +572,16 @@ export function Template(props: templates.QtTerritoryViewer) {
             />
           </>
         )}
+
+        <TerritoryFilterModal
+          show={showFilters}
+          onHide={() => setShowFilters(false)}
+          showStoresWithoutPendingTickets={showStoresWithoutPendingTickets}
+          onChange={setShowStoresWithoutPendingTickets}
+          jobClients={allJobClients}
+          selectedJobClients={selectedJobClients}
+          onChangeJobClients={setSelectedJobClients}
+        />
       </div>
     </Layout>
   );
