@@ -364,14 +364,16 @@ export function Template(props: templates.QtTerritoryViewer) {
               <FontAwesomeIcon icon={faArrowsRotate} className="me-1" />
               Refresh Schedule
             </ButtonWithSpinner>
-            <button
-              type="button"
-              className={`btn btn-sm ${isFilterActive ? "btn-warning" : "btn-outline-secondary"}`}
-              onClick={() => setShowFilters(true)}
-            >
-              <FontAwesomeIcon icon={faFilter} className="me-1" />
-              Filters
-            </button>
+            {!territoryRepDataFetch.isLoading && (
+              <button
+                type="button"
+                className={`btn btn-sm ${isFilterActive ? "btn-warning" : "btn-outline-secondary"}`}
+                onClick={() => setShowFilters(true)}
+              >
+                <FontAwesomeIcon icon={faFilter} className="me-1" />
+                Filters
+              </button>
+            )}
           </div>
         </div>
 
@@ -393,9 +395,9 @@ export function Template(props: templates.QtTerritoryViewer) {
           </div>
         )}
 
-        {/* Everything below depends on the selected rep's schedule data - while it's still
-        loading (no cached data yet for this rep), show a loading card in its place instead of
-        rendering stats/filters/the map button against data that isn't there yet. */}
+        {/* Everything below depends on the selected rep's schedule data - while a fetch is in
+        flight (initial load or Refresh Schedule), show a loading card in its place instead of
+        rendering stats/filters/the map button against data that's missing or about to change. */}
         {territoryRepDataFetch.isError && selectedRepData === undefined ? (
           <Alert variant="danger" className="d-flex">
             <FontAwesomeIcon icon={faTriangleExclamation} className="fs-3 me-3 flex-shrink-0" />
@@ -412,7 +414,7 @@ export function Template(props: templates.QtTerritoryViewer) {
               </ListGroup>
             </div>
           </Alert>
-        ) : territoryRepDataFetch.isLoading && selectedRepData === undefined ? (
+        ) : territoryRepDataFetch.isLoading ? (
           <div className="d-flex flex-column align-items-center justify-content-center text-center py-5 my-3 bg-body-tertiary border rounded-3">
             <Spinner animation="border" role="status" style={{ width: "3.5rem", height: "3.5rem" }}>
               <span className="visually-hidden">Loading...</span>
