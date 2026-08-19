@@ -2,6 +2,7 @@ import React from "react";
 
 import { Context, reverse } from "@reactivated";
 
+import { ToastHost } from "./ToastHost";
 import { ContribMessages } from "./ContribMessages";
 
 interface IExternalStyles {
@@ -50,6 +51,7 @@ export const Layout = ({ bsTheme = "light", ...props }: Props) => {
           <ContribMessages />
           {props.children}
         </main>
+        <ToastHost />
       </body>
     </html>
   );

@@ -5,8 +5,6 @@ import { MotionConfig } from "motion/react";
 
 import { Provider, getServerData, getTemplate } from "@reactivated";
 
-import { ToastHost } from "@client/components/ToastHost";
-
 import "@client/scss/bs-dark/bootstrap.scss";
 import "@client/scss/shared.scss";
 import "@client/scss/survey_worker/styles.scss";
@@ -20,7 +18,6 @@ ReactDOM.hydrateRoot(
     <MotionConfig reducedMotion="user">
       <Provider value={context}>
         <Template {...props} />
-        <ToastHost />
       </Provider>
     </MotionConfig>
   </React.StrictMode>
