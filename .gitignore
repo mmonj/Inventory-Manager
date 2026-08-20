@@ -14,7 +14,7 @@ static/dist/index.js.map
 collected/
 static/dist/*
 client/schema.tsx
-*compose.sh
+run-*.sh
 *.css
 *.css.map
 .claude/
