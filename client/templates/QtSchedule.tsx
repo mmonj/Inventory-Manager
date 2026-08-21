@@ -111,9 +111,28 @@ export function Template(props: templates.QtSchedule) {
       : new URLSearchParams(window.location.search).get("use_cache");
     const url = useCache !== null ? `${baseUrl}?use_cache=${useCache}` : baseUrl;
 
-    await fetchRepSchedule.fetchData(() =>
+    return fetchRepSchedule.fetchData(() =>
       fetchByReactivated<interfaces.QtViewRepDetail>(url, context.csrf_token, "GET")
     );
+  }
+
+  // Auto-selects today (or tomorrow if today is no longer an allowed scheduling date, e.g.
+  // already submitted) right after a rep's schedule first loads - saves a manual click for the
+  // common "pick up where I left off" case. Only called from the initial-selection call sites
+  // below, not from forceFresh refetches (auto-schedule/bulk-unschedule/clear-date), where the
+  // user's current selection must be left alone.
+  function selectDefaultDate(schedule: TSchedule) {
+    const todayKey = toDateKey(new Date());
+    const isTodayAllowed = schedule.AllowSchedulingDates.some(
+      (isoStr) => toDateKey(new Date(isoStr)) === todayKey
+    );
+
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    if (!isTodayAllowed) {
+      date.setDate(date.getDate() + 1);
+    }
+    setSelectedDate(date);
   }
 
   async function handleSelectRep(event: React.ChangeEvent<HTMLSelectElement>) {
@@ -129,7 +148,10 @@ export function Template(props: templates.QtSchedule) {
     setSelectedRepId(repId);
     localStorage.setItem(LAST_SELECTED_REP_ID_KEY, repId.toString());
 
-    await fetchScheduleForRep(repId);
+    const [isSuccess, result] = await fetchScheduleForRep(repId);
+    if (isSuccess && result.rep_sync_data.schedule !== null) {
+      selectDefaultDate(result.rep_sync_data.schedule);
+    }
   }
 
   // load last selected rep ID on mount and auto-fetch their schedule
@@ -150,7 +172,11 @@ export function Template(props: templates.QtSchedule) {
 
     hasFetchedInitialSchedule.current = true;
     setSelectedRepId(storedId);
-    void fetchScheduleForRep(storedId);
+    void fetchScheduleForRep(storedId).then(([isSuccess, result]) => {
+      if (isSuccess && result.rep_sync_data.schedule !== null) {
+        selectDefaultDate(result.rep_sync_data.schedule);
+      }
+    });
     // intentionally run once on mount, not on every rep_details/fetchScheduleForRep change
   }, []);
 
