@@ -1232,7 +1232,7 @@ export function Template(props: templates.QtSchedule) {
 
                 {!isSwapMode && !isBulkUnscheduleMode && (
                   <Card className="mt-4">
-                    <Card.Header className="bg-primary text-white d-flex align-items-center justify-content-between">
+                    <Card.Header className="bg-primary text-white d-flex align-items-center justify-content-between gap-3">
                       <span>
                         {selectedDate !== undefined ? (
                           <>

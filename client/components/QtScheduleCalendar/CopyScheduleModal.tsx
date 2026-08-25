@@ -9,6 +9,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { fetchByReactivated } from "@client/util/commonUtil";
 import { TServiceOrder, formatWeekdayShortDate } from "@client/util/qtSurveyWorker/scheduleUtils";
+import { toast } from "@client/util/toast";
 
 const COPY_FORMAT_OPTIONS = ["Minimal", "Detailed"] as const;
 type TCopyFormat = (typeof COPY_FORMAT_OPTIONS)[number];
@@ -175,7 +176,12 @@ export function CopyScheduleModal(props: Props) {
   );
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(copyText);
+    try {
+      await navigator.clipboard.writeText(copyText);
+    } catch {
+      toast.error("Failed to copy schedule to clipboard");
+      return;
+    }
     onHide();
   }
 
