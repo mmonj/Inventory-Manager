@@ -106,6 +106,18 @@ main.barcode-sheet-main {
 }
 
 @media print {
+  // Chrome/Edge only draw the browser's own header/footer strip (page URL, date, page
+  // numbers) when @page has a non-zero margin. Zero it out and move the page margin onto
+  // the content as padding so the printed/"Save as PDF" output has no site URL header.
+  // (Firefox ignores this - there the user must uncheck "Headers and footers" in the dialog.)
+  @page {
+    margin: 0;
+  }
+
+  main.barcode-sheet-main {
+    padding: 12mm;
+  }
+
   // interactive/navigational elements shouldn't be included on a printed page, so we hide them.
   .navbar,
   .print-button.btn,
