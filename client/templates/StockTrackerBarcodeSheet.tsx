@@ -26,6 +26,24 @@ export function Template(props: templates.StockTrackerBarcodeSheet) {
     props.possibleSheetTypesInfo.find((info) => info.sheetType === sheetType) ??
     props.sheetTypeInfo;
 
+  // Chrome's "Save as PDF" derives the suggested filename from document.title, and falls back
+  // to "temp<numbers>.pdf" whenever the title contains an illegal character
+  // Swap in a sanitized title just for the print, then restore it once the dialog closes.
+  function handlePrint() {
+    const filename =
+      `Barcode Sheet - ${props.barcodeSheet.parent_company.expanded_name} - ${props.barcodeSheet.store_name}`
+        .replace(/[/\\:*?"<>|]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const originalTitle = document.title;
+    document.title = filename;
+    window.addEventListener("afterprint", () => (document.title = originalTitle), {
+      once: true,
+    });
+    window.print();
+  }
+
   function handleChangeSheetType(newSheetType: sheetTypeType) {
     setSheetType(newSheetType);
 
@@ -56,7 +74,7 @@ export function Template(props: templates.StockTrackerBarcodeSheet) {
       className="barcode-sheet-main"
     >
       <button
-        onClick={() => window.print()}
+        onClick={handlePrint}
         type="button"
         title="Print / Save as PDF"
         className="print-button btn btn-outline-secondary rounded-circle bg-black"
