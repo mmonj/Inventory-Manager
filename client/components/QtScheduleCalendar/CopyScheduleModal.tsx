@@ -18,6 +18,35 @@ function getStoreAddressLine(so: TServiceOrder): string {
   return `${so.Address.StreetAddress} ${so.Address.City}, ${so.Address.State} ${so.Address.PostalCode}`;
 }
 
+/**
+ * Looks up Store.is_open for each distinct SiteId among the given service orders via the
+ * qt_store_info endpoint. A SiteId with no matching Store, or a failed/incomplete lookup, is
+ * simply omitted from the returned map - callers should treat a missing entry as "assume open"
+ * rather than blocking the textarea on the network.
+ */
+async function resolveStoreOpenStatuses(
+  siteIds: number[],
+  csrfToken: string
+): Promise<Map<number, boolean>> {
+  const entries = await Promise.all(
+    siteIds.map(async (siteId) => {
+      const url = reverse("survey_worker:qt_store_info", { site_id: siteId });
+      try {
+        const resp = await fetchByReactivated<interfaces.QtStoreInfo>(url, csrfToken, "GET");
+        if (!resp.ok) {
+          return null;
+        }
+        const data = await resp.json();
+        return [siteId, data.store.is_open] as const;
+      } catch {
+        return null;
+      }
+    })
+  );
+
+  return new Map(entries.filter((entry) => entry !== null));
+}
+
 /** Groups service orders by store address, preserving first-seen store order. */
 function groupServiceOrdersByStoreAddress(
   serviceOrders: TServiceOrder[]
@@ -41,16 +70,22 @@ function groupServiceOrdersByStoreAddress(
  * Minimal format: store address header, then a comma-joined list of job clients. Each
  * JobClient is swapped for its shorter BrandParentCompany display name when one was
  * resolved (see resolveDisplayNames below) - falls back to the raw JobClient string
- * otherwise (no matching brand record, or the lookup failed/hasn't resolved yet).
+ * otherwise (no matching brand record, or the lookup failed/hasn't resolved yet). A store
+ * whose Store.is_open resolved to false has its SO list truncated to a single "closed down"
+ * line instead (see resolveStoreOpenStatuses) - a missing/unresolved entry is treated as open.
  */
 function buildMinimalText(
   serviceOrders: TServiceOrder[],
-  displayNamesByJobClient: Map<string, string>
+  displayNamesByJobClient: Map<string, string>,
+  storeOpenStatuses: Map<number, boolean>
 ): string {
   const groups = groupServiceOrdersByStoreAddress(serviceOrders);
 
   return groups
     .map(([addressLine, storeServiceOrders]) => {
+      if (storeOpenStatuses.get(storeServiceOrders[0].Address.SiteId) === false) {
+        return `${addressLine}\n- Store has closed down`;
+      }
       const jobClients = Array.from(
         new Set(
           storeServiceOrders.map((so) => displayNamesByJobClient.get(so.JobClient) ?? so.JobClient)
@@ -61,12 +96,22 @@ function buildMinimalText(
     .join("\n\n");
 }
 
-/** Detailed format: store address header, then one line per service order (description + id). */
-function buildDetailedText(serviceOrders: TServiceOrder[]): string {
+/**
+ * Detailed format: store address header, then one line per service order (description + id).
+ * A store whose Store.is_open resolved to false has its SO list truncated to a single
+ * "closed down" line instead - see buildMinimalText for the same rule.
+ */
+function buildDetailedText(
+  serviceOrders: TServiceOrder[],
+  storeOpenStatuses: Map<number, boolean>
+): string {
   const groups = groupServiceOrdersByStoreAddress(serviceOrders);
 
   return groups
     .map(([addressLine, storeServiceOrders]) => {
+      if (storeOpenStatuses.get(storeServiceOrders[0].Address.SiteId) === false) {
+        return `Store: ${addressLine}\n- Store has closed down`;
+      }
       const lines = storeServiceOrders.map(
         (so) => `- ${so.ServiceOrderDescription} (${so.ServiceOrderId})`
       );
@@ -78,15 +123,16 @@ function buildDetailedText(serviceOrders: TServiceOrder[]): string {
 function buildCopyText(
   serviceOrders: TServiceOrder[],
   format: TCopyFormat,
-  displayNamesByJobClient: Map<string, string>
+  displayNamesByJobClient: Map<string, string>,
+  storeOpenStatuses: Map<number, boolean>
 ): string {
   // non-physical-visit SOs (e.g. drive-time entries) don't represent a store to visit,
   // so they're excluded from both formats - matching Clear Date's IsPhysicalVisit filtering.
   const physicalVisitServiceOrders = serviceOrders.filter((so) => so.Address.IsPhysicalVisit);
 
   return format === "Minimal"
-    ? buildMinimalText(physicalVisitServiceOrders, displayNamesByJobClient)
-    : buildDetailedText(physicalVisitServiceOrders);
+    ? buildMinimalText(physicalVisitServiceOrders, displayNamesByJobClient, storeOpenStatuses)
+    : buildDetailedText(physicalVisitServiceOrders, storeOpenStatuses);
 }
 
 /**
@@ -139,6 +185,7 @@ export function CopyScheduleModal(props: Props) {
     new Map()
   );
   const [isResolvingDisplayNames, setIsResolvingDisplayNames] = React.useState(false);
+  const [storeOpenStatuses, setStoreOpenStatuses] = React.useState<Map<number, boolean>>(new Map());
 
   // Resolve shorter display names for every distinct JobClient among the physical-visit SOs
   // shown here, each time the modal opens with a (possibly new) set of service orders - not
@@ -170,9 +217,39 @@ export function CopyScheduleModal(props: Props) {
     };
   }, [show, serviceOrders, context.csrf_token]);
 
+  // Resolve Store.is_open for every distinct SiteId among the physical-visit SOs shown here,
+  // same trigger/cancellation pattern as the display-name resolution above - applies to both
+  // formats (unlike display names, which only affect Minimal), so it's a separate effect.
+  React.useEffect(() => {
+    if (!show) {
+      return;
+    }
+
+    const siteIds = Array.from(
+      new Set(
+        serviceOrders.filter((so) => so.Address.IsPhysicalVisit).map((so) => so.Address.SiteId)
+      )
+    );
+    if (siteIds.length === 0) {
+      setStoreOpenStatuses(new Map());
+      return;
+    }
+
+    let isCancelled = false;
+    void resolveStoreOpenStatuses(siteIds, context.csrf_token).then((resolved) => {
+      if (!isCancelled) {
+        setStoreOpenStatuses(resolved);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [show, serviceOrders, context.csrf_token]);
+
   const copyText = React.useMemo(
-    () => buildCopyText(serviceOrders, format, displayNamesByJobClient),
-    [serviceOrders, format, displayNamesByJobClient]
+    () => buildCopyText(serviceOrders, format, displayNamesByJobClient, storeOpenStatuses),
+    [serviceOrders, format, displayNamesByJobClient, storeOpenStatuses]
   );
 
   async function handleCopy() {
