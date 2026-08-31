@@ -289,6 +289,7 @@ class Store(models.Model):
     zip_code = models.CharField(max_length=20, blank=True, default="")
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
+    is_open = models.BooleanField(default=True)
 
     __trailing_number_re = re.compile(r" *-* *[0-9]+ *$", flags=re.IGNORECASE)
 
