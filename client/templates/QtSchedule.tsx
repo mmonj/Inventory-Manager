@@ -195,7 +195,8 @@ export function Template(props: templates.QtSchedule) {
   const isAutoScheduling = executeAutoScheduleFetch.isLoading || isAutoScheduleRefetching;
   const isBulkUnscheduling = executeBulkUnscheduleFetch.isLoading || isBulkUnscheduleRefetching;
   const isClearingDate = clearDateFetch.isLoading || isClearDateRefetching;
-  const isCalendarBusy = isAutoScheduling || isBulkUnscheduling || isClearingDate;
+  const isSwapping = swapServiceOrdersFetch.isLoading;
+  const isCalendarBusy = isAutoScheduling || isBulkUnscheduling || isClearingDate || isSwapping;
 
   // memoized so a re-render without a real schedule change doesn't produce a new array
   // reference each time - downstream useMemo/useEffect hooks key off this by reference
@@ -866,6 +867,7 @@ export function Template(props: templates.QtSchedule) {
                     {isAutoScheduling && "Auto-scheduling in progress…"}
                     {isBulkUnscheduling && "Bulk-unscheduling in progress…"}
                     {isClearingDate && "Clearing date…"}
+                    {isSwapping && "Swapping service orders…"}
                   </div>
                 </div>
               </div>
