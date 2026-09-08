@@ -167,13 +167,17 @@ def apply_planogram_update(request: DrfRequest, planogram_update_id: int) -> Htt
     if planogram_update.is_applied:
         raise DrfValidationError("This planogram update has already been applied.")
 
-    _num_products_added, product_errors = util.apply_planogram_update(planogram_update)
+    num_locations_removed, num_products_added, product_errors = util.apply_planogram_update(
+        planogram_update
+    )
     if product_errors:
         raise DrfValidationError(product_errors)
 
-    return interfaces_response.IPlanogramUpdateApplied(planogram_update=planogram_update).render(
-        request
-    )
+    return interfaces_response.IPlanogramUpdateApplied(
+        planogram_update=planogram_update,
+        num_locations_removed=num_locations_removed,
+        num_products_added=num_products_added,
+    ).render(request)
 
 
 @api_view(["POST"])

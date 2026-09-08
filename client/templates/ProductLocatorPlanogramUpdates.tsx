@@ -163,7 +163,12 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                 )}
 
                 {applyFetcher.data?.planogram_update.pk === selectedUpdate.pk ? (
-                  <Alert variant="success">This update was successfully applied.</Alert>
+                  <Alert variant="success">
+                    Removed {applyFetcher.data.num_locations_removed} previous location
+                    {applyFetcher.data.num_locations_removed === 1 ? "" : "s"}. Added{" "}
+                    {applyFetcher.data.num_products_added} new location
+                    {applyFetcher.data.num_products_added === 1 ? "" : "s"}.
+                  </Alert>
                 ) : (
                   selectedUpdate.is_applied && (
                     <Alert variant="secondary">This update has already been applied.</Alert>

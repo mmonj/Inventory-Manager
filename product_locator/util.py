@@ -102,7 +102,7 @@ def create_planogram_update(
     )
 
 
-def apply_planogram_update(planogram_update: PlanogramUpdate) -> tuple[int, list[str]]:
+def apply_planogram_update(planogram_update: PlanogramUpdate) -> tuple[int, int, list[str]]:
     planogram = planogram_update.planogram
 
     product_list: list[IImportedProductInfo] = [
@@ -111,7 +111,7 @@ def apply_planogram_update(planogram_update: PlanogramUpdate) -> tuple[int, list
     ]
 
     with transaction.atomic():
-        planogram.locations.all().delete()
+        num_locations_removed, _ = planogram.locations.all().delete()
         logger.info("Deleted all existing home locations for planogram: %s", planogram)
 
         num_products_added, product_errors = add_location_records(product_list, planogram)
@@ -119,9 +119,9 @@ def apply_planogram_update(planogram_update: PlanogramUpdate) -> tuple[int, list
             # Roll back the delete too -- an invalid UPC must not leave the planogram cleared
             # out with nothing re-added.
             transaction.set_rollback(True)
-            return 0, product_errors
+            return 0, 0, product_errors
 
         planogram_update.is_applied = True
         planogram_update.save(update_fields=["is_applied"])
 
-    return num_products_added, product_errors
+    return num_locations_removed, num_products_added, product_errors
