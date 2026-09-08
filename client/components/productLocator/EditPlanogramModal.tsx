@@ -2,6 +2,7 @@ import React, { useContext, useState } from "react";
 
 import { Context, interfaces, reverse } from "@reactivated";
 import { Alert, Button, Modal } from "react-bootstrap";
+import { format } from "date-fns";
 
 import {
   faCheckCircle,
@@ -17,6 +18,7 @@ import { toast } from "@client/util/toast";
 interface Props {
   show: boolean;
   onHide: () => void;
+  storeName: string;
   planogram: { pk: number; name: string };
   onSuccess: () => void;
 }
@@ -28,6 +30,17 @@ export function EditPlanogramModal(props: Props) {
   const [planogramTextDump, setPlanogramTextDump] = useState("");
   const [isResetPlanogram, setIsResetPlanogram] = useState(false);
   const [label, setLabel] = useState("");
+
+  function getDefaultResetLabel() {
+    return `${format(new Date(), "MM-dd-yy")} reset`;
+  }
+
+  function handleResetPlanogramToggle(isChecked: boolean) {
+    setIsResetPlanogram(isChecked);
+    if (isChecked && label.trim() === "") {
+      setLabel(getDefaultResetLabel());
+    }
+  }
 
   function handleHide() {
     setPlanogramTextDump("");
@@ -75,6 +88,7 @@ export function EditPlanogramModal(props: Props) {
         <Modal.Title>
           <FontAwesomeIcon icon={faPencilAlt} className="me-2" />
           Edit Planogram Products — {props.planogram.name}
+          {props.storeName !== "" && ` (${props.storeName})`}
         </Modal.Title>
       </Modal.Header>
       <Modal.Body className="p-3">
@@ -100,7 +114,7 @@ export function EditPlanogramModal(props: Props) {
               className="form-check-input"
               id="is-reset-planogram"
               checked={isResetPlanogram}
-              onChange={(event) => setIsResetPlanogram(event.target.checked)}
+              onChange={(event) => handleResetPlanogramToggle(event.target.checked)}
             />
             <label className="form-check-label" htmlFor="is-reset-planogram">
               Reset Planogram

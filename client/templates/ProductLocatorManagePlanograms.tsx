@@ -351,6 +351,7 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
         <EditPlanogramModal
           show={true}
           onHide={() => setEditingPlanogram(null)}
+          storeName={selectedStore?.label ?? ""}
           planogram={editingPlanogram}
           onSuccess={refetchPlanograms}
         />
