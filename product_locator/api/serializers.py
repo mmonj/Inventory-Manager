@@ -6,7 +6,7 @@ from ..models import HomeLocation, Planogram, Product, ProductScanAudit
 class PlanogramSerializer(serializers.ModelSerializer[Planogram]):
     class Meta:
         model = Planogram
-        fields = ["pk", "name", "date_start", "date_end"]
+        fields = ["pk", "name", "date_start", "date_end", "horizontal_section_thresholds"]
 
 
 class HomeLocationSerializer(serializers.ModelSerializer[HomeLocation]):
