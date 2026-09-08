@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from django.core.exceptions import ValidationError
 from django.db.models import Prefetch
@@ -229,7 +230,17 @@ def create_planogram(request: DrfRequest) -> HttpResponse:
     if store is None:
         raise DrfNotFound(f"Store with ID {request_data.store_id} not found")
 
-    planogram = Planogram(name=request_data.name, plano_type=request_data.plano_type, store=store)
+    planogram_kwargs: dict[str, Any] = {
+        "name": request_data.name,
+        "plano_type": request_data.plano_type,
+        "store": store,
+    }
+    if request_data.horizontal_section_thresholds is not None:
+        planogram_kwargs["horizontal_section_thresholds"] = (
+            request_data.horizontal_section_thresholds
+        )
+
+    planogram = Planogram(**planogram_kwargs)
     try:
         planogram.full_clean()
     except ValidationError as ex:

@@ -91,13 +91,34 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
     const formData = new FormData(formElement);
     const name = formData.get("name") as string;
     const planoType = formData.get("plano_type") as string;
+    const thresholdsRaw = (formData.get("horizontal_section_thresholds") as string).trim();
+
+    const horizontalSectionThresholds = thresholdsRaw
+      ? thresholdsRaw
+          .split(/[\s,]+/)
+          .filter(Boolean)
+          .map((token) => token.toUpperCase())
+      : undefined;
+
+    if (
+      horizontalSectionThresholds !== undefined &&
+      horizontalSectionThresholds.some((token) => token.length !== 1)
+    ) {
+      alert("Each section threshold must be a single character (e.g. G, J).");
+      return;
+    }
 
     const [isSuccess] = await createPlanogramFetcher.fetchData(() =>
       fetchByReactivated<interfaces.IPlanogramCreated>(
         reverse("product_locator:create_planogram"),
         djangoContext.csrf_token,
         "POST",
-        JSON.stringify({ name, plano_type: planoType, store_id: selectedStore.value })
+        JSON.stringify({
+          name,
+          plano_type: planoType,
+          store_id: selectedStore.value,
+          horizontal_section_thresholds: horizontalSectionThresholds,
+        })
       )
     );
 
@@ -279,6 +300,24 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                <div className="mb-3">
+                  <label htmlFor="horizontal_section_thresholds" className="form-label fw-bold">
+                    Horizontal Section Thresholds
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="horizontal_section_thresholds"
+                    name="horizontal_section_thresholds"
+                    placeholder="Optional, e.g. G, J"
+                  />
+                  <div className="form-text">
+                    Optional. Enter single-character section letters separated by commas or spaces.
+                    The section letter(s) will indicate the row letter(s) after which a visual
+                    separator is created when displaying the planogram grid.
+                  </div>
                 </div>
 
                 <Button

@@ -39,3 +39,4 @@ class ICreatePlanogram:
     name: str
     plano_type: str
     store_id: int
+    horizontal_section_thresholds: list[str] | None = None

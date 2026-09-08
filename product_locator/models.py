@@ -38,12 +38,23 @@ class Planogram(models.Model):
     store = models.ForeignKey(Store, null=True, on_delete=models.CASCADE, related_name="planograms")
     date_start = models.DateField(null=False, blank=False, default=timezone.now)
     date_end = models.DateField(null=True, blank=True)
+    horizontal_section_thresholds = models.JSONField(default=list, blank=True)
 
     class Meta:
         unique_together = ("name", "store")
 
     def __str__(self) -> str:
         return f"{self.name} - {self.store}{self.plano_status}"
+
+    def clean(self) -> None:
+        super().clean()
+        if not isinstance(self.horizontal_section_thresholds, list) or any(
+            not isinstance(item, str) or len(item) != 1
+            for item in self.horizontal_section_thresholds
+        ):
+            raise ValidationError(
+                {"horizontal_section_thresholds": "Must be a list of single-character strings."}
+            )
 
     def get_plano_status(self) -> str:
         if self.date_end is None:
