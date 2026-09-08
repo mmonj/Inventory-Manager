@@ -12,6 +12,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LoadingSpinner } from "@client/components/LoadingSpinner";
 import { useFetch } from "@client/hooks/useFetch";
 import { fetchByReactivated } from "@client/util/commonUtil";
+import { toast } from "@client/util/toast";
 
 interface Props {
   show: boolean;
@@ -39,7 +40,7 @@ export function EditPlanogramModal(props: Props) {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const [isSuccess] = await submitFetcher.fetchData(() =>
+    const [isSuccess, data] = await submitFetcher.fetchData(() =>
       fetchByReactivated<interfaces.ISubmitPlanogramProductsResult>(
         reverse("product_locator:submit_planogram_products"),
         djangoContext.csrf_token,
@@ -55,6 +56,15 @@ export function EditPlanogramModal(props: Props) {
 
     if (isSuccess) {
       setPlanogramTextDump("");
+
+      if (data.planogram_update !== null) {
+        toast.success(`Queued planogram update "${data.planogram_update.label}".`);
+      } else {
+        toast.success(
+          `Submitted ${String(data.num_products_added)} out of ${String(data.num_products_parsed)} item(s) successfully.`
+        );
+      }
+
       props.onSuccess();
     }
   }
@@ -142,25 +152,6 @@ export function EditPlanogramModal(props: Props) {
                     <li key={index}>{msg}</li>
                   ))}
                 </ul>
-              </div>
-            </Alert>
-          )}
-
-          {!submitFetcher.isError && !submitFetcher.isLoading && submitFetcher.data && (
-            <Alert variant="success" className="mt-3 mb-0">
-              <div className="d-flex align-items-center">
-                <FontAwesomeIcon icon={faCheckCircle} className="me-2 fs-5" />
-                {submitFetcher.data.planogram_update !== null ? (
-                  <span>
-                    Queued planogram update &quot;{submitFetcher.data.planogram_update.label}
-                    &quot; for review.
-                  </span>
-                ) : (
-                  <span>
-                    Submitted {submitFetcher.data.num_products_added} out of{" "}
-                    {submitFetcher.data.num_products_parsed} item(s) successfully.
-                  </span>
-                )}
               </div>
             </Alert>
           )}
