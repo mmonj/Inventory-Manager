@@ -6,8 +6,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request as DRFRequest
 from rest_framework.response import Response as DrfResponse
 
-from ..models import HomeLocation, ProductScanAudit
-from .serializers import HomeLocationProductsSerializer, ScanAuditSerializer
+from ..models import Planogram, ProductScanAudit
+from .serializers import HomeLocationProductsSerializer, PlanogramSerializer, ScanAuditSerializer
 
 logger = logging.getLogger("main_logger")
 
@@ -17,15 +17,19 @@ logger = logging.getLogger("main_logger")
 def get_planogram_locations(request: DRFRequest) -> DrfResponse:
     planogram_name = request.GET.get("planogram-name")
     store_name = request.GET.get("store-name")
-    home_locations = (
-        HomeLocation.objects.prefetch_related("products")
-        .filter(planogram__name=planogram_name, planogram__store__name=store_name)
-        .all()
+
+    planogram = Planogram.objects.filter(name=planogram_name, store__name=store_name).first()
+    if planogram is None:
+        raise DrfNotFound(f"Planogram '{planogram_name}' for store '{store_name}' not found")
+
+    home_locations = planogram.locations.prefetch_related("products").all()
+
+    return DrfResponse(
+        {
+            "planogram": PlanogramSerializer(planogram).data,
+            "home_locations": HomeLocationProductsSerializer(home_locations, many=True).data,
+        }
     )
-
-    home_locations_json = HomeLocationProductsSerializer(home_locations, many=True).data
-
-    return DrfResponse(home_locations_json)
 
 
 @api_view(["GET"])

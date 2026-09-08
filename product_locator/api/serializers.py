@@ -9,24 +9,14 @@ class PlanogramSerializer(serializers.ModelSerializer[Planogram]):
         fields = ["pk", "name", "date_start", "date_end", "horizontal_section_thresholds"]
 
 
-class HomeLocationSerializer(serializers.ModelSerializer[HomeLocation]):
-    planogram = PlanogramSerializer()
-
-    class Meta:
-        model = HomeLocation
-        fields = ["pk", "name", "planogram"]
-
-
-class ProductWithHomeLocationsSerializer(serializers.ModelSerializer[Product]):
-    home_locations = HomeLocationSerializer(many=True)
-
+class ProductBasicInfoSerializer(serializers.ModelSerializer[Product]):
     class Meta:
         model = Product
-        fields = ["upc", "name", "home_locations"]
+        fields = ["upc", "name"]
 
 
 class HomeLocationProductsSerializer(serializers.ModelSerializer[HomeLocation]):
-    products = ProductWithHomeLocationsSerializer(many=True)
+    products = ProductBasicInfoSerializer(many=True)
 
     class Meta:
         model = HomeLocation
