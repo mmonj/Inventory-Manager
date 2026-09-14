@@ -15,7 +15,7 @@ const COPY_FORMAT_OPTIONS = ["Minimal", "Detailed"] as const;
 type TCopyFormat = (typeof COPY_FORMAT_OPTIONS)[number];
 
 function getStoreAddressLine(so: TServiceOrder): string {
-  return `${so.Address.StreetAddress} ${so.Address.City}, ${so.Address.State} ${so.Address.PostalCode}`;
+  return `${so.Address.StoreName}, ${so.Address.StreetAddress} ${so.Address.City}, ${so.Address.State} ${so.Address.PostalCode}`;
 }
 
 /**
