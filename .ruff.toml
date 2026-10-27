@@ -85,3 +85,9 @@ ignore = [
     "PT009",   # Use a regular `assert` instead of unittest-style `assertTrue`
     "PT027",   # Use `pytest.raises` instead of unittest-style `assertRaises`
 ]
+
+[lint.per-file-ignores]
+# pytest idioms: plain asserts, fixtures requested only for their side effects, literal expected values
+"**/conftest.py" = ["S101", "ARG001", "PLR2004"]
+"**/test_*.py" = ["S101", "ARG001", "PLR2004"]
+"**/tests.py" = ["S101", "ARG001", "PLR2004"]
