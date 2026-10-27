@@ -15,6 +15,7 @@ interface Props {
   children: React.ReactNode;
   navbar: React.JSX.Element;
   className?: string;
+  /** For external CDN stylesheet `<link>`s only */
   extraExternalStyles?: IExternalStyles[];
   bsTheme?: "light" | "dark";
 }
