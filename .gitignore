@@ -17,5 +17,8 @@ client/schema.tsx
 run-*.sh
 *.css
 *.css.map
+
 .claude/
 CLAUDE.md
+docs/
+.scratch/
