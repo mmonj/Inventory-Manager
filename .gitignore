@@ -20,5 +20,6 @@ run-*.sh
 
 .claude/
 CLAUDE.md
+GLOSSARY.md
 docs/
 .scratch/
