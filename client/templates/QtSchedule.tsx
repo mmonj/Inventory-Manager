@@ -48,8 +48,8 @@ const LAST_SELECTED_REP_ID_KEY = "calendar-rep-id-last-used";
 export function Template(props: templates.QtSchedule) {
   const context = React.useContext(Context);
   const fetchRepSchedule = useFetch<interfaces.QtViewRepDetail>();
-  const scheduleServiceOrderFetch = useFetch<interfaces.QtScheduleServiceOrder>();
-  const unscheduleServiceOrderFetch = useFetch<interfaces.QtUnscheduleServiceOrder>();
+  const scheduleServiceOrderFetch = useFetch<interfaces.QtScheduleChangeReport>();
+  const unscheduleServiceOrderFetch = useFetch<interfaces.QtScheduleChangeReport>();
   const swapServiceOrdersFetch = useFetch<interfaces.QtScheduleChangeReport>();
   const executeAutoScheduleFetch = useFetch<interfaces.QtScheduleChangeReport>();
   const executeBulkUnscheduleFetch = useFetch<interfaces.QtScheduleChangeReport>();
@@ -226,13 +226,22 @@ export function Template(props: templates.QtSchedule) {
     setLocalSchedule((current) => withServiceOrdersRescheduled(current, serviceOrderIds, date));
   }
 
+  // The date the calendar shows the service order on ("" if unscheduled), so the server can refuse the change
+  // if the stored schedule has it somewhere else
+  function getCurrentDateKey(so: TServiceOrder): string {
+    if (schedule === null || so.DateScheduled === schedule.UnscheduledDate) {
+      return "";
+    }
+    return toDateKey(new Date(so.DateScheduled));
+  }
+
   async function handleScheduleServiceOrder(so: TServiceOrder, date: Date) {
     if (selectedRepId === null) {
       return;
     }
 
     const [isSuccess, result, errorMessages] = await scheduleServiceOrderFetch.fetchData(() =>
-      fetchByReactivated<interfaces.QtScheduleServiceOrder>(
+      fetchByReactivated<interfaces.QtScheduleChangeReport>(
         reverse("survey_worker:qt_schedule_service_order"),
         context.csrf_token,
         "POST",
@@ -240,6 +249,7 @@ export function Template(props: templates.QtSchedule) {
           rep_id: selectedRepId.toString(),
           service_order_id: so.ServiceOrderId.toString(),
           date: toDateKey(date),
+          current_date: getCurrentDateKey(so),
         }),
         "application/x-www-form-urlencoded"
       )
@@ -250,11 +260,13 @@ export function Template(props: templates.QtSchedule) {
       return;
     }
 
-    if (!result.success) {
-      alert(`Failed to schedule service order: ${result.error_message}`);
+    const problems = describeScheduleChangeProblems(result);
+    if (problems !== null) {
+      toast.error("Failed to schedule service order", problems);
       return;
     }
 
+    // The server applied the same change to its stored schedule
     rescheduleServiceOrdersLocally([so.ServiceOrderId], date);
   }
 
@@ -268,13 +280,14 @@ export function Template(props: templates.QtSchedule) {
     }
 
     const [isSuccess, result, errorMessages] = await unscheduleServiceOrderFetch.fetchData(() =>
-      fetchByReactivated<interfaces.QtUnscheduleServiceOrder>(
+      fetchByReactivated<interfaces.QtScheduleChangeReport>(
         reverse("survey_worker:qt_unschedule_service_order"),
         context.csrf_token,
         "POST",
         new URLSearchParams({
           rep_id: selectedRepId.toString(),
           service_order_id: so.ServiceOrderId.toString(),
+          current_date: getCurrentDateKey(so),
         }),
         "application/x-www-form-urlencoded"
       )
@@ -285,11 +298,13 @@ export function Template(props: templates.QtSchedule) {
       return;
     }
 
-    if (!result.success) {
-      alert(`Failed to unschedule service order: ${result.error_message}`);
+    const problems = describeScheduleChangeProblems(result);
+    if (problems !== null) {
+      toast.error("Failed to unschedule service order", problems);
       return;
     }
 
+    // The server applied the same change to its stored schedule
     rescheduleServiceOrdersLocally([so.ServiceOrderId], schedule.UnscheduledDate);
   }
 
