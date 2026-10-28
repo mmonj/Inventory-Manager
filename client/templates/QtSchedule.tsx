@@ -92,7 +92,9 @@ export function Template(props: templates.QtSchedule) {
     if (fetchRepSchedule.data !== null) {
       setLocalSchedule(fetchRepSchedule.data.rep_sync_data.schedule);
 
-      if (context.user.is_superuser) {
+      if (fetchRepSchedule.data.sync_error !== null) {
+        toast.warning(fetchRepSchedule.data.sync_error);
+      } else if (context.user.is_superuser) {
         if (fetchRepSchedule.data.is_cached) {
           toast.warning("Showing cached schedule data.");
         } else {

@@ -119,6 +119,10 @@ export function Template(props: templates.QtTerritoryViewer) {
       return false;
     }
 
+    if (result.sync_error !== null) {
+      toast.warning(result.sync_error);
+    }
+
     setRepDataById((current) => {
       const next = new Map(current);
       next.set(repId, result);
