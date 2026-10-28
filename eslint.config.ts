@@ -8,7 +8,7 @@ export default [
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ["eslint.config.ts", "vite.config.ts"],
+          allowDefaultProject: ["eslint.config.ts", "vite.config.ts", "vitest.config.ts"],
         },
         tsconfigRootDir: import.meta.dirname,
       },
