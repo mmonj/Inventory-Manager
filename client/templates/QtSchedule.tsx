@@ -286,7 +286,7 @@ export function Template(props: templates.QtSchedule) {
     }
 
     if (!result.success) {
-      alert("Failed to unschedule service order.");
+      alert(`Failed to unschedule service order: ${result.error_message}`);
       return;
     }
 
