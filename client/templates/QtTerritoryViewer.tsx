@@ -30,7 +30,6 @@ import { fetchByReactivated } from "@client/util/commonUtil";
 import { matchesSearch } from "@client/util/qtSurveyWorker/scheduleUtils";
 import { toast } from "@client/util/toast";
 
-// const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMapLeaflet"));
 const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMapGMaps"));
 
 const RELATIVE_TIME_THRESHOLD_HOURS = 12;
@@ -323,16 +322,7 @@ export function Template(props: templates.QtTerritoryViewer) {
   }
 
   return (
-    <Layout
-      navbar={<NavigationBar />}
-      title="Territory Viewer"
-      extraExternalStyles={[
-        {
-          src: "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
-          integrity: "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=",
-        },
-      ]}
-    >
+    <Layout navbar={<NavigationBar />} title="Territory Viewer">
       <div className="container mt-4">
         <h2 className="mb-4">Territory Viewer</h2>
 
