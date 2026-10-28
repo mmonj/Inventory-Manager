@@ -2,7 +2,6 @@ import { interfaces } from "@reactivated";
 
 export type TSchedule = NonNullable<interfaces.QtViewRepDetail["rep_sync_data"]["schedule"]>;
 export type TServiceOrder = TSchedule["ServiceOrders"][number];
-
 type TServiceOrderOutcome = interfaces.QtScheduleChangeReport["outcomes"][number];
 
 const SUNDAY_DAY_OF_WEEK = 0;

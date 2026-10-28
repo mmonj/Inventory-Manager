@@ -12,9 +12,9 @@ import {
   getFormattedEstimatedTime,
   reformatServiceOrderDescription,
 } from "@client/util/commonUtil";
-import { TTerritoryStore } from "@client/util/qtSurveyWorker/territoryView";
+import { TTerritoryStore, getStoreEstimatedTime } from "@client/util/qtSurveyWorker/territoryView";
 
-export function MapPopupContent({ locationGroup }: { locationGroup: TTerritoryStore }) {
+export function MapPopupContent({ store }: { store: TTerritoryStore }) {
   const [clipboardMessage, setClipboardMessage] = useState<string | null>(null);
 
   function handleCopyAddress() {
@@ -24,14 +24,11 @@ export function MapPopupContent({ locationGroup }: { locationGroup: TTerritorySt
     }, 1500);
 
     void navigator.clipboard.writeText(
-      `${locationGroup.address.City}, ${locationGroup.address.State} | ${locationGroup.address.StreetAddress} | ${locationGroup.address.StoreName}`
+      `${store.address.City}, ${store.address.State} | ${store.address.StreetAddress} | ${store.address.StoreName}`
     );
   }
 
-  let totalHours = 0;
-  for (const serviceOrder of locationGroup.serviceOrders) {
-    totalHours += serviceOrder.EstimatedTime;
-  }
+  const totalHours = getStoreEstimatedTime(store);
 
   // group service orders by due date
   const serviceOrdersByDueDate: Record<string, SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[]> =
@@ -40,7 +37,7 @@ export function MapPopupContent({ locationGroup }: { locationGroup: TTerritorySt
         string,
         SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[]
       > = {};
-      for (const serviceOrder of locationGroup.serviceOrders) {
+      for (const serviceOrder of store.serviceOrders) {
         const dueDate = serviceOrder.DateScheduleRangeEndOriginal || "No Due Date";
         if (!(dueDate in _serviceOrdersByDueDate)) {
           _serviceOrdersByDueDate[dueDate] = [];
@@ -56,7 +53,7 @@ export function MapPopupContent({ locationGroup }: { locationGroup: TTerritorySt
       }
 
       return _serviceOrdersByDueDate;
-    }, [locationGroup.serviceOrders]);
+    }, [store.serviceOrders]);
 
   // Sort due dates
   const sortedDueDates = Object.keys(serviceOrdersByDueDate).sort((a, b) => {
@@ -70,18 +67,17 @@ export function MapPopupContent({ locationGroup }: { locationGroup: TTerritorySt
       {/* Store Header */}
       <div className="mb-3">
         <div className="d-flex justify-content-between align-items-start mb-2">
-          <h6 className="fw-bold text-primary mb-0">{locationGroup.address.StoreName}</h6>
+          <h6 className="fw-bold text-primary mb-0">{store.address.StoreName}</h6>
         </div>
 
         {/* Address */}
         <div className="small mb-1 text-white">
-          <div>{locationGroup.address.StreetAddress}</div>
+          <div>{store.address.StreetAddress}</div>
           <div>
-            {locationGroup.address.City}, {locationGroup.address.State}{" "}
-            {locationGroup.address.PostalCode}
+            {store.address.City}, {store.address.State} {store.address.PostalCode}
           </div>
           <small>
-            {locationGroup.address.Latitude}, {locationGroup.address.Longitude}
+            {store.address.Latitude}, {store.address.Longitude}
           </small>
         </div>
 
@@ -140,10 +136,7 @@ export function MapPopupContent({ locationGroup }: { locationGroup: TTerritorySt
 
       {/* Google Maps Link */}
       <Button
-        href={
-          "https://www.google.com/maps/search/?api=1&query=" +
-          encodeQtAddress(locationGroup.address)
-        }
+        href={"https://www.google.com/maps/search/?api=1&query=" + encodeQtAddress(store.address)}
         target="_blank"
         rel="noreferrer"
         variant="primary"

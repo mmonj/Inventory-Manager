@@ -12,18 +12,18 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { encodeQtAddress, getFormattedEstimatedTime } from "@client/util/commonUtil";
 import { formatDateRange, formatWeekdayShortDate } from "@client/util/qtSurveyWorker/scheduleUtils";
-import { TTerritoryStore } from "@client/util/qtSurveyWorker/territoryView";
+import { TTerritoryStore, getStoreEstimatedTime } from "@client/util/qtSurveyWorker/territoryView";
 
 type TRecentlySeenStore = SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore;
 
 interface Props {
-  groupedByStore: Record<number, TTerritoryStore>;
+  stores: Record<number, TTerritoryStore>;
   // schedule.UnscheduledDate sentinel value. A service order's DateScheduled equal to this means it
   // hasn't been scheduled yet (DateScheduled is never null/empty, scheduled or not).
   unscheduledDate?: string;
   // Stores with zero SOs in the current schedule (none, not just unscheduled ones)
   // Rendered as their own section.
-  noCurrentTicketStores?: TRecentlySeenStore[];
+  recentlySeenStores?: TRecentlySeenStore[];
 }
 
 function formatLastSeen(lastSeen: string | null): string {
@@ -43,10 +43,10 @@ function formatScheduledStatus(
   return `Scheduled on ${formatWeekdayShortDate(new Date(serviceOrder.DateScheduled))}`;
 }
 
-export function StoreList({ groupedByStore, unscheduledDate, noCurrentTicketStores = [] }: Props) {
-  const storeCount = Object.keys(groupedByStore).length;
+export function StoreList({ stores, unscheduledDate, recentlySeenStores = [] }: Props) {
+  const storeCount = Object.keys(stores).length;
 
-  if (storeCount === 0 && noCurrentTicketStores.length === 0) {
+  if (storeCount === 0 && recentlySeenStores.length === 0) {
     return (
       <Card className="shadow-sm border-0 text-center py-5">
         <Card.Body>
@@ -74,11 +74,9 @@ export function StoreList({ groupedByStore, unscheduledDate, noCurrentTicketStor
           </div>
 
           <Accordion className="mb-4">
-            {Object.values(groupedByStore).map(({ address, serviceOrders }) => {
-              let totalHours = 0;
-              for (const serviceOrder of serviceOrders) {
-                totalHours += serviceOrder.EstimatedTime;
-              }
+            {Object.values(stores).map((store) => {
+              const { address, serviceOrders } = store;
+              const totalHours = getStoreEstimatedTime(store);
 
               return (
                 <Accordion.Item
@@ -188,19 +186,19 @@ export function StoreList({ groupedByStore, unscheduledDate, noCurrentTicketStor
         </>
       )}
 
-      {noCurrentTicketStores.length > 0 && (
+      {recentlySeenStores.length > 0 && (
         <>
           <div className="mb-3">
             <h3 className="h5 text-secondary">
               No Current Tickets{" "}
               <Badge bg="secondary" pill>
-                {noCurrentTicketStores.length}
+                {recentlySeenStores.length}
               </Badge>
             </h3>
           </div>
 
           <Accordion>
-            {noCurrentTicketStores.map((store) => (
+            {recentlySeenStores.map((store) => (
               <Accordion.Item
                 key={store.id}
                 eventKey={store.id.toString()}

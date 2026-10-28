@@ -35,23 +35,19 @@ interface TRepAddressInput {
 type TRecentlySeenStore = interfaces.QtTerritoryRepData["recently_seen_stores"][number];
 
 interface Props {
-  groupedByStore: Record<number, TTerritoryStore>;
+  stores: Record<number, TTerritoryStore>;
   // Rep's own home address - used as the fallback map center when the rep has no service
   // orders, and rendered as its own violet marker so it's visually distinct from the green
   // service-order markers. Geocoded client-side on load if lat/lng aren't already resolved.
   repAddress: TRepAddressInput | null;
-  // Stores seen recently but no longer in groupedByStore (their SO was already submitted) -
+  // Stores seen recently but no longer in `stores` (their SO was already submitted) -
   // rendered as red pins.
   recentlySeenStores: TRecentlySeenStore[];
 }
 
 const mapContainerStyle = { height: "100%", width: "100%" };
 
-export default function TerritoryMapGMaps({
-  groupedByStore,
-  repAddress,
-  recentlySeenStores,
-}: Props) {
+export default function TerritoryMapGMaps({ stores, repAddress, recentlySeenStores }: Props) {
   const context = useContext(Context);
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: context.google_maps_js_api_key,
@@ -166,7 +162,7 @@ export default function TerritoryMapGMaps({
     handleShowMyLocation();
   }, [isLoaded]);
 
-  const validEntries = Object.entries(groupedByStore).filter(
+  const validEntries = Object.entries(stores).filter(
     ([_, group]) => group.address.StoreName.trim().toLowerCase() !== "no store visit reqd"
   );
 
@@ -209,7 +205,7 @@ export default function TerritoryMapGMaps({
           >
             {activeMarker?.type === "serviceOrder" && activeMarker.siteId === Number(siteId) && (
               <InfoWindow onCloseClick={() => setActiveMarker(null)}>
-                <MapPopupContent locationGroup={group} />
+                <MapPopupContent store={group} />
               </InfoWindow>
             )}
           </Marker>

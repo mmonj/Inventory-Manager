@@ -5,7 +5,7 @@ import { Button, Form, Modal } from "react-bootstrap";
 interface Props {
   show: boolean;
   onHide: () => void;
-  showStoresWithoutPendingTickets: boolean;
+  showStoresWithoutPendingServiceOrders: boolean;
   onChange: (value: boolean) => void;
   parentCompanies: string[];
   excludedParentCompanies: ReadonlySet<string>;
@@ -35,7 +35,7 @@ export function TerritoryFilterModal(props: Props) {
           type="checkbox"
           id="show-stores-without-pending-tickets-checkbox"
           label="Show stores without pending tickets"
-          checked={props.showStoresWithoutPendingTickets}
+          checked={props.showStoresWithoutPendingServiceOrders}
           onChange={(event) => props.onChange(event.target.checked)}
         />
 

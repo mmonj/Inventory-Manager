@@ -56,7 +56,8 @@ export function Template(props: templates.QtTerritoryViewer) {
   const [searchText, setSearchText] = useState("");
   const [selectedDueDate, setSelectedDueDate] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [showStoresWithoutPendingTickets, setShowStoresWithoutPendingTickets] = useState(true);
+  const [showStoresWithoutPendingServiceOrders, setShowStoresWithoutPendingServiceOrders] =
+    useState(true);
   // In memory only: survives Refresh Schedule and switching reps, resets on page reload.
   const [excludedParentCompanies, setExcludedParentCompanies] = useState<Set<string>>(new Set());
   // Per-rep schedule/recently-seen-store data, fetched on demand via qt_territory_rep_data
@@ -80,14 +81,14 @@ export function Template(props: templates.QtTerritoryViewer) {
         searchText: deferredSearchText,
         selectedDueDate,
         excludedParentCompanies,
-        showStoresWithoutPendingServiceOrders: showStoresWithoutPendingTickets,
+        showStoresWithoutPendingServiceOrders,
       }),
     [
       selectedRepData,
       deferredSearchText,
       selectedDueDate,
       excludedParentCompanies,
-      showStoresWithoutPendingTickets,
+      showStoresWithoutPendingServiceOrders,
     ]
   );
   const { activeFilterSummary } = territoryView;
@@ -372,7 +373,7 @@ export function Template(props: templates.QtTerritoryViewer) {
                 <Modal.Body className="p-0" style={{ height: "70vh" }}>
                   <Suspense fallback={<div>Loading map...</div>}>
                     <TerritoryMap
-                      groupedByStore={territoryView.stores}
+                      stores={territoryView.stores}
                       recentlySeenStores={territoryView.recentlySeenStores}
                       repAddress={
                         selectedRepDetail !== undefined && selectedRepDetail.address !== ""
@@ -392,9 +393,9 @@ export function Template(props: templates.QtTerritoryViewer) {
 
             {/* store list */}
             <StoreList
-              groupedByStore={territoryView.stores}
+              stores={territoryView.stores}
               unscheduledDate={selectedRepData?.schedule?.UnscheduledDate}
-              noCurrentTicketStores={territoryView.recentlySeenStores}
+              recentlySeenStores={territoryView.recentlySeenStores}
             />
           </>
         )}
@@ -402,8 +403,8 @@ export function Template(props: templates.QtTerritoryViewer) {
         <TerritoryFilterModal
           show={showFilters}
           onHide={() => setShowFilters(false)}
-          showStoresWithoutPendingTickets={showStoresWithoutPendingTickets}
-          onChange={setShowStoresWithoutPendingTickets}
+          showStoresWithoutPendingServiceOrders={showStoresWithoutPendingServiceOrders}
+          onChange={setShowStoresWithoutPendingServiceOrders}
           parentCompanies={territoryView.parentCompanies}
           excludedParentCompanies={excludedParentCompanies}
           onChangeExcludedParentCompanies={setExcludedParentCompanies}

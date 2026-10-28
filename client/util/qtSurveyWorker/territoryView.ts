@@ -1,13 +1,11 @@
 import {
   SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore,
   SurveyWorkerQtraxWebsiteTypedefsAddress,
-  SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
   interfaces,
 } from "@reactivated";
 
-import { matchesSearch } from "@client/util/qtSurveyWorker/scheduleUtils";
+import { TServiceOrder, isSunday, matchesSearch } from "@client/util/qtSurveyWorker/scheduleUtils";
 
-type TServiceOrder = SurveyWorkerQtraxWebsiteTypedefsTServiceOrder;
 type TRecentlySeenStore = SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore;
 
 /** A store on the Territory Viewer, with the service orders it has in the rep's schedule. */
@@ -54,12 +52,19 @@ export interface TTerritoryView {
   activeFilterSummary: TActiveFilterSummary;
 }
 
-const SUNDAY_DAY_OF_WEEK = 0;
 const SATURDAY_DAY_OF_WEEK = 6;
 
 function isWeekend(date: Date): boolean {
-  const dayOfWeek = date.getDay();
-  return dayOfWeek === SUNDAY_DAY_OF_WEEK || dayOfWeek === SATURDAY_DAY_OF_WEEK;
+  return isSunday(date) || date.getDay() === SATURDAY_DAY_OF_WEEK;
+}
+
+/** The store's service orders' estimated time added up, in hours. */
+export function getStoreEstimatedTime(store: TTerritoryStore): number {
+  let totalHours = 0;
+  for (const serviceOrder of store.serviceOrders) {
+    totalHours += serviceOrder.EstimatedTime;
+  }
+  return totalHours;
 }
 
 function getDueDateOptions(serviceOrders: TServiceOrder[]): string[] {
@@ -70,7 +75,7 @@ function getDueDateOptions(serviceOrders: TServiceOrder[]): string[] {
   return [...new Set(weekendDueDates)];
 }
 
-function groupByStore(serviceOrders: TServiceOrder[]): Record<number, TTerritoryStore> {
+function groupBySiteId(serviceOrders: TServiceOrder[]): Record<number, TTerritoryStore> {
   const storesBySiteId: Record<number, TTerritoryStore> = {};
   for (const serviceOrder of serviceOrders) {
     const siteId = serviceOrder.Address.SiteId;
@@ -123,7 +128,7 @@ export function buildTerritoryView(
     new Set(allServiceOrders.map((serviceOrder) => serviceOrder.JobClient))
   ).sort();
 
-  const storesOfShownParentCompanies = groupByStore(
+  const storesOfShownParentCompanies = groupBySiteId(
     allServiceOrders.filter(
       (serviceOrder) => !filters.excludedParentCompanies.has(serviceOrder.JobClient)
     )
