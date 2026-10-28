@@ -133,6 +133,8 @@ def save_push_subscription(request: AuthenticatedRequest) -> HttpResponse:
     if not endpoint or not p256dh_key or not auth_key:
         return error_json_response(["Missing endpoint, p256dh_key, or auth_key"], status=400)
 
+    # Keyed on endpoint (unique), not user: a device re-subscribing under another user gets
+    # re-pointed, and rotated keys update in place instead of hitting the unique constraint.
     PushSubscription.objects.update_or_create(
         endpoint=endpoint,
         defaults={"user": request.user, "p256dh_key": p256dh_key, "auth_key": auth_key},

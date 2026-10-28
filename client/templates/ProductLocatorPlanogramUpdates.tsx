@@ -34,6 +34,9 @@ function getChangedLocations(planogramUpdate: TPlanogramUpdate): string[] {
 
 export function Template(props: templates.ProductLocatorPlanogramUpdates) {
   const [selectedUpdate, setSelectedUpdate] = useState<TPlanogramUpdate | null>(null);
+  // The move checklist only helps whoever is physically rearranging the shelf: applying an
+  // update replaces the planogram's locations with new_plano server-side regardless of what's
+  // checked off, so this state is deliberately not persisted.
   const [completedMoves, setCompletedMoves] = useState<Set<string>>(new Set());
   const djangoContext = useContext(Context);
   const applyFetcher = useFetch<interfaces.IPlanogramUpdateApplied>();

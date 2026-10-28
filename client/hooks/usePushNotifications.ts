@@ -4,7 +4,11 @@ import { Context, reverse } from "@reactivated";
 
 import { fetchByReactivated } from "@client/util/commonUtil";
 
-/** Converts a base64url-encoded VAPID public key into the Uint8Array PushManager.subscribe expects. */
+/**
+ * Converts a base64url-encoded VAPID public key into the Uint8Array PushManager.subscribe expects.
+ * Filled byte by byte because TS 5.7+'s DOM lib wants a Uint8Array<ArrayBuffer> here, and
+ * Uint8Array.from(...) infers the wider ArrayBufferLike, which fails to typecheck.
+ */
 function urlBase64ToUint8Array(base64Url: string): Uint8Array<ArrayBuffer> {
   const padding = "=".repeat((4 - (base64Url.length % 4)) % 4);
   const base64 = (base64Url + padding).replace(/-/g, "+").replace(/_/g, "/");

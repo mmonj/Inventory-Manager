@@ -503,6 +503,8 @@ class Message(CommonModel):
         """
         Create a message addressed to the given users (as MessageRecipient rows) and push a
         notification to each of their registered devices (see push.send_push_to_users).
+        Use this (or send_to_superusers) rather than Message.objects.create(), which creates
+        no MessageRecipients and pushes nothing.
 
         Returns None without sending if ref_str is given and already used by an existing
         Message - pass a stable ref_str to avoid re-alerting on an already-flagged condition.

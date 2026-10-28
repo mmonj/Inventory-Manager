@@ -7,6 +7,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { usePushNotifications } from "@client/hooks/usePushNotifications";
 
+/**
+ * Push opt-in is manual (never prompted on page load): browsers penalize sites that
+ * auto-prompt for notification permission, and iOS Safari only allows push once the site
+ * has been added to the home screen.
+ */
 export function PushNotificationToggle() {
   const { permission, isSubscribed, isLoading, subscribe, unsubscribe } = usePushNotifications();
 

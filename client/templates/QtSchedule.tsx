@@ -95,6 +95,7 @@ export function Template(props: templates.QtSchedule) {
       if (fetchRepSchedule.data.sync_error !== null) {
         toast.warning(fetchRepSchedule.data.sync_error);
       } else if (context.user.is_superuser) {
+        // superuser-only to cut noise for regular users, not as access control
         if (fetchRepSchedule.data.is_cached) {
           toast.warning("Showing cached schedule data.");
         } else {
