@@ -1,17 +1,7 @@
-import {
-  SurveyWorkerQtraxWebsiteTypedefsAddress,
-  SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
-  interfaces,
-} from "@reactivated";
+import { interfaces } from "@reactivated";
 
 export type TSchedule = NonNullable<interfaces.QtViewRepDetail["rep_sync_data"]["schedule"]>;
 export type TServiceOrder = TSchedule["ServiceOrders"][number];
-
-/** A store on the Territory Viewer, with the service orders it has in the rep's schedule. */
-export interface TTerritoryStore {
-  address: SurveyWorkerQtraxWebsiteTypedefsAddress;
-  serviceOrders: SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[];
-}
 
 type TServiceOrderOutcome = interfaces.QtScheduleChangeReport["outcomes"][number];
 

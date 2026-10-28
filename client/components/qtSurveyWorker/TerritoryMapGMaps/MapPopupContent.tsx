@@ -12,7 +12,7 @@ import {
   getFormattedEstimatedTime,
   reformatServiceOrderDescription,
 } from "@client/util/commonUtil";
-import { TTerritoryStore } from "@client/util/qtSurveyWorker/scheduleUtils";
+import { TTerritoryStore } from "@client/util/qtSurveyWorker/territoryView";
 
 export function MapPopupContent({ locationGroup }: { locationGroup: TTerritoryStore }) {
   const [clipboardMessage, setClipboardMessage] = useState<string | null>(null);

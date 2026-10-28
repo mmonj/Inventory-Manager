@@ -8,7 +8,7 @@ import { faLocationCrosshairs } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { fetchByReactivated } from "@client/util/commonUtil";
-import { TTerritoryStore } from "@client/util/qtSurveyWorker/scheduleUtils";
+import { TTerritoryStore } from "@client/util/qtSurveyWorker/territoryView";
 
 import { GoogleMap, InfoWindow, Marker, useJsApiLoader } from "@react-google-maps/api";
 

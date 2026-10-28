@@ -11,11 +11,8 @@ import { faClock, faExternalLinkAlt, faMapMarkerAlt } from "@fortawesome/free-so
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { encodeQtAddress, getFormattedEstimatedTime } from "@client/util/commonUtil";
-import {
-  TTerritoryStore,
-  formatDateRange,
-  formatWeekdayShortDate,
-} from "@client/util/qtSurveyWorker/scheduleUtils";
+import { formatDateRange, formatWeekdayShortDate } from "@client/util/qtSurveyWorker/scheduleUtils";
+import { TTerritoryStore } from "@client/util/qtSurveyWorker/territoryView";
 
 type TRecentlySeenStore = SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore;
 

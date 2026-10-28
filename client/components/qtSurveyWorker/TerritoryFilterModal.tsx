@@ -8,21 +8,21 @@ interface Props {
   showStoresWithoutPendingTickets: boolean;
   onChange: (value: boolean) => void;
   parentCompanies: string[];
-  selectedParentCompanies: Set<string>;
-  onChangeParentCompanies: (parentCompanies: Set<string>) => void;
+  excludedParentCompanies: ReadonlySet<string>;
+  onChangeExcludedParentCompanies: (excludedParentCompanies: Set<string>) => void;
 }
 
 export function TerritoryFilterModal(props: Props) {
-  const { parentCompanies, selectedParentCompanies, onChangeParentCompanies } = props;
+  const { parentCompanies, excludedParentCompanies, onChangeExcludedParentCompanies } = props;
 
   function toggleParentCompany(parentCompany: string) {
-    const next = new Set(selectedParentCompanies);
+    const next = new Set(excludedParentCompanies);
     if (next.has(parentCompany)) {
       next.delete(parentCompany);
     } else {
       next.add(parentCompany);
     }
-    onChangeParentCompanies(next);
+    onChangeExcludedParentCompanies(next);
   }
 
   return (
@@ -51,7 +51,7 @@ export function TerritoryFilterModal(props: Props) {
             type="checkbox"
             id={`territory-parent-company-filter-${parentCompany}`}
             label={parentCompany}
-            checked={selectedParentCompanies.has(parentCompany)}
+            checked={!excludedParentCompanies.has(parentCompany)}
             onChange={() => toggleParentCompany(parentCompany)}
             className="mb-2"
           />
