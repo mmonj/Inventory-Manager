@@ -90,7 +90,7 @@ export function Template(props: templates.QtTerritoryViewer) {
 
   const selectedRepDetail = props.rep_details.find((r) => r.id === selectedRepId);
   const selectedRepData = selectedRepId === null ? undefined : repDataById.get(selectedRepId);
-  const serviceOrders = selectedRepData?.rep_sync_data.schedule?.ServiceOrders ?? [];
+  const serviceOrders = selectedRepData?.schedule?.ServiceOrders ?? [];
 
   const allJobClients = React.useMemo(
     () => Array.from(new Set(serviceOrders.map((so) => so.JobClient))).sort(),
@@ -573,7 +573,7 @@ export function Template(props: templates.QtTerritoryViewer) {
             {/* store list */}
             <StoreList
               groupedByStore={filteredStores}
-              unscheduledDate={selectedRepData?.rep_sync_data.schedule?.UnscheduledDate}
+              unscheduledDate={selectedRepData?.schedule?.UnscheduledDate}
               noCurrentTicketStores={filteredNoCurrentTicketStores}
             />
           </>
