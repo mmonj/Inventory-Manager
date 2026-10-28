@@ -2,6 +2,53 @@ import { interfaces } from "@reactivated";
 
 export type TSchedule = NonNullable<interfaces.QtViewRepDetail["rep_sync_data"]["schedule"]>;
 export type TServiceOrder = TSchedule["ServiceOrders"][number];
+type TServiceOrderOutcome = interfaces.QtScheduleChangeReport["outcomes"][number];
+
+const SUNDAY_DAY_OF_WEEK = 0;
+
+/** Qt never schedules service orders on a Sunday. */
+export function isSunday(date: Date): boolean {
+  return date.getDay() === SUNDAY_DAY_OF_WEEK;
+}
+
+const PROBLEM_OUTCOME_LABELS: Partial<Record<TServiceOrderOutcome["outcome"], string>> = {
+  restored: "put back on its original date",
+  rejected: "refused by Qt",
+  failed: "couldn't reach Qt",
+  skipped: "not attempted",
+  not_placed: "didn't fit",
+};
+
+/**
+ * Describes every service order an auto-schedule, date swap or bulk unschedule didn't change
+ * as asked, or null if all of them were.
+ */
+export function describeScheduleChangeProblems(
+  report: interfaces.QtScheduleChangeReport
+): string | null {
+  const problemLines = report.outcomes.flatMap((outcome) => {
+    const label = PROBLEM_OUTCOME_LABELS[outcome.outcome];
+    if (label === undefined) {
+      return [];
+    }
+    return [
+      `SO ${outcome.service_order_id}: ${label}${outcome.message ? ` (${outcome.message})` : ""}`,
+    ];
+  });
+
+  if (!report.aborted_early && problemLines.length === 0) {
+    return null;
+  }
+
+  return [
+    ...(report.aborted_early
+      ? ["Stopped early after too many failures in a row to reach Qt."]
+      : []),
+    ...(problemLines.length > 0
+      ? [`${problemLines.length} service order(s) weren't changed as asked:`, ...problemLines]
+      : []),
+  ].join("\n");
+}
 
 export const UNSCHEDULED_ORDER_BY_OPTIONS = ["Location", "Start Date", "Due Date"] as const;
 export type TUnscheduledOrderBy = (typeof UNSCHEDULED_ORDER_BY_OPTIONS)[number];

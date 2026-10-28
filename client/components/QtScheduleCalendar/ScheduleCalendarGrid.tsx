@@ -3,7 +3,7 @@ import React from "react";
 import { Card } from "react-bootstrap";
 import { DayContentProps, DayPicker } from "react-day-picker";
 
-import { formatTotalHours, toDateKey } from "@client/util/qtSurveyWorker/scheduleUtils";
+import { formatTotalHours, isSunday, toDateKey } from "@client/util/qtSurveyWorker/scheduleUtils";
 
 interface ICalendarDaySummary {
   serviceOrderCount: number;
@@ -27,8 +27,6 @@ interface Props {
   onSelectBulkUnscheduleDates: (dates: Date[] | undefined) => void;
 }
 
-const SUNDAY_DAY_OF_WEEK = 0;
-
 export function ScheduleCalendarGrid(props: Props) {
   // Whether the date isn't in the past - the one floor every mode shares. Today has its own
   // eligibility rule (the service's own same-day cutoff) instead of the plain date comparison.
@@ -51,15 +49,20 @@ export function ScheduleCalendarGrid(props: Props) {
   // Bulk-Unschedule all need non-green dates selectable too - you might pick an earlier date
   // with nothing new schedulable on it specifically to view/unschedule/swap what's already
   // there. Auto-Schedule is the one mode that's genuinely only about placing new unscheduled
-  // work, so it alone is restricted to schedulable (and non-Sunday, per the backend's
-  // get_auto_schedule_dates_error) dates.
+  // work, so it alone is restricted to schedulable dates. Auto-Schedule and Swap Jobs both
+  // schedule onto the dates they're given, so neither can pick a Sunday (the server refuses
+  // it too).
   function isSelectable(date: Date): boolean {
     if (!isNotInPast(date)) {
       return false;
     }
 
     if (props.autoScheduleMode) {
-      return props.schedulableDateKeys.has(toDateKey(date)) && date.getDay() !== SUNDAY_DAY_OF_WEEK;
+      return props.schedulableDateKeys.has(toDateKey(date)) && !isSunday(date);
+    }
+
+    if (props.swapMode) {
+      return !isSunday(date);
     }
 
     return true;

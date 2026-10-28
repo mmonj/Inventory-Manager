@@ -24,11 +24,13 @@ import {
   TServiceOrder,
   TUnscheduledOrderBy,
   UNSCHEDULED_ORDER_BY_OPTIONS,
+  describeScheduleChangeProblems,
   formatShortDate,
   formatWeekdayShortDate,
   formatWindow,
   getServiceOrderSearchKey,
   groupByStore,
+  isSunday,
   matchesSearch,
   sortServiceOrdersBy,
   toDateKey,
@@ -48,13 +50,13 @@ export function Template(props: templates.QtSchedule) {
   const fetchRepSchedule = useFetch<interfaces.QtViewRepDetail>();
   const scheduleServiceOrderFetch = useFetch<interfaces.QtScheduleServiceOrder>();
   const unscheduleServiceOrderFetch = useFetch<interfaces.QtUnscheduleServiceOrder>();
-  const swapServiceOrdersFetch = useFetch<interfaces.QtSwapServiceOrders>();
-  const executeAutoScheduleFetch = useFetch<interfaces.QtExecuteAutoSchedule>();
-  const executeBulkUnscheduleFetch = useFetch<interfaces.QtExecuteBulkUnschedule>();
+  const swapServiceOrdersFetch = useFetch<interfaces.QtScheduleChangeReport>();
+  const executeAutoScheduleFetch = useFetch<interfaces.QtScheduleChangeReport>();
+  const executeBulkUnscheduleFetch = useFetch<interfaces.QtScheduleChangeReport>();
   // Clear Date uses the same execute_bulk_unschedule endpoint as the Bulk-Unschedule button
   // (just scoped to the one selected date), but keeps its own useFetch instance so the two
   // buttons' loading/error states don't interfere with each other.
-  const clearDateFetch = useFetch<interfaces.QtExecuteBulkUnschedule>();
+  const clearDateFetch = useFetch<interfaces.QtScheduleChangeReport>();
 
   // guard against a duplicate initial fetch if the mount effect below somehow fires twice
   // to work around hydration remounts
@@ -185,20 +187,21 @@ export function Template(props: templates.QtSchedule) {
 
   const schedule = localSchedule;
 
-  // Auto-scheduling, Bulk-Unschedule, and Clear Date all POST then immediately refetch the
-  // schedule (see handleExecuteAutoSchedule/handleExecuteBulkUnschedule/
+  // Auto-scheduling, Swap, Bulk-Unschedule, and Clear Date all POST then immediately refetch the
+  // schedule (see handleExecuteAutoSchedule/handleExecuteSwap/handleExecuteBulkUnschedule/
   // handleClearScheduledDate) - both legs need to block interaction with the content below,
   // since the calendar/unscheduled list would otherwise be actionable against a schedule
   // that's either not yet applied or about to be replaced. Each is tracked separately from its
   // fetch hook's isLoading (which only covers the POST) so it also stays true through the
   // follow-up refetch.
   const [isAutoScheduleRefetching, setIsAutoScheduleRefetching] = React.useState(false);
+  const [isSwapRefetching, setIsSwapRefetching] = React.useState(false);
   const [isBulkUnscheduleRefetching, setIsBulkUnscheduleRefetching] = React.useState(false);
   const [isClearDateRefetching, setIsClearDateRefetching] = React.useState(false);
   const isAutoScheduling = executeAutoScheduleFetch.isLoading || isAutoScheduleRefetching;
   const isBulkUnscheduling = executeBulkUnscheduleFetch.isLoading || isBulkUnscheduleRefetching;
   const isClearingDate = clearDateFetch.isLoading || isClearDateRefetching;
-  const isSwapping = swapServiceOrdersFetch.isLoading;
+  const isSwapping = swapServiceOrdersFetch.isLoading || isSwapRefetching;
   const isCalendarBusy = isAutoScheduling || isBulkUnscheduling || isClearingDate || isSwapping;
 
   // memoized so a re-render without a real schedule change doesn't produce a new array
@@ -325,7 +328,7 @@ export function Template(props: templates.QtSchedule) {
     }
 
     const [isSuccess, result, errorMessages] = await swapServiceOrdersFetch.fetchData(() =>
-      fetchByReactivated<interfaces.QtSwapServiceOrders>(
+      fetchByReactivated<interfaces.QtScheduleChangeReport>(
         reverse("survey_worker:qt_swap_service_orders"),
         context.csrf_token,
         "POST",
@@ -345,25 +348,20 @@ export function Template(props: templates.QtSchedule) {
       return;
     }
 
-    const failures = result.results.filter((r) => !r.success);
-    const succeeded = result.results.filter((r) => r.success).map((r) => r.service_order_id);
-    // split the flat results back into each date's group, since the server doesn't tag them
-    const movedToB = succeeded.filter((id) => serviceOrderIdsA.includes(id));
-    const movedToA = succeeded.filter((id) => serviceOrderIdsB.includes(id));
-
-    rescheduleServiceOrdersLocally(movedToB, dateB);
-    rescheduleServiceOrdersLocally(movedToA, dateA);
-
-    if (failures.length > 0) {
-      alert(
-        `Swap completed with ${failures.length} failure(s): ${failures
-          .map((f) => `SO ${f.service_order_id}: ${f.error_message}`)
-          .join(", ")}`
-      );
-    }
+    // A partial swap may have put some SOs back or left them unscheduled (see swap_dates), so
+    // refetch rather than rebuilding that locally; force-bypass the cache/freshness-delta since
+    // the schedule was just mutated server-side
+    setIsSwapRefetching(true);
+    await fetchScheduleForRep(selectedRepId, true);
+    setIsSwapRefetching(false);
 
     setIsSwapMode(false);
     setSwapSelectedDates([]);
+
+    const problems = describeScheduleChangeProblems(result);
+    if (problems !== null) {
+      alert(`The swap didn't fully go through.\n\n${problems}`);
+    }
   }
 
   // Every SO that's still unscheduled and whose window hasn't closed, before either the Job
@@ -538,7 +536,7 @@ export function Template(props: templates.QtSchedule) {
     }
 
     const [isSuccess, result, errorMessages] = await executeAutoScheduleFetch.fetchData(() =>
-      fetchByReactivated<interfaces.QtExecuteAutoSchedule>(
+      fetchByReactivated<interfaces.QtScheduleChangeReport>(
         reverse("survey_worker:qt_execute_auto_schedule"),
         context.csrf_token,
         "POST",
@@ -568,17 +566,9 @@ export function Template(props: templates.QtSchedule) {
     setAutoScheduleSelectedDates([]);
     setIsAutoScheduleMode(false);
 
-    if (!result.success) {
-      alert(`Failed to auto-schedule service orders: ${result.error_message}`);
-      return;
-    }
-
-    if (result.unscheduled_service_order_ids.length > 0) {
-      alert(
-        `${result.unscheduled_service_order_ids.length} service order(s) could not be ` +
-          `auto-scheduled because they didn't fit within the selected dates' remaining ` +
-          `capacity: ${result.unscheduled_service_order_ids.join(", ")}`
-      );
+    const problems = describeScheduleChangeProblems(result);
+    if (problems !== null) {
+      alert(`Not every service order was auto-scheduled.\n\n${problems}`);
     }
   }
 
@@ -599,7 +589,7 @@ export function Template(props: templates.QtSchedule) {
     }
 
     const [isSuccess, result, errorMessages] = await fetcher.fetchData(() =>
-      fetchByReactivated<interfaces.QtExecuteBulkUnschedule>(
+      fetchByReactivated<interfaces.QtScheduleChangeReport>(
         reverse("survey_worker:qt_execute_bulk_unschedule"),
         context.csrf_token,
         "POST",
@@ -623,16 +613,9 @@ export function Template(props: templates.QtSchedule) {
     await fetchScheduleForRep(selectedRepId, true);
     setRefetching(false);
 
-    const failures = result.results.filter((r) => !r.success);
-    if (result.aborted_early || failures.length > 0) {
-      alert(
-        (result.aborted_early ? "Stopped early after too many consecutive failures. " : "") +
-          (failures.length > 0
-            ? `${failures.length} service order(s) failed to unschedule: ${failures
-                .map((f) => f.service_order_id)
-                .join(", ")}`
-            : "")
-      );
+    const problems = describeScheduleChangeProblems(result);
+    if (problems !== null) {
+      alert(problems);
     }
   }
 
@@ -1027,7 +1010,9 @@ export function Template(props: templates.QtSchedule) {
                                 variant="primary"
                                 size="sm"
                                 disabled={
-                                  selectedDate === undefined || scheduleServiceOrderFetch.isLoading
+                                  selectedDate === undefined ||
+                                  isSunday(selectedDate) ||
+                                  scheduleServiceOrderFetch.isLoading
                                 }
                                 className="text-nowrap"
                                 style={{ width: "9.5rem" }}
@@ -1036,9 +1021,11 @@ export function Template(props: templates.QtSchedule) {
                                   handleScheduleServiceOrder(so, selectedDate)
                                 }
                               >
-                                {selectedDate !== undefined
-                                  ? `Schedule on ${formatShortDate(selectedDate)}`
-                                  : "Select a date"}
+                                {selectedDate === undefined
+                                  ? "Select a date"
+                                  : isSunday(selectedDate)
+                                    ? "No Sunday scheduling"
+                                    : `Schedule on ${formatShortDate(selectedDate)}`}
                               </Button>
                             )
                           }
