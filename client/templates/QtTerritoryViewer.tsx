@@ -3,8 +3,6 @@ import React, { Suspense, lazy, useEffect, useState } from "react";
 import {
   Context,
   SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore,
-  SurveyWorkerQtraxWebsiteTypedefsAddress,
-  SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
   interfaces,
   reverse,
   templates,
@@ -27,7 +25,7 @@ import { TerritoryFilterModal } from "@client/components/qtSurveyWorker/Territor
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { fetchByReactivated } from "@client/util/commonUtil";
-import { matchesSearch } from "@client/util/qtSurveyWorker/scheduleUtils";
+import { TTerritoryStore, matchesSearch } from "@client/util/qtSurveyWorker/scheduleUtils";
 import { toast } from "@client/util/toast";
 
 const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMapGMaps"));
@@ -55,13 +53,7 @@ function formatLastRefreshed(isoString: string): string {
   return `${wholeHoursSince} hour${wholeHoursSince === 1 ? "" : "s"} ago`;
 }
 
-type TGroupedStoreRecord = Record<
-  number,
-  {
-    address: SurveyWorkerQtraxWebsiteTypedefsAddress;
-    jobs: SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[];
-  }
->;
+type TGroupedStoreRecord = Record<number, TTerritoryStore>;
 
 export function Template(props: templates.QtTerritoryViewer) {
   const [selectedRepId, setSelectedRepId] = useState<number | null>(
@@ -76,7 +68,7 @@ export function Template(props: templates.QtTerritoryViewer) {
   >([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showStoresWithoutPendingTickets, setShowStoresWithoutPendingTickets] = useState(true);
-  const [selectedJobClients, setSelectedJobClients] = useState<Set<string>>(new Set());
+  const [selectedParentCompanies, setSelectedParentCompanies] = useState<Set<string>>(new Set());
   // Per-rep schedule/recently-seen-store data, fetched on demand via qt_territory_rep_data
   // (territory_rep_data_view), keyed by QtRepDetail.id - the same id selectedRepId holds.
   // Once a rep's data has been fetched, reselecting it from the dropdown does not refetch -
@@ -91,17 +83,17 @@ export function Template(props: templates.QtTerritoryViewer) {
   const selectedRepData = selectedRepId === null ? undefined : repDataById.get(selectedRepId);
   const serviceOrders = selectedRepData?.schedule?.ServiceOrders ?? [];
 
-  const allJobClients = React.useMemo(
+  const allParentCompanies = React.useMemo(
     () => Array.from(new Set(serviceOrders.map((so) => so.JobClient))).sort(),
     [serviceOrders]
   );
 
   React.useEffect(() => {
-    setSelectedJobClients(new Set(allJobClients));
-  }, [allJobClients]);
+    setSelectedParentCompanies(new Set(allParentCompanies));
+  }, [allParentCompanies]);
 
-  const isJobClientFilterActive = selectedJobClients.size < allJobClients.length;
-  const isFilterActive = !showStoresWithoutPendingTickets || isJobClientFilterActive;
+  const isParentCompanyFilterActive = selectedParentCompanies.size < allParentCompanies.length;
+  const isFilterActive = !showStoresWithoutPendingTickets || isParentCompanyFilterActive;
 
   async function fetchTerritoryRepData(repId: number, useCacheOverride?: "off") {
     const baseUrl = reverse("survey_worker:qt_territory_rep_data", { rep_id: repId });
@@ -155,19 +147,19 @@ export function Template(props: templates.QtTerritoryViewer) {
     const _groupedByStore: TGroupedStoreRecord = {};
 
     for (const so of serviceOrders) {
-      if (!selectedJobClients.has(so.JobClient)) {
+      if (!selectedParentCompanies.has(so.JobClient)) {
         continue;
       }
 
       const siteId = so.Address.SiteId;
       if (!(siteId in _groupedByStore)) {
-        _groupedByStore[siteId] = { address: so.Address, jobs: [] };
+        _groupedByStore[siteId] = { address: so.Address, serviceOrders: [] };
       }
-      _groupedByStore[siteId].jobs.push(so);
+      _groupedByStore[siteId].serviceOrders.push(so);
     }
 
     return _groupedByStore;
-  }, [serviceOrders, selectedJobClients]);
+  }, [serviceOrders, selectedParentCompanies]);
 
   // Recently-seen stores for the selected rep (already scoped to this rep by the ajax
   // response), deduped against groupedByStore so a store never gets both a green and red pin.
@@ -182,9 +174,9 @@ export function Template(props: templates.QtTerritoryViewer) {
   }, [selectedRepData, groupedByStore]);
 
   let totalWorkHours = 0;
-  Object.values(filteredStores).forEach(({ jobs }) => {
-    jobs.forEach((job) => {
-      totalWorkHours += job.EstimatedTime;
+  Object.values(filteredStores).forEach((store) => {
+    store.serviceOrders.forEach((serviceOrder) => {
+      totalWorkHours += serviceOrder.EstimatedTime;
     });
   });
 
@@ -194,12 +186,12 @@ export function Template(props: templates.QtTerritoryViewer) {
       const filtered: TGroupedStoreRecord = {};
 
       Object.entries(groupedByStore).forEach(([siteId, storeData]) => {
-        // filter by store name + address + job descriptions
+        // filter by store name + address + service order descriptions
         const fullStoreName = `${storeData.address.City}, ${storeData.address.State} | ${storeData.address.StreetAddress} | ${storeData.address.StoreName}`;
-        const jobDescriptions = storeData.jobs
-          .map((job) => job.ServiceOrderDescription || "")
+        const serviceOrderDescriptions = storeData.serviceOrders
+          .map((serviceOrder) => serviceOrder.ServiceOrderDescription || "")
           .join(" ");
-        const searchableText = `${fullStoreName} ${jobDescriptions}`;
+        const searchableText = `${fullStoreName} ${serviceOrderDescriptions}`;
 
         const matchesStoreFilter = matchesSearch(searchableText, storeFilterValue);
 
@@ -207,21 +199,23 @@ export function Template(props: templates.QtTerritoryViewer) {
         const matchesDueDate =
           selectedDueDate === ""
             ? true // If no due date selected, show all
-            : storeData.jobs.some((job) => {
-                const jobDueDate = job.DateScheduleRangeEndOriginal;
-                if (!jobDueDate) return false;
+            : storeData.serviceOrders.some((serviceOrder) => {
+                const serviceOrderDueDate = serviceOrder.DateScheduleRangeEndOriginal;
+                if (!serviceOrderDueDate) return false;
 
-                return new Date(jobDueDate) <= new Date(selectedDueDate);
+                return new Date(serviceOrderDueDate) <= new Date(selectedDueDate);
               });
 
         // only include if both filters match
         if (matchesStoreFilter && matchesDueDate) {
           filtered[Number(siteId)] = {
             address: storeData.address,
-            jobs: storeData.jobs.filter((job) => {
-              // if a due date is selected, only include jobs on or before that date
-              if (selectedDueDate !== "" && job.DateScheduleRangeEndOriginal) {
-                return new Date(job.DateScheduleRangeEndOriginal) <= new Date(selectedDueDate);
+            serviceOrders: storeData.serviceOrders.filter((serviceOrder) => {
+              // if a due date is selected, only include service orders on or before that date
+              if (selectedDueDate !== "" && serviceOrder.DateScheduleRangeEndOriginal) {
+                return (
+                  new Date(serviceOrder.DateScheduleRangeEndOriginal) <= new Date(selectedDueDate)
+                );
               }
               return true;
             }),
@@ -231,7 +225,7 @@ export function Template(props: templates.QtTerritoryViewer) {
 
       setFilteredStores(filtered);
 
-      // Stores with no assigned tickets: have no jobs to filter by due date, so only the search box
+      // Stores with no assigned tickets: have no service orders to filter by due date, so only the search box
       // applies, so the 'due date' filter doesn't hide them
       setFilteredNoCurrentTicketStores(
         showStoresWithoutPendingTickets
@@ -376,8 +370,8 @@ export function Template(props: templates.QtTerritoryViewer) {
             <FontAwesomeIcon icon={faTriangleExclamation} className="me-1" />
             Filters active
             {!showStoresWithoutPendingTickets && " — stores with no pending tickets are hidden"}
-            {isJobClientFilterActive &&
-              ` — showing ${selectedJobClients.size} of ${allJobClients.length} job clients`}
+            {isParentCompanyFilterActive &&
+              ` — showing ${selectedParentCompanies.size} of ${allParentCompanies.length} job clients`}
             .{" "}
             <button
               type="button"
@@ -527,8 +521,8 @@ export function Template(props: templates.QtTerritoryViewer) {
                     Filters active
                     {!showStoresWithoutPendingTickets &&
                       " — stores with no pending tickets are hidden"}
-                    {isJobClientFilterActive &&
-                      ` — showing ${selectedJobClients.size} of ${allJobClients.length} job clients`}
+                    {isParentCompanyFilterActive &&
+                      ` — showing ${selectedParentCompanies.size} of ${allParentCompanies.length} job clients`}
                     .{" "}
                     <button
                       type="button"
@@ -574,9 +568,9 @@ export function Template(props: templates.QtTerritoryViewer) {
           onHide={() => setShowFilters(false)}
           showStoresWithoutPendingTickets={showStoresWithoutPendingTickets}
           onChange={setShowStoresWithoutPendingTickets}
-          jobClients={allJobClients}
-          selectedJobClients={selectedJobClients}
-          onChangeJobClients={setSelectedJobClients}
+          parentCompanies={allParentCompanies}
+          selectedParentCompanies={selectedParentCompanies}
+          onChangeParentCompanies={setSelectedParentCompanies}
         />
       </div>
     </Layout>

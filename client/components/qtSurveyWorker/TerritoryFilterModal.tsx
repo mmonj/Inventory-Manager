@@ -7,22 +7,22 @@ interface Props {
   onHide: () => void;
   showStoresWithoutPendingTickets: boolean;
   onChange: (value: boolean) => void;
-  jobClients: string[];
-  selectedJobClients: Set<string>;
-  onChangeJobClients: (jobClients: Set<string>) => void;
+  parentCompanies: string[];
+  selectedParentCompanies: Set<string>;
+  onChangeParentCompanies: (parentCompanies: Set<string>) => void;
 }
 
 export function TerritoryFilterModal(props: Props) {
-  const { jobClients, selectedJobClients, onChangeJobClients } = props;
+  const { parentCompanies, selectedParentCompanies, onChangeParentCompanies } = props;
 
-  function toggleJobClient(jobClient: string) {
-    const next = new Set(selectedJobClients);
-    if (next.has(jobClient)) {
-      next.delete(jobClient);
+  function toggleParentCompany(parentCompany: string) {
+    const next = new Set(selectedParentCompanies);
+    if (next.has(parentCompany)) {
+      next.delete(parentCompany);
     } else {
-      next.add(jobClient);
+      next.add(parentCompany);
     }
-    onChangeJobClients(next);
+    onChangeParentCompanies(next);
   }
 
   return (
@@ -42,15 +42,17 @@ export function TerritoryFilterModal(props: Props) {
         <hr />
 
         <div className="fw-semibold mb-2">Job Client</div>
-        {jobClients.length === 0 && <div className="text-muted">No job clients available.</div>}
-        {jobClients.map((jobClient) => (
+        {parentCompanies.length === 0 && (
+          <div className="text-muted">No job clients available.</div>
+        )}
+        {parentCompanies.map((parentCompany) => (
           <Form.Check
-            key={jobClient}
+            key={parentCompany}
             type="checkbox"
-            id={`territory-job-client-filter-${jobClient}`}
-            label={jobClient}
-            checked={selectedJobClients.has(jobClient)}
-            onChange={() => toggleJobClient(jobClient)}
+            id={`territory-parent-company-filter-${parentCompany}`}
+            label={parentCompany}
+            checked={selectedParentCompanies.has(parentCompany)}
+            onChange={() => toggleParentCompany(parentCompany)}
             className="mb-2"
           />
         ))}

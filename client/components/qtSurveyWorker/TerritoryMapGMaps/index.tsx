@@ -2,18 +2,13 @@ import React, { useContext, useEffect, useMemo, useState } from "react";
 
 import { Button } from "react-bootstrap";
 
-import {
-  Context,
-  SurveyWorkerQtraxWebsiteTypedefsAddress,
-  SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
-  interfaces,
-  reverse,
-} from "@reactivated";
+import { Context, interfaces, reverse } from "@reactivated";
 
 import { faLocationCrosshairs } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { fetchByReactivated } from "@client/util/commonUtil";
+import { TTerritoryStore } from "@client/util/qtSurveyWorker/scheduleUtils";
 
 import { GoogleMap, InfoWindow, Marker, useJsApiLoader } from "@react-google-maps/api";
 
@@ -40,13 +35,7 @@ interface TRepAddressInput {
 type TRecentlySeenStore = interfaces.QtTerritoryRepData["recently_seen_stores"][number];
 
 interface Props {
-  groupedByStore: Record<
-    number,
-    {
-      address: SurveyWorkerQtraxWebsiteTypedefsAddress;
-      jobs: SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[];
-    }
-  >;
+  groupedByStore: Record<number, TTerritoryStore>;
   // Rep's own home address - used as the fallback map center when the rep has no service
   // orders, and rendered as its own violet marker so it's visually distinct from the green
   // service-order markers. Geocoded client-side on load if lat/lng aren't already resolved.

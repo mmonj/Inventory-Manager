@@ -4,7 +4,6 @@ import { Accordion, Badge, Button, Card } from "react-bootstrap";
 
 import {
   SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore,
-  SurveyWorkerQtraxWebsiteTypedefsAddress,
   SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
 } from "@reactivated";
 
@@ -12,19 +11,17 @@ import { faClock, faExternalLinkAlt, faMapMarkerAlt } from "@fortawesome/free-so
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { encodeQtAddress, getFormattedEstimatedTime } from "@client/util/commonUtil";
-import { formatDateRange, formatWeekdayShortDate } from "@client/util/qtSurveyWorker/scheduleUtils";
+import {
+  TTerritoryStore,
+  formatDateRange,
+  formatWeekdayShortDate,
+} from "@client/util/qtSurveyWorker/scheduleUtils";
 
 type TRecentlySeenStore = SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore;
 
 interface Props {
-  groupedByStore: Record<
-    number,
-    {
-      address: SurveyWorkerQtraxWebsiteTypedefsAddress;
-      jobs: SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[];
-    }
-  >;
-  // schedule.UnscheduledDate sentinel value. A job's DateScheduled equal to this means it
+  groupedByStore: Record<number, TTerritoryStore>;
+  // schedule.UnscheduledDate sentinel value. A service order's DateScheduled equal to this means it
   // hasn't been scheduled yet (DateScheduled is never null/empty, scheduled or not).
   unscheduledDate?: string;
   // Stores with zero SOs in the current schedule (none, not just unscheduled ones)
@@ -40,13 +37,13 @@ function formatLastSeen(lastSeen: string | null): string {
 }
 
 function formatScheduledStatus(
-  job: SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
+  serviceOrder: SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
   unscheduledDate: string | undefined
 ): string {
-  if (unscheduledDate === undefined || job.DateScheduled === unscheduledDate) {
+  if (unscheduledDate === undefined || serviceOrder.DateScheduled === unscheduledDate) {
     return "Unscheduled";
   }
-  return `Scheduled on ${formatWeekdayShortDate(new Date(job.DateScheduled))}`;
+  return `Scheduled on ${formatWeekdayShortDate(new Date(serviceOrder.DateScheduled))}`;
 }
 
 export function StoreList({ groupedByStore, unscheduledDate, noCurrentTicketStores = [] }: Props) {
@@ -80,10 +77,10 @@ export function StoreList({ groupedByStore, unscheduledDate, noCurrentTicketStor
           </div>
 
           <Accordion className="mb-4">
-            {Object.values(groupedByStore).map(({ address, jobs }) => {
+            {Object.values(groupedByStore).map(({ address, serviceOrders }) => {
               let totalHours = 0;
-              for (const job of jobs) {
-                totalHours += job.EstimatedTime;
+              for (const serviceOrder of serviceOrders) {
+                totalHours += serviceOrder.EstimatedTime;
               }
 
               return (
@@ -99,7 +96,7 @@ export function StoreList({ groupedByStore, unscheduledDate, noCurrentTicketStor
                           {address.StoreName || "(Unnamed Store)"}
                         </h5>
                         <Badge bg="primary" pill className="ms-2">
-                          {jobs.length} {jobs.length === 1 ? "ticket" : "tickets"}
+                          {serviceOrders.length} {serviceOrders.length === 1 ? "ticket" : "tickets"}
                         </Badge>
                       </div>
                       <div className="d-flex align-items-center text-muted small mb-1">
@@ -135,31 +132,31 @@ export function StoreList({ groupedByStore, unscheduledDate, noCurrentTicketStor
                     </div>
 
                     <div>
-                      {jobs.map((job, jobIndex) => (
-                        <Card key={jobIndex} className="mb-3 border-0 shadow-sm">
+                      {serviceOrders.map((serviceOrder, serviceOrderIndex) => (
+                        <Card key={serviceOrderIndex} className="mb-3 border-0 shadow-sm">
                           <Card.Body className="p-3">
                             <div className="row g-2">
                               <div className="col-md-6">
                                 <div className="mb-2">
                                   <small className="text-muted d-block">Service Order ID</small>
-                                  <span className="fw-semibold">{job.ServiceOrderId}</span>
+                                  <span className="fw-semibold">{serviceOrder.ServiceOrderId}</span>
                                 </div>
                                 <div className="mb-2">
                                   <small className="text-muted d-block">Description</small>
-                                  <span>{job.ServiceOrderDescription}</span>
+                                  <span>{serviceOrder.ServiceOrderDescription}</span>
                                 </div>
                                 <div className="mb-2">
                                   <small className="text-muted d-block">Status</small>
                                   <Badge
                                     bg={
                                       unscheduledDate !== undefined &&
-                                      job.DateScheduled !== unscheduledDate
+                                      serviceOrder.DateScheduled !== unscheduledDate
                                         ? "primary"
                                         : "secondary"
                                     }
                                     className="fw-normal"
                                   >
-                                    {formatScheduledStatus(job, unscheduledDate)}
+                                    {formatScheduledStatus(serviceOrder, unscheduledDate)}
                                   </Badge>
                                 </div>
                               </div>
@@ -168,15 +165,15 @@ export function StoreList({ groupedByStore, unscheduledDate, noCurrentTicketStor
                                   <small className="text-muted d-block">Estimated Time</small>
                                   <Badge bg="success" className="fw-normal">
                                     <FontAwesomeIcon icon={faClock} className="me-1" />
-                                    {getFormattedEstimatedTime(job.EstimatedTime)}
+                                    {getFormattedEstimatedTime(serviceOrder.EstimatedTime)}
                                   </Badge>
                                 </div>
                                 <div className="mb-2">
                                   <small className="text-muted d-block">Date Range</small>
                                   <span className="text-secondary">
                                     {formatDateRange(
-                                      job.DateScheduleRangeStartOriginal,
-                                      job.DateScheduleRangeEndOriginal
+                                      serviceOrder.DateScheduleRangeStartOriginal,
+                                      serviceOrder.DateScheduleRangeEndOriginal
                                     )}
                                   </span>
                                 </div>

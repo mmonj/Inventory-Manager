@@ -2,10 +2,7 @@ import React, { useState } from "react";
 
 import { Badge, Button } from "react-bootstrap";
 
-import {
-  SurveyWorkerQtraxWebsiteTypedefsAddress,
-  SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
-} from "@reactivated";
+import { SurveyWorkerQtraxWebsiteTypedefsTServiceOrder } from "@reactivated";
 
 import { faClock, faCopy, faExternalLinkAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -15,15 +12,9 @@ import {
   getFormattedEstimatedTime,
   reformatServiceOrderDescription,
 } from "@client/util/commonUtil";
+import { TTerritoryStore } from "@client/util/qtSurveyWorker/scheduleUtils";
 
-export function MapPopupContent({
-  locationGroup,
-}: {
-  locationGroup: {
-    address: SurveyWorkerQtraxWebsiteTypedefsAddress;
-    jobs: SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[];
-  };
-}) {
+export function MapPopupContent({ locationGroup }: { locationGroup: TTerritoryStore }) {
   const [clipboardMessage, setClipboardMessage] = useState<string | null>(null);
 
   function handleCopyAddress() {
@@ -38,34 +29,37 @@ export function MapPopupContent({
   }
 
   let totalHours = 0;
-  for (const job of locationGroup.jobs) {
-    totalHours += job.EstimatedTime;
+  for (const serviceOrder of locationGroup.serviceOrders) {
+    totalHours += serviceOrder.EstimatedTime;
   }
 
-  // group jobs by due date
-  const jobsByDueDate: Record<string, SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[]> =
+  // group service orders by due date
+  const serviceOrdersByDueDate: Record<string, SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[]> =
     React.useMemo(() => {
-      const _jobsByDueDate: Record<string, SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[]> = {};
-      for (const job of locationGroup.jobs) {
-        const dueDate = job.DateScheduleRangeEndOriginal || "No Due Date";
-        if (!(dueDate in _jobsByDueDate)) {
-          _jobsByDueDate[dueDate] = [];
+      const _serviceOrdersByDueDate: Record<
+        string,
+        SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[]
+      > = {};
+      for (const serviceOrder of locationGroup.serviceOrders) {
+        const dueDate = serviceOrder.DateScheduleRangeEndOriginal || "No Due Date";
+        if (!(dueDate in _serviceOrdersByDueDate)) {
+          _serviceOrdersByDueDate[dueDate] = [];
         }
-        _jobsByDueDate[dueDate].push(job);
+        _serviceOrdersByDueDate[dueDate].push(serviceOrder);
       }
 
-      // sort jobs by ServiceOrderDescription
-      for (const [dueDate, jobs] of Object.entries(_jobsByDueDate)) {
-        _jobsByDueDate[dueDate] = jobs.sort((a, b) =>
+      // sort service orders by ServiceOrderDescription
+      for (const [dueDate, serviceOrders] of Object.entries(_serviceOrdersByDueDate)) {
+        _serviceOrdersByDueDate[dueDate] = serviceOrders.sort((a, b) =>
           a.ServiceOrderDescription.localeCompare(b.ServiceOrderDescription)
         );
       }
 
-      return _jobsByDueDate;
-    }, [locationGroup.jobs]);
+      return _serviceOrdersByDueDate;
+    }, [locationGroup.serviceOrders]);
 
   // Sort due dates
-  const sortedDueDates = Object.keys(jobsByDueDate).sort((a, b) => {
+  const sortedDueDates = Object.keys(serviceOrdersByDueDate).sort((a, b) => {
     if (a === "No Due Date") return 1;
     if (b === "No Due Date") return -1;
     return new Date(a).getTime() - new Date(b).getTime();
@@ -113,7 +107,7 @@ export function MapPopupContent({
         </Badge>
       </div>
 
-      {/* Jobs by Due Date */}
+      {/* Service orders by Due Date */}
       <div>
         {sortedDueDates.map((dueDate, idx) => (
           <React.Fragment key={dueDate}>
@@ -124,13 +118,16 @@ export function MapPopupContent({
                   : `Due: ${new Date(dueDate).toLocaleDateString()}`}
               </div>
               <ul className="list-unstyled ps-2 mb-0">
-                {jobsByDueDate[dueDate].map((job) => (
-                  <li key={job.JobId} className="small mb-2 d-flex justify-content-between">
+                {serviceOrdersByDueDate[dueDate].map((serviceOrder) => (
+                  <li
+                    key={serviceOrder.JobId}
+                    className="small mb-2 d-flex justify-content-between"
+                  >
                     <span className="flex-grow-1 me-2 text-white">
-                      {reformatServiceOrderDescription(job.ServiceOrderDescription)}
+                      {reformatServiceOrderDescription(serviceOrder.ServiceOrderDescription)}
                     </span>
                     <Badge bg="secondary" pill className="align-self-start">
-                      {getFormattedEstimatedTime(job.EstimatedTime)}
+                      {getFormattedEstimatedTime(serviceOrder.EstimatedTime)}
                     </Badge>
                   </li>
                 ))}
