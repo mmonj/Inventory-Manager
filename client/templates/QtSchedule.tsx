@@ -20,6 +20,10 @@ import {
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { fetchByReactivated } from "@client/util/commonUtil";
 import {
+  INITIAL_CALENDAR_MODE,
+  calendarModeReducer,
+} from "@client/util/qtSurveyWorker/calendarMode";
+import {
   TSchedule,
   TServiceOrder,
   TUnscheduledOrderBy,
@@ -44,6 +48,9 @@ import { useFetch } from "../hooks/useFetch";
 import "@client/scss/react-day-picker.scss";
 
 const LAST_SELECTED_REP_ID_KEY = "calendar-rep-id-last-used";
+// shared so modes without auto-schedule dates don't hand downstream useMemo hooks a new array
+// on every render
+const NO_DATES: Date[] = [];
 
 export function Template(props: templates.QtSchedule) {
   const context = React.useContext(Context);
@@ -63,24 +70,21 @@ export function Template(props: templates.QtSchedule) {
   const hasFetchedInitialSchedule = React.useRef(false);
 
   const [selectedRepId, setSelectedRepId] = React.useState<number | null>(null);
-  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
   const [localSchedule, setLocalSchedule] = React.useState<TSchedule | null>(null);
-  const [isSwapMode, setIsSwapMode] = React.useState(false);
-  const [swapSelectedDates, setSwapSelectedDates] = React.useState<Date[]>([]);
+  const [calendarMode, dispatchCalendarMode] = React.useReducer(
+    calendarModeReducer,
+    INITIAL_CALENDAR_MODE
+  );
   const [unscheduledOrderBy, setUnscheduledOrderBy] =
     React.useState<TUnscheduledOrderBy>("Location");
   const [showJobClientFilter, setShowJobClientFilter] = React.useState(false);
   const [selectedJobClients, setSelectedJobClients] = React.useState<Set<string>>(new Set());
   const [unscheduledSearchQuery, setUnscheduledSearchQuery] = React.useState("");
-  const [isAutoScheduleMode, setIsAutoScheduleMode] = React.useState(false);
-  const [autoScheduleSelectedDates, setAutoScheduleSelectedDates] = React.useState<Date[]>([]);
-  const [autoScheduleSelectedSoIds, setAutoScheduleSelectedSoIds] = React.useState<Set<number>>(
-    new Set()
-  );
-  const [isBulkUnscheduleMode, setIsBulkUnscheduleMode] = React.useState(false);
-  const [bulkUnscheduleSelectedDates, setBulkUnscheduleSelectedDates] = React.useState<Date[]>([]);
   const [showCopyScheduleModal, setShowCopyScheduleModal] = React.useState(false);
 
+  const selectedDate = calendarMode.kind === "singleDate" ? calendarMode.selectedDate : undefined;
+  const autoScheduleSelectedDates =
+    calendarMode.kind === "autoSchedule" ? calendarMode.selectedDates : NO_DATES;
   const selectedDateKey = selectedDate ? toDateKey(selectedDate) : null;
 
   React.useEffect(() => {
@@ -137,12 +141,12 @@ export function Template(props: templates.QtSchedule) {
     if (!isTodayAllowed) {
       date.setDate(date.getDate() + 1);
     }
-    setSelectedDate(date);
+    dispatchCalendarMode({ type: "selectDate", date });
   }
 
   async function handleSelectRep(event: React.ChangeEvent<HTMLSelectElement>) {
     const repId = Number(event.target.value);
-    setSelectedDate(undefined);
+    dispatchCalendarMode({ type: "fieldRepChanged" });
     setLocalSchedule(null);
 
     if (repId < 0) {
@@ -317,11 +321,15 @@ export function Template(props: templates.QtSchedule) {
   }
 
   async function handleExecuteSwap() {
-    if (selectedRepId === null || swapSelectedDates.length !== 2) {
+    if (
+      selectedRepId === null ||
+      calendarMode.kind !== "dateSwap" ||
+      calendarMode.selectedDates.length !== 2
+    ) {
       return;
     }
 
-    const [dateA, dateB] = swapSelectedDates;
+    const [dateA, dateB] = calendarMode.selectedDates;
     const dateAKey = toDateKey(dateA);
     const dateBKey = toDateKey(dateB);
 
@@ -370,8 +378,7 @@ export function Template(props: templates.QtSchedule) {
     await fetchScheduleForRep(selectedRepId, true);
     setIsSwapRefetching(false);
 
-    setIsSwapMode(false);
-    setSwapSelectedDates([]);
+    dispatchCalendarMode({ type: "scheduleChangeApplied" });
 
     const problems = describeScheduleChangeProblems(result);
     if (problems !== null) {
@@ -419,7 +426,7 @@ export function Template(props: templates.QtSchedule) {
   // SO that can't land on any selected date is just noise here. No dates selected yet - show
   // everything (unfiltered by date), same as normal mode.
   const unscheduledServiceOrders = React.useMemo(() => {
-    if (!isAutoScheduleMode || autoScheduleSelectedDates.length === 0) {
+    if (autoScheduleSelectedDates.length === 0) {
       return filteredUnscheduledServiceOrders;
     }
 
@@ -428,7 +435,7 @@ export function Template(props: templates.QtSchedule) {
       const rangeEnd = new Date(so.DateScheduleRangeEnd);
       return autoScheduleSelectedDates.some((date) => date >= rangeStart && date <= rangeEnd);
     });
-  }, [filteredUnscheduledServiceOrders, isAutoScheduleMode, autoScheduleSelectedDates]);
+  }, [filteredUnscheduledServiceOrders, autoScheduleSelectedDates]);
 
   const isSearchFilterActive = unscheduledSearchQuery.trim() !== "";
   const isUnscheduledFilterActive = isJobClientFilterActive || isSearchFilterActive;
@@ -471,47 +478,38 @@ export function Template(props: templates.QtSchedule) {
     [unscheduledServiceOrders]
   );
 
+  // The auto-schedule selection keeps SOs that a filter or search hides, so they're still
+  // checked when they come back into view. Only the visible checked ones count: for the
+  // selected count, the average hours per day and what gets sent to auto-schedule.
+  const autoScheduleSelectedSoIds =
+    calendarMode.kind === "autoSchedule" ? calendarMode.selectedServiceOrderIds : null;
+  const visibleAutoScheduleSelectedSoIds = React.useMemo(() => {
+    if (autoScheduleSelectedSoIds === null) {
+      return new Set<number>();
+    }
+    return new Set([...visibleUnscheduledSoIds].filter((id) => autoScheduleSelectedSoIds.has(id)));
+  }, [visibleUnscheduledSoIds, autoScheduleSelectedSoIds]);
+
   // Naive average: total hours of the selected SOs divided evenly across the selected
   // dates. Doesn't account for the backend's per-store/location bucketing (see
   // build_auto_schedule_groups) - that's the backend's job, this is just a rough estimate
   // for the user while picking dates/SOs.
   const autoScheduleAverageHoursPerDay = React.useMemo(() => {
-    if (autoScheduleSelectedSoIds.size === 0 || autoScheduleSelectedDates.length === 0) {
+    if (visibleAutoScheduleSelectedSoIds.size === 0 || autoScheduleSelectedDates.length === 0) {
       return null;
     }
 
     const totalHours = unscheduledServiceOrders
-      .filter((so) => autoScheduleSelectedSoIds.has(so.ServiceOrderId))
+      .filter((so) => visibleAutoScheduleSelectedSoIds.has(so.ServiceOrderId))
       .reduce((sum, so) => sum + so.EstimatedTime, 0);
 
     return totalHours / autoScheduleSelectedDates.length;
-  }, [unscheduledServiceOrders, autoScheduleSelectedSoIds, autoScheduleSelectedDates]);
-
-  // only SOs currently visible in the Unscheduled list count as selected -
-  // dropping a SO out of view (via date/job-client filtering) also drops its selection
-  React.useEffect(() => {
-    setAutoScheduleSelectedSoIds((current) => {
-      const next = new Set([...current].filter((id) => visibleUnscheduledSoIds.has(id)));
-      return next.size === current.size ? current : next;
-    });
-  }, [visibleUnscheduledSoIds]);
-
-  function toggleAutoScheduleSoSelected(soId: number) {
-    setAutoScheduleSelectedSoIds((current) => {
-      const next = new Set(current);
-      if (next.has(soId)) {
-        next.delete(soId);
-      } else {
-        next.add(soId);
-      }
-      return next;
-    });
-  }
+  }, [unscheduledServiceOrders, visibleAutoScheduleSelectedSoIds, autoScheduleSelectedDates]);
 
   async function handleExecuteAutoSchedule() {
     if (
       selectedRepId === null ||
-      autoScheduleSelectedSoIds.size === 0 ||
+      visibleAutoScheduleSelectedSoIds.size === 0 ||
       autoScheduleSelectedDates.length === 0
     ) {
       return;
@@ -520,7 +518,8 @@ export function Template(props: templates.QtSchedule) {
     // only physical-visit SOs are eligible for auto-scheduling
     const serviceOrderIds = serviceOrders
       .filter(
-        (so) => autoScheduleSelectedSoIds.has(so.ServiceOrderId) && so.Address.IsPhysicalVisit
+        (so) =>
+          visibleAutoScheduleSelectedSoIds.has(so.ServiceOrderId) && so.Address.IsPhysicalVisit
       )
       .map((so) => so.ServiceOrderId);
     const dateKeys = autoScheduleSelectedDates.map((date) => toDateKey(date));
@@ -566,9 +565,7 @@ export function Template(props: templates.QtSchedule) {
     await fetchScheduleForRep(selectedRepId, true);
     setIsAutoScheduleRefetching(false);
 
-    setAutoScheduleSelectedSoIds(new Set());
-    setAutoScheduleSelectedDates([]);
-    setIsAutoScheduleMode(false);
+    dispatchCalendarMode({ type: "scheduleChangeApplied" });
 
     const problems = describeScheduleChangeProblems(result);
     if (problems !== null) {
@@ -579,14 +576,15 @@ export function Template(props: templates.QtSchedule) {
   // Shared by Bulk-Unschedule and Clear Date - both call execute_bulk_unschedule (Clear Date
   // just scopes it to the one selected date) and follow the same success/failure/partial-
   // failure handling: refetch the schedule regardless of outcome (the server unscheduled
-  // whatever it could, so guessing the result locally would risk drifting from reality), then
-  // report aborted_early/per-SO failures without treating them as a hard failure.
+  // whatever it could, so guessing the result locally would risk drifting from reality), call
+  // onApplied, then report aborted_early/per-SO failures without treating them as a hard
+  // failure. A failed request returns before onApplied, so the user can retry.
   async function executeUnscheduleDates(
     dateKeys: string[],
     fetcher: typeof executeBulkUnscheduleFetch,
     setRefetching: (value: boolean) => void,
     failureAlertPrefix: string,
-    onSuccess: () => void
+    onApplied: () => void
   ): Promise<void> {
     if (selectedRepId === null || dateKeys.length === 0) {
       return;
@@ -610,12 +608,12 @@ export function Template(props: templates.QtSchedule) {
       return;
     }
 
-    onSuccess();
-
     // force-bypass the cache/freshness-delta since we just mutated the schedule server-side
     setRefetching(true);
     await fetchScheduleForRep(selectedRepId, true);
     setRefetching(false);
+
+    onApplied();
 
     const problems = describeScheduleChangeProblems(result);
     if (problems !== null) {
@@ -624,11 +622,14 @@ export function Template(props: templates.QtSchedule) {
   }
 
   async function handleExecuteBulkUnschedule() {
-    if (selectedRepId === null || bulkUnscheduleSelectedDates.length === 0) {
+    if (selectedRepId === null || calendarMode.kind !== "bulkUnschedule") {
       return;
     }
 
-    const dateKeys = bulkUnscheduleSelectedDates.map((date) => toDateKey(date));
+    const dateKeys = calendarMode.selectedDates.map((date) => toDateKey(date));
+    if (dateKeys.length === 0) {
+      return;
+    }
 
     if (
       !confirm(
@@ -644,10 +645,7 @@ export function Template(props: templates.QtSchedule) {
       executeBulkUnscheduleFetch,
       setIsBulkUnscheduleRefetching,
       "Failed to bulk-unschedule service orders",
-      () => {
-        setBulkUnscheduleSelectedDates([]);
-        setIsBulkUnscheduleMode(false);
-      }
+      () => dispatchCalendarMode({ type: "scheduleChangeApplied" })
     );
   }
 
@@ -725,6 +723,10 @@ export function Template(props: templates.QtSchedule) {
     [serviceOrdersForSelectedDate]
   );
 
+  function selectCalendarModeDates(dates: Date[] | undefined) {
+    dispatchCalendarMode({ type: "selectDates", dates: dates ?? [] });
+  }
+
   async function handleClearScheduledDate() {
     if (
       selectedRepId === null ||
@@ -750,6 +752,7 @@ export function Template(props: templates.QtSchedule) {
       clearDateFetch,
       setIsClearDateRefetching,
       "Failed to clear date",
+      // Clear Date keeps its date selected, so the user can see it's now empty
       () => {}
     );
   }
@@ -942,19 +945,20 @@ export function Template(props: templates.QtSchedule) {
                     </div>
                   )}
                   <div className="px-3 pt-3 d-flex align-items-center justify-content-end">
-                    {isAutoScheduleMode && (
+                    {calendarMode.kind === "autoSchedule" && (
                       <div className="d-flex align-items-center gap-2">
                         <span className="text-muted small text-nowrap">
-                          {autoScheduleSelectedSoIds.size}/{visibleUnscheduledSoIds.size} currently
-                          selected
+                          {visibleAutoScheduleSelectedSoIds.size}/{visibleUnscheduledSoIds.size}{" "}
+                          currently selected
                         </span>
                         <Button
                           variant="outline-secondary"
                           size="sm"
                           onClick={() =>
-                            setAutoScheduleSelectedSoIds(
-                              (current) => new Set([...current, ...visibleUnscheduledSoIds])
-                            )
+                            dispatchCalendarMode({
+                              type: "selectServiceOrders",
+                              serviceOrderIds: visibleUnscheduledSoIds,
+                            })
                           }
                         >
                           Select All
@@ -963,12 +967,10 @@ export function Template(props: templates.QtSchedule) {
                           variant="outline-secondary"
                           size="sm"
                           onClick={() =>
-                            setAutoScheduleSelectedSoIds(
-                              (current) =>
-                                new Set(
-                                  [...current].filter((id) => !visibleUnscheduledSoIds.has(id))
-                                )
-                            )
+                            dispatchCalendarMode({
+                              type: "deselectServiceOrders",
+                              serviceOrderIds: visibleUnscheduledSoIds,
+                            })
                           }
                         >
                           Deselect All
@@ -1001,16 +1003,23 @@ export function Template(props: templates.QtSchedule) {
                           key={so.ServiceOrderId}
                           so={so}
                           checkbox={
-                            isAutoScheduleMode ? (
+                            calendarMode.kind === "autoSchedule" ? (
                               <Form.Check
                                 type="checkbox"
-                                checked={autoScheduleSelectedSoIds.has(so.ServiceOrderId)}
-                                onChange={() => toggleAutoScheduleSoSelected(so.ServiceOrderId)}
+                                checked={calendarMode.selectedServiceOrderIds.has(
+                                  so.ServiceOrderId
+                                )}
+                                onChange={() =>
+                                  dispatchCalendarMode({
+                                    type: "toggleServiceOrder",
+                                    serviceOrderId: so.ServiceOrderId,
+                                  })
+                                }
                               />
                             ) : undefined
                           }
                           action={
-                            isAutoScheduleMode ? null : (
+                            calendarMode.kind === "autoSchedule" ? null : (
                               <Button
                                 variant="primary"
                                 size="sm"
@@ -1074,73 +1083,77 @@ export function Template(props: templates.QtSchedule) {
                       type="checkbox"
                       id="swap-jobs-checkbox"
                       label="Swap Jobs"
-                      checked={isSwapMode}
-                      disabled={isAutoScheduleMode || isBulkUnscheduleMode}
-                      onChange={(event) => {
-                        setIsSwapMode(event.target.checked);
-                        setSwapSelectedDates([]);
-                      }}
+                      checked={calendarMode.kind === "dateSwap"}
+                      disabled={
+                        calendarMode.kind === "autoSchedule" ||
+                        calendarMode.kind === "bulkUnschedule"
+                      }
+                      onChange={(event) =>
+                        dispatchCalendarMode(
+                          event.target.checked
+                            ? { type: "enterMode", kind: "dateSwap" }
+                            : { type: "leaveMode" }
+                        )
+                      }
                     />
                     {/* stays visible while the mode is on so it can always be turned off,
                         even after filters/search empty the Unscheduled list */}
-                    {(unscheduledServiceOrders.length > 0 || isAutoScheduleMode) && (
+                    {(unscheduledServiceOrders.length > 0 ||
+                      calendarMode.kind === "autoSchedule") && (
                       <Form.Check
                         type="checkbox"
                         id="enable-auto-scheduling-checkbox"
                         label="Auto-Schedule"
-                        checked={isAutoScheduleMode}
-                        disabled={isBulkUnscheduleMode || isSwapMode}
-                        onChange={(event) => {
-                          const isChecked = event.target.checked;
-                          setIsAutoScheduleMode(isChecked);
-                          setAutoScheduleSelectedSoIds(new Set());
-                          setAutoScheduleSelectedDates([]);
-                          if (isChecked) {
-                            setIsSwapMode(false);
-                            setSwapSelectedDates([]);
-                            setIsBulkUnscheduleMode(false);
-                            setBulkUnscheduleSelectedDates([]);
-                            setSelectedDate(undefined);
-                          }
-                        }}
+                        checked={calendarMode.kind === "autoSchedule"}
+                        disabled={
+                          calendarMode.kind === "bulkUnschedule" || calendarMode.kind === "dateSwap"
+                        }
+                        onChange={(event) =>
+                          dispatchCalendarMode(
+                            event.target.checked
+                              ? { type: "enterMode", kind: "autoSchedule" }
+                              : { type: "leaveMode" }
+                          )
+                        }
                       />
                     )}
                     <Form.Check
                       type="checkbox"
                       id="enable-bulk-unschedule-checkbox"
                       label="Bulk-Unschedule"
-                      checked={isBulkUnscheduleMode}
-                      disabled={isAutoScheduleMode || isSwapMode}
-                      onChange={(event) => {
-                        const isChecked = event.target.checked;
-                        setIsBulkUnscheduleMode(isChecked);
-                        setBulkUnscheduleSelectedDates([]);
-                        if (isChecked) {
-                          setSelectedDate(undefined);
-                        }
-                      }}
+                      checked={calendarMode.kind === "bulkUnschedule"}
+                      disabled={
+                        calendarMode.kind === "autoSchedule" || calendarMode.kind === "dateSwap"
+                      }
+                      onChange={(event) =>
+                        dispatchCalendarMode(
+                          event.target.checked
+                            ? { type: "enterMode", kind: "bulkUnschedule" }
+                            : { type: "leaveMode" }
+                        )
+                      }
                     />
                   </div>
                   <div className="d-flex align-items-center flex-wrap gap-2 mt-2">
-                    {isSwapMode && (
+                    {calendarMode.kind === "dateSwap" && (
                       <ButtonWithSpinner
                         type="button"
                         className="btn btn-warning btn-sm"
-                        disabled={swapSelectedDates.length !== 2}
+                        disabled={calendarMode.selectedDates.length !== 2}
                         spinnerVariant="black"
                         fetchState={swapServiceOrdersFetch}
-                        onClick={() => swapSelectedDates.length === 2 && handleExecuteSwap()}
+                        onClick={() => void handleExecuteSwap()}
                       >
                         Execute Swap
                       </ButtonWithSpinner>
                     )}
-                    {isAutoScheduleMode && (
+                    {calendarMode.kind === "autoSchedule" && (
                       <ButtonWithSpinner
                         type="button"
                         className="btn btn-primary btn-sm"
                         disabled={
-                          autoScheduleSelectedSoIds.size === 0 ||
-                          autoScheduleSelectedDates.length === 0
+                          visibleAutoScheduleSelectedSoIds.size === 0 ||
+                          calendarMode.selectedDates.length === 0
                         }
                         fetchState={executeAutoScheduleFetch}
                         spinnerVariant="dark"
@@ -1149,11 +1162,11 @@ export function Template(props: templates.QtSchedule) {
                         Execute Auto-Schedule for Selected
                       </ButtonWithSpinner>
                     )}
-                    {isBulkUnscheduleMode && (
+                    {calendarMode.kind === "bulkUnschedule" && (
                       <ButtonWithSpinner
                         type="button"
                         className="btn btn-warning btn-sm"
-                        disabled={bulkUnscheduleSelectedDates.length === 0}
+                        disabled={calendarMode.selectedDates.length === 0}
                         fetchState={executeBulkUnscheduleFetch}
                         spinnerVariant="black"
                         onClick={() => void handleExecuteBulkUnschedule()}
@@ -1164,17 +1177,17 @@ export function Template(props: templates.QtSchedule) {
                   </div>
                 </div>
 
-                {isSwapMode && (
+                {calendarMode.kind === "dateSwap" && (
                   <Alert variant="info" className="mb-0 py-2 rounded-bottom-0">
                     <div className="mb-1">
                       Select two calendar dates to swap all physical-visit service orders between
                       them, then click &quot;Execute Swap&quot;.
                     </div>
-                    <strong>({swapSelectedDates.length}/2 dates selected)</strong>
+                    <strong>({calendarMode.selectedDates.length}/2 dates selected)</strong>
                   </Alert>
                 )}
 
-                {isAutoScheduleMode && (
+                {calendarMode.kind === "autoSchedule" && (
                   <Alert variant="info" className="mb-0 py-2 rounded-bottom-0">
                     <div className="mb-1">
                       Select one or more dates on the calendar, then check off service orders in the
@@ -1182,27 +1195,27 @@ export function Template(props: templates.QtSchedule) {
                       automatically assign the selected service orders to those dates.
                     </div>
                     <strong>
-                      {autoScheduleSelectedSoIds.size} SO(s), {autoScheduleSelectedDates.length}{" "}
-                      date(s) selected
+                      {visibleAutoScheduleSelectedSoIds.size} SO(s),{" "}
+                      {calendarMode.selectedDates.length} date(s) selected
                       {autoScheduleAverageHoursPerDay !== null &&
                         ` (~${autoScheduleAverageHoursPerDay.toFixed(2)} avg hrs/day)`}
                     </strong>
                   </Alert>
                 )}
 
-                {isBulkUnscheduleMode && (
+                {calendarMode.kind === "bulkUnschedule" && (
                   <Alert variant="info" className="mb-0 py-2 rounded-bottom-0">
                     <div>
                       Select one or more calendar dates to unschedule every physical-visit service
                       order currently scheduled on them, then click &quot;Execute
                       Bulk-Unschedule&quot;.
                     </div>
-                    <strong>({bulkUnscheduleSelectedDates.length} date(s) selected)</strong>
+                    <strong>({calendarMode.selectedDates.length} date(s) selected)</strong>
                   </Alert>
                 )}
 
-                {isAutoScheduleMode &&
-                  autoScheduleSelectedDates.length > 0 &&
+                {calendarMode.kind === "autoSchedule" &&
+                  calendarMode.selectedDates.length > 0 &&
                   unscheduledServiceOrders.length === 0 && (
                     <Alert variant="danger" className="mb-0 py-2 rounded-bottom-0">
                       None of the unscheduled service orders can be scheduled on the currently
@@ -1215,21 +1228,23 @@ export function Template(props: templates.QtSchedule) {
                   schedulableDateKeys={schedulableDateKeys}
                   selectedDate={selectedDate}
                   daySummaries={daySummaries}
-                  onSelectDate={setSelectedDate}
-                  swapMode={isSwapMode}
-                  swapSelectedDates={swapSelectedDates}
-                  onSelectSwapDates={(dates) => setSwapSelectedDates(dates ?? [])}
-                  autoScheduleMode={isAutoScheduleMode}
-                  autoScheduleSelectedDates={autoScheduleSelectedDates}
-                  onSelectAutoScheduleDates={(dates) => setAutoScheduleSelectedDates(dates ?? [])}
-                  bulkUnscheduleMode={isBulkUnscheduleMode}
-                  bulkUnscheduleSelectedDates={bulkUnscheduleSelectedDates}
-                  onSelectBulkUnscheduleDates={(dates) =>
-                    setBulkUnscheduleSelectedDates(dates ?? [])
+                  onSelectDate={(date) => dispatchCalendarMode({ type: "selectDate", date })}
+                  swapMode={calendarMode.kind === "dateSwap"}
+                  swapSelectedDates={
+                    calendarMode.kind === "dateSwap" ? calendarMode.selectedDates : []
                   }
+                  onSelectSwapDates={selectCalendarModeDates}
+                  autoScheduleMode={calendarMode.kind === "autoSchedule"}
+                  autoScheduleSelectedDates={autoScheduleSelectedDates}
+                  onSelectAutoScheduleDates={selectCalendarModeDates}
+                  bulkUnscheduleMode={calendarMode.kind === "bulkUnschedule"}
+                  bulkUnscheduleSelectedDates={
+                    calendarMode.kind === "bulkUnschedule" ? calendarMode.selectedDates : []
+                  }
+                  onSelectBulkUnscheduleDates={selectCalendarModeDates}
                 />
 
-                {!isSwapMode && !isBulkUnscheduleMode && (
+                {(calendarMode.kind === "singleDate" || calendarMode.kind === "autoSchedule") && (
                   <Card className="mt-4">
                     <Card.Header className="bg-primary text-white d-flex align-items-center justify-content-between gap-3">
                       <span>
