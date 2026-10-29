@@ -1,14 +1,15 @@
-// The Schedule page's calendar is always in exactly one mode. Each kind carries only its own
-// selections, and calendarModeReducer is the only way the mode changes, so the rules between
-// modes live here instead of in the page's event handlers.
-
+/**
+ * The Schedule page's calendar is always in exactly one mode. Each kind carries only its own
+ * selections, and calendarModeReducer is the only way the mode changes, so the rules between
+ * modes live here instead of in the page's event handlers.
+ */
 export type TCalendarMode =
   | { kind: "singleDate"; selectedDate: Date | undefined }
   | { kind: "dateSwap"; selectedDates: Date[] }
   | { kind: "autoSchedule"; selectedDates: Date[]; selectedServiceOrderIds: ReadonlySet<number> }
   | { kind: "bulkUnschedule"; selectedDates: Date[] };
 
-export type TCalendarModeKind = TCalendarMode["kind"];
+type TCalendarModeKind = TCalendarMode["kind"];
 export type TEnterableModeKind = Exclude<TCalendarModeKind, "singleDate">;
 
 export type TCalendarModeAction =
@@ -20,7 +21,7 @@ export type TCalendarModeAction =
   | { type: "selectServiceOrders"; serviceOrderIds: Iterable<number> }
   | { type: "deselectServiceOrders"; serviceOrderIds: Iterable<number> }
   | { type: "fieldRepChanged" }
-  // A date swap, auto-schedule or bulk unschedule went through and the schedule was refetched
+  /** A date swap, auto-schedule or bulk unschedule went through and the schedule was refetched */
   | { type: "scheduleChangeApplied" };
 
 const MAX_DATE_SWAP_DATES = 2;
@@ -38,74 +39,75 @@ function startMode(kind: TEnterableModeKind): TCalendarMode {
   }
 }
 
+/** Applies `updateIds` to a copy of the auto-schedule selection. Other modes have none to change. */
+function updateSelectedServiceOrderIds(
+  calendarMode: TCalendarMode,
+  updateIds: (selectedServiceOrderIds: Set<number>) => void
+): TCalendarMode {
+  if (calendarMode.kind !== "autoSchedule") {
+    return calendarMode;
+  }
+  const selectedServiceOrderIds = new Set(calendarMode.selectedServiceOrderIds);
+  updateIds(selectedServiceOrderIds);
+  return { ...calendarMode, selectedServiceOrderIds };
+}
+
 export function calendarModeReducer(
-  mode: TCalendarMode,
+  calendarMode: TCalendarMode,
   action: TCalendarModeAction
 ): TCalendarMode {
   switch (action.type) {
     case "enterMode":
-      return mode.kind === action.kind ? mode : startMode(action.kind);
+      return calendarMode.kind === action.kind ? calendarMode : startMode(action.kind);
     case "leaveMode":
-      return mode.kind === "singleDate" ? mode : INITIAL_CALENDAR_MODE;
+      return calendarMode.kind === "singleDate" ? calendarMode : INITIAL_CALENDAR_MODE;
     case "selectDate":
-      return mode.kind === "singleDate" ? { kind: "singleDate", selectedDate: action.date } : mode;
+      return calendarMode.kind === "singleDate"
+        ? { kind: "singleDate", selectedDate: action.date }
+        : calendarMode;
     case "selectDates":
-      if (mode.kind === "singleDate") {
-        return mode;
+      if (calendarMode.kind === "singleDate") {
+        return calendarMode;
       }
-      if (mode.kind === "dateSwap" && action.dates.length > MAX_DATE_SWAP_DATES) {
-        return mode;
+      if (calendarMode.kind === "dateSwap" && action.dates.length > MAX_DATE_SWAP_DATES) {
+        return calendarMode;
       }
-      return { ...mode, selectedDates: action.dates };
-    case "toggleServiceOrder": {
-      if (mode.kind !== "autoSchedule") {
-        return mode;
-      }
-      const selectedServiceOrderIds = new Set(mode.selectedServiceOrderIds);
-      if (selectedServiceOrderIds.has(action.serviceOrderId)) {
-        selectedServiceOrderIds.delete(action.serviceOrderId);
-      } else {
-        selectedServiceOrderIds.add(action.serviceOrderId);
-      }
-      return { ...mode, selectedServiceOrderIds };
-    }
-    case "selectServiceOrders": {
-      if (mode.kind !== "autoSchedule") {
-        return mode;
-      }
-      const selectedServiceOrderIds = new Set(mode.selectedServiceOrderIds);
-      for (const serviceOrderId of action.serviceOrderIds) {
-        selectedServiceOrderIds.add(serviceOrderId);
-      }
-      return { ...mode, selectedServiceOrderIds };
-    }
-    case "deselectServiceOrders": {
-      if (mode.kind !== "autoSchedule") {
-        return mode;
-      }
-      const selectedServiceOrderIds = new Set(mode.selectedServiceOrderIds);
-      for (const serviceOrderId of action.serviceOrderIds) {
-        selectedServiceOrderIds.delete(serviceOrderId);
-      }
-      return { ...mode, selectedServiceOrderIds };
-    }
+      return { ...calendarMode, selectedDates: action.dates };
+    case "toggleServiceOrder":
+      return updateSelectedServiceOrderIds(calendarMode, (selectedServiceOrderIds) => {
+        if (!selectedServiceOrderIds.delete(action.serviceOrderId)) {
+          selectedServiceOrderIds.add(action.serviceOrderId);
+        }
+      });
+    case "selectServiceOrders":
+      return updateSelectedServiceOrderIds(calendarMode, (selectedServiceOrderIds) => {
+        for (const serviceOrderId of action.serviceOrderIds) {
+          selectedServiceOrderIds.add(serviceOrderId);
+        }
+      });
+    case "deselectServiceOrders":
+      return updateSelectedServiceOrderIds(calendarMode, (selectedServiceOrderIds) => {
+        for (const serviceOrderId of action.serviceOrderIds) {
+          selectedServiceOrderIds.delete(serviceOrderId);
+        }
+      });
     case "fieldRepChanged":
     case "scheduleChangeApplied":
       return INITIAL_CALENDAR_MODE;
   }
 }
 
-// What the calendar's date picker selects in the current mode
-export type TDatePickerSelection =
+/** What the calendar's date picker selects in the current calendar mode. */
+type TDatePickerSelection =
   | { mode: "single"; selected: Date | undefined }
   | { mode: "multiple"; selected: Date[]; max: number | undefined };
 
-export function getDatePickerSelection(mode: TCalendarMode): TDatePickerSelection {
-  if (mode.kind === "singleDate") {
-    return { mode: "single", selected: mode.selectedDate };
+export function getDatePickerSelection(calendarMode: TCalendarMode): TDatePickerSelection {
+  if (calendarMode.kind === "singleDate") {
+    return { mode: "single", selected: calendarMode.selectedDate };
   }
-  if (mode.kind === "dateSwap") {
-    return { mode: "multiple", selected: mode.selectedDates, max: MAX_DATE_SWAP_DATES };
+  if (calendarMode.kind === "dateSwap") {
+    return { mode: "multiple", selected: calendarMode.selectedDates, max: MAX_DATE_SWAP_DATES };
   }
-  return { mode: "multiple", selected: mode.selectedDates, max: undefined };
+  return { mode: "multiple", selected: calendarMode.selectedDates, max: undefined };
 }

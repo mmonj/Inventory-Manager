@@ -21,6 +21,9 @@ import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { fetchByReactivated } from "@client/util/commonUtil";
 import {
   INITIAL_CALENDAR_MODE,
+  TCalendarMode,
+  TCalendarModeAction,
+  TEnterableModeKind,
   calendarModeReducer,
 } from "@client/util/qtSurveyWorker/calendarMode";
 import {
@@ -51,6 +54,35 @@ const LAST_SELECTED_REP_ID_KEY = "calendar-rep-id-last-used";
 // shared so modes without auto-schedule dates don't hand downstream useMemo hooks a new array
 // on every render
 const NO_DATES: Date[] = [];
+
+interface ICalendarModeCheckboxProps {
+  kind: TEnterableModeKind;
+  id: string;
+  label: string;
+  calendarMode: TCalendarMode;
+  dispatchCalendarMode: React.Dispatch<TCalendarModeAction>;
+}
+
+/** Turns one calendar mode on or off. Disabled while a different mode is on. */
+function CalendarModeCheckbox(props: ICalendarModeCheckboxProps) {
+  const isOtherModeOn =
+    props.calendarMode.kind !== "singleDate" && props.calendarMode.kind !== props.kind;
+
+  return (
+    <Form.Check
+      type="checkbox"
+      id={props.id}
+      label={props.label}
+      checked={props.calendarMode.kind === props.kind}
+      disabled={isOtherModeOn}
+      onChange={(event) =>
+        props.dispatchCalendarMode(
+          event.target.checked ? { type: "enterMode", kind: props.kind } : { type: "leaveMode" }
+        )
+      }
+    />
+  );
+}
 
 export function Template(props: templates.QtSchedule) {
   const context = React.useContext(Context);
@@ -999,12 +1031,10 @@ export function Template(props: templates.QtSchedule) {
                           key={so.ServiceOrderId}
                           so={so}
                           checkbox={
-                            calendarMode.kind === "autoSchedule" ? (
+                            autoScheduleSelectedSoIds !== null ? (
                               <Form.Check
                                 type="checkbox"
-                                checked={calendarMode.selectedServiceOrderIds.has(
-                                  so.ServiceOrderId
-                                )}
+                                checked={autoScheduleSelectedSoIds.has(so.ServiceOrderId)}
                                 onChange={() =>
                                   dispatchCalendarMode({
                                     type: "toggleServiceOrder",
@@ -1015,7 +1045,7 @@ export function Template(props: templates.QtSchedule) {
                             ) : undefined
                           }
                           action={
-                            calendarMode.kind === "autoSchedule" ? null : (
+                            autoScheduleSelectedSoIds !== null ? null : (
                               <Button
                                 variant="primary"
                                 size="sm"
@@ -1075,59 +1105,31 @@ export function Template(props: templates.QtSchedule) {
               <div className="col-md-6 order-1 order-md-2">
                 <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-sm-between gap-2 mb-2">
                   <div className="d-flex align-items-center flex-wrap gap-3">
-                    <Form.Check
-                      type="checkbox"
+                    <CalendarModeCheckbox
+                      kind="dateSwap"
                       id="swap-jobs-checkbox"
                       label="Swap Jobs"
-                      checked={calendarMode.kind === "dateSwap"}
-                      disabled={
-                        calendarMode.kind === "autoSchedule" ||
-                        calendarMode.kind === "bulkUnschedule"
-                      }
-                      onChange={(event) =>
-                        dispatchCalendarMode(
-                          event.target.checked
-                            ? { type: "enterMode", kind: "dateSwap" }
-                            : { type: "leaveMode" }
-                        )
-                      }
+                      calendarMode={calendarMode}
+                      dispatchCalendarMode={dispatchCalendarMode}
                     />
                     {/* stays visible while the mode is on so it can always be turned off,
                         even after filters/search empty the Unscheduled list */}
                     {(unscheduledServiceOrders.length > 0 ||
                       calendarMode.kind === "autoSchedule") && (
-                      <Form.Check
-                        type="checkbox"
+                      <CalendarModeCheckbox
+                        kind="autoSchedule"
                         id="enable-auto-scheduling-checkbox"
                         label="Auto-Schedule"
-                        checked={calendarMode.kind === "autoSchedule"}
-                        disabled={
-                          calendarMode.kind === "bulkUnschedule" || calendarMode.kind === "dateSwap"
-                        }
-                        onChange={(event) =>
-                          dispatchCalendarMode(
-                            event.target.checked
-                              ? { type: "enterMode", kind: "autoSchedule" }
-                              : { type: "leaveMode" }
-                          )
-                        }
+                        calendarMode={calendarMode}
+                        dispatchCalendarMode={dispatchCalendarMode}
                       />
                     )}
-                    <Form.Check
-                      type="checkbox"
+                    <CalendarModeCheckbox
+                      kind="bulkUnschedule"
                       id="enable-bulk-unschedule-checkbox"
                       label="Bulk-Unschedule"
-                      checked={calendarMode.kind === "bulkUnschedule"}
-                      disabled={
-                        calendarMode.kind === "autoSchedule" || calendarMode.kind === "dateSwap"
-                      }
-                      onChange={(event) =>
-                        dispatchCalendarMode(
-                          event.target.checked
-                            ? { type: "enterMode", kind: "bulkUnschedule" }
-                            : { type: "leaveMode" }
-                        )
-                      }
+                      calendarMode={calendarMode}
+                      dispatchCalendarMode={dispatchCalendarMode}
                     />
                   </div>
                   <div className="d-flex align-items-center flex-wrap gap-2 mt-2">
@@ -1149,7 +1151,7 @@ export function Template(props: templates.QtSchedule) {
                         className="btn btn-primary btn-sm"
                         disabled={
                           visibleAutoScheduleSelectedSoIds.size === 0 ||
-                          calendarMode.selectedDates.length === 0
+                          autoScheduleSelectedDates.length === 0
                         }
                         fetchState={executeAutoScheduleFetch}
                         spinnerVariant="dark"
@@ -1192,7 +1194,7 @@ export function Template(props: templates.QtSchedule) {
                     </div>
                     <strong>
                       {visibleAutoScheduleSelectedSoIds.size} SO(s),{" "}
-                      {calendarMode.selectedDates.length} date(s) selected
+                      {autoScheduleSelectedDates.length} date(s) selected
                       {autoScheduleAverageHoursPerDay !== null &&
                         ` (~${autoScheduleAverageHoursPerDay.toFixed(2)} avg hrs/day)`}
                     </strong>
@@ -1210,8 +1212,10 @@ export function Template(props: templates.QtSchedule) {
                   </Alert>
                 )}
 
-                {calendarMode.kind === "autoSchedule" &&
-                  calendarMode.selectedDates.length > 0 &&
+                {/* only when the picked dates are what empty the list, not search or the
+                    job client filter */}
+                {autoScheduleSelectedDates.length > 0 &&
+                  filteredUnscheduledServiceOrders.length > 0 &&
                   unscheduledServiceOrders.length === 0 && (
                     <Alert variant="danger" className="mb-0 py-2 rounded-bottom-0">
                       None of the unscheduled service orders can be scheduled on the currently
