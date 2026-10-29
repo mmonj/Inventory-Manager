@@ -7,7 +7,11 @@ import {
   interfaces,
 } from "@reactivated";
 
-import { TTerritoryFilters, buildTerritoryView } from "@client/util/qtSurveyWorker/territoryView";
+import {
+  TRepTerritoryData,
+  TTerritoryFilters,
+  buildTerritoryView,
+} from "@client/util/qtSurveyWorker/territoryView";
 
 // 2026-10-31 is a Saturday, 2026-11-01 a Sunday, 2026-11-02 a Monday.
 const SATURDAY = "2026-10-31T00:00:00";
@@ -114,16 +118,28 @@ function makeRepData(options: {
   };
 }
 
+const REP = { id: 1, username: "rep_one" };
+
+function onlyRep(repData: interfaces.QtTerritoryRepData): TRepTerritoryData[] {
+  return [{ rep: REP, repData }];
+}
+
+/** What the view makes of the rep's service orders and recently seen stores: tagged with REP. */
+function fromRep<T extends object>(...items: T[]): (T & { repUsername: string })[] {
+  return items.map((item) => ({ ...item, repUsername: REP.username }));
+}
+
 const NO_FILTERS: TTerritoryFilters = {
   searchText: "",
   selectedDueDate: null,
   excludedParentCompanies: new Set(),
   showStoresWithoutPendingServiceOrders: true,
+  excludedRepIds: new Set(),
 };
 
 describe("buildTerritoryView", () => {
   it("returns an empty view while the rep's data is missing", () => {
-    const view = buildTerritoryView(undefined, NO_FILTERS);
+    const view = buildTerritoryView([{ rep: REP, repData: undefined }], NO_FILTERS);
 
     expect(view.stores).toEqual({});
     expect(view.recentlySeenStores).toEqual([]);
@@ -141,13 +157,13 @@ describe("buildTerritoryView", () => {
     const thirdOrder = makeServiceOrder({ address: firstStore });
 
     const view = buildTerritoryView(
-      makeRepData({ serviceOrders: [firstOrder, secondOrder, thirdOrder] }),
+      onlyRep(makeRepData({ serviceOrders: [firstOrder, secondOrder, thirdOrder] })),
       NO_FILTERS
     );
 
     expect(view.stores).toEqual({
-      10: { address: firstStore, serviceOrders: [firstOrder, thirdOrder] },
-      20: { address: secondStore, serviceOrders: [secondOrder] },
+      10: { address: firstStore, serviceOrders: fromRep(firstOrder, thirdOrder) },
+      20: { address: secondStore, serviceOrders: fromRep(secondOrder) },
     });
   });
 
@@ -162,7 +178,7 @@ describe("buildTerritoryView", () => {
     const repData = makeRepData({ serviceOrders: [initechOrder, globexOrder, acmeOrder] });
 
     it("lists every parent company in the schedule, sorted", () => {
-      const view = buildTerritoryView(repData, {
+      const view = buildTerritoryView(onlyRep(repData), {
         ...NO_FILTERS,
         excludedParentCompanies: new Set(["Globex"]),
       });
@@ -171,23 +187,23 @@ describe("buildTerritoryView", () => {
     });
 
     it("drops service orders of excluded parent companies and stores left with none", () => {
-      const view = buildTerritoryView(repData, {
+      const view = buildTerritoryView(onlyRep(repData), {
         ...NO_FILTERS,
         excludedParentCompanies: new Set(["Globex", "Initech"]),
       });
 
-      expect(view.stores).toEqual({ 10: { address: store, serviceOrders: [acmeOrder] } });
+      expect(view.stores).toEqual({ 10: { address: store, serviceOrders: fromRep(acmeOrder) } });
     });
 
     it("shows a parent company that wasn't around when the exclusions were made", () => {
       // The user excluded Globex while viewing a rep that never had Acme.
-      const view = buildTerritoryView(repData, {
+      const view = buildTerritoryView(onlyRep(repData), {
         ...NO_FILTERS,
         excludedParentCompanies: new Set(["Globex", "Hooli"]),
       });
 
-      expect(view.stores[10].serviceOrders).toEqual([acmeOrder]);
-      expect(view.stores[20].serviceOrders).toEqual([initechOrder]);
+      expect(view.stores[10].serviceOrders).toEqual(fromRep(acmeOrder));
+      expect(view.stores[20].serviceOrders).toEqual(fromRep(initechOrder));
     });
   });
 
@@ -203,26 +219,26 @@ describe("buildTerritoryView", () => {
     });
 
     it("leaves out stores that still have service orders", () => {
-      const view = buildTerritoryView(repData, NO_FILTERS);
+      const view = buildTerritoryView(onlyRep(repData), NO_FILTERS);
 
-      expect(view.recentlySeenStores).toEqual([seenStoreWithoutSiteId, seenStoreWithoutOrders]);
+      expect(view.recentlySeenStores).toEqual(
+        fromRep(seenStoreWithoutSiteId, seenStoreWithoutOrders)
+      );
     });
 
     it("includes a store once the parent-company filter removes all its service orders", () => {
-      const view = buildTerritoryView(repData, {
+      const view = buildTerritoryView(onlyRep(repData), {
         ...NO_FILTERS,
         excludedParentCompanies: new Set(["Acme"]),
       });
 
-      expect(view.recentlySeenStores).toEqual([
-        seenStoreWithOrders,
-        seenStoreWithoutSiteId,
-        seenStoreWithoutOrders,
-      ]);
+      expect(view.recentlySeenStores).toEqual(
+        fromRep(seenStoreWithOrders, seenStoreWithoutSiteId, seenStoreWithoutOrders)
+      );
     });
 
     it("are hidden when stores without pending service orders are hidden", () => {
-      const view = buildTerritoryView(repData, {
+      const view = buildTerritoryView(onlyRep(repData), {
         ...NO_FILTERS,
         showStoresWithoutPendingServiceOrders: false,
       });
@@ -265,7 +281,9 @@ describe("buildTerritoryView", () => {
     });
 
     function searchStoreIds(searchText: string): string[] {
-      return Object.keys(buildTerritoryView(repData, { ...NO_FILTERS, searchText }).stores);
+      return Object.keys(
+        buildTerritoryView(onlyRep(repData), { ...NO_FILTERS, searchText }).stores
+      );
     }
 
     it.each([
@@ -281,16 +299,17 @@ describe("buildTerritoryView", () => {
 
     it("matches recently seen stores by name and address", () => {
       expect(
-        buildTerritoryView(repData, { ...NO_FILTERS, searchText: "kroger" }).recentlySeenStores
-      ).toEqual([seenKroger]);
-      expect(
-        buildTerritoryView(repData, { ...NO_FILTERS, searchText: "birch decatur" })
+        buildTerritoryView(onlyRep(repData), { ...NO_FILTERS, searchText: "kroger" })
           .recentlySeenStores
-      ).toEqual([seenKroger]);
+      ).toEqual(fromRep(seenKroger));
+      expect(
+        buildTerritoryView(onlyRep(repData), { ...NO_FILTERS, searchText: "birch decatur" })
+          .recentlySeenStores
+      ).toEqual(fromRep(seenKroger));
     });
 
     it("doesn't turn a store with service orders into a recently seen one when search hides it", () => {
-      const view = buildTerritoryView(repData, { ...NO_FILTERS, searchText: "target" });
+      const view = buildTerritoryView(onlyRep(repData), { ...NO_FILTERS, searchText: "target" });
 
       expect(Object.keys(view.stores)).toEqual(["20"]);
       expect(view.recentlySeenStores).toEqual([]);
@@ -310,17 +329,18 @@ describe("buildTerritoryView", () => {
     });
 
     it("lists weekend due dates once each, earliest first", () => {
-      const view = buildTerritoryView(repData, NO_FILTERS);
+      const view = buildTerritoryView(onlyRep(repData), NO_FILTERS);
 
       expect(view.dueDateOptions).toEqual([SATURDAY, SUNDAY, NEXT_SATURDAY]);
     });
 
     it("aren't changed by the other filters", () => {
-      const view = buildTerritoryView(repData, {
+      const view = buildTerritoryView(onlyRep(repData), {
         searchText: "nothing matches this",
         selectedDueDate: SATURDAY,
         excludedParentCompanies: new Set(["Globex"]),
         showStoresWithoutPendingServiceOrders: false,
+        excludedRepIds: new Set(),
       });
 
       expect(view.dueDateOptions).toEqual([SATURDAY, SUNDAY, NEXT_SATURDAY]);
@@ -341,32 +361,41 @@ describe("buildTerritoryView", () => {
     });
 
     it("keeps only service orders due on or before the selected date", () => {
-      const view = buildTerritoryView(repData, { ...NO_FILTERS, selectedDueDate: SUNDAY });
+      const view = buildTerritoryView(onlyRep(repData), { ...NO_FILTERS, selectedDueDate: SUNDAY });
 
-      expect(view.stores[10].serviceOrders).toEqual([dueSaturday, dueSunday]);
+      expect(view.stores[10].serviceOrders).toEqual(fromRep(dueSaturday, dueSunday));
       expect(view.selectedDueDate).toBe(SUNDAY);
     });
 
     it("drops stores with no service orders left", () => {
-      const view = buildTerritoryView(repData, { ...NO_FILTERS, selectedDueDate: SUNDAY });
+      const view = buildTerritoryView(onlyRep(repData), { ...NO_FILTERS, selectedDueDate: SUNDAY });
 
       expect(Object.keys(view.stores)).toEqual(["10"]);
     });
 
     it("doesn't touch recently seen stores", () => {
-      const view = buildTerritoryView(repData, { ...NO_FILTERS, selectedDueDate: SATURDAY });
+      const view = buildTerritoryView(onlyRep(repData), {
+        ...NO_FILTERS,
+        selectedDueDate: SATURDAY,
+      });
 
-      expect(view.recentlySeenStores).toEqual([seenStore]);
+      expect(view.recentlySeenStores).toEqual(fromRep(seenStore));
     });
 
     it("is ignored when the selected date isn't one of the rep's due-date options", () => {
       // e.g. a date picked for another rep, or a weekday
       for (const staleDueDate of ["2026-10-24T00:00:00", MONDAY]) {
-        const view = buildTerritoryView(repData, { ...NO_FILTERS, selectedDueDate: staleDueDate });
+        const view = buildTerritoryView(onlyRep(repData), {
+          ...NO_FILTERS,
+          selectedDueDate: staleDueDate,
+        });
 
         expect(view.stores).toEqual({
-          10: { address: mixedStore, serviceOrders: [dueSaturday, dueSunday, dueNextSaturday] },
-          20: { address: laterStore, serviceOrders: [laterOrder] },
+          10: {
+            address: mixedStore,
+            serviceOrders: fromRep(dueSaturday, dueSunday, dueNextSaturday),
+          },
+          20: { address: laterStore, serviceOrders: fromRep(laterOrder) },
         });
         expect(view.selectedDueDate).toBeNull();
       }
@@ -385,9 +414,9 @@ describe("buildTerritoryView", () => {
       ],
     });
 
-    expect(buildTerritoryView(repData, NO_FILTERS).totalWorkHours).toBe(15.5);
+    expect(buildTerritoryView(onlyRep(repData), NO_FILTERS).totalWorkHours).toBe(15.5);
     expect(
-      buildTerritoryView(repData, {
+      buildTerritoryView(onlyRep(repData), {
         ...NO_FILTERS,
         searchText: "walmart",
         selectedDueDate: SATURDAY,
@@ -416,6 +445,9 @@ describe("buildTerritoryView", () => {
           isParentCompanyFilterActive: false,
           shownParentCompanyCount: 3,
           totalParentCompanyCount: 3,
+          isRepFilterActive: false,
+          shownRepCount: 1,
+          totalRepCount: 1,
         },
       },
       {
@@ -427,6 +459,9 @@ describe("buildTerritoryView", () => {
           isParentCompanyFilterActive: false,
           shownParentCompanyCount: 3,
           totalParentCompanyCount: 3,
+          isRepFilterActive: false,
+          shownRepCount: 1,
+          totalRepCount: 1,
         },
       },
       {
@@ -439,6 +474,9 @@ describe("buildTerritoryView", () => {
           isParentCompanyFilterActive: true,
           shownParentCompanyCount: 2,
           totalParentCompanyCount: 3,
+          isRepFilterActive: false,
+          shownRepCount: 1,
+          totalRepCount: 1,
         },
       },
       {
@@ -454,6 +492,9 @@ describe("buildTerritoryView", () => {
           isParentCompanyFilterActive: true,
           shownParentCompanyCount: 2,
           totalParentCompanyCount: 3,
+          isRepFilterActive: false,
+          shownRepCount: 1,
+          totalRepCount: 1,
         },
       },
       {
@@ -465,20 +506,137 @@ describe("buildTerritoryView", () => {
           isParentCompanyFilterActive: false,
           shownParentCompanyCount: 3,
           totalParentCompanyCount: 3,
+          isRepFilterActive: false,
+          shownRepCount: 1,
+          totalRepCount: 1,
         },
       },
     ])("with $case", ({ filters, expected }) => {
-      expect(buildTerritoryView(repData, filters).activeFilterSummary).toEqual(expected);
+      expect(buildTerritoryView(onlyRep(repData), filters).activeFilterSummary).toEqual(expected);
     });
 
     it("doesn't count search or the due date as active filters", () => {
-      const view = buildTerritoryView(repData, {
+      const view = buildTerritoryView(onlyRep(repData), {
         ...NO_FILTERS,
         searchText: "store",
         selectedDueDate: SATURDAY,
       });
 
       expect(view.activeFilterSummary.isAnyFilterActive).toBe(false);
+    });
+  });
+
+  describe("combined territory", () => {
+    const repOne = { id: 1, username: "rep_one" };
+    const repTwo = { id: 2, username: "rep_two" };
+    const sharedStore = makeAddress({ SiteId: 10 });
+    const repTwoStore = makeAddress({ SiteId: 20 });
+    const repOneOrder = makeServiceOrder({ address: sharedStore, estimatedTime: 1 });
+    const repTwoSharedOrder = makeServiceOrder({ address: sharedStore, estimatedTime: 2 });
+    const repTwoOrder = makeServiceOrder({ address: repTwoStore, estimatedTime: 4 });
+    const repOneSeenStore = makeRecentlySeenStore({ id: 1, site_id: 30 });
+    // rep_one saw it recently, but rep_two still has service orders there.
+    const repOneSeenStoreWithRepTwoOrders = makeRecentlySeenStore({ id: 2, site_id: 20 });
+    const repTwoSeenStore = makeRecentlySeenStore({ id: 3, site_id: 40 });
+
+    const repTerritories: TRepTerritoryData[] = [
+      {
+        rep: repOne,
+        repData: {
+          ...makeRepData({
+            serviceOrders: [repOneOrder],
+            recentlySeenStores: [repOneSeenStore, repOneSeenStoreWithRepTwoOrders],
+          }),
+          rep_sync_data: { id: 1, schedule_last_refreshed: "2026-10-28T09:00:00Z" },
+        },
+      },
+      {
+        rep: repTwo,
+        repData: makeRepData({
+          serviceOrders: [repTwoSharedOrder, repTwoOrder],
+          recentlySeenStores: [repTwoSeenStore],
+        }),
+      },
+    ];
+
+    it("puts every rep's service orders together, each tagged with its rep", () => {
+      const view = buildTerritoryView(repTerritories, NO_FILTERS);
+
+      expect(view.stores).toEqual({
+        10: {
+          address: sharedStore,
+          serviceOrders: [
+            { ...repOneOrder, repUsername: "rep_one" },
+            { ...repTwoSharedOrder, repUsername: "rep_two" },
+          ],
+        },
+        20: { address: repTwoStore, serviceOrders: [{ ...repTwoOrder, repUsername: "rep_two" }] },
+      });
+      expect(view.totalWorkHours).toBe(7);
+    });
+
+    it("doesn't show a store as recently seen while another rep has service orders there", () => {
+      const view = buildTerritoryView(repTerritories, NO_FILTERS);
+
+      expect(view.recentlySeenStores).toEqual([
+        { ...repOneSeenStore, repUsername: "rep_one" },
+        { ...repTwoSeenStore, repUsername: "rep_two" },
+      ]);
+    });
+
+    it("hides an excluded rep's service orders and recently seen stores", () => {
+      const view = buildTerritoryView(repTerritories, {
+        ...NO_FILTERS,
+        excludedRepIds: new Set([repTwo.id]),
+      });
+
+      expect(view.stores).toEqual({
+        10: { address: sharedStore, serviceOrders: [{ ...repOneOrder, repUsername: "rep_one" }] },
+      });
+      // With rep_two hidden, nothing keeps store 20's red pin away.
+      expect(view.recentlySeenStores).toEqual([
+        { ...repOneSeenStore, repUsername: "rep_one" },
+        { ...repOneSeenStoreWithRepTwoOrders, repUsername: "rep_one" },
+      ]);
+    });
+
+    it("summarises each shown rep's hours, stores and last refresh", () => {
+      const view = buildTerritoryView(repTerritories, NO_FILTERS);
+
+      expect(view.repSummaries).toEqual([
+        {
+          rep: repOne,
+          totalWorkHours: 1,
+          storeCount: 1,
+          scheduleLastRefreshed: "2026-10-28T09:00:00Z",
+        },
+        { rep: repTwo, totalWorkHours: 6, storeCount: 2, scheduleLastRefreshed: null },
+      ]);
+    });
+
+    it("leaves excluded reps and reps still loading out of the summaries", () => {
+      const repThree = { id: 3, username: "rep_three" };
+      const view = buildTerritoryView([...repTerritories, { rep: repThree, repData: undefined }], {
+        ...NO_FILTERS,
+        excludedRepIds: new Set([repOne.id]),
+      });
+
+      expect(view.repSummaries.map((repSummary) => repSummary.rep)).toEqual([repTwo]);
+    });
+
+    it("counts the rep filter as an active filter", () => {
+      const view = buildTerritoryView(repTerritories, {
+        ...NO_FILTERS,
+        // Rep 9 isn't one of the given reps, so excluding it doesn't count.
+        excludedRepIds: new Set([repTwo.id, 9]),
+      });
+
+      expect(view.activeFilterSummary).toMatchObject({
+        isAnyFilterActive: true,
+        isRepFilterActive: true,
+        shownRepCount: 1,
+        totalRepCount: 2,
+      });
     });
   });
 });

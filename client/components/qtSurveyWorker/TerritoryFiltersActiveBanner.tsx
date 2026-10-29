@@ -27,6 +27,8 @@ export function TerritoryFiltersActiveBanner({
       Filters active
       {activeFilterSummary.areStoresWithoutPendingServiceOrdersHidden &&
         " — stores with no pending tickets are hidden"}
+      {activeFilterSummary.isRepFilterActive &&
+        ` — showing ${activeFilterSummary.shownRepCount} of ${activeFilterSummary.totalRepCount} reps`}
       {activeFilterSummary.isParentCompanyFilterActive &&
         ` — showing ${activeFilterSummary.shownParentCompanyCount} of ${activeFilterSummary.totalParentCompanyCount} job clients`}
       .{" "}

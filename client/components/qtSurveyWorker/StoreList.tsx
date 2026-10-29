@@ -2,19 +2,18 @@ import React from "react";
 
 import { Accordion, Badge, Button, Card } from "react-bootstrap";
 
-import {
-  SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore,
-  SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
-} from "@reactivated";
+import { SurveyWorkerQtraxWebsiteTypedefsTServiceOrder } from "@reactivated";
 
 import { faClock, faExternalLinkAlt, faMapMarkerAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { encodeQtAddress, getFormattedEstimatedTime } from "@client/util/commonUtil";
 import { formatDateRange, formatWeekdayShortDate } from "@client/util/qtSurveyWorker/scheduleUtils";
-import { TTerritoryStore, getStoreEstimatedTime } from "@client/util/qtSurveyWorker/territoryView";
-
-type TRecentlySeenStore = SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore;
+import {
+  TTerritoryRecentlySeenStore,
+  TTerritoryStore,
+  getStoreEstimatedTime,
+} from "@client/util/qtSurveyWorker/territoryView";
 
 interface Props {
   stores: Record<number, TTerritoryStore>;
@@ -23,7 +22,21 @@ interface Props {
   unscheduledDate?: string;
   // Stores with zero SOs in the current schedule (none, not just unscheduled ones)
   // Rendered as their own section.
-  recentlySeenStores?: TRecentlySeenStore[];
+  recentlySeenStores?: TTerritoryRecentlySeenStore[];
+  // True for the combined territory: each store and service order says which rep it's for
+  showRepNames?: boolean;
+}
+
+function RepBadges({ repUsernames }: { repUsernames: string[] }) {
+  return (
+    <div className="d-flex flex-wrap gap-1 mb-2">
+      {repUsernames.map((repUsername) => (
+        <Badge key={repUsername} bg="info" className="text-dark fw-normal">
+          {repUsername}
+        </Badge>
+      ))}
+    </div>
+  );
 }
 
 function formatLastSeen(lastSeen: string | null): string {
@@ -43,7 +56,12 @@ function formatScheduledStatus(
   return `Scheduled on ${formatWeekdayShortDate(new Date(serviceOrder.DateScheduled))}`;
 }
 
-export function StoreList({ stores, unscheduledDate, recentlySeenStores = [] }: Props) {
+export function StoreList({
+  stores,
+  unscheduledDate,
+  recentlySeenStores = [],
+  showRepNames = false,
+}: Props) {
   const storeCount = Object.keys(stores).length;
 
   if (storeCount === 0 && recentlySeenStores.length === 0) {
@@ -94,6 +112,15 @@ export function StoreList({ stores, unscheduledDate, recentlySeenStores = [] }: 
                           {serviceOrders.length} {serviceOrders.length === 1 ? "ticket" : "tickets"}
                         </Badge>
                       </div>
+                      {showRepNames && (
+                        <RepBadges
+                          repUsernames={[
+                            ...new Set(
+                              serviceOrders.map((serviceOrder) => serviceOrder.repUsername)
+                            ),
+                          ].sort()}
+                        />
+                      )}
                       <div className="d-flex align-items-center text-muted small mb-1">
                         <FontAwesomeIcon icon={faMapMarkerAlt} className="me-2" />
                         <span>
@@ -132,6 +159,12 @@ export function StoreList({ stores, unscheduledDate, recentlySeenStores = [] }: 
                           <Card.Body className="p-3">
                             <div className="row g-2">
                               <div className="col-md-6">
+                                {showRepNames && (
+                                  <div className="mb-2">
+                                    <small className="text-muted d-block">Field Rep</small>
+                                    <span className="fw-semibold">{serviceOrder.repUsername}</span>
+                                  </div>
+                                )}
                                 <div className="mb-2">
                                   <small className="text-muted d-block">Service Order ID</small>
                                   <span className="fw-semibold">{serviceOrder.ServiceOrderId}</span>
@@ -214,6 +247,7 @@ export function StoreList({ stores, unscheduledDate, recentlySeenStores = [] }: 
                         No Current Tickets
                       </Badge>
                     </div>
+                    {showRepNames && <RepBadges repUsernames={[store.repUsername]} />}
                     <div className="d-flex align-items-center text-muted small mb-1">
                       <FontAwesomeIcon icon={faMapMarkerAlt} className="me-2" />
                       <span>

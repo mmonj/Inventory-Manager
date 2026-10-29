@@ -2,8 +2,6 @@ import React, { useState } from "react";
 
 import { Badge, Button } from "react-bootstrap";
 
-import { SurveyWorkerQtraxWebsiteTypedefsTServiceOrder } from "@reactivated";
-
 import { faClock, faCopy, faExternalLinkAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -12,9 +10,58 @@ import {
   getFormattedEstimatedTime,
   reformatServiceOrderDescription,
 } from "@client/util/commonUtil";
-import { TTerritoryStore, getStoreEstimatedTime } from "@client/util/qtSurveyWorker/territoryView";
+import {
+  TTerritoryServiceOrder,
+  TTerritoryStore,
+  getStoreEstimatedTime,
+} from "@client/util/qtSurveyWorker/territoryView";
 
-export function MapPopupContent({ store }: { store: TTerritoryStore }) {
+const NO_DUE_DATE = "No Due Date";
+
+interface TDueDateGroup {
+  dueDate: string;
+  serviceOrders: TTerritoryServiceOrder[];
+}
+
+interface TServiceOrderGroup {
+  // null when the popup isn't split by rep
+  repUsername: string | null;
+  dueDateGroups: TDueDateGroup[];
+}
+
+/** Service orders grouped by due date, earliest first (no due date last), each sorted by description. */
+function groupByDueDate(serviceOrders: TTerritoryServiceOrder[]): TDueDateGroup[] {
+  const serviceOrdersByDueDate: Record<string, TTerritoryServiceOrder[]> = {};
+  for (const serviceOrder of serviceOrders) {
+    const dueDate = serviceOrder.DateScheduleRangeEndOriginal || NO_DUE_DATE;
+    if (!(dueDate in serviceOrdersByDueDate)) {
+      serviceOrdersByDueDate[dueDate] = [];
+    }
+    serviceOrdersByDueDate[dueDate].push(serviceOrder);
+  }
+
+  return Object.keys(serviceOrdersByDueDate)
+    .sort((a, b) => {
+      if (a === NO_DUE_DATE) return 1;
+      if (b === NO_DUE_DATE) return -1;
+      return new Date(a).getTime() - new Date(b).getTime();
+    })
+    .map((dueDate) => ({
+      dueDate,
+      serviceOrders: [...serviceOrdersByDueDate[dueDate]].sort((a, b) =>
+        a.ServiceOrderDescription.localeCompare(b.ServiceOrderDescription)
+      ),
+    }));
+}
+
+export function MapPopupContent({
+  store,
+  showRepNames,
+}: {
+  store: TTerritoryStore;
+  // Splits the service orders by rep (then due date), for the combined territory
+  showRepNames: boolean;
+}) {
   const [clipboardMessage, setClipboardMessage] = useState<string | null>(null);
 
   function handleCopyAddress() {
@@ -30,37 +77,20 @@ export function MapPopupContent({ store }: { store: TTerritoryStore }) {
 
   const totalHours = getStoreEstimatedTime(store);
 
-  // group service orders by due date
-  const serviceOrdersByDueDate: Record<string, SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[]> =
-    React.useMemo(() => {
-      const _serviceOrdersByDueDate: Record<
-        string,
-        SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[]
-      > = {};
-      for (const serviceOrder of store.serviceOrders) {
-        const dueDate = serviceOrder.DateScheduleRangeEndOriginal || "No Due Date";
-        if (!(dueDate in _serviceOrdersByDueDate)) {
-          _serviceOrdersByDueDate[dueDate] = [];
-        }
-        _serviceOrdersByDueDate[dueDate].push(serviceOrder);
-      }
-
-      // sort service orders by ServiceOrderDescription
-      for (const [dueDate, serviceOrders] of Object.entries(_serviceOrdersByDueDate)) {
-        _serviceOrdersByDueDate[dueDate] = serviceOrders.sort((a, b) =>
-          a.ServiceOrderDescription.localeCompare(b.ServiceOrderDescription)
-        );
-      }
-
-      return _serviceOrdersByDueDate;
-    }, [store.serviceOrders]);
-
-  // Sort due dates
-  const sortedDueDates = Object.keys(serviceOrdersByDueDate).sort((a, b) => {
-    if (a === "No Due Date") return 1;
-    if (b === "No Due Date") return -1;
-    return new Date(a).getTime() - new Date(b).getTime();
-  });
+  const serviceOrderGroups: TServiceOrderGroup[] = React.useMemo(() => {
+    if (!showRepNames) {
+      return [{ repUsername: null, dueDateGroups: groupByDueDate(store.serviceOrders) }];
+    }
+    const repUsernames = [
+      ...new Set(store.serviceOrders.map((serviceOrder) => serviceOrder.repUsername)),
+    ].sort();
+    return repUsernames.map((repUsername) => ({
+      repUsername,
+      dueDateGroups: groupByDueDate(
+        store.serviceOrders.filter((serviceOrder) => serviceOrder.repUsername === repUsername)
+      ),
+    }));
+  }, [store.serviceOrders, showRepNames]);
 
   return (
     <div style={{ minWidth: "280px" }}>
@@ -103,33 +133,45 @@ export function MapPopupContent({ store }: { store: TTerritoryStore }) {
         </Badge>
       </div>
 
-      {/* Service orders by Due Date */}
+      {/* Service orders by rep (combined territory only), then due date */}
       <div>
-        {sortedDueDates.map((dueDate, idx) => (
-          <React.Fragment key={dueDate}>
-            <div className="mb-3">
-              <div className="fw-semibold mb-2 small text-white">
-                {dueDate === "No Due Date"
-                  ? "No Due Date"
-                  : `Due: ${new Date(dueDate).toLocaleDateString()}`}
+        {serviceOrderGroups.map(({ repUsername, dueDateGroups }, groupIdx) => (
+          <React.Fragment key={repUsername ?? ""}>
+            {repUsername !== null && (
+              <div className="fw-bold mb-2 text-white">
+                <Badge bg="info" className="text-dark">
+                  {repUsername}
+                </Badge>
               </div>
-              <ul className="list-unstyled ps-2 mb-0">
-                {serviceOrdersByDueDate[dueDate].map((serviceOrder) => (
-                  <li
-                    key={serviceOrder.JobId}
-                    className="small mb-2 d-flex justify-content-between"
-                  >
-                    <span className="flex-grow-1 me-2 text-white">
-                      {reformatServiceOrderDescription(serviceOrder.ServiceOrderDescription)}
-                    </span>
-                    <Badge bg="secondary" pill className="align-self-start">
-                      {getFormattedEstimatedTime(serviceOrder.EstimatedTime)}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            {idx < sortedDueDates.length - 1 && <hr className="my-2" />}
+            )}
+            {dueDateGroups.map(({ dueDate, serviceOrders }, dueDateIdx) => (
+              <React.Fragment key={dueDate}>
+                <div className="mb-3">
+                  <div className="fw-semibold mb-2 small text-white">
+                    {dueDate === NO_DUE_DATE
+                      ? NO_DUE_DATE
+                      : `Due: ${new Date(dueDate).toLocaleDateString()}`}
+                  </div>
+                  <ul className="list-unstyled ps-2 mb-0">
+                    {serviceOrders.map((serviceOrder) => (
+                      <li
+                        key={serviceOrder.ServiceOrderId}
+                        className="small mb-2 d-flex justify-content-between"
+                      >
+                        <span className="flex-grow-1 me-2 text-white">
+                          {reformatServiceOrderDescription(serviceOrder.ServiceOrderDescription)}
+                        </span>
+                        <Badge bg="secondary" pill className="align-self-start">
+                          {getFormattedEstimatedTime(serviceOrder.EstimatedTime)}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                {(dueDateIdx < dueDateGroups.length - 1 ||
+                  groupIdx < serviceOrderGroups.length - 1) && <hr className="my-2" />}
+              </React.Fragment>
+            ))}
           </React.Fragment>
         ))}
       </div>

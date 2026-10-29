@@ -1,7 +1,15 @@
-import React, { Suspense, lazy, useDeferredValue, useEffect, useMemo, useState } from "react";
+import React, {
+  Suspense,
+  lazy,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { Context, interfaces, reverse, templates } from "@reactivated";
-import { Alert, Dropdown, DropdownButton, ListGroup, Modal, Spinner } from "react-bootstrap";
+import { Alert, Dropdown, DropdownButton, ListGroup, Modal, Spinner, Table } from "react-bootstrap";
 
 import {
   faArrowsRotate,
@@ -18,15 +26,62 @@ import { StoreList } from "@client/components/qtSurveyWorker/StoreList";
 import { TerritoryFilterModal } from "@client/components/qtSurveyWorker/TerritoryFilterModal";
 import { TerritoryFiltersActiveBanner } from "@client/components/qtSurveyWorker/TerritoryFiltersActiveBanner";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
-import { useFetch } from "@client/hooks/useFetch";
-import { fetchByReactivated } from "@client/util/commonUtil";
-import { buildTerritoryView } from "@client/util/qtSurveyWorker/territoryView";
+import { ApiResponse, IHttpError, TNotFoundErrorList } from "@client/types";
+import { fetchByReactivated, getErrorList } from "@client/util/commonUtil";
+import {
+  TRepTerritoryData,
+  TTerritoryRep,
+  buildTerritoryView,
+} from "@client/util/qtSurveyWorker/territoryView";
 import { toast } from "@client/util/toast";
 
 const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMapGMaps"));
 
 const RELATIVE_TIME_THRESHOLD_HOURS = 12;
 const LAST_SELECTED_REP_ID_KEY = "lastSelectedRepId";
+// Stored under LAST_SELECTED_REP_ID_KEY when the combined territory was last selected
+const COMBINED_TERRITORY_STORAGE_VALUE = "all";
+const COMBINED_TERRITORY_LABEL = "All Field Reps";
+
+/** A single rep's id, or "all" for the combined territory. */
+type TRepSelection = number | "all";
+
+interface TLoadState {
+  isLoading: boolean;
+  isError: boolean;
+  errorMessages: string[];
+}
+
+const IDLE_LOAD_STATE: TLoadState = { isLoading: false, isError: false, errorMessages: [] };
+
+type TRepDataRequestResult =
+  | { isSuccess: true; repData: interfaces.QtTerritoryRepData }
+  | { isSuccess: false; errorMessages: string[] };
+
+async function requestTerritoryRepData(
+  repId: number,
+  useCache: string | null,
+  csrfToken: string
+): Promise<TRepDataRequestResult> {
+  const baseUrl = reverse("survey_worker:qt_territory_rep_data", { rep_id: repId });
+  const url = useCache !== null ? `${baseUrl}?use_cache=${useCache}` : baseUrl;
+
+  try {
+    const response = await fetchByReactivated<interfaces.QtTerritoryRepData>(url, csrfToken, "GET");
+    if (!response.ok) {
+      const errorMessages = await getErrorList(
+        response as unknown as ApiResponse<IHttpError | TNotFoundErrorList>
+      );
+      return { isSuccess: false, errorMessages };
+    }
+    return { isSuccess: true, repData: await response.json() };
+  } catch (error) {
+    return {
+      isSuccess: false,
+      errorMessages: [error instanceof Error ? error.message : "Unexpected error occurred"],
+    };
+  }
+}
 
 function formatLastRefreshed(isoString: string): string {
   const refreshedDate = new Date(isoString);
@@ -50,102 +105,156 @@ function formatLastRefreshed(isoString: string): string {
 
 export function Template(props: templates.QtTerritoryViewer) {
   // Chosen on mount (see below) rather than here, so the first rep isn't fetched before the
-  // last selected one is restored from localStorage
-  const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
+  // last selection is restored from localStorage
+  const [selection, setSelection] = useState<TRepSelection | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [selectedDueDate, setSelectedDueDate] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showStoresWithoutPendingServiceOrders, setShowStoresWithoutPendingServiceOrders] =
     useState(true);
-  // In memory only: survives Refresh Schedule and switching reps, resets on page reload.
+  // In memory only: survive Refresh Schedule and switching reps, reset on page reload.
   const [excludedParentCompanies, setExcludedParentCompanies] = useState<Set<string>>(new Set());
+  const [excludedRepIds, setExcludedRepIds] = useState<Set<number>>(new Set());
   // Per-rep schedule/recently-seen-store data, fetched on demand via qt_territory_rep_data
-  // (territory_rep_data_view), keyed by QtRepDetail.id - the same id selectedRepId holds.
-  // Once a rep's data has been fetched, reselecting it from the dropdown does not refetch -
-  // that's what the Refresh button (use_cache=off) is for.
+  // (territory_rep_data_view), keyed by QtRepDetail.id. Once a rep's data has been fetched,
+  // reselecting it (or the combined territory) does not refetch - that's what the Refresh
+  // button (use_cache=off) is for.
   const [repDataById, setRepDataById] = useState<Map<number, interfaces.QtTerritoryRepData>>(
     new Map()
   );
-  const territoryRepDataFetch = useFetch<interfaces.QtTerritoryRepData>();
+  const [loadState, setLoadState] = useState<TLoadState>(IDLE_LOAD_STATE);
+  // Bumped by every loadRepData call, so a load overtaken by a newer one (e.g. switching reps
+  // mid-load) still stores the data it fetched but no longer reports on loadState
+  const latestLoadIdRef = useRef(0);
   const djangoContext = React.useContext(Context);
 
-  const selectedRepDetail = props.rep_details.find((r) => r.id === selectedRepId);
-  const selectedRepData = selectedRepId === null ? undefined : repDataById.get(selectedRepId);
+  const isCombinedTerritory = selection === "all";
+  const allReps: TTerritoryRep[] = props.rep_details;
+  const selectedRepDetail =
+    typeof selection === "number"
+      ? props.rep_details.find((repDetail) => repDetail.id === selection)
+      : undefined;
+  const shownReps: TTerritoryRep[] = isCombinedTerritory
+    ? allReps
+    : selectedRepDetail !== undefined
+      ? [selectedRepDetail]
+      : [];
+  const selectionLabel = isCombinedTerritory
+    ? COMBINED_TERRITORY_LABEL
+    : (selectedRepDetail?.username ?? "Select Representative");
+  const selectedRepData =
+    selectedRepDetail === undefined ? undefined : repDataById.get(selectedRepDetail.id);
   // Lets the store list and map lag behind fast typing instead of blocking the input.
   const deferredSearchText = useDeferredValue(searchText);
 
+  const repTerritories: TRepTerritoryData[] = useMemo(
+    () => shownReps.map((rep) => ({ rep, repData: repDataById.get(rep.id) })),
+    [selection, repDataById]
+  );
   const territoryView = useMemo(
     () =>
-      buildTerritoryView(selectedRepData, {
+      buildTerritoryView(repTerritories, {
         searchText: deferredSearchText,
         selectedDueDate,
         excludedParentCompanies,
         showStoresWithoutPendingServiceOrders,
+        // The rep filter only applies to the combined territory
+        excludedRepIds: isCombinedTerritory ? excludedRepIds : new Set(),
       }),
     [
-      selectedRepData,
+      repTerritories,
       deferredSearchText,
       selectedDueDate,
       excludedParentCompanies,
       showStoresWithoutPendingServiceOrders,
+      isCombinedTerritory,
+      excludedRepIds,
     ]
   );
   const { activeFilterSummary } = territoryView;
+  // The unscheduled-date sentinel is the same in every rep's schedule, so any loaded one will do.
+  const unscheduledDate = repTerritories.find(({ repData }) => repData?.schedule != null)?.repData
+    ?.schedule?.UnscheduledDate;
 
-  async function fetchTerritoryRepData(repId: number, useCacheOverride?: "off") {
-    const baseUrl = reverse("survey_worker:qt_territory_rep_data", { rep_id: repId });
-    // useCacheOverride overrides the page URL's use_cache param
-    const useCache =
-      useCacheOverride ?? new URLSearchParams(window.location.search).get("use_cache");
-    const url = useCache !== null ? `${baseUrl}?use_cache=${useCache}` : baseUrl;
+  /**
+   * Fetches the given reps' data one at a time. A rep that fails is reported in a toast and the
+   * rest still load; the page only shows an error if every rep failed and none of them has data
+   * on screen already.
+   */
+  async function loadRepData(reps: TTerritoryRep[], useCache: string | null): Promise<boolean> {
+    latestLoadIdRef.current += 1;
+    const loadId = latestLoadIdRef.current;
+    const isAnyRepAlreadyShown = reps.some((rep) => repDataById.has(rep.id));
+    setLoadState({ ...IDLE_LOAD_STATE, isLoading: true });
+    const isForCombinedTerritory = reps.length > 1;
+    const failureMessages: string[] = [];
+    let failedRepCount = 0;
 
-    const [isSuccess, result] = await territoryRepDataFetch.fetchData(() =>
-      fetchByReactivated<interfaces.QtTerritoryRepData>(url, djangoContext.csrf_token, "GET")
-    );
+    for (const rep of reps) {
+      const result = await requestTerritoryRepData(rep.id, useCache, djangoContext.csrf_token);
+      const repLabel = isForCombinedTerritory ? `${rep.username}: ` : "";
 
-    if (!isSuccess) {
+      if (!result.isSuccess) {
+        failedRepCount += 1;
+        failureMessages.push(...result.errorMessages.map((message) => repLabel + message));
+        continue;
+      }
+
+      if (result.repData.sync_error !== null) {
+        toast.warning(repLabel + result.repData.sync_error);
+      }
+      setRepDataById((current) => new Map(current).set(rep.id, result.repData));
+    }
+
+    if (loadId !== latestLoadIdRef.current) {
       return false;
     }
-
-    if (result.sync_error !== null) {
-      toast.warning(result.sync_error);
+    if (failedRepCount > 0 && failedRepCount === reps.length && !isAnyRepAlreadyShown) {
+      setLoadState({ isLoading: false, isError: true, errorMessages: failureMessages });
+      return false;
     }
-
-    setRepDataById((current) => {
-      const next = new Map(current);
-      next.set(repId, result);
-      return next;
-    });
-
-    return true;
+    for (const message of failureMessages) {
+      toast.warning(message);
+    }
+    setLoadState(IDLE_LOAD_STATE);
+    return failedRepCount === 0;
   }
 
-  // Fetch the selected rep's data whenever selection changes to a rep we haven't already
-  // fetched - reselecting an already-loaded rep does not refetch (Refresh Schedule is the only
-  // way to force a fresh fetch once loaded).
+  // Fetch whichever shown reps we haven't already fetched whenever the selection changes -
+  // reselecting already-loaded reps does not refetch (Refresh Schedule is the only way to force
+  // a fresh fetch once loaded). The combined territory reads stored schedules only; a single
+  // rep honours the page URL's use_cache param.
   useEffect(() => {
-    if (selectedRepId === null || repDataById.has(selectedRepId)) {
+    const repsToFetch = shownReps.filter((rep) => !repDataById.has(rep.id));
+    if (repsToFetch.length === 0) {
       return;
     }
 
-    void fetchTerritoryRepData(selectedRepId);
-    // fetchTerritoryRepData/repDataById intentionally excluded - this should only re-run when
-    // the selected rep id itself changes, not on every fetch-state/cache update it causes
-  }, [selectedRepId]);
+    const useCache = isCombinedTerritory
+      ? "on"
+      : new URLSearchParams(window.location.search).get("use_cache");
+    void loadRepData(repsToFetch, useCache);
+    // loadRepData/repDataById intentionally excluded - this should only re-run when the
+    // selection itself changes, not on every fetch-state/cache update it causes
+  }, [selection]);
 
-  // Select the last selected representative on mount, falling back to the first one
+  // Restore the last selection on mount, falling back to the first rep
   useEffect(() => {
-    const lastSelectedRepId = localStorage.getItem(LAST_SELECTED_REP_ID_KEY);
-    if (lastSelectedRepId !== null && lastSelectedRepId !== "") {
-      const storedId = parseInt(lastSelectedRepId);
+    const lastSelection = localStorage.getItem(LAST_SELECTED_REP_ID_KEY);
+    if (lastSelection === COMBINED_TERRITORY_STORAGE_VALUE && props.rep_details.length > 0) {
+      setSelection("all");
+      return;
+    }
+    if (lastSelection !== null && lastSelection !== "") {
+      const storedId = parseInt(lastSelection);
 
       if (!isNaN(storedId) && props.rep_details.some((rep) => rep.id === storedId)) {
-        setSelectedRepId(storedId);
+        setSelection(storedId);
         return;
       }
     }
-    setSelectedRepId(props.rep_details[0]?.id ?? null);
+    setSelection(props.rep_details[0]?.id ?? null);
   }, []);
 
   if (props.rep_details.length === 0) {
@@ -167,21 +276,24 @@ export function Template(props: templates.QtTerritoryViewer) {
     );
   }
 
-  function handleRepChange(repId: number) {
+  function handleSelectionChange(nextSelection: TRepSelection) {
     setSearchText("");
-    setSelectedRepId(repId);
+    setSelection(nextSelection);
 
-    localStorage.setItem(LAST_SELECTED_REP_ID_KEY, repId.toString());
+    localStorage.setItem(
+      LAST_SELECTED_REP_ID_KEY,
+      nextSelection === "all" ? COMBINED_TERRITORY_STORAGE_VALUE : nextSelection.toString()
+    );
   }
 
   async function handleRefreshSchedule() {
-    if (selectedRepId === null) {
+    if (shownReps.length === 0) {
       return;
     }
 
-    const isSuccess = await fetchTerritoryRepData(selectedRepId, "off");
+    const isSuccess = await loadRepData(shownReps, "off");
     if (isSuccess) {
-      toast.success("Schedule refreshed.");
+      toast.success(isCombinedTerritory ? "Schedules refreshed." : "Schedule refreshed.");
     }
   }
 
@@ -195,15 +307,22 @@ export function Template(props: templates.QtTerritoryViewer) {
             <label className="form-label fw-semibold">Field Representative:</label>
             <DropdownButton
               id="rep-select"
-              title={selectedRepDetail?.username ?? "Select Representative"}
+              title={selectionLabel}
               variant="secondary"
               className="w-100"
             >
+              <Dropdown.Item
+                onClick={() => handleSelectionChange("all")}
+                active={isCombinedTerritory}
+              >
+                {COMBINED_TERRITORY_LABEL}
+              </Dropdown.Item>
+              <Dropdown.Divider />
               {props.rep_details.map((rep) => (
                 <Dropdown.Item
                   key={rep.id}
-                  onClick={() => handleRepChange(rep.id)}
-                  active={selectedRepId === rep.id}
+                  onClick={() => handleSelectionChange(rep.id)}
+                  active={selection === rep.id}
                 >
                   {rep.username}
                 </Dropdown.Item>
@@ -215,14 +334,14 @@ export function Template(props: templates.QtTerritoryViewer) {
             <ButtonWithSpinner
               type="button"
               className="btn btn-sm btn-outline-secondary"
-              disabled={selectedRepId === null}
-              fetchState={territoryRepDataFetch}
+              disabled={selection === null}
+              fetchState={loadState}
               onClick={() => void handleRefreshSchedule()}
             >
               <FontAwesomeIcon icon={faArrowsRotate} className="me-1" />
               Refresh Schedule
             </ButtonWithSpinner>
-            {!territoryRepDataFetch.isLoading && (
+            {!loadState.isLoading && (
               <button
                 type="button"
                 className={`btn btn-sm ${activeFilterSummary.isAnyFilterActive ? "btn-warning" : "btn-outline-secondary"}`}
@@ -244,7 +363,7 @@ export function Template(props: templates.QtTerritoryViewer) {
         {/* Everything below depends on the selected rep's schedule data - while a fetch is in
         flight (initial load or Refresh Schedule), show a loading card in its place instead of
         rendering stats/filters/the map button against data that's missing or about to change. */}
-        {territoryRepDataFetch.isError && selectedRepData === undefined ? (
+        {loadState.isError && repTerritories.every(({ repData }) => repData === undefined) ? (
           <Alert variant="danger" className="d-flex">
             <FontAwesomeIcon icon={faTriangleExclamation} className="fs-3 me-3 flex-shrink-0" />
             <div>
@@ -252,7 +371,7 @@ export function Template(props: templates.QtTerritoryViewer) {
                 Failed to fetch territory data
               </Alert.Heading>
               <ListGroup variant="flush">
-                {territoryRepDataFetch.errorMessages.map((message, idx) => (
+                {loadState.errorMessages.map((message, idx) => (
                   <ListGroup.Item key={idx} variant="danger" className="px-0 py-1 border-0">
                     {message}
                   </ListGroup.Item>
@@ -260,15 +379,13 @@ export function Template(props: templates.QtTerritoryViewer) {
               </ListGroup>
             </div>
           </Alert>
-        ) : territoryRepDataFetch.isLoading ? (
+        ) : loadState.isLoading ? (
           <div className="d-flex flex-column align-items-center justify-content-center text-center py-5 my-3 bg-body-tertiary border rounded-3">
             <Spinner animation="border" role="status" style={{ width: "3.5rem", height: "3.5rem" }}>
               <span className="visually-hidden">Loading...</span>
             </Spinner>
             <div className="fs-4 fw-semibold mt-3">Loading territory data…</div>
-            <div className="text-muted">
-              Fetching data for {selectedRepDetail?.username ?? "rep"}
-            </div>
+            <div className="text-muted">Fetching data for {selectionLabel}</div>
           </div>
         ) : (
           <>
@@ -279,18 +396,47 @@ export function Template(props: templates.QtTerritoryViewer) {
                     territoryView.recentlySeenStores.length}{" "}
                   stores shown
                 </strong>
-                <div className="text-secondary">
-                  Schedule last refreshed:{" "}
-                  {selectedRepData?.rep_sync_data.schedule_last_refreshed != null
-                    ? formatLastRefreshed(selectedRepData.rep_sync_data.schedule_last_refreshed)
-                    : "N/A"}
-                </div>
+                {!isCombinedTerritory && (
+                  <div className="text-secondary">
+                    Schedule last refreshed:{" "}
+                    {selectedRepData?.rep_sync_data.schedule_last_refreshed != null
+                      ? formatLastRefreshed(selectedRepData.rep_sync_data.schedule_last_refreshed)
+                      : "N/A"}
+                  </div>
+                )}
               </div>
               <div>
                 <strong>Total Work Hours: </strong>
                 {territoryView.totalWorkHours.toFixed(2)} hrs
               </div>
             </div>
+
+            {isCombinedTerritory && territoryView.repSummaries.length > 0 && (
+              <Table size="sm" responsive className="mb-4">
+                <thead>
+                  <tr>
+                    <th>Field Rep</th>
+                    <th className="text-end">Stores</th>
+                    <th className="text-end">Hours</th>
+                    <th>Schedule last refreshed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {territoryView.repSummaries.map((repSummary) => (
+                    <tr key={repSummary.rep.id}>
+                      <td>{repSummary.rep.username}</td>
+                      <td className="text-end">{repSummary.storeCount}</td>
+                      <td className="text-end">{repSummary.totalWorkHours.toFixed(2)}</td>
+                      <td className="text-secondary">
+                        {repSummary.scheduleLastRefreshed !== null
+                          ? formatLastRefreshed(repSummary.scheduleLastRefreshed)
+                          : "N/A"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            )}
 
             <div className="mb-3">
               <button className="btn btn-primary" onClick={() => setShowMap((prev) => !prev)}>
@@ -354,7 +500,7 @@ export function Template(props: templates.QtTerritoryViewer) {
             </div>
 
             {/* territory map */}
-            {selectedRepId !== null && (
+            {selection !== null && (
               <Modal
                 show={showMap}
                 onHide={() => setShowMap(false)}
@@ -365,7 +511,7 @@ export function Template(props: templates.QtTerritoryViewer) {
               >
                 <Modal.Header closeButton>
                   <Modal.Title id="map-modal" className="w-75 text-truncate">
-                    Map: {selectedRepDetail?.username ?? "Unknown Rep"}
+                    Map: {selectionLabel}
                   </Modal.Title>
                 </Modal.Header>
                 <TerritoryFiltersActiveBanner
@@ -377,6 +523,7 @@ export function Template(props: templates.QtTerritoryViewer) {
                     <TerritoryMap
                       stores={territoryView.stores}
                       recentlySeenStores={territoryView.recentlySeenStores}
+                      // No home pins for the combined territory
                       repAddress={
                         selectedRepDetail !== undefined && selectedRepDetail.address !== ""
                           ? {
@@ -387,6 +534,7 @@ export function Template(props: templates.QtTerritoryViewer) {
                             }
                           : null
                       }
+                      showRepNames={isCombinedTerritory}
                     />
                   </Suspense>
                 </Modal.Body>
@@ -396,8 +544,9 @@ export function Template(props: templates.QtTerritoryViewer) {
             {/* store list */}
             <StoreList
               stores={territoryView.stores}
-              unscheduledDate={selectedRepData?.schedule?.UnscheduledDate}
+              unscheduledDate={unscheduledDate}
               recentlySeenStores={territoryView.recentlySeenStores}
+              showRepNames={isCombinedTerritory}
             />
           </>
         )}
@@ -410,6 +559,9 @@ export function Template(props: templates.QtTerritoryViewer) {
           parentCompanies={territoryView.parentCompanies}
           excludedParentCompanies={excludedParentCompanies}
           onChangeExcludedParentCompanies={setExcludedParentCompanies}
+          reps={isCombinedTerritory ? allReps : null}
+          excludedRepIds={excludedRepIds}
+          onChangeExcludedRepIds={setExcludedRepIds}
         />
       </div>
     </Layout>

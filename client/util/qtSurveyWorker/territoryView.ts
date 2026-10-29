@@ -8,10 +8,28 @@ import { TServiceOrder, isSunday, matchesSearch } from "@client/util/qtSurveyWor
 
 type TRecentlySeenStore = SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore;
 
-/** A store on the Territory Viewer, with the service orders it has in the rep's schedule. */
+/** A field rep the Territory Viewer can show. */
+export interface TTerritoryRep {
+  id: number;
+  username: string;
+}
+
+/** One field rep's territory data, or undefined while it's still loading (or failed). */
+export interface TRepTerritoryData {
+  rep: TTerritoryRep;
+  repData: interfaces.QtTerritoryRepData | undefined;
+}
+
+/** A service order, tagged with the field rep whose schedule it's in. */
+export type TTerritoryServiceOrder = TServiceOrder & { repUsername: string };
+
+/** A recently seen store, tagged with the field rep who saw it. */
+export type TTerritoryRecentlySeenStore = TRecentlySeenStore & { repUsername: string };
+
+/** A store on the Territory Viewer, with the service orders it has in the shown reps' schedules. */
 export interface TTerritoryStore {
   address: SurveyWorkerQtraxWebsiteTypedefsAddress;
-  serviceOrders: TServiceOrder[];
+  serviceOrders: TTerritoryServiceOrder[];
 }
 
 /** What the user has chosen to narrow the Territory Viewer down to. */
@@ -25,6 +43,8 @@ export interface TTerritoryFilters {
    */
   excludedParentCompanies: ReadonlySet<string>;
   showStoresWithoutPendingServiceOrders: boolean;
+  /** Field reps the user unticked, for the combined territory. */
+  excludedRepIds: ReadonlySet<number>;
 }
 
 /** Enough to render the "Filters active" banner. Search and due date don't count. */
@@ -34,20 +54,34 @@ export interface TActiveFilterSummary {
   isParentCompanyFilterActive: boolean;
   shownParentCompanyCount: number;
   totalParentCompanyCount: number;
+  isRepFilterActive: boolean;
+  shownRepCount: number;
+  totalRepCount: number;
 }
 
-/** Everything the Territory Viewer shows for one field rep under the current filters. */
+/** One shown field rep's share of the view. */
+export interface TRepSummary {
+  rep: TTerritoryRep;
+  totalWorkHours: number;
+  /** Stores with this rep's service orders shown. */
+  storeCount: number;
+  scheduleLastRefreshed: string | null;
+}
+
+/** Everything the Territory Viewer shows for the given field reps under the current filters. */
 export interface TTerritoryView {
   /** Stores with service orders after all filters, keyed by site id. */
   stores: Record<number, TTerritoryStore>;
   /** Recently seen stores with no service orders shown, after search and the toggle. */
-  recentlySeenStores: TRecentlySeenStore[];
+  recentlySeenStores: TTerritoryRecentlySeenStore[];
   totalWorkHours: number;
-  /** Weekend due dates across all of the rep's service orders, deduped and earliest first. */
+  /** One per shown rep (not excluded, data loaded), in the order the reps were given. */
+  repSummaries: TRepSummary[];
+  /** Weekend due dates across all of the reps' service orders, deduped and earliest first. */
   dueDateOptions: string[];
   /** The due date the view was cut at, or null for "All Dates". */
   selectedDueDate: string | null;
-  /** Every parent company in the rep's schedule, sorted. */
+  /** Every parent company in the reps' schedules, sorted. */
   parentCompanies: string[];
   activeFilterSummary: TActiveFilterSummary;
 }
@@ -58,13 +92,13 @@ function isWeekend(date: Date): boolean {
   return isSunday(date) || date.getDay() === SATURDAY_DAY_OF_WEEK;
 }
 
+function sumEstimatedTime(serviceOrders: TServiceOrder[]): number {
+  return serviceOrders.reduce((total, serviceOrder) => total + serviceOrder.EstimatedTime, 0);
+}
+
 /** The store's service orders' estimated time added up, in hours. */
 export function getStoreEstimatedTime(store: TTerritoryStore): number {
-  let totalHours = 0;
-  for (const serviceOrder of store.serviceOrders) {
-    totalHours += serviceOrder.EstimatedTime;
-  }
-  return totalHours;
+  return sumEstimatedTime(store.serviceOrders);
 }
 
 function getDueDateOptions(serviceOrders: TServiceOrder[]): string[] {
@@ -75,7 +109,7 @@ function getDueDateOptions(serviceOrders: TServiceOrder[]): string[] {
   return [...new Set(weekendDueDates)];
 }
 
-function groupBySiteId(serviceOrders: TServiceOrder[]): Record<number, TTerritoryStore> {
+function groupBySiteId(serviceOrders: TTerritoryServiceOrder[]): Record<number, TTerritoryStore> {
   const storesBySiteId: Record<number, TTerritoryStore> = {};
   for (const serviceOrder of serviceOrders) {
     const siteId = serviceOrder.Address.SiteId;
@@ -115,26 +149,38 @@ function cutAtDueDate(store: TTerritoryStore, dueDate: string): TTerritoryStore 
 }
 
 /**
- * Works out what the Territory Viewer shows for a field rep's territory data under the given
- * filters. Missing rep data (still loading, or failed) gives an empty view.
+ * Works out what the Territory Viewer shows for the given field reps' territory data under the
+ * given filters: one rep for a single territory, every rep for the combined territory. A rep
+ * whose data is missing (still loading, or failed) contributes nothing.
  */
 export function buildTerritoryView(
-  repData: interfaces.QtTerritoryRepData | undefined,
+  repTerritories: TRepTerritoryData[],
   filters: TTerritoryFilters
 ): TTerritoryView {
-  const allServiceOrders = repData?.schedule?.ServiceOrders ?? [];
+  const shownRepTerritories = repTerritories.filter(
+    ({ rep }) => !filters.excludedRepIds.has(rep.id)
+  );
+  const allServiceOrders: TTerritoryServiceOrder[] = repTerritories.flatMap(({ rep, repData }) =>
+    (repData?.schedule?.ServiceOrders ?? []).map((serviceOrder) => ({
+      ...serviceOrder,
+      repUsername: rep.username,
+    }))
+  );
   const dueDateOptions = getDueDateOptions(allServiceOrders);
   const parentCompanies = Array.from(
     new Set(allServiceOrders.map((serviceOrder) => serviceOrder.JobClient))
   ).sort();
 
+  const shownRepUsernames = new Set(shownRepTerritories.map(({ rep }) => rep.username));
   const storesOfShownParentCompanies = groupBySiteId(
     allServiceOrders.filter(
-      (serviceOrder) => !filters.excludedParentCompanies.has(serviceOrder.JobClient)
+      (serviceOrder) =>
+        shownRepUsernames.has(serviceOrder.repUsername) &&
+        !filters.excludedParentCompanies.has(serviceOrder.JobClient)
     )
   );
 
-  // A date that isn't among this rep's options (e.g. one picked for another rep) is treated as
+  // A date that isn't among the reps' options (e.g. one picked for another rep) is treated as
   // "All Dates".
   const selectedDueDate =
     filters.selectedDueDate !== null && dueDateOptions.includes(filters.selectedDueDate)
@@ -152,40 +198,70 @@ export function buildTerritoryView(
     }
   }
 
-  // Deduped against stores that have service orders after the parent-company filter (not after
-  // search or the due-date cut), so a store never gets both a green and a red pin. The due-date
-  // cut doesn't apply, since recently seen stores have no service orders to cut.
-  const recentlySeenStores = filters.showStoresWithoutPendingServiceOrders
-    ? (repData?.recently_seen_stores ?? []).filter(
-        (store) =>
-          (store.site_id === null || !(store.site_id in storesOfShownParentCompanies)) &&
-          matchesSearch(getRecentlySeenStoreSearchKey(store), filters.searchText)
-      )
-    : [];
+  // Deduped against stores that have service orders after the rep and parent-company filters
+  // (not after search or the due-date cut), so a store never gets both a green and a red pin.
+  // The due-date cut doesn't apply, since recently seen stores have no service orders to cut.
+  const recentlySeenStores: TTerritoryRecentlySeenStore[] =
+    filters.showStoresWithoutPendingServiceOrders
+      ? shownRepTerritories
+          .flatMap(({ rep, repData }) =>
+            (repData?.recently_seen_stores ?? []).map((store) => ({
+              ...store,
+              repUsername: rep.username,
+            }))
+          )
+          .filter(
+            (store) =>
+              (store.site_id === null || !(store.site_id in storesOfShownParentCompanies)) &&
+              matchesSearch(getRecentlySeenStoreSearchKey(store), filters.searchText)
+          )
+      : [];
 
-  const totalWorkHours = Object.values(stores)
-    .flatMap((store) => store.serviceOrders)
-    .reduce((total, serviceOrder) => total + serviceOrder.EstimatedTime, 0);
+  const shownServiceOrders = Object.values(stores).flatMap((store) => store.serviceOrders);
+  const totalWorkHours = sumEstimatedTime(shownServiceOrders);
+
+  const repSummaries: TRepSummary[] = shownRepTerritories
+    .filter(({ repData }) => repData !== undefined)
+    .map(({ rep, repData }) => {
+      const repServiceOrders = shownServiceOrders.filter(
+        (serviceOrder) => serviceOrder.repUsername === rep.username
+      );
+      return {
+        rep,
+        totalWorkHours: sumEstimatedTime(repServiceOrders),
+        storeCount: new Set(repServiceOrders.map((serviceOrder) => serviceOrder.Address.SiteId))
+          .size,
+        scheduleLastRefreshed: repData?.rep_sync_data.schedule_last_refreshed ?? null,
+      };
+    });
 
   const shownParentCompanyCount = parentCompanies.filter(
     (parentCompany) => !filters.excludedParentCompanies.has(parentCompany)
   ).length;
   const isParentCompanyFilterActive = shownParentCompanyCount < parentCompanies.length;
   const areStoresWithoutPendingServiceOrdersHidden = !filters.showStoresWithoutPendingServiceOrders;
+  const isRepFilterActive = shownRepTerritories.length < repTerritories.length;
 
   return {
     stores,
     recentlySeenStores,
     totalWorkHours,
+    repSummaries,
     dueDateOptions,
     selectedDueDate,
     parentCompanies,
     activeFilterSummary: {
-      isAnyFilterActive: areStoresWithoutPendingServiceOrdersHidden || isParentCompanyFilterActive,
+      isAnyFilterActive:
+        areStoresWithoutPendingServiceOrdersHidden ||
+        isParentCompanyFilterActive ||
+        isRepFilterActive,
       areStoresWithoutPendingServiceOrdersHidden,
       isParentCompanyFilterActive,
       shownParentCompanyCount,
       totalParentCompanyCount: parentCompanies.length,
+      isRepFilterActive,
+      shownRepCount: shownRepTerritories.length,
+      totalRepCount: repTerritories.length,
     },
   };
 }

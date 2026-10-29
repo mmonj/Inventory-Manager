@@ -2,18 +2,22 @@ import React, { useState } from "react";
 
 import { Button } from "react-bootstrap";
 
-import { interfaces } from "@reactivated";
-
 import { faCopy, faExternalLinkAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
-type TRecentlySeenStore = interfaces.QtTerritoryRepData["recently_seen_stores"][number];
+import { TTerritoryRecentlySeenStore } from "@client/util/qtSurveyWorker/territoryView";
 
 function formatLastSeen(isoString: string): string {
   return new Date(isoString).toLocaleDateString();
 }
 
-export function RecentlySeenStorePopupContent({ store }: { store: TRecentlySeenStore }) {
+export function RecentlySeenStorePopupContent({
+  store,
+  showRepName,
+}: {
+  store: TTerritoryRecentlySeenStore;
+  showRepName: boolean;
+}) {
   const [clipboardMessage, setClipboardMessage] = useState<string | null>(null);
   const fullAddress = `${store.address_1}, ${store.city}, ${store.state} ${store.zip_code}`;
 
@@ -48,6 +52,8 @@ export function RecentlySeenStorePopupContent({ store }: { store: TRecentlySeenS
           {clipboardMessage !== null ? clipboardMessage : "Copy Address"}
         </Button>
       </div>
+
+      {showRepName && <div className="small text-white mt-3">Field rep: {store.repUsername}</div>}
 
       <div className="small text-white my-3">
         Last seen: {store.last_seen !== null ? formatLastSeen(store.last_seen) : "Unknown"}

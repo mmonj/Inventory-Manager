@@ -2,6 +2,8 @@ import React from "react";
 
 import { Button, Form, Modal } from "react-bootstrap";
 
+import { TTerritoryRep } from "@client/util/qtSurveyWorker/territoryView";
+
 interface Props {
   show: boolean;
   onHide: () => void;
@@ -10,19 +12,38 @@ interface Props {
   parentCompanies: string[];
   excludedParentCompanies: ReadonlySet<string>;
   onChangeExcludedParentCompanies: (excludedParentCompanies: Set<string>) => void;
+  /** The combined territory's reps, or null when showing a single rep (no rep filter). */
+  reps: TTerritoryRep[] | null;
+  excludedRepIds: ReadonlySet<number>;
+  onChangeExcludedRepIds: (excludedRepIds: Set<number>) => void;
+}
+
+function toggled<T>(items: ReadonlySet<T>, item: T): Set<T> {
+  const next = new Set(items);
+  if (next.has(item)) {
+    next.delete(item);
+  } else {
+    next.add(item);
+  }
+  return next;
 }
 
 export function TerritoryFilterModal(props: Props) {
-  const { parentCompanies, excludedParentCompanies, onChangeExcludedParentCompanies } = props;
+  const {
+    parentCompanies,
+    excludedParentCompanies,
+    onChangeExcludedParentCompanies,
+    reps,
+    excludedRepIds,
+    onChangeExcludedRepIds,
+  } = props;
 
   function toggleParentCompany(parentCompany: string) {
-    const next = new Set(excludedParentCompanies);
-    if (next.has(parentCompany)) {
-      next.delete(parentCompany);
-    } else {
-      next.add(parentCompany);
-    }
-    onChangeExcludedParentCompanies(next);
+    onChangeExcludedParentCompanies(toggled(excludedParentCompanies, parentCompany));
+  }
+
+  function toggleRep(repId: number) {
+    onChangeExcludedRepIds(toggled(excludedRepIds, repId));
   }
 
   return (
@@ -38,6 +59,25 @@ export function TerritoryFilterModal(props: Props) {
           checked={props.showStoresWithoutPendingServiceOrders}
           onChange={(event) => props.onChange(event.target.checked)}
         />
+
+        {reps !== null && (
+          <>
+            <hr />
+
+            <div className="fw-semibold mb-2">Field Representative</div>
+            {reps.map((rep) => (
+              <Form.Check
+                key={rep.id}
+                type="checkbox"
+                id={`territory-rep-filter-${rep.id}`}
+                label={rep.username}
+                checked={!excludedRepIds.has(rep.id)}
+                onChange={() => toggleRep(rep.id)}
+                className="mb-2"
+              />
+            ))}
+          </>
+        )}
 
         <hr />
 

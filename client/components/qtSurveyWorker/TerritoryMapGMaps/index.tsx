@@ -2,13 +2,16 @@ import React, { useContext, useEffect, useMemo, useState } from "react";
 
 import { Button } from "react-bootstrap";
 
-import { Context, interfaces, reverse } from "@reactivated";
+import { Context, reverse } from "@reactivated";
 
 import { faLocationCrosshairs } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { fetchByReactivated } from "@client/util/commonUtil";
-import { TTerritoryStore } from "@client/util/qtSurveyWorker/territoryView";
+import {
+  TTerritoryRecentlySeenStore,
+  TTerritoryStore,
+} from "@client/util/qtSurveyWorker/territoryView";
 
 import { GoogleMap, InfoWindow, Marker, useJsApiLoader } from "@react-google-maps/api";
 
@@ -32,8 +35,6 @@ interface TRepAddressInput {
   lng: number | null;
 }
 
-type TRecentlySeenStore = interfaces.QtTerritoryRepData["recently_seen_stores"][number];
-
 interface Props {
   stores: Record<number, TTerritoryStore>;
   // Rep's own home address - used as the fallback map center when the rep has no service
@@ -42,12 +43,19 @@ interface Props {
   repAddress: TRepAddressInput | null;
   // Stores seen recently but no longer in `stores` (their SO was already submitted) -
   // rendered as red pins.
-  recentlySeenStores: TRecentlySeenStore[];
+  recentlySeenStores: TTerritoryRecentlySeenStore[];
+  // True for the combined territory, where popups say which rep each store/service order is for
+  showRepNames: boolean;
 }
 
 const mapContainerStyle = { height: "100%", width: "100%" };
 
-export default function TerritoryMapGMaps({ stores, repAddress, recentlySeenStores }: Props) {
+export default function TerritoryMapGMaps({
+  stores,
+  repAddress,
+  recentlySeenStores,
+  showRepNames,
+}: Props) {
   const context = useContext(Context);
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: context.google_maps_js_api_key,
@@ -205,7 +213,7 @@ export default function TerritoryMapGMaps({ stores, repAddress, recentlySeenStor
           >
             {activeMarker?.type === "serviceOrder" && activeMarker.siteId === Number(siteId) && (
               <InfoWindow onCloseClick={() => setActiveMarker(null)}>
-                <MapPopupContent store={group} />
+                <MapPopupContent store={group} showRepNames={showRepNames} />
               </InfoWindow>
             )}
           </Marker>
@@ -224,7 +232,7 @@ export default function TerritoryMapGMaps({ stores, repAddress, recentlySeenStor
             >
               {activeMarker?.type === "recentlySeenStore" && activeMarker.storeId === store.id && (
                 <InfoWindow onCloseClick={() => setActiveMarker(null)}>
-                  <RecentlySeenStorePopupContent store={store} />
+                  <RecentlySeenStorePopupContent store={store} showRepName={showRepNames} />
                 </InfoWindow>
               )}
             </Marker>
