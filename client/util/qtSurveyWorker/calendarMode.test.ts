@@ -5,6 +5,7 @@ import {
   TCalendarMode,
   TEnterableModeKind,
   calendarModeReducer,
+  getDatePickerSelection,
 } from "@client/util/qtSurveyWorker/calendarMode";
 
 const MONDAY = new Date(2026, 10, 2);
@@ -234,4 +235,35 @@ describe("calendarModeReducer", () => {
       expect(mode).toEqual(INITIAL_CALENDAR_MODE);
     }
   );
+});
+
+describe("getDatePickerSelection", () => {
+  it("picks one date in singleDate", () => {
+    const selection = getDatePickerSelection({ kind: "singleDate", selectedDate: MONDAY });
+
+    expect(selection).toEqual({ mode: "single", selected: MONDAY });
+  });
+
+  it("picks at most two dates in dateSwap", () => {
+    const selection = getDatePickerSelection({ kind: "dateSwap", selectedDates: [MONDAY] });
+
+    expect(selection).toEqual({ mode: "multiple", selected: [MONDAY], max: 2 });
+  });
+
+  it.each<TCalendarMode>([
+    {
+      kind: "autoSchedule",
+      selectedDates: [MONDAY, TUESDAY, WEDNESDAY],
+      selectedServiceOrderIds: new Set([1]),
+    },
+    { kind: "bulkUnschedule", selectedDates: [MONDAY, TUESDAY, WEDNESDAY] },
+  ])("picks any number of dates in $kind", (mode) => {
+    const selection = getDatePickerSelection(mode);
+
+    expect(selection).toEqual({
+      mode: "multiple",
+      selected: [MONDAY, TUESDAY, WEDNESDAY],
+      max: undefined,
+    });
+  });
 });

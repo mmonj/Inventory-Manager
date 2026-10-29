@@ -723,10 +723,6 @@ export function Template(props: templates.QtSchedule) {
     [serviceOrdersForSelectedDate]
   );
 
-  function selectCalendarModeDates(dates: Date[] | undefined) {
-    dispatchCalendarMode({ type: "selectDates", dates: dates ?? [] });
-  }
-
   async function handleClearScheduledDate() {
     if (
       selectedRepId === null ||
@@ -1226,22 +1222,9 @@ export function Template(props: templates.QtSchedule) {
                 <ScheduleCalendarGrid
                   isTodayAllowed={isTodayAllowed}
                   schedulableDateKeys={schedulableDateKeys}
-                  selectedDate={selectedDate}
                   daySummaries={daySummaries}
-                  onSelectDate={(date) => dispatchCalendarMode({ type: "selectDate", date })}
-                  swapMode={calendarMode.kind === "dateSwap"}
-                  swapSelectedDates={
-                    calendarMode.kind === "dateSwap" ? calendarMode.selectedDates : []
-                  }
-                  onSelectSwapDates={selectCalendarModeDates}
-                  autoScheduleMode={calendarMode.kind === "autoSchedule"}
-                  autoScheduleSelectedDates={autoScheduleSelectedDates}
-                  onSelectAutoScheduleDates={selectCalendarModeDates}
-                  bulkUnscheduleMode={calendarMode.kind === "bulkUnschedule"}
-                  bulkUnscheduleSelectedDates={
-                    calendarMode.kind === "bulkUnschedule" ? calendarMode.selectedDates : []
-                  }
-                  onSelectBulkUnscheduleDates={selectCalendarModeDates}
+                  calendarMode={calendarMode}
+                  onSelectDates={dispatchCalendarMode}
                 />
 
                 {(calendarMode.kind === "singleDate" || calendarMode.kind === "autoSchedule") && (

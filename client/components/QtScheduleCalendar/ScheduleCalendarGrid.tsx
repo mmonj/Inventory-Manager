@@ -1,8 +1,18 @@
 import React from "react";
 
 import { Card } from "react-bootstrap";
-import { DayContentProps, DayPicker } from "react-day-picker";
+import {
+  DayContentProps,
+  DayPicker,
+  DayPickerMultipleProps,
+  DayPickerSingleProps,
+} from "react-day-picker";
 
+import {
+  TCalendarMode,
+  TCalendarModeAction,
+  getDatePickerSelection,
+} from "@client/util/qtSurveyWorker/calendarMode";
 import { formatTotalHours, isSunday, toDateKey } from "@client/util/qtSurveyWorker/scheduleUtils";
 
 interface ICalendarDaySummary {
@@ -10,21 +20,14 @@ interface ICalendarDaySummary {
   totalHours: number;
 }
 
+type TDateSelectionAction = Extract<TCalendarModeAction, { type: "selectDate" | "selectDates" }>;
+
 interface Props {
   isTodayAllowed: boolean;
   schedulableDateKeys: Set<string>;
-  selectedDate: Date | undefined;
   daySummaries: Map<string, ICalendarDaySummary>;
-  onSelectDate: (date: Date | undefined) => void;
-  swapMode: boolean;
-  swapSelectedDates: Date[];
-  onSelectSwapDates: (dates: Date[] | undefined) => void;
-  autoScheduleMode: boolean;
-  autoScheduleSelectedDates: Date[];
-  onSelectAutoScheduleDates: (dates: Date[] | undefined) => void;
-  bulkUnscheduleMode: boolean;
-  bulkUnscheduleSelectedDates: Date[];
-  onSelectBulkUnscheduleDates: (dates: Date[] | undefined) => void;
+  calendarMode: TCalendarMode;
+  onSelectDates: (action: TDateSelectionAction) => void;
 }
 
 export function ScheduleCalendarGrid(props: Props) {
@@ -58,11 +61,11 @@ export function ScheduleCalendarGrid(props: Props) {
       return false;
     }
 
-    if (props.autoScheduleMode) {
+    if (props.calendarMode.kind === "autoSchedule") {
       return props.schedulableDateKeys.has(toDateKey(date)) && !isSunday(date);
     }
 
-    if (props.swapMode) {
+    if (props.calendarMode.kind === "dateSwap") {
       return !isSunday(date);
     }
 
@@ -88,60 +91,34 @@ export function ScheduleCalendarGrid(props: Props) {
     );
   }
 
+  const datePickerSelection = getDatePickerSelection(props.calendarMode);
+  const selectionProps: DayPickerSingleProps | DayPickerMultipleProps =
+    datePickerSelection.mode === "single"
+      ? {
+          mode: "single",
+          selected: datePickerSelection.selected,
+          onSelect: (date) => props.onSelectDates({ type: "selectDate", date }),
+        }
+      : {
+          mode: "multiple",
+          selected: datePickerSelection.selected,
+          max: datePickerSelection.max,
+          onSelect: (dates) => props.onSelectDates({ type: "selectDates", dates: dates ?? [] }),
+        };
+  const sharedDayPickerProps = {
+    disabled: (date: Date) => !isSelectable(date),
+    modifiers: { selectable: isSchedulable },
+    modifiersClassNames: { selectable: "qt-day-selectable" },
+    components: { DayContent: renderDayContent },
+    showOutsideDays: true,
+    fixedWeeks: true,
+  };
+
   return (
     <Card className="qt-schedule-calendar">
       <Card.Body className="d-flex justify-content-center overflow-x-auto">
         <div className="w-100" style={{ maxWidth: "calc(var(--rdp-cell-size) * 7)" }}>
-          {props.swapMode ? (
-            <DayPicker
-              mode="multiple"
-              max={2}
-              selected={props.swapSelectedDates}
-              onSelect={props.onSelectSwapDates}
-              disabled={(date) => !isSelectable(date)}
-              modifiers={{ selectable: isSchedulable }}
-              modifiersClassNames={{ selectable: "qt-day-selectable" }}
-              components={{ DayContent: renderDayContent }}
-              showOutsideDays
-              fixedWeeks
-            />
-          ) : props.autoScheduleMode ? (
-            <DayPicker
-              mode="multiple"
-              selected={props.autoScheduleSelectedDates}
-              onSelect={props.onSelectAutoScheduleDates}
-              disabled={(date) => !isSelectable(date)}
-              modifiers={{ selectable: isSchedulable }}
-              modifiersClassNames={{ selectable: "qt-day-selectable" }}
-              components={{ DayContent: renderDayContent }}
-              showOutsideDays
-              fixedWeeks
-            />
-          ) : props.bulkUnscheduleMode ? (
-            <DayPicker
-              mode="multiple"
-              selected={props.bulkUnscheduleSelectedDates}
-              onSelect={props.onSelectBulkUnscheduleDates}
-              disabled={(date) => !isSelectable(date)}
-              modifiers={{ selectable: isSchedulable }}
-              modifiersClassNames={{ selectable: "qt-day-selectable" }}
-              components={{ DayContent: renderDayContent }}
-              showOutsideDays
-              fixedWeeks
-            />
-          ) : (
-            <DayPicker
-              mode="single"
-              selected={props.selectedDate}
-              onSelect={props.onSelectDate}
-              disabled={(date) => !isSelectable(date)}
-              modifiers={{ selectable: isSchedulable }}
-              modifiersClassNames={{ selectable: "qt-day-selectable" }}
-              components={{ DayContent: renderDayContent }}
-              showOutsideDays
-              fixedWeeks
-            />
-          )}
+          <DayPicker {...selectionProps} {...sharedDayPickerProps} />
         </div>
       </Card.Body>
     </Card>

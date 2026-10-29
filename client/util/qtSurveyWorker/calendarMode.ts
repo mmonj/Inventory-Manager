@@ -94,3 +94,18 @@ export function calendarModeReducer(
       return INITIAL_CALENDAR_MODE;
   }
 }
+
+// What the calendar's date picker selects in the current mode
+export type TDatePickerSelection =
+  | { mode: "single"; selected: Date | undefined }
+  | { mode: "multiple"; selected: Date[]; max: number | undefined };
+
+export function getDatePickerSelection(mode: TCalendarMode): TDatePickerSelection {
+  if (mode.kind === "singleDate") {
+    return { mode: "single", selected: mode.selectedDate };
+  }
+  if (mode.kind === "dateSwap") {
+    return { mode: "multiple", selected: mode.selectedDates, max: MAX_DATE_SWAP_DATES };
+  }
+  return { mode: "multiple", selected: mode.selectedDates, max: undefined };
+}
