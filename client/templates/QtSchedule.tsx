@@ -499,14 +499,6 @@ export function Template(props: templates.QtSchedule) {
     });
   }, [visibleUnscheduledSoIds]);
 
-  // the "Enable Auto-Scheduling" checkbox is hidden with no unscheduled SOs to select -
-  // exit auto-schedule mode if it was on when the list emptied out from under it
-  React.useEffect(() => {
-    if (unscheduledServiceOrders.length === 0) {
-      setIsAutoScheduleMode(false);
-    }
-  }, [unscheduledServiceOrders]);
-
   function toggleAutoScheduleSoSelected(soId: number) {
     setAutoScheduleSelectedSoIds((current) => {
       const next = new Set(current);
@@ -1091,7 +1083,9 @@ export function Template(props: templates.QtSchedule) {
                         setSwapSelectedDates([]);
                       }}
                     />
-                    {unscheduledServiceOrders.length > 0 && (
+                    {/* stays visible while the mode is on so it can always be turned off,
+                        even after filters/search empty the Unscheduled list */}
+                    {(unscheduledServiceOrders.length > 0 || isAutoScheduleMode) && (
                       <Form.Check
                         type="checkbox"
                         id="enable-auto-scheduling-checkbox"
