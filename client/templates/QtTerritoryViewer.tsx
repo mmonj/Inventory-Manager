@@ -49,9 +49,9 @@ function formatLastRefreshed(isoString: string): string {
 }
 
 export function Template(props: templates.QtTerritoryViewer) {
-  const [selectedRepId, setSelectedRepId] = useState<number | null>(
-    props.rep_details[0]?.id ?? null
-  );
+  // Chosen on mount (see below) rather than here, so the first rep isn't fetched before the
+  // last selected one is restored from localStorage
+  const [selectedRepId, setSelectedRepId] = useState<number | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [selectedDueDate, setSelectedDueDate] = useState<string | null>(null);
@@ -134,7 +134,7 @@ export function Template(props: templates.QtTerritoryViewer) {
     // the selected rep id itself changes, not on every fetch-state/cache update it causes
   }, [selectedRepId]);
 
-  // load last selected representative ID on mount
+  // Select the last selected representative on mount, falling back to the first one
   useEffect(() => {
     const lastSelectedRepId = localStorage.getItem(LAST_SELECTED_REP_ID_KEY);
     if (lastSelectedRepId !== null && lastSelectedRepId !== "") {
@@ -142,8 +142,10 @@ export function Template(props: templates.QtTerritoryViewer) {
 
       if (!isNaN(storedId) && props.rep_details.some((rep) => rep.id === storedId)) {
         setSelectedRepId(storedId);
+        return;
       }
     }
+    setSelectedRepId(props.rep_details[0]?.id ?? null);
   }, []);
 
   if (props.rep_details.length === 0) {
