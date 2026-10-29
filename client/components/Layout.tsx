@@ -4,6 +4,7 @@ import { Context, reverse } from "@reactivated";
 
 import { ToastHost } from "./ToastHost";
 import { ContribMessages } from "./ContribMessages";
+import { QtModeBanner } from "./QtModeBanner";
 
 interface IExternalStyles {
   src: string;
@@ -47,6 +48,7 @@ export const Layout = ({ bsTheme = "light", ...props }: Props) => {
         ))}
       </head>
       <body>
+        <QtModeBanner />
         <header>{props.navbar}</header>
         <main className={props.className}>
           <ContribMessages />

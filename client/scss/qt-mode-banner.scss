@@ -1,0 +1,13 @@
+.qt-mode-banner {
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  text-align: center;
+  color: #e9ecef;
+  background-color: #495057;
+
+  &--live {
+    font-weight: bold;
+    color: #fff;
+    background-color: #dc3545;
+  }
+}
