@@ -401,37 +401,34 @@ export function Template(props: templates.QtSchedule) {
 
   // Deliberately NOT filtered by selectedDate - all such SOs stay visible in the Unscheduled
   // list regardless of which date is picked (split into schedulable/outside-window groups
-  // below instead of hiding anything), and the calendar's selectable range is derived from
-  // this same set, so the range always matches what's visible.
-  const unscheduledServiceOrders = React.useMemo(() => {
+  // below instead of hiding anything). Also not narrowed to the picked auto-schedule dates:
+  // the calendar's schedulable dates come from this set, so picking one auto-schedule date
+  // doesn't lock out dates that only other SOs' windows cover.
+  const filteredUnscheduledServiceOrders = React.useMemo(() => {
     return eligibleUnscheduledServiceOrders.filter((so) => {
       if (!selectedJobClients.has(so.JobClient)) {
         return false;
       }
 
-      if (!matchesSearch(getServiceOrderSearchKey(so), unscheduledSearchQuery)) {
-        return false;
-      }
-
-      // In auto-schedule mode, only show SOs schedulable on at least one of the selected
-      // dates - the backend groups SOs by their own scheduling window per date, so an SO
-      // that can't land on any selected date is just noise here. No dates selected yet -
-      // show everything (unfiltered by date), same as normal mode.
-      if (isAutoScheduleMode && autoScheduleSelectedDates.length > 0) {
-        const rangeStart = new Date(so.DateScheduleRangeStart);
-        const rangeEnd = new Date(so.DateScheduleRangeEnd);
-        return autoScheduleSelectedDates.some((date) => date >= rangeStart && date <= rangeEnd);
-      }
-
-      return true;
+      return matchesSearch(getServiceOrderSearchKey(so), unscheduledSearchQuery);
     });
-  }, [
-    eligibleUnscheduledServiceOrders,
-    selectedJobClients,
-    unscheduledSearchQuery,
-    isAutoScheduleMode,
-    autoScheduleSelectedDates,
-  ]);
+  }, [eligibleUnscheduledServiceOrders, selectedJobClients, unscheduledSearchQuery]);
+
+  // The Unscheduled list. In auto-schedule mode, only show SOs schedulable on at least one of
+  // the selected dates - the backend groups SOs by their own scheduling window per date, so an
+  // SO that can't land on any selected date is just noise here. No dates selected yet - show
+  // everything (unfiltered by date), same as normal mode.
+  const unscheduledServiceOrders = React.useMemo(() => {
+    if (!isAutoScheduleMode || autoScheduleSelectedDates.length === 0) {
+      return filteredUnscheduledServiceOrders;
+    }
+
+    return filteredUnscheduledServiceOrders.filter((so) => {
+      const rangeStart = new Date(so.DateScheduleRangeStart);
+      const rangeEnd = new Date(so.DateScheduleRangeEnd);
+      return autoScheduleSelectedDates.some((date) => date >= rangeStart && date <= rangeEnd);
+    });
+  }, [filteredUnscheduledServiceOrders, isAutoScheduleMode, autoScheduleSelectedDates]);
 
   const isSearchFilterActive = unscheduledSearchQuery.trim() !== "";
   const isUnscheduledFilterActive = isJobClientFilterActive || isSearchFilterActive;
@@ -664,14 +661,15 @@ export function Template(props: templates.QtSchedule) {
   }, [schedule]);
 
   // Date keys the calendar highlights as schedulable: every day actually covered by at least
-  // one visible Unscheduled SO's [DateScheduleRangeStart, DateScheduleRangeEnd] window - not
+  // one Unscheduled SO's [DateScheduleRangeStart, DateScheduleRangeEnd] window (after the Job
+  // Client filter and search, but before the auto-schedule date narrowing) - not
   // just a min/max span, since a date inside that overall span can still have nothing left
   // that's actually schedulable on it (e.g. every SO whose window covered it has since been
   // scheduled elsewhere or expired).
   const schedulableDateKeys = React.useMemo(() => {
     const dateKeys = new Set<string>();
 
-    for (const so of unscheduledServiceOrders) {
+    for (const so of filteredUnscheduledServiceOrders) {
       const cursor = new Date(so.DateScheduleRangeStart);
       cursor.setHours(0, 0, 0, 0);
       const rangeEnd = new Date(so.DateScheduleRangeEnd);
@@ -684,7 +682,7 @@ export function Template(props: templates.QtSchedule) {
     }
 
     return dateKeys;
-  }, [unscheduledServiceOrders]);
+  }, [filteredUnscheduledServiceOrders]);
 
   const daySummaries = React.useMemo(() => {
     const summaries = new Map<string, ICalendarDaySummary>();

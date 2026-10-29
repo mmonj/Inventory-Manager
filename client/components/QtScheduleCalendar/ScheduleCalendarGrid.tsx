@@ -38,7 +38,8 @@ export function ScheduleCalendarGrid(props: Props) {
     return isToday ? props.isTodayAllowed : date >= today;
   }
 
-  // Purely informational: does at least one visible Unscheduled SO's window cover this day.
+  // Purely informational: does at least one Unscheduled SO's window cover this day (after the
+  // Job Client filter and search, but not narrowed to the picked auto-schedule dates).
   // Drives only the green "selectable" highlight, in every mode - it's a signal, not a
   // selection gate, so it never affects whether the date can actually be clicked.
   function isSchedulable(date: Date): boolean {
