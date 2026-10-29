@@ -5,7 +5,7 @@ from django.http import HttpRequest
 from django.utils import timezone
 
 from products.models import MessageRecipient
-from server.models import GlobalSettings
+from server.models import get_development_qt_mode
 
 
 class UserInfo(TypedDict):
@@ -30,15 +30,14 @@ class TContextProvider(TypedDict):
 
 
 def get_qt_mode() -> QtMode | None:
-    if not settings.DEBUG:
+    development_qt_mode = get_development_qt_mode()
+    if development_qt_mode is None:
         return None
+    if development_qt_mode.live_until is None:
+        return {"mode": development_qt_mode.mode, "live_until_time": None}
 
-    global_settings = GlobalSettings.load()
-    if not global_settings.is_qt_live_window_open():
-        return {"mode": "fake", "live_until_time": None}
-
-    live_until_time = timezone.localtime(global_settings.qt_live_until).strftime("%H:%M")
-    return {"mode": "live", "live_until_time": live_until_time}
+    live_until_time = timezone.localtime(development_qt_mode.live_until).strftime("%H:%M")
+    return {"mode": development_qt_mode.mode, "live_until_time": live_until_time}
 
 
 def context_provider(request: HttpRequest) -> TContextProvider:

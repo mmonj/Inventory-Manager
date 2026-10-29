@@ -1,6 +1,8 @@
 import datetime
-from typing import Any, Self
+from dataclasses import dataclass
+from typing import Any, Literal, Self
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -49,3 +51,26 @@ class GlobalSettings(models.Model):
     def close_qt_live_window(self) -> None:
         self.qt_live_until = UNIX_EPOCH
         self.save(update_fields=["qt_live_until"])
+
+
+@dataclass(frozen=True)
+class DevelopmentQtMode:
+    """Which Qt development's real field reps talk to right now."""
+
+    mode: Literal["fake", "live"]
+    # When the live window closes; None while fake
+    live_until: datetime.datetime | None
+
+
+def get_development_qt_mode() -> DevelopmentQtMode | None:
+    """
+    The one rule for whether development talks to the real Qt: only while a live window
+    is open. None in production, which always talks to the real Qt.
+    """
+    if not settings.DEBUG:
+        return None
+
+    global_settings = GlobalSettings.load()
+    if not global_settings.is_qt_live_window_open():
+        return DevelopmentQtMode(mode="fake", live_until=None)
+    return DevelopmentQtMode(mode="live", live_until=global_settings.qt_live_until)
