@@ -33,18 +33,18 @@ import {
   TTerritoryRep,
   buildTerritoryView,
 } from "@client/util/qtSurveyWorker/territoryView";
+import {
+  TTerritorySelection,
+  restoreTerritorySelection,
+  toStoredTerritorySelection,
+} from "@client/util/qtSurveyWorker/territorySelection";
 import { toast } from "@client/util/toast";
 
 const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMapGMaps"));
 
 const RELATIVE_TIME_THRESHOLD_HOURS = 12;
 const LAST_SELECTED_REP_ID_KEY = "lastSelectedRepId";
-// Stored under LAST_SELECTED_REP_ID_KEY when the combined territory was last selected
-const COMBINED_TERRITORY_STORAGE_VALUE = "all";
 const COMBINED_TERRITORY_LABEL = "All Field Reps";
-
-/** A single rep's id, or "all" for the combined territory. */
-type TRepSelection = number | "all";
 
 interface TLoadState {
   isLoading: boolean;
@@ -106,7 +106,7 @@ function formatLastRefreshed(isoString: string): string {
 export function Template(props: templates.QtTerritoryViewer) {
   // Chosen on mount (see below) rather than here, so the first rep isn't fetched before the
   // last selection is restored from localStorage
-  const [selection, setSelection] = useState<TRepSelection | null>(null);
+  const [selection, setSelection] = useState<TTerritorySelection | null>(null);
   const [showMap, setShowMap] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [selectedDueDate, setSelectedDueDate] = useState<string | null>(null);
@@ -129,11 +129,11 @@ export function Template(props: templates.QtTerritoryViewer) {
   const latestLoadIdRef = useRef(0);
   const djangoContext = React.useContext(Context);
 
-  const isCombinedTerritory = selection === "all";
+  const isCombinedTerritory = selection?.kind === "combinedTerritory";
   const allReps: TTerritoryRep[] = props.rep_details;
   const selectedRepDetail =
-    typeof selection === "number"
-      ? props.rep_details.find((repDetail) => repDetail.id === selection)
+    selection?.kind === "fieldRep"
+      ? props.rep_details.find((repDetail) => repDetail.id === selection.repId)
       : undefined;
   const shownReps: TTerritoryRep[] = isCombinedTerritory
     ? allReps
@@ -241,20 +241,16 @@ export function Template(props: templates.QtTerritoryViewer) {
 
   // Restore the last selection on mount, falling back to the first rep
   useEffect(() => {
-    const lastSelection = localStorage.getItem(LAST_SELECTED_REP_ID_KEY);
-    if (lastSelection === COMBINED_TERRITORY_STORAGE_VALUE && props.rep_details.length > 0) {
-      setSelection("all");
+    const restoredSelection = restoreTerritorySelection(
+      localStorage.getItem(LAST_SELECTED_REP_ID_KEY),
+      props.rep_details.map((rep) => rep.id)
+    );
+    if (restoredSelection !== null) {
+      setSelection(restoredSelection);
       return;
     }
-    if (lastSelection !== null && lastSelection !== "") {
-      const storedId = parseInt(lastSelection);
-
-      if (!isNaN(storedId) && props.rep_details.some((rep) => rep.id === storedId)) {
-        setSelection(storedId);
-        return;
-      }
-    }
-    setSelection(props.rep_details[0]?.id ?? null);
+    const firstRep = props.rep_details.at(0);
+    setSelection(firstRep === undefined ? null : { kind: "fieldRep", repId: firstRep.id });
   }, []);
 
   if (props.rep_details.length === 0) {
@@ -276,14 +272,10 @@ export function Template(props: templates.QtTerritoryViewer) {
     );
   }
 
-  function handleSelectionChange(nextSelection: TRepSelection) {
+  function handleSelectionChange(nextSelection: TTerritorySelection) {
     setSearchText("");
     setSelection(nextSelection);
-
-    localStorage.setItem(
-      LAST_SELECTED_REP_ID_KEY,
-      nextSelection === "all" ? COMBINED_TERRITORY_STORAGE_VALUE : nextSelection.toString()
-    );
+    localStorage.setItem(LAST_SELECTED_REP_ID_KEY, toStoredTerritorySelection(nextSelection));
   }
 
   async function handleRefreshSchedule() {
@@ -311,18 +303,18 @@ export function Template(props: templates.QtTerritoryViewer) {
               variant="secondary"
               className="w-100"
             >
+              <Dropdown.Header>Field Reps</Dropdown.Header>
               <Dropdown.Item
-                onClick={() => handleSelectionChange("all")}
+                onClick={() => handleSelectionChange({ kind: "combinedTerritory" })}
                 active={isCombinedTerritory}
               >
                 {COMBINED_TERRITORY_LABEL}
               </Dropdown.Item>
-              <Dropdown.Divider />
               {props.rep_details.map((rep) => (
                 <Dropdown.Item
                   key={rep.id}
-                  onClick={() => handleSelectionChange(rep.id)}
-                  active={selection === rep.id}
+                  onClick={() => handleSelectionChange({ kind: "fieldRep", repId: rep.id })}
+                  active={selectedRepDetail?.id === rep.id}
                 >
                   {rep.username}
                 </Dropdown.Item>
