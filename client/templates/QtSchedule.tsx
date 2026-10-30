@@ -407,7 +407,7 @@ export function Template(props: templates.QtSchedule) {
       buildScheduleView(
         schedule,
         calendarMode,
-        { selectedJobClients, searchQuery: unscheduledSearchQuery },
+        { selectedParentCompanies: selectedJobClients, searchQuery: unscheduledSearchQuery },
         new Date(`${todayKey}T00:00:00`)
       ),
     [schedule, calendarMode, selectedJobClients, unscheduledSearchQuery, todayKey]
@@ -434,7 +434,7 @@ export function Template(props: templates.QtSchedule) {
     [scheduleView.outsideWindowForSelectedDate, unscheduledOrderBy]
   );
 
-  const autoScheduleSelectedSoIds =
+  const autoScheduleSelectedServiceOrderIds =
     calendarMode.kind === "autoSchedule" ? calendarMode.selectedServiceOrderIds : null;
 
   async function handleExecuteAutoSchedule() {
@@ -865,10 +865,10 @@ export function Template(props: templates.QtSchedule) {
                           key={so.ServiceOrderId}
                           so={so}
                           checkbox={
-                            autoScheduleSelectedSoIds !== null ? (
+                            autoScheduleSelectedServiceOrderIds !== null ? (
                               <Form.Check
                                 type="checkbox"
-                                checked={autoScheduleSelectedSoIds.has(so.ServiceOrderId)}
+                                checked={autoScheduleSelectedServiceOrderIds.has(so.ServiceOrderId)}
                                 onChange={() =>
                                   dispatchCalendarMode({
                                     type: "toggleServiceOrder",
@@ -879,7 +879,7 @@ export function Template(props: templates.QtSchedule) {
                             ) : undefined
                           }
                           action={
-                            autoScheduleSelectedSoIds !== null ? null : (
+                            autoScheduleSelectedServiceOrderIds !== null ? null : (
                               <Button
                                 variant="primary"
                                 size="sm"

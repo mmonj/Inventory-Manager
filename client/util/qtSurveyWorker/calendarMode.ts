@@ -115,7 +115,7 @@ export function getDatePickerSelection(calendarMode: TCalendarMode): TDatePicker
 }
 
 /** What the schedule says about one calendar date, independent of the calendar mode. */
-interface ICalendarDateFacts {
+interface TCalendarDateFacts {
   date: Date;
   isPast: boolean;
   isSchedulable: boolean;
@@ -130,7 +130,7 @@ interface ICalendarDateFacts {
  */
 export function isDatePickable(
   calendarMode: TCalendarMode,
-  dateFacts: ICalendarDateFacts
+  dateFacts: TCalendarDateFacts
 ): boolean {
   if (dateFacts.isPast) {
     return false;

@@ -38,7 +38,9 @@ function makeSchedule(options: {
 }
 
 /** An unscheduled service order whose window runs from Tuesday to Wednesday. */
-function makeUnscheduledOrder(overrides: { parentCompany?: string; description?: string } = {}) {
+function makeUnscheduledServiceOrder(
+  overrides: { parentCompany?: string; description?: string } = {}
+) {
   return makeServiceOrder({
     address: STORE,
     windowStart: "2026-11-03T00:00:00",
@@ -50,7 +52,7 @@ function makeUnscheduledOrder(overrides: { parentCompany?: string; description?:
 
 function noFiltersFor(serviceOrders: TServiceOrder[]): TScheduleFilters {
   return {
-    selectedJobClients: new Set(serviceOrders.map((so) => so.JobClient)),
+    selectedParentCompanies: new Set(serviceOrders.map((so) => so.JobClient)),
     searchQuery: "",
   };
 }
@@ -58,7 +60,7 @@ function noFiltersFor(serviceOrders: TServiceOrder[]): TScheduleFilters {
 describe("buildScheduleView", () => {
   describe("schedulable dates", () => {
     it("are the days inside an unscheduled service order's window", () => {
-      const orders = [makeUnscheduledOrder()];
+      const orders = [makeUnscheduledServiceOrder()];
 
       const view = buildScheduleView(
         makeSchedule({ serviceOrders: orders }),
@@ -141,8 +143,8 @@ describe("buildScheduleView", () => {
       expect(cutOffView.isDateSchedulable(TODAY)).toBe(false);
     });
 
-    it("leave out service orders the job client filter hides", () => {
-      const acmeOrder = makeUnscheduledOrder({ parentCompany: "Acme" });
+    it("leave out service orders the parent company filter hides", () => {
+      const acmeOrder = makeUnscheduledServiceOrder({ parentCompany: "Acme" });
       const globexOrder = makeServiceOrder({
         address: STORE,
         parentCompany: "Globex",
@@ -154,7 +156,7 @@ describe("buildScheduleView", () => {
       const view = buildScheduleView(
         makeSchedule({ serviceOrders: [acmeOrder, globexOrder] }),
         SINGLE_DATE,
-        { selectedJobClients: new Set(["Acme"]), searchQuery: "" },
+        { selectedParentCompanies: new Set(["Acme"]), searchQuery: "" },
         TODAY
       );
 
@@ -163,7 +165,7 @@ describe("buildScheduleView", () => {
     });
 
     it("leave out service orders the search hides", () => {
-      const orders = [makeUnscheduledOrder({ description: "Reset aisle" })];
+      const orders = [makeUnscheduledServiceOrder({ description: "Reset aisle" })];
 
       const view = buildScheduleView(
         makeSchedule({ serviceOrders: orders }),
@@ -202,7 +204,7 @@ describe("buildScheduleView", () => {
     });
 
     it("follow the calendar mode's rule on schedulable dates", () => {
-      const orders = [makeUnscheduledOrder()];
+      const orders = [makeUnscheduledServiceOrder()];
 
       const view = buildScheduleView(
         makeSchedule({ serviceOrders: orders }),
@@ -218,7 +220,7 @@ describe("buildScheduleView", () => {
 
   describe("unscheduled list", () => {
     // Window Tuesday to Wednesday, and one for next Monday only
-    const midweekOrder = makeUnscheduledOrder();
+    const midweekOrder = makeUnscheduledServiceOrder();
     const nextMondayOrder = makeServiceOrder({
       address: STORE,
       windowStart: "2026-11-09T00:00:00",
@@ -251,7 +253,7 @@ describe("buildScheduleView", () => {
       const view = buildScheduleView(
         schedule,
         SINGLE_DATE,
-        { selectedJobClients: new Set(), searchQuery: "" },
+        { selectedParentCompanies: new Set(), searchQuery: "" },
         TODAY
       );
 
@@ -318,7 +320,7 @@ describe("buildScheduleView", () => {
       const view = buildScheduleView(
         schedule,
         bothSelected,
-        { selectedJobClients: new Set(["Acme"]), searchQuery: "" },
+        { selectedParentCompanies: new Set(["Acme"]), searchQuery: "" },
         TODAY
       );
 
@@ -378,7 +380,7 @@ describe("buildScheduleView", () => {
       dateScheduled: "2026-11-04T00:00:00",
       estimatedTime: 1,
     });
-    const orders = [tuesdayVisit, tuesdayDriveTime, wednesdayVisit, makeUnscheduledOrder()];
+    const orders = [tuesdayVisit, tuesdayDriveTime, wednesdayVisit, makeUnscheduledServiceOrder()];
     const schedule = makeSchedule({ serviceOrders: orders });
 
     it("sums each scheduled date's service orders and hours", () => {

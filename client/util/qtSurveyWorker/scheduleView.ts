@@ -9,7 +9,7 @@ import {
 
 /** What the user has narrowed the Unscheduled list down to. */
 export interface TScheduleFilters {
-  selectedJobClients: ReadonlySet<string>;
+  selectedParentCompanies: ReadonlySet<string>;
   searchQuery: string;
 }
 
@@ -22,12 +22,12 @@ export interface TDaySummary {
 /** Everything the Schedule page shows for a field rep's schedule under the current filters. */
 export interface TScheduleView {
   /**
-   * Unscheduled service orders whose window hasn't closed, before the job client filter and
+   * Unscheduled service orders whose window hasn't closed, before the parent company filter and
    * search. The fixed total for the "showing X of Y" banner.
    */
   eligibleUnscheduledServiceOrders: TServiceOrder[];
   /**
-   * The eligible ones left after the job client filter and search. Not narrowed to the picked
+   * The eligible ones left after the parent company filter and search. Not narrowed to the picked
    * auto-schedule dates, so picking one doesn't lock out dates only other windows cover.
    */
   filteredUnscheduledServiceOrders: TServiceOrder[];
@@ -135,7 +135,7 @@ export function buildScheduleView(
 
   const filteredUnscheduledServiceOrders = eligibleUnscheduledServiceOrders.filter(
     (so) =>
-      filters.selectedJobClients.has(so.JobClient) &&
+      filters.selectedParentCompanies.has(so.JobClient) &&
       matchesSearch(getServiceOrderSearchKey(so), filters.searchQuery)
   );
 
