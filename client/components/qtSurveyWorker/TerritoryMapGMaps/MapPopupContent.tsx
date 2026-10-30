@@ -6,6 +6,10 @@ import { faClock, faCopy, faExternalLinkAlt } from "@fortawesome/free-solid-svg-
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import {
+  TVisitSequenceStoreActions,
+  VisitSequenceOutcomeControls,
+} from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
+import {
   encodeQtAddress,
   getFormattedEstimatedTime,
   reformatServiceOrderDescription,
@@ -57,10 +61,13 @@ function groupByDueDate(serviceOrders: TTerritoryServiceOrder[]): TDueDateGroup[
 export function MapPopupContent({
   store,
   showRepNames,
+  visitSequenceActions,
 }: {
   store: TTerritoryStore;
   // Splits the service orders by rep (then due date), for the combined territory
   showRepNames: boolean;
+  // Only in a visit sequence
+  visitSequenceActions: TVisitSequenceStoreActions | null;
 }) {
   const [clipboardMessage, setClipboardMessage] = useState<string | null>(null);
 
@@ -121,6 +128,15 @@ export function MapPopupContent({
           <FontAwesomeIcon icon={faCopy} className="me-1" />
           {clipboardMessage !== null ? clipboardMessage : "Copy Address"}
         </Button>
+
+        {visitSequenceActions !== null && (
+          <VisitSequenceOutcomeControls
+            siteId={store.address.SiteId}
+            actions={visitSequenceActions}
+            className="mt-2"
+            textClassName="text-white"
+          />
+        )}
       </div>
 
       <hr className="my-2" />

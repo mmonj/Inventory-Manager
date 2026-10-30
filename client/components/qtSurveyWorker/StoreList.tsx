@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Accordion, Badge, Button, Card } from "react-bootstrap";
+import { Accordion, Alert, Badge, Button, Card } from "react-bootstrap";
 
 import { SurveyWorkerQtraxWebsiteTypedefsTServiceOrder } from "@reactivated";
 
@@ -10,8 +10,14 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { encodeQtAddress, getFormattedEstimatedTime } from "@client/util/commonUtil";
 import { formatDateRange, formatWeekdayShortDate } from "@client/util/qtSurveyWorker/scheduleUtils";
 import {
+  TVisitSequenceStoreActions,
+  VisitSequenceOutcomeControls,
+} from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
+import {
   TTerritoryRecentlySeenStore,
   TTerritoryStore,
+  TTerritoryStoreEntry,
+  TVisitSequenceView,
   getStoreEstimatedTime,
 } from "@client/util/qtSurveyWorker/territoryView";
 
@@ -25,6 +31,8 @@ interface Props {
   recentlySeenStores?: TTerritoryRecentlySeenStore[];
   // True for the combined territory: each store and service order says which rep it's for
   showRepNames?: boolean;
+  // Only in a visit sequence: the cards are grouped into Remaining and Visited instead
+  visitSequence?: { view: TVisitSequenceView; actions: TVisitSequenceStoreActions } | null;
 }
 
 function RepBadges({ repUsernames }: { repUsernames: string[] }) {
@@ -56,235 +64,335 @@ function formatScheduledStatus(
   return `Scheduled on ${formatWeekdayShortDate(new Date(serviceOrder.DateScheduled))}`;
 }
 
+function ServiceOrderStoreCard({
+  store,
+  unscheduledDate,
+  showRepNames,
+  outcomeControls,
+}: {
+  store: TTerritoryStore;
+  unscheduledDate: string | undefined;
+  showRepNames: boolean;
+  outcomeControls?: React.ReactNode;
+}) {
+  const { address, serviceOrders } = store;
+  const totalHours = getStoreEstimatedTime(store);
+
+  return (
+    <Accordion.Item eventKey={address.SiteId.toString()} className="mb-3 border-0 shadow-sm">
+      <Accordion.Header className="bg-white">
+        <div className="w-100 pe-3">
+          <div className="d-flex justify-content-between align-items-start mb-2">
+            <h5 className="mb-0 text-primary fw-bold">{address.StoreName || "(Unnamed Store)"}</h5>
+            <Badge bg="primary" pill className="ms-2">
+              {serviceOrders.length} {serviceOrders.length === 1 ? "ticket" : "tickets"}
+            </Badge>
+          </div>
+          {showRepNames && (
+            <RepBadges
+              repUsernames={[
+                ...new Set(serviceOrders.map((serviceOrder) => serviceOrder.repUsername)),
+              ].sort()}
+            />
+          )}
+          <div className="d-flex align-items-center text-muted small mb-1">
+            <FontAwesomeIcon icon={faMapMarkerAlt} className="me-2" />
+            <span>
+              {address.StreetAddress}, {address.City}, {address.State} {address.PostalCode}
+            </span>
+          </div>
+          <div className="d-flex align-items-center text-muted small">
+            <FontAwesomeIcon icon={faClock} className="me-2" />
+            <span>
+              Total Time: <strong>{getFormattedEstimatedTime(totalHours)}</strong>
+            </span>
+          </div>
+        </div>
+      </Accordion.Header>
+      {outcomeControls !== undefined && (
+        <div className="px-3 py-2 border-top">{outcomeControls}</div>
+      )}
+      <Accordion.Body className="bg-light">
+        <div className="mb-3 d-flex justify-content-end">
+          <Button
+            href={"https://www.google.com/maps/search/?api=1&query=" + encodeQtAddress(address)}
+            target="_blank"
+            rel="noreferrer"
+            variant="outline-primary"
+            size="sm"
+          >
+            <FontAwesomeIcon icon={faExternalLinkAlt} className="me-1" />
+            Open in Maps
+          </Button>
+        </div>
+
+        <div>
+          {serviceOrders.map((serviceOrder, serviceOrderIndex) => (
+            <Card key={serviceOrderIndex} className="mb-3 border-0 shadow-sm">
+              <Card.Body className="p-3">
+                <div className="row g-2">
+                  <div className="col-md-6">
+                    {showRepNames && (
+                      <div className="mb-2">
+                        <small className="text-muted d-block">Field Rep</small>
+                        <span className="fw-semibold">{serviceOrder.repUsername}</span>
+                      </div>
+                    )}
+                    <div className="mb-2">
+                      <small className="text-muted d-block">Service Order ID</small>
+                      <span className="fw-semibold">{serviceOrder.ServiceOrderId}</span>
+                    </div>
+                    <div className="mb-2">
+                      <small className="text-muted d-block">Description</small>
+                      <span>{serviceOrder.ServiceOrderDescription}</span>
+                    </div>
+                    <div className="mb-2">
+                      <small className="text-muted d-block">Status</small>
+                      <Badge
+                        bg={
+                          unscheduledDate !== undefined &&
+                          serviceOrder.DateScheduled !== unscheduledDate
+                            ? "primary"
+                            : "secondary"
+                        }
+                        className="fw-normal"
+                      >
+                        {formatScheduledStatus(serviceOrder, unscheduledDate)}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="col-md-6">
+                    <div className="mb-2">
+                      <small className="text-muted d-block">Estimated Time</small>
+                      <Badge bg="success" className="fw-normal">
+                        <FontAwesomeIcon icon={faClock} className="me-1" />
+                        {getFormattedEstimatedTime(serviceOrder.EstimatedTime)}
+                      </Badge>
+                    </div>
+                    <div className="mb-2">
+                      <small className="text-muted d-block">Date Range</small>
+                      <span className="text-secondary">
+                        {formatDateRange(
+                          serviceOrder.DateScheduleRangeStartOriginal,
+                          serviceOrder.DateScheduleRangeEndOriginal
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          ))}
+        </div>
+      </Accordion.Body>
+    </Accordion.Item>
+  );
+}
+
+function RecentlySeenStoreCard({
+  store,
+  showRepNames,
+  outcomeControls,
+}: {
+  store: TTerritoryRecentlySeenStore;
+  showRepNames: boolean;
+  outcomeControls?: React.ReactNode;
+}) {
+  return (
+    <Accordion.Item eventKey={store.id.toString()} className="mb-3 border-0 shadow-sm opacity-75">
+      <Accordion.Header className="bg-body-secondary">
+        <div className="w-100 pe-3">
+          <div className="d-flex justify-content-between align-items-start mb-2">
+            <h5 className="mb-0 text-secondary fw-bold">{store.name || "(Unnamed Store)"}</h5>
+            <Badge bg="secondary" pill className="ms-2">
+              No Current Tickets
+            </Badge>
+          </div>
+          {showRepNames && <RepBadges repUsernames={[store.repUsername]} />}
+          <div className="d-flex align-items-center text-muted small mb-1">
+            <FontAwesomeIcon icon={faMapMarkerAlt} className="me-2" />
+            <span>
+              {store.address_1}, {store.city}, {store.state} {store.zip_code}
+            </span>
+          </div>
+          <div className="d-flex align-items-center text-muted small">
+            <FontAwesomeIcon icon={faClock} className="me-2" />
+            <span>
+              Last Seen: <strong>{formatLastSeen(store.last_seen)}</strong>
+            </span>
+          </div>
+        </div>
+      </Accordion.Header>
+      {outcomeControls !== undefined && (
+        <div className="px-3 py-2 border-top">{outcomeControls}</div>
+      )}
+      <Accordion.Body className="bg-body-secondary">
+        <div className="d-flex justify-content-end mb-3">
+          <Button
+            href={
+              "https://www.google.com/maps/search/?api=1&query=" +
+              encodeURIComponent(
+                `${store.address_1} ${store.city} ${store.state} ${store.zip_code}`
+              )
+            }
+            target="_blank"
+            rel="noreferrer"
+            variant="outline-primary"
+            size="sm"
+          >
+            <FontAwesomeIcon icon={faExternalLinkAlt} className="me-1" />
+            Open in Maps
+          </Button>
+        </div>
+        <p className="text-muted mb-0">
+          No pending tickets are currently available for this store.
+        </p>
+      </Accordion.Body>
+    </Accordion.Item>
+  );
+}
+
+function NoStoresFound() {
+  return (
+    <Card className="shadow-sm border-0 text-center py-5">
+      <Card.Body>
+        <div className="mb-3">
+          <i className="fs-1">🏪</i>
+        </div>
+        <h4 className="mb-2">No Stores Found</h4>
+        <p className="text-muted">Try adjusting your filters to see more results.</p>
+      </Card.Body>
+    </Card>
+  );
+}
+
+function GroupHeading({ title, count }: { title: string; count: number }) {
+  return (
+    <div className="mb-3">
+      <h3 className="h5 text-secondary">
+        {title}{" "}
+        <Badge bg="secondary" pill>
+          {count}
+        </Badge>
+      </h3>
+    </div>
+  );
+}
+
+function VisitSequenceStoreGroup({
+  title,
+  storeEntries,
+  unscheduledDate,
+  showRepNames,
+  actions,
+}: {
+  title: string;
+  storeEntries: TTerritoryStoreEntry[];
+  unscheduledDate: string | undefined;
+  showRepNames: boolean;
+  actions: TVisitSequenceStoreActions;
+}) {
+  return (
+    <>
+      <GroupHeading title={title} count={storeEntries.length} />
+      <Accordion className="mb-4">
+        {storeEntries.map((storeEntry) => {
+          const outcomeControls = (
+            <VisitSequenceOutcomeControls siteId={storeEntry.siteId} actions={actions} />
+          );
+          return storeEntry.kind === "withServiceOrders" ? (
+            <ServiceOrderStoreCard
+              key={storeEntry.siteId}
+              store={storeEntry.store}
+              unscheduledDate={unscheduledDate}
+              showRepNames={showRepNames}
+              outcomeControls={outcomeControls}
+            />
+          ) : (
+            <RecentlySeenStoreCard
+              key={storeEntry.siteId}
+              store={storeEntry.store}
+              showRepNames={showRepNames}
+              outcomeControls={outcomeControls}
+            />
+          );
+        })}
+      </Accordion>
+    </>
+  );
+}
+
 export function StoreList({
   stores,
   unscheduledDate,
   recentlySeenStores = [],
   showRepNames = false,
+  visitSequence = null,
 }: Props) {
   const storeCount = Object.keys(stores).length;
 
-  if (storeCount === 0 && recentlySeenStores.length === 0) {
+  if (visitSequence !== null) {
+    const { view, actions } = visitSequence;
     return (
-      <Card className="shadow-sm border-0 text-center py-5">
-        <Card.Body>
-          <div className="mb-3">
-            <i className="fs-1">🏪</i>
-          </div>
-          <h4 className="mb-2">No Stores Found</h4>
-          <p className="text-muted">Try adjusting your filters to see more results.</p>
-        </Card.Body>
-      </Card>
+      <div>
+        {view.isAllDone && (
+          <Alert variant="success" className="text-center fw-semibold">
+            All stores visited or skipped
+          </Alert>
+        )}
+        {view.remaining.length === 0 && view.visited.length === 0 && !view.isAllDone && (
+          <NoStoresFound />
+        )}
+        {view.remaining.length > 0 && (
+          <VisitSequenceStoreGroup
+            title="Remaining"
+            storeEntries={view.remaining}
+            unscheduledDate={unscheduledDate}
+            showRepNames={showRepNames}
+            actions={actions}
+          />
+        )}
+        {view.visited.length > 0 && (
+          <VisitSequenceStoreGroup
+            title="Visited"
+            storeEntries={view.visited}
+            unscheduledDate={unscheduledDate}
+            showRepNames={showRepNames}
+            actions={actions}
+          />
+        )}
+      </div>
     );
+  }
+
+  if (storeCount === 0 && recentlySeenStores.length === 0) {
+    return <NoStoresFound />;
   }
 
   return (
     <div>
       {storeCount > 0 && (
         <>
-          <div className="mb-3">
-            <h3 className="h5 text-secondary">
-              Store List{" "}
-              <Badge bg="secondary" pill>
-                {storeCount}
-              </Badge>
-            </h3>
-          </div>
-
+          <GroupHeading title="Store List" count={storeCount} />
           <Accordion className="mb-4">
-            {Object.values(stores).map((store) => {
-              const { address, serviceOrders } = store;
-              const totalHours = getStoreEstimatedTime(store);
-
-              return (
-                <Accordion.Item
-                  key={address.SiteId}
-                  eventKey={address.SiteId.toString()}
-                  className="mb-3 border-0 shadow-sm"
-                >
-                  <Accordion.Header className="bg-white">
-                    <div className="w-100 pe-3">
-                      <div className="d-flex justify-content-between align-items-start mb-2">
-                        <h5 className="mb-0 text-primary fw-bold">
-                          {address.StoreName || "(Unnamed Store)"}
-                        </h5>
-                        <Badge bg="primary" pill className="ms-2">
-                          {serviceOrders.length} {serviceOrders.length === 1 ? "ticket" : "tickets"}
-                        </Badge>
-                      </div>
-                      {showRepNames && (
-                        <RepBadges
-                          repUsernames={[
-                            ...new Set(
-                              serviceOrders.map((serviceOrder) => serviceOrder.repUsername)
-                            ),
-                          ].sort()}
-                        />
-                      )}
-                      <div className="d-flex align-items-center text-muted small mb-1">
-                        <FontAwesomeIcon icon={faMapMarkerAlt} className="me-2" />
-                        <span>
-                          {address.StreetAddress}, {address.City}, {address.State}{" "}
-                          {address.PostalCode}
-                        </span>
-                      </div>
-                      <div className="d-flex align-items-center text-muted small">
-                        <FontAwesomeIcon icon={faClock} className="me-2" />
-                        <span>
-                          Total Time: <strong>{getFormattedEstimatedTime(totalHours)}</strong>
-                        </span>
-                      </div>
-                    </div>
-                  </Accordion.Header>
-                  <Accordion.Body className="bg-light">
-                    <div className="mb-3 d-flex justify-content-end">
-                      <Button
-                        href={
-                          "https://www.google.com/maps/search/?api=1&query=" +
-                          encodeQtAddress(address)
-                        }
-                        target="_blank"
-                        rel="noreferrer"
-                        variant="outline-primary"
-                        size="sm"
-                      >
-                        <FontAwesomeIcon icon={faExternalLinkAlt} className="me-1" />
-                        Open in Maps
-                      </Button>
-                    </div>
-
-                    <div>
-                      {serviceOrders.map((serviceOrder, serviceOrderIndex) => (
-                        <Card key={serviceOrderIndex} className="mb-3 border-0 shadow-sm">
-                          <Card.Body className="p-3">
-                            <div className="row g-2">
-                              <div className="col-md-6">
-                                {showRepNames && (
-                                  <div className="mb-2">
-                                    <small className="text-muted d-block">Field Rep</small>
-                                    <span className="fw-semibold">{serviceOrder.repUsername}</span>
-                                  </div>
-                                )}
-                                <div className="mb-2">
-                                  <small className="text-muted d-block">Service Order ID</small>
-                                  <span className="fw-semibold">{serviceOrder.ServiceOrderId}</span>
-                                </div>
-                                <div className="mb-2">
-                                  <small className="text-muted d-block">Description</small>
-                                  <span>{serviceOrder.ServiceOrderDescription}</span>
-                                </div>
-                                <div className="mb-2">
-                                  <small className="text-muted d-block">Status</small>
-                                  <Badge
-                                    bg={
-                                      unscheduledDate !== undefined &&
-                                      serviceOrder.DateScheduled !== unscheduledDate
-                                        ? "primary"
-                                        : "secondary"
-                                    }
-                                    className="fw-normal"
-                                  >
-                                    {formatScheduledStatus(serviceOrder, unscheduledDate)}
-                                  </Badge>
-                                </div>
-                              </div>
-                              <div className="col-md-6">
-                                <div className="mb-2">
-                                  <small className="text-muted d-block">Estimated Time</small>
-                                  <Badge bg="success" className="fw-normal">
-                                    <FontAwesomeIcon icon={faClock} className="me-1" />
-                                    {getFormattedEstimatedTime(serviceOrder.EstimatedTime)}
-                                  </Badge>
-                                </div>
-                                <div className="mb-2">
-                                  <small className="text-muted d-block">Date Range</small>
-                                  <span className="text-secondary">
-                                    {formatDateRange(
-                                      serviceOrder.DateScheduleRangeStartOriginal,
-                                      serviceOrder.DateScheduleRangeEndOriginal
-                                    )}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </Card.Body>
-                        </Card>
-                      ))}
-                    </div>
-                  </Accordion.Body>
-                </Accordion.Item>
-              );
-            })}
+            {Object.values(stores).map((store) => (
+              <ServiceOrderStoreCard
+                key={store.address.SiteId}
+                store={store}
+                unscheduledDate={unscheduledDate}
+                showRepNames={showRepNames}
+              />
+            ))}
           </Accordion>
         </>
       )}
 
       {recentlySeenStores.length > 0 && (
         <>
-          <div className="mb-3">
-            <h3 className="h5 text-secondary">
-              No Current Tickets{" "}
-              <Badge bg="secondary" pill>
-                {recentlySeenStores.length}
-              </Badge>
-            </h3>
-          </div>
-
+          <GroupHeading title="No Current Tickets" count={recentlySeenStores.length} />
           <Accordion>
             {recentlySeenStores.map((store) => (
-              <Accordion.Item
-                key={store.id}
-                eventKey={store.id.toString()}
-                className="mb-3 border-0 shadow-sm opacity-75"
-              >
-                <Accordion.Header className="bg-body-secondary">
-                  <div className="w-100 pe-3">
-                    <div className="d-flex justify-content-between align-items-start mb-2">
-                      <h5 className="mb-0 text-secondary fw-bold">
-                        {store.name || "(Unnamed Store)"}
-                      </h5>
-                      <Badge bg="secondary" pill className="ms-2">
-                        No Current Tickets
-                      </Badge>
-                    </div>
-                    {showRepNames && <RepBadges repUsernames={[store.repUsername]} />}
-                    <div className="d-flex align-items-center text-muted small mb-1">
-                      <FontAwesomeIcon icon={faMapMarkerAlt} className="me-2" />
-                      <span>
-                        {store.address_1}, {store.city}, {store.state} {store.zip_code}
-                      </span>
-                    </div>
-                    <div className="d-flex align-items-center text-muted small">
-                      <FontAwesomeIcon icon={faClock} className="me-2" />
-                      <span>
-                        Last Seen: <strong>{formatLastSeen(store.last_seen)}</strong>
-                      </span>
-                    </div>
-                  </div>
-                </Accordion.Header>
-                <Accordion.Body className="bg-body-secondary">
-                  <div className="d-flex justify-content-end mb-3">
-                    <Button
-                      href={
-                        "https://www.google.com/maps/search/?api=1&query=" +
-                        encodeURIComponent(
-                          `${store.address_1} ${store.city} ${store.state} ${store.zip_code}`
-                        )
-                      }
-                      target="_blank"
-                      rel="noreferrer"
-                      variant="outline-primary"
-                      size="sm"
-                    >
-                      <FontAwesomeIcon icon={faExternalLinkAlt} className="me-1" />
-                      Open in Maps
-                    </Button>
-                  </div>
-                  <p className="text-muted mb-0">
-                    No pending tickets are currently available for this store.
-                  </p>
-                </Accordion.Body>
-              </Accordion.Item>
+              <RecentlySeenStoreCard key={store.id} store={store} showRepNames={showRepNames} />
             ))}
           </Accordion>
         </>

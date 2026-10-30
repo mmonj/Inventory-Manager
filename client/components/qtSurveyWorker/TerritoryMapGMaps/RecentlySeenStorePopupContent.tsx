@@ -5,6 +5,10 @@ import { Button } from "react-bootstrap";
 import { faCopy, faExternalLinkAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
+import {
+  TVisitSequenceStoreActions,
+  VisitSequenceOutcomeControls,
+} from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
 import { TTerritoryRecentlySeenStore } from "@client/util/qtSurveyWorker/territoryView";
 
 function formatLastSeen(isoString: string): string {
@@ -14,9 +18,12 @@ function formatLastSeen(isoString: string): string {
 export function RecentlySeenStorePopupContent({
   store,
   showRepName,
+  visitSequenceActions,
 }: {
   store: TTerritoryRecentlySeenStore;
   showRepName: boolean;
+  // Only in a visit sequence
+  visitSequenceActions: TVisitSequenceStoreActions | null;
 }) {
   const [clipboardMessage, setClipboardMessage] = useState<string | null>(null);
   const fullAddress = `${store.address_1}, ${store.city}, ${store.state} ${store.zip_code}`;
@@ -51,6 +58,15 @@ export function RecentlySeenStorePopupContent({
           <FontAwesomeIcon icon={faCopy} className="me-1" />
           {clipboardMessage !== null ? clipboardMessage : "Copy Address"}
         </Button>
+
+        {visitSequenceActions !== null && store.site_id !== null && (
+          <VisitSequenceOutcomeControls
+            siteId={store.site_id}
+            actions={visitSequenceActions}
+            className="mt-2"
+            textClassName="text-white"
+          />
+        )}
       </div>
 
       {showRepName && <div className="small text-white mt-3">Field rep: {store.repUsername}</div>}

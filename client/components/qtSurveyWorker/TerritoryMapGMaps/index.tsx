@@ -15,6 +15,8 @@ import {
 
 import { GoogleMap, InfoWindow, Marker, useJsApiLoader } from "@react-google-maps/api";
 
+import { TVisitSequenceStoreActions } from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
+
 import { MapPopupContent } from "./MapPopupContent";
 import { RecentlySeenStorePopupContent } from "./RecentlySeenStorePopupContent";
 import { RepAddressPopupContent, TRepAddressResolved } from "./RepAddressPopupContent";
@@ -23,6 +25,7 @@ import {
   RECENTLY_SEEN_STORE_MARKER_ICON,
   REP_ADDRESS_MARKER_ICON,
   SERVICE_ORDER_MARKER_ICON,
+  VISITED_STORE_MARKER_ICON,
 } from "./markerIcons";
 
 interface TRepAddressInput {
@@ -46,6 +49,10 @@ interface Props {
   recentlySeenStores: TTerritoryRecentlySeenStore[];
   // True for the combined territory, where popups say which rep each store/service order is for
   showRepNames: boolean;
+  // Only in a visit sequence: visited stores get grey pins, and popups can change outcomes
+  visitSequenceActions: TVisitSequenceStoreActions | null;
+  // Shown over the map once every store in the visit sequence has an outcome
+  isVisitSequenceAllDone: boolean;
 }
 
 const mapContainerStyle = { height: "100%", width: "100%" };
@@ -55,6 +62,8 @@ export default function TerritoryMapGMaps({
   repAddress,
   recentlySeenStores,
   showRepNames,
+  visitSequenceActions,
+  isVisitSequenceAllDone,
 }: Props) {
   const context = useContext(Context);
   const { isLoaded } = useJsApiLoader({
@@ -191,6 +200,10 @@ export default function TerritoryMapGMaps({
     [firstLat, firstLng, resolvedRepAddress]
   );
 
+  function isVisited(siteId: number | null): boolean {
+    return siteId !== null && visitSequenceActions?.outcomesBySiteId.get(siteId) !== undefined;
+  }
+
   if (!isLoaded) {
     return null;
   }
@@ -208,12 +221,16 @@ export default function TerritoryMapGMaps({
           <Marker
             key={siteId}
             position={{ lat: group.address.Latitude, lng: group.address.Longitude }}
-            icon={SERVICE_ORDER_MARKER_ICON}
+            icon={isVisited(Number(siteId)) ? VISITED_STORE_MARKER_ICON : SERVICE_ORDER_MARKER_ICON}
             onClick={() => setActiveMarker({ type: "serviceOrder", siteId: Number(siteId) })}
           >
             {activeMarker?.type === "serviceOrder" && activeMarker.siteId === Number(siteId) && (
               <InfoWindow onCloseClick={() => setActiveMarker(null)}>
-                <MapPopupContent store={group} showRepNames={showRepNames} />
+                <MapPopupContent
+                  store={group}
+                  showRepNames={showRepNames}
+                  visitSequenceActions={visitSequenceActions}
+                />
               </InfoWindow>
             )}
           </Marker>
@@ -227,12 +244,20 @@ export default function TerritoryMapGMaps({
             <Marker
               key={store.id}
               position={{ lat: store.latitude, lng: store.longitude }}
-              icon={RECENTLY_SEEN_STORE_MARKER_ICON}
+              icon={
+                isVisited(store.site_id)
+                  ? VISITED_STORE_MARKER_ICON
+                  : RECENTLY_SEEN_STORE_MARKER_ICON
+              }
               onClick={() => setActiveMarker({ type: "recentlySeenStore", storeId: store.id })}
             >
               {activeMarker?.type === "recentlySeenStore" && activeMarker.storeId === store.id && (
                 <InfoWindow onCloseClick={() => setActiveMarker(null)}>
-                  <RecentlySeenStorePopupContent store={store} showRepName={showRepNames} />
+                  <RecentlySeenStorePopupContent
+                    store={store}
+                    showRepName={showRepNames}
+                    visitSequenceActions={visitSequenceActions}
+                  />
                 </InfoWindow>
               )}
             </Marker>
@@ -272,6 +297,15 @@ export default function TerritoryMapGMaps({
       >
         <FontAwesomeIcon icon={faLocationCrosshairs} size="lg" />
       </Button>
+
+      {isVisitSequenceAllDone && (
+        <div
+          className="position-absolute top-0 start-50 translate-middle-x mt-2 px-3 py-2 bg-success-subtle text-success-emphasis fw-semibold rounded shadow-sm"
+          style={{ zIndex: 1 }}
+        >
+          All stores visited or skipped
+        </div>
+      )}
 
       {locationError !== null && (
         <div

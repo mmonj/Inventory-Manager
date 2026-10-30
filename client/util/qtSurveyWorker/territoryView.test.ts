@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore,
+  SurveyWorkerQtraxViewsTemplatesTVisitSequenceOutcome,
   SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
   interfaces,
 } from "@reactivated";
@@ -10,6 +11,7 @@ import { makeAddress, makeServiceOrder } from "@client/util/qtSurveyWorker/servi
 import {
   TRepTerritoryData,
   TTerritoryFilters,
+  TVisitSequenceInput,
   buildTerritoryView,
 } from "@client/util/qtSurveyWorker/territoryView";
 
@@ -570,6 +572,191 @@ describe("buildTerritoryView", () => {
         shownRepCount: 1,
         totalRepCount: 2,
       });
+    });
+  });
+
+  describe("visit sequence", () => {
+    const repOne = { id: 1, username: "rep_one" };
+    const repTwo = { id: 2, username: "rep_two" };
+    const visitedStore = makeAddress({ SiteId: 10, StoreName: "Walmart" });
+    const remainingStore = makeAddress({ SiteId: 20, StoreName: "Target" });
+    const visitedOrder = makeServiceOrder({ address: visitedStore, parentCompany: "Acme" });
+    const remainingOrder = makeServiceOrder({ address: remainingStore, parentCompany: "Globex" });
+    const visitedSeenStore = makeRecentlySeenStore({ id: 1, site_id: 30, name: "Kroger" });
+    const remainingSeenStore = makeRecentlySeenStore({ id: 2, site_id: 40, name: "Aldi" });
+
+    const repTerritories: TRepTerritoryData[] = [
+      {
+        rep: repOne,
+        repData: makeRepData({
+          serviceOrders: [visitedOrder, remainingOrder],
+          recentlySeenStores: [visitedSeenStore, remainingSeenStore],
+        }),
+      },
+    ];
+
+    function makeOutcome(siteId: number): SurveyWorkerQtraxViewsTemplatesTVisitSequenceOutcome {
+      return {
+        site_id: siteId,
+        kind: "visited",
+        marked_by_username: "rep_one",
+        marked_at: "2026-10-29T15:00:00Z",
+      };
+    }
+
+    function withOutcomes(
+      siteIds: number[],
+      options: { showVisited: boolean } = { showVisited: true }
+    ): TVisitSequenceInput {
+      return {
+        outcomesBySiteId: new Map(siteIds.map((siteId) => [siteId, makeOutcome(siteId)])),
+        showVisited: options.showVisited,
+      };
+    }
+
+    function siteIdsOf(entries: { siteId: number }[]): number[] {
+      return entries.map((entry) => entry.siteId);
+    }
+
+    it("splits the stores into Remaining and Visited, with each store's outcome", () => {
+      const view = buildTerritoryView(repTerritories, NO_FILTERS, withOutcomes([10, 30]));
+
+      expect(view.visitSequence?.remaining).toEqual([
+        {
+          kind: "withServiceOrders",
+          siteId: 20,
+          store: {
+            address: remainingStore,
+            serviceOrders: [{ ...remainingOrder, repUsername: "rep_one" }],
+          },
+        },
+        {
+          kind: "recentlySeen",
+          siteId: 40,
+          store: { ...remainingSeenStore, repUsername: "rep_one" },
+        },
+      ]);
+      expect(siteIdsOf(view.visitSequence?.visited ?? [])).toEqual([10, 30]);
+      expect(view.visitSequence?.outcomesBySiteId).toEqual(
+        new Map([
+          [10, makeOutcome(10)],
+          [30, makeOutcome(30)],
+        ])
+      );
+    });
+
+    it("hides the Visited group and takes visited stores off the map while show visited is off", () => {
+      const view = buildTerritoryView(
+        repTerritories,
+        NO_FILTERS,
+        withOutcomes([10, 30], { showVisited: false })
+      );
+
+      expect(siteIdsOf(view.visitSequence?.remaining ?? [])).toEqual([20, 40]);
+      expect(view.visitSequence?.visited).toEqual([]);
+      expect(Object.keys(view.stores)).toEqual(["20"]);
+      expect(view.recentlySeenStores).toEqual([{ ...remainingSeenStore, repUsername: "rep_one" }]);
+    });
+
+    it("pins visited stores on the map while show visited is on", () => {
+      const view = buildTerritoryView(repTerritories, NO_FILTERS, withOutcomes([10, 30]));
+
+      expect(Object.keys(view.stores)).toEqual(["10", "20"]);
+      expect(view.recentlySeenStores.map((store) => store.site_id)).toEqual([30, 40]);
+    });
+
+    it("counts a store shared by two reps once", () => {
+      const sharedStore = makeAddress({ SiteId: 50 });
+      const sharedSeenStore = makeRecentlySeenStore({ id: 5, site_id: 60 });
+      const sharedRepTerritories: TRepTerritoryData[] = [
+        {
+          rep: repOne,
+          repData: makeRepData({
+            serviceOrders: [makeServiceOrder({ address: sharedStore })],
+            recentlySeenStores: [sharedSeenStore],
+          }),
+        },
+        {
+          rep: repTwo,
+          repData: makeRepData({
+            serviceOrders: [makeServiceOrder({ address: sharedStore })],
+            recentlySeenStores: [sharedSeenStore],
+          }),
+        },
+      ];
+
+      const view = buildTerritoryView(sharedRepTerritories, NO_FILTERS, withOutcomes([50]));
+
+      expect(view.visitSequence?.progress).toEqual({ visitedCount: 1, leftCount: 1 });
+      expect(siteIdsOf(view.visitSequence?.visited ?? [])).toEqual([50]);
+      expect(siteIdsOf(view.visitSequence?.remaining ?? [])).toEqual([60]);
+      expect(view.recentlySeenStores).toEqual([{ ...sharedSeenStore, repUsername: "rep_one" }]);
+    });
+
+    it("ignores outcomes of stores outside the sequence", () => {
+      const view = buildTerritoryView(repTerritories, NO_FILTERS, withOutcomes([10, 999]));
+
+      expect([...(view.visitSequence?.outcomesBySiteId.keys() ?? [])]).toEqual([10]);
+      expect(view.visitSequence?.progress).toEqual({ visitedCount: 1, leftCount: 3 });
+    });
+
+    it("counts progress over the whole sequence, whatever filters are on", () => {
+      const twoRepTerritories: TRepTerritoryData[] = [
+        ...repTerritories,
+        {
+          rep: repTwo,
+          repData: makeRepData({
+            serviceOrders: [makeServiceOrder({ address: makeAddress({ SiteId: 70 }) })],
+          }),
+        },
+      ];
+
+      const view = buildTerritoryView(
+        twoRepTerritories,
+        {
+          searchText: "walmart",
+          selectedDueDate: null,
+          excludedParentCompanies: new Set(["Acme"]),
+          showStoresWithoutPendingServiceOrders: false,
+          excludedRepIds: new Set([repTwo.id]),
+        },
+        withOutcomes([10, 30])
+      );
+
+      expect(view.visitSequence?.remaining).toEqual([]);
+      expect(view.visitSequence?.visited).toEqual([]);
+      expect(view.visitSequence?.progress).toEqual({ visitedCount: 2, leftCount: 3 });
+      expect(view.visitSequence?.isAllDone).toBe(false);
+    });
+
+    it("is all done once every store has an outcome", () => {
+      expect(
+        buildTerritoryView(repTerritories, NO_FILTERS, withOutcomes([10, 20, 30])).visitSequence
+          ?.isAllDone
+      ).toBe(false);
+      expect(
+        buildTerritoryView(repTerritories, NO_FILTERS, withOutcomes([10, 20, 30, 40])).visitSequence
+          ?.isAllDone
+      ).toBe(true);
+    });
+
+    it("isn't all done while the reps' data is still loading", () => {
+      const view = buildTerritoryView(
+        [{ rep: repOne, repData: undefined }],
+        NO_FILTERS,
+        withOutcomes([10])
+      );
+
+      expect(view.visitSequence?.isAllDone).toBe(false);
+      expect(view.visitSequence?.progress).toEqual({ visitedCount: 0, leftCount: 0 });
+    });
+
+    it("isn't worked out without a visit-sequence input", () => {
+      const view = buildTerritoryView(repTerritories, NO_FILTERS);
+
+      expect(view.visitSequence).toBeNull();
+      expect(Object.keys(view.stores)).toEqual(["10", "20"]);
+      expect(view.recentlySeenStores.map((store) => store.site_id)).toEqual([30, 40]);
     });
   });
 });

@@ -9,7 +9,16 @@ import React, {
 } from "react";
 
 import { Context, interfaces, reverse, templates } from "@reactivated";
-import { Alert, Dropdown, DropdownButton, ListGroup, Modal, Spinner, Table } from "react-bootstrap";
+import {
+  Alert,
+  Dropdown,
+  DropdownButton,
+  Form,
+  ListGroup,
+  Modal,
+  Spinner,
+  Table,
+} from "react-bootstrap";
 
 import {
   faArrowsRotate,
@@ -27,12 +36,15 @@ import { StoreList } from "@client/components/qtSurveyWorker/StoreList";
 import { TerritoryFilterModal } from "@client/components/qtSurveyWorker/TerritoryFilterModal";
 import { TerritoryFiltersActiveBanner } from "@client/components/qtSurveyWorker/TerritoryFiltersActiveBanner";
 import { VisitSequenceModal } from "@client/components/qtSurveyWorker/VisitSequenceModal";
+import { TVisitSequenceStoreActions } from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { ApiResponse, IHttpError, TNotFoundErrorList } from "@client/types";
 import { fetchByReactivated, getErrorList } from "@client/util/commonUtil";
 import {
   TRepTerritoryData,
   TTerritoryRep,
+  TVisitSequenceInput,
+  TVisitSequenceOutcome,
   buildTerritoryView,
 } from "@client/util/qtSurveyWorker/territoryView";
 import {
@@ -95,6 +107,47 @@ async function requestTerritoryRepData(
   }
 }
 
+type TRequestResult<T> =
+  { isSuccess: true; payload: T } | { isSuccess: false; errorMessages: string[] };
+
+/** Sends a form-encoded POST (or a GET without `requestBody`) and parses its JSON reply. */
+async function sendJsonRequest<T>(
+  url: string,
+  csrfToken: string,
+  requestBody?: URLSearchParams
+): Promise<TRequestResult<T>> {
+  try {
+    const response =
+      requestBody === undefined
+        ? await fetchByReactivated<T>(url, csrfToken, "GET")
+        : await fetchByReactivated<T>(
+            url,
+            csrfToken,
+            "POST",
+            requestBody,
+            "application/x-www-form-urlencoded"
+          );
+    if (!response.ok) {
+      const errorMessages = await getErrorList(
+        response as unknown as ApiResponse<IHttpError | TNotFoundErrorList>
+      );
+      return { isSuccess: false, errorMessages };
+    }
+    return { isSuccess: true, payload: await response.json() };
+  } catch (error) {
+    return {
+      isSuccess: false,
+      errorMessages: [error instanceof Error ? error.message : "Unexpected error occurred"],
+    };
+  }
+}
+
+/** A visit sequence's outcomes, as last confirmed by the server. */
+interface TLoadedVisitSequenceOutcomes {
+  visitSequenceId: number;
+  outcomesBySiteId: Map<number, TVisitSequenceOutcome>;
+}
+
 type TCreateVisitSequenceResult =
   | { isSuccess: true; visitSequence: TVisitSequence }
   | { isSuccess: false; errorMessages: string[] };
@@ -109,27 +162,14 @@ async function requestCreateVisitSequence(
     requestBody.append("rep_ids", repId.toString());
   }
 
-  try {
-    const response = await fetchByReactivated<interfaces.QtVisitSequenceDetail>(
-      reverse("survey_worker:qt_create_visit_sequence"),
-      csrfToken,
-      "POST",
-      requestBody,
-      "application/x-www-form-urlencoded"
-    );
-    if (!response.ok) {
-      const errorMessages = await getErrorList(
-        response as unknown as ApiResponse<IHttpError | TNotFoundErrorList>
-      );
-      return { isSuccess: false, errorMessages };
-    }
-    return { isSuccess: true, visitSequence: (await response.json()).visit_sequence };
-  } catch (error) {
-    return {
-      isSuccess: false,
-      errorMessages: [error instanceof Error ? error.message : "Unexpected error occurred"],
-    };
-  }
+  const result = await sendJsonRequest<interfaces.QtVisitSequenceDetail>(
+    reverse("survey_worker:qt_create_visit_sequence"),
+    csrfToken,
+    requestBody
+  );
+  return result.isSuccess
+    ? { isSuccess: true, visitSequence: result.payload.visit_sequence }
+    : result;
 }
 
 function formatLastRefreshed(isoString: string): string {
@@ -175,6 +215,11 @@ export function Template(props: templates.QtTerritoryViewer) {
   const [loadState, setLoadState] = useState<TLoadState>(IDLE_LOAD_STATE);
   // Starts from the SSR props; sequences created on this page are added to it.
   const [visitSequences, setVisitSequences] = useState<TVisitSequence[]>(props.visit_sequences);
+  // Fetched each time a visit sequence is selected
+  const [loadedVisitSequenceOutcomes, setLoadedVisitSequenceOutcomes] =
+    useState<TLoadedVisitSequenceOutcomes | null>(null);
+  // Not persisted: every page load starts on what's left to do
+  const [showVisited, setShowVisited] = useState(false);
   const [newVisitSequenceDraft, setNewVisitSequenceDraft] = useState<TNewVisitSequenceDraft | null>(
     null
   );
@@ -214,17 +259,34 @@ export function Template(props: templates.QtTerritoryViewer) {
     () => shownReps.map((rep) => ({ rep, repData: repDataById.get(rep.id) })),
     [selection, repDataById]
   );
+  const selectedVisitSequenceOutcomesBySiteId =
+    selectedVisitSequence !== undefined &&
+    loadedVisitSequenceOutcomes?.visitSequenceId === selectedVisitSequence.id
+      ? loadedVisitSequenceOutcomes.outcomesBySiteId
+      : undefined;
+  const visitSequenceInput: TVisitSequenceInput | undefined = useMemo(
+    () =>
+      selectedVisitSequenceOutcomesBySiteId === undefined
+        ? undefined
+        : { outcomesBySiteId: selectedVisitSequenceOutcomesBySiteId, showVisited },
+    [selectedVisitSequenceOutcomesBySiteId, showVisited]
+  );
   const territoryView = useMemo(
     () =>
-      buildTerritoryView(repTerritories, {
-        searchText: deferredSearchText,
-        selectedDueDate,
-        excludedParentCompanies,
-        showStoresWithoutPendingServiceOrders,
-        // The rep filter only applies to the combined territory and visit sequences
-        excludedRepIds: isMultiRepView ? excludedRepIds : new Set(),
-      }),
+      buildTerritoryView(
+        repTerritories,
+        {
+          searchText: deferredSearchText,
+          selectedDueDate,
+          excludedParentCompanies,
+          showStoresWithoutPendingServiceOrders,
+          // The rep filter only applies to the combined territory and visit sequences
+          excludedRepIds: isMultiRepView ? excludedRepIds : new Set(),
+        },
+        visitSequenceInput
+      ),
     [
+      visitSequenceInput,
       repTerritories,
       deferredSearchText,
       selectedDueDate,
@@ -301,6 +363,32 @@ export function Template(props: templates.QtTerritoryViewer) {
     // selection itself changes, not on every fetch-state/cache update it causes
   }, [selection]);
 
+  // Fetch the selected visit sequence's outcomes every time it's selected, so other users' marks
+  // show up
+  useEffect(() => {
+    if (selection?.kind !== "visitSequence") {
+      return;
+    }
+    const { visitSequenceId } = selection;
+    void sendJsonRequest<interfaces.QtVisitSequenceOutcomes>(
+      reverse("survey_worker:qt_visit_sequence_outcomes", {
+        visit_sequence_id: visitSequenceId,
+      }),
+      djangoContext.csrf_token
+    ).then((result) => {
+      if (!result.isSuccess) {
+        toast.error(...result.errorMessages);
+        return;
+      }
+      setLoadedVisitSequenceOutcomes({
+        visitSequenceId,
+        outcomesBySiteId: new Map(
+          result.payload.outcomes.map((outcome) => [outcome.site_id, outcome])
+        ),
+      });
+    });
+  }, [selection]);
+
   // Restore the last selection on mount, falling back to the first rep
   useEffect(() => {
     const restoredSelection = restoreTerritorySelection(
@@ -351,6 +439,61 @@ export function Template(props: templates.QtTerritoryViewer) {
       toast.success(isMultiRepView ? "Schedules refreshed." : "Schedule refreshed.");
     }
   }
+
+  /** Applies an outcome change the server confirmed, unless another sequence was selected since. */
+  function updateOutcomes(
+    visitSequenceId: number,
+    update: (outcomesBySiteId: Map<number, TVisitSequenceOutcome>) => void
+  ) {
+    setLoadedVisitSequenceOutcomes((current) => {
+      if (current?.visitSequenceId !== visitSequenceId) {
+        return current;
+      }
+      const outcomesBySiteId = new Map(current.outcomesBySiteId);
+      update(outcomesBySiteId);
+      return { visitSequenceId, outcomesBySiteId };
+    });
+  }
+
+  async function handleMarkStoreVisited(visitSequenceId: number, siteId: number) {
+    const result = await sendJsonRequest<interfaces.QtVisitSequenceOutcomeDetail>(
+      reverse("survey_worker:qt_mark_store_visited", { visit_sequence_id: visitSequenceId }),
+      djangoContext.csrf_token,
+      new URLSearchParams({ site_id: siteId.toString() })
+    );
+    if (!result.isSuccess) {
+      toast.error(...result.errorMessages);
+      return;
+    }
+    const { outcome } = result.payload;
+    updateOutcomes(visitSequenceId, (outcomesBySiteId) =>
+      outcomesBySiteId.set(outcome.site_id, outcome)
+    );
+  }
+
+  async function handleUndoStoreOutcome(visitSequenceId: number, siteId: number) {
+    const result = await sendJsonRequest<interfaces.QtVisitSequenceOutcomeUndone>(
+      reverse("survey_worker:qt_undo_store_outcome", { visit_sequence_id: visitSequenceId }),
+      djangoContext.csrf_token,
+      new URLSearchParams({ site_id: siteId.toString() })
+    );
+    if (!result.isSuccess) {
+      toast.error(...result.errorMessages);
+      return;
+    }
+    updateOutcomes(visitSequenceId, (outcomesBySiteId) =>
+      outcomesBySiteId.delete(result.payload.site_id)
+    );
+  }
+
+  const visitSequenceStoreActions: TVisitSequenceStoreActions | null =
+    selectedVisitSequence !== undefined && selectedVisitSequenceOutcomesBySiteId !== undefined
+      ? {
+          outcomesBySiteId: selectedVisitSequenceOutcomesBySiteId,
+          onMarkVisited: (siteId) => handleMarkStoreVisited(selectedVisitSequence.id, siteId),
+          onUndo: (siteId) => handleUndoStoreOutcome(selectedVisitSequence.id, siteId),
+        }
+      : null;
 
   function openNewVisitSequenceModal() {
     setNewVisitSequenceDraft({
@@ -520,6 +663,22 @@ export function Template(props: templates.QtTerritoryViewer) {
               </div>
             </div>
 
+            {territoryView.visitSequence !== null && (
+              <div className="d-flex align-items-center flex-wrap gap-3 mb-2">
+                <strong>
+                  {territoryView.visitSequence.progress.visitedCount} visited ·{" "}
+                  {territoryView.visitSequence.progress.leftCount} left
+                </strong>
+                <Form.Check
+                  type="switch"
+                  id="show-visited"
+                  label="Show visited"
+                  checked={showVisited}
+                  onChange={(event) => setShowVisited(event.target.checked)}
+                />
+              </div>
+            )}
+
             {isMultiRepView && territoryView.repSummaries.length > 0 && (
               <Table size="sm" responsive className="mb-4">
                 <thead>
@@ -644,6 +803,8 @@ export function Template(props: templates.QtTerritoryViewer) {
                           : null
                       }
                       showRepNames={isMultiRepView}
+                      visitSequenceActions={visitSequenceStoreActions}
+                      isVisitSequenceAllDone={territoryView.visitSequence?.isAllDone ?? false}
                     />
                   </Suspense>
                 </Modal.Body>
@@ -656,6 +817,11 @@ export function Template(props: templates.QtTerritoryViewer) {
               unscheduledDate={unscheduledDate}
               recentlySeenStores={territoryView.recentlySeenStores}
               showRepNames={isMultiRepView}
+              visitSequence={
+                territoryView.visitSequence !== null && visitSequenceStoreActions !== null
+                  ? { view: territoryView.visitSequence, actions: visitSequenceStoreActions }
+                  : null
+              }
             />
           </>
         )}

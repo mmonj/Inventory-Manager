@@ -1,5 +1,6 @@
 import {
   SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore,
+  SurveyWorkerQtraxViewsTemplatesTVisitSequenceOutcome,
   SurveyWorkerQtraxWebsiteTypedefsAddress,
   interfaces,
 } from "@reactivated";
@@ -68,11 +69,50 @@ export interface TRepSummary {
   scheduleLastRefreshed: string | null;
 }
 
+/** A store's visited mark in a visit sequence. */
+export type TVisitSequenceOutcome = SurveyWorkerQtraxViewsTemplatesTVisitSequenceOutcome;
+
+/** What a selected visit sequence adds to the view. */
+export interface TVisitSequenceInput {
+  /** The sequence's outcomes, including those of stores no longer in it. */
+  outcomesBySiteId: ReadonlyMap<number, TVisitSequenceOutcome>;
+  showVisited: boolean;
+}
+
+/** One store in a visit sequence's card list, of either kind. */
+export type TTerritoryStoreEntry =
+  | { kind: "withServiceOrders"; siteId: number; store: TTerritoryStore }
+  | { kind: "recentlySeen"; siteId: number; store: TTerritoryRecentlySeenStore };
+
+/** How far through the whole sequence the user is, whatever filters are on. */
+export interface TVisitSequenceProgress {
+  visitedCount: number;
+  leftCount: number;
+}
+
+export interface TVisitSequenceView {
+  /** Outcomes of the stores in the sequence. Outcomes of stores outside it are left out. */
+  outcomesBySiteId: ReadonlyMap<number, TVisitSequenceOutcome>;
+  /** Shown stores without an outcome. */
+  remaining: TTerritoryStoreEntry[];
+  /** Shown visited stores, or none while "show visited" is off. */
+  visited: TTerritoryStoreEntry[];
+  progress: TVisitSequenceProgress;
+  /** Every store in the sequence has an outcome. */
+  isAllDone: boolean;
+}
+
 /** Everything the Territory Viewer shows for the given field reps under the current filters. */
 export interface TTerritoryView {
-  /** Stores with service orders after all filters, keyed by site id. */
+  /**
+   * Stores with service orders after all filters, keyed by site id. In a visit sequence,
+   * visited stores are left out while "show visited" is off.
+   */
   stores: Record<number, TTerritoryStore>;
-  /** Recently seen stores with no service orders shown, after search and the toggle. */
+  /**
+   * Recently seen stores with no service orders shown, after search and the toggle. In a visit
+   * sequence, one per site id, and visited ones are left out while "show visited" is off.
+   */
   recentlySeenStores: TTerritoryRecentlySeenStore[];
   totalWorkHours: number;
   /** One per shown rep (not excluded, data loaded), in the order the reps were given. */
@@ -84,6 +124,8 @@ export interface TTerritoryView {
   /** Every parent company in the reps' schedules, sorted. */
   parentCompanies: string[];
   activeFilterSummary: TActiveFilterSummary;
+  /** Only for a visit sequence (given a visit-sequence input). */
+  visitSequence: TVisitSequenceView | null;
 }
 
 const SATURDAY_DAY_OF_WEEK = 6;
@@ -148,14 +190,104 @@ function cutAtDueDate(store: TTerritoryStore, dueDate: string): TTerritoryStore 
   return hasDatedServiceOrder ? { ...store, serviceOrders: serviceOrdersDueByDate } : null;
 }
 
+/** Every site id in the reps' territories, before any filter. */
+function getMemberSiteIds(repTerritories: TRepTerritoryData[]): Set<number> {
+  const memberSiteIds = new Set<number>();
+  for (const { repData } of repTerritories) {
+    for (const serviceOrder of repData?.schedule?.ServiceOrders ?? []) {
+      memberSiteIds.add(serviceOrder.Address.SiteId);
+    }
+    for (const store of repData?.recently_seen_stores ?? []) {
+      if (store.site_id !== null) {
+        memberSiteIds.add(store.site_id);
+      }
+    }
+  }
+  return memberSiteIds;
+}
+
+/**
+ * The shown stores as card-list entries, one per site id. Recently seen stores without a site id
+ * are left out, since outcomes are keyed by site id.
+ */
+function toStoreEntries(
+  stores: Record<number, TTerritoryStore>,
+  recentlySeenStores: TTerritoryRecentlySeenStore[]
+): TTerritoryStoreEntry[] {
+  const storeEntries: TTerritoryStoreEntry[] = Object.values(stores).map((store) => ({
+    kind: "withServiceOrders",
+    siteId: store.address.SiteId,
+    store,
+  }));
+  const seenSiteIds = new Set(storeEntries.map((storeEntry) => storeEntry.siteId));
+  for (const store of recentlySeenStores) {
+    if (store.site_id === null || seenSiteIds.has(store.site_id)) {
+      continue;
+    }
+    seenSiteIds.add(store.site_id);
+    storeEntries.push({ kind: "recentlySeen", siteId: store.site_id, store });
+  }
+  return storeEntries;
+}
+
+/** The stores a visit sequence pins on the map: its Remaining and Visited groups. */
+function getMapStores(
+  shownStoreEntries: TTerritoryStoreEntry[],
+  visitSequence: TVisitSequenceView
+): Pick<TTerritoryView, "stores" | "recentlySeenStores"> {
+  const mapStores: Record<number, TTerritoryStore> = {};
+  const mapRecentlySeenStores: TTerritoryRecentlySeenStore[] = [];
+  const pinnedSiteIds = new Set(
+    [...visitSequence.remaining, ...visitSequence.visited].map((storeEntry) => storeEntry.siteId)
+  );
+  for (const storeEntry of shownStoreEntries) {
+    if (!pinnedSiteIds.has(storeEntry.siteId)) {
+      continue;
+    }
+    if (storeEntry.kind === "withServiceOrders") {
+      mapStores[storeEntry.siteId] = storeEntry.store;
+    } else {
+      mapRecentlySeenStores.push(storeEntry.store);
+    }
+  }
+  return { stores: mapStores, recentlySeenStores: mapRecentlySeenStores };
+}
+
+function buildVisitSequenceView(
+  repTerritories: TRepTerritoryData[],
+  shownStoreEntries: TTerritoryStoreEntry[],
+  visitSequenceInput: TVisitSequenceInput
+): TVisitSequenceView {
+  const memberSiteIds = getMemberSiteIds(repTerritories);
+  const outcomesBySiteId = new Map(
+    [...visitSequenceInput.outcomesBySiteId].filter(([siteId]) => memberSiteIds.has(siteId))
+  );
+  const visitedCount = outcomesBySiteId.size;
+  const leftCount = memberSiteIds.size - visitedCount;
+
+  return {
+    outcomesBySiteId,
+    remaining: shownStoreEntries.filter((storeEntry) => !outcomesBySiteId.has(storeEntry.siteId)),
+    visited: visitSequenceInput.showVisited
+      ? shownStoreEntries.filter((storeEntry) => outcomesBySiteId.has(storeEntry.siteId))
+      : [],
+    progress: { visitedCount, leftCount },
+    isAllDone: memberSiteIds.size > 0 && leftCount === 0,
+  };
+}
+
 /**
  * Works out what the Territory Viewer shows for the given field reps' territory data under the
  * given filters: one rep for a single territory, every rep for the combined territory. A rep
  * whose data is missing (still loading, or failed) contributes nothing.
+ *
+ * Given a visit-sequence input, the reps are a visit sequence's, and the view also works out
+ * each store's outcome, the Remaining/Visited split and the sequence's progress.
  */
 export function buildTerritoryView(
   repTerritories: TRepTerritoryData[],
-  filters: TTerritoryFilters
+  filters: TTerritoryFilters,
+  visitSequenceInput?: TVisitSequenceInput
 ): TTerritoryView {
   const shownRepTerritories = repTerritories.filter(
     ({ rep }) => !filters.excludedRepIds.has(rep.id)
@@ -242,9 +374,17 @@ export function buildTerritoryView(
   const areStoresWithoutPendingServiceOrdersHidden = !filters.showStoresWithoutPendingServiceOrders;
   const isRepFilterActive = shownRepTerritories.length < repTerritories.length;
 
+  const shownStoreEntries =
+    visitSequenceInput === undefined ? [] : toStoreEntries(stores, recentlySeenStores);
+  const visitSequence =
+    visitSequenceInput === undefined
+      ? null
+      : buildVisitSequenceView(repTerritories, shownStoreEntries, visitSequenceInput);
+
   return {
-    stores,
-    recentlySeenStores,
+    ...(visitSequence === null
+      ? { stores, recentlySeenStores }
+      : getMapStores(shownStoreEntries, visitSequence)),
     totalWorkHours,
     repSummaries,
     dueDateOptions,
@@ -263,5 +403,6 @@ export function buildTerritoryView(
       shownRepCount: shownRepTerritories.length,
       totalRepCount: repTerritories.length,
     },
+    visitSequence,
   };
 }
