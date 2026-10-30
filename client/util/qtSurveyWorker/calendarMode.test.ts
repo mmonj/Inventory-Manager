@@ -6,11 +6,13 @@ import {
   TEnterableModeKind,
   calendarModeReducer,
   getDatePickerSelection,
+  isDatePickable,
 } from "@client/util/qtSurveyWorker/calendarMode";
 
 const MONDAY = new Date(2026, 10, 2);
 const TUESDAY = new Date(2026, 10, 3);
 const WEDNESDAY = new Date(2026, 10, 4);
+const SUNDAY = new Date(2026, 10, 8);
 
 // One mode of each kind, each with selections, to enter other modes from
 const MODES_WITH_SELECTIONS: TCalendarMode[] = [
@@ -265,5 +267,51 @@ describe("getDatePickerSelection", () => {
       selected: [MONDAY, TUESDAY, WEDNESDAY],
       max: undefined,
     });
+  });
+});
+
+describe("isDatePickable", () => {
+  const SINGLE_DATE: TCalendarMode = { kind: "singleDate", selectedDate: undefined };
+  const DATE_SWAP: TCalendarMode = { kind: "dateSwap", selectedDates: [] };
+  const AUTO_SCHEDULE: TCalendarMode = {
+    kind: "autoSchedule",
+    selectedDates: [],
+    selectedServiceOrderIds: new Set(),
+  };
+  const BULK_UNSCHEDULE: TCalendarMode = { kind: "bulkUnschedule", selectedDates: [] };
+
+  it.each([SINGLE_DATE, DATE_SWAP, AUTO_SCHEDULE, BULK_UNSCHEDULE])(
+    "never picks a past date in $kind",
+    (mode) => {
+      expect(isDatePickable(mode, { date: MONDAY, isPast: true, isSchedulable: true })).toBe(false);
+    }
+  );
+
+  it.each([SINGLE_DATE, BULK_UNSCHEDULE])(
+    "picks a non-schedulable Sunday in $kind, to view or clear what's on it",
+    (mode) => {
+      expect(isDatePickable(mode, { date: SUNDAY, isPast: false, isSchedulable: false })).toBe(
+        true
+      );
+    }
+  );
+
+  it("picks a non-schedulable date in dateSwap", () => {
+    expect(isDatePickable(DATE_SWAP, { date: MONDAY, isPast: false, isSchedulable: false })).toBe(
+      true
+    );
+  });
+
+  it.each([DATE_SWAP, AUTO_SCHEDULE])("never picks a Sunday in $kind", (mode) => {
+    expect(isDatePickable(mode, { date: SUNDAY, isPast: false, isSchedulable: true })).toBe(false);
+  });
+
+  it("picks only schedulable dates in autoSchedule", () => {
+    expect(
+      isDatePickable(AUTO_SCHEDULE, { date: MONDAY, isPast: false, isSchedulable: true })
+    ).toBe(true);
+    expect(
+      isDatePickable(AUTO_SCHEDULE, { date: MONDAY, isPast: false, isSchedulable: false })
+    ).toBe(false);
   });
 });

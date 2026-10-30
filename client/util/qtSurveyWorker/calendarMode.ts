@@ -1,3 +1,5 @@
+import { isSunday } from "@client/util/qtSurveyWorker/scheduleUtils";
+
 /**
  * The Schedule page's calendar is always in exactly one mode. Each kind carries only its own
  * selections, and calendarModeReducer is the only way the mode changes, so the rules between
@@ -110,4 +112,34 @@ export function getDatePickerSelection(calendarMode: TCalendarMode): TDatePicker
     return { mode: "multiple", selected: calendarMode.selectedDates, max: MAX_DATE_SWAP_DATES };
   }
   return { mode: "multiple", selected: calendarMode.selectedDates, max: undefined };
+}
+
+/** What the schedule says about one calendar date, independent of the calendar mode. */
+interface ICalendarDateFacts {
+  date: Date;
+  isPast: boolean;
+  isSchedulable: boolean;
+}
+
+/**
+ * Whether the calendar lets the date be picked in this mode. No mode picks a past date. Single
+ * date, Date Swap and Bulk Unschedule pick dates that aren't schedulable too, to view, swap or
+ * unschedule what's already there. Auto-Schedule only places unscheduled work, so it picks only
+ * schedulable dates. Auto-Schedule and Date Swap both schedule onto the dates they're given, so
+ * neither picks a Sunday (the server refuses it too).
+ */
+export function isDatePickable(
+  calendarMode: TCalendarMode,
+  dateFacts: ICalendarDateFacts
+): boolean {
+  if (dateFacts.isPast) {
+    return false;
+  }
+  if (calendarMode.kind === "autoSchedule") {
+    return dateFacts.isSchedulable && !isSunday(dateFacts.date);
+  }
+  if (calendarMode.kind === "dateSwap") {
+    return !isSunday(dateFacts.date);
+  }
+  return true;
 }

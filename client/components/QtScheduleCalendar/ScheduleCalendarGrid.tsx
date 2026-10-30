@@ -12,8 +12,9 @@ import {
   TCalendarMode,
   TCalendarModeAction,
   getDatePickerSelection,
+  isDatePickable,
 } from "@client/util/qtSurveyWorker/calendarMode";
-import { formatTotalHours, isSunday, toDateKey } from "@client/util/qtSurveyWorker/scheduleUtils";
+import { formatTotalHours, toDateKey } from "@client/util/qtSurveyWorker/scheduleUtils";
 
 interface ICalendarDaySummary {
   serviceOrderCount: number;
@@ -49,27 +50,12 @@ export function ScheduleCalendarGrid(props: Props) {
     return isNotInPast(date) && props.schedulableDateKeys.has(toDateKey(date));
   }
 
-  // Whether the date can actually be selected/clicked. Single-select, Swap Jobs, and
-  // Bulk-Unschedule all need non-green dates selectable too - you might pick an earlier date
-  // with nothing new schedulable on it specifically to view/unschedule/swap what's already
-  // there. Auto-Schedule is the one mode that's genuinely only about placing new unscheduled
-  // work, so it alone is restricted to schedulable dates. Auto-Schedule and Swap Jobs both
-  // schedule onto the dates they're given, so neither can pick a Sunday (the server refuses
-  // it too).
   function isSelectable(date: Date): boolean {
-    if (!isNotInPast(date)) {
-      return false;
-    }
-
-    if (props.calendarMode.kind === "autoSchedule") {
-      return props.schedulableDateKeys.has(toDateKey(date)) && !isSunday(date);
-    }
-
-    if (props.calendarMode.kind === "dateSwap") {
-      return !isSunday(date);
-    }
-
-    return true;
+    return isDatePickable(props.calendarMode, {
+      date,
+      isPast: !isNotInPast(date),
+      isSchedulable: props.schedulableDateKeys.has(toDateKey(date)),
+    });
   }
 
   function renderDayContent(dayProps: DayContentProps) {
