@@ -606,9 +606,8 @@ export function Template(props: templates.QtTerritoryViewer) {
     }
 
     const visitSequence = result.payload;
-    setVisitSequences((current) =>
-      [...current, visitSequence].sort((a, b) => a.name.localeCompare(b.name))
-    );
+    // The server lists sequences newest first, so a new one goes at the top
+    setVisitSequences((current) => [visitSequence, ...current]);
     setNewVisitSequenceDraft(null);
     handleSelectionChange({ kind: "visitSequence", visitSequenceId: visitSequence.id });
     toast.success(`Created ${visitSequence.name}.`);
@@ -630,9 +629,7 @@ export function Template(props: templates.QtTerritoryViewer) {
 
     const visitSequence = result.payload;
     setVisitSequences((current) =>
-      current
-        .map((existing) => (existing.id === visitSequence.id ? visitSequence : existing))
-        .sort((a, b) => a.name.localeCompare(b.name))
+      current.map((existing) => (existing.id === visitSequence.id ? visitSequence : existing))
     );
     setEditVisitSequenceDraft(null);
     toast.success(`Saved ${visitSequence.name}.`);
