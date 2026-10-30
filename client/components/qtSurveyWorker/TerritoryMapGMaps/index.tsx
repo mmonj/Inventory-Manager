@@ -16,7 +16,7 @@ import {
 
 import { GoogleMap, InfoWindow, Marker, useJsApiLoader } from "@react-google-maps/api";
 
-import { TVisitSequenceStoreControls } from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
+import { TVisitPlanStoreControls } from "@client/components/qtSurveyWorker/VisitPlanOutcomeControls";
 
 import { MapPopupContent } from "./MapPopupContent";
 import { RecentlySeenStorePopupContent } from "./RecentlySeenStorePopupContent";
@@ -51,16 +51,16 @@ interface Props {
   recentlySeenStores: TTerritoryRecentlySeenStore[];
   // True for the combined territory, where popups say which rep each store/service order is for
   showRepNames: boolean;
-  // Only in a visit sequence: visited stores get grey pins, skipped ones yellow-orange pins, and
+  // Only in a visit plan: visited stores get grey pins, skipped ones yellow-orange pins, and
   // popups can change outcomes
-  visitSequenceControls: TVisitSequenceStoreControls | null;
+  visitPlanControls: TVisitPlanStoreControls | null;
   // Where the "my location" dot comes from. "tracked": the map asks for the user's location when
   // it loads and keeps following it. "given": the dot is drawn at `location` (none while null),
-  // and the map never asks for the location itself, as in a visit sequence, where it's only
+  // and the map never asks for the location itself, as in a visit plan, where it's only
   // asked for when "Sort by distance" is turned on.
   myLocation: { source: "tracked" } | { source: "given"; location: TLatLng | null };
-  // Shown over the map once every store in the visit sequence has an outcome
-  isVisitSequenceAllDone: boolean;
+  // Shown over the map once every store in the visit plan has an outcome
+  isVisitPlanAllDone: boolean;
 }
 
 const mapContainerStyle = { height: "100%", width: "100%" };
@@ -70,9 +70,9 @@ export default function TerritoryMapGMaps({
   repAddress,
   recentlySeenStores,
   showRepNames,
-  visitSequenceControls,
+  visitPlanControls,
   myLocation,
-  isVisitSequenceAllDone,
+  isVisitPlanAllDone,
 }: Props) {
   const context = useContext(Context);
   const { isLoaded } = useJsApiLoader({
@@ -219,13 +219,12 @@ export default function TerritoryMapGMaps({
     [firstLat, firstLng, resolvedRepAddress]
   );
 
-  /** The pin for a store in a visit sequence's outcome, or `defaultIcon` without one. */
+  /** The pin for a store in a visit plan's outcome, or `defaultIcon` without one. */
   function getStoreMarkerIcon(
     siteId: number | null,
     defaultIcon: google.maps.Symbol
   ): google.maps.Symbol {
-    const outcome =
-      siteId === null ? undefined : visitSequenceControls?.outcomesBySiteId.get(siteId);
+    const outcome = siteId === null ? undefined : visitPlanControls?.outcomesBySiteId.get(siteId);
     if (outcome?.kind === "visited") {
       return VISITED_STORE_MARKER_ICON;
     }
@@ -260,7 +259,7 @@ export default function TerritoryMapGMaps({
                 <MapPopupContent
                   store={group}
                   showRepNames={showRepNames}
-                  visitSequenceControls={visitSequenceControls}
+                  visitPlanControls={visitPlanControls}
                 />
               </InfoWindow>
             )}
@@ -283,7 +282,7 @@ export default function TerritoryMapGMaps({
                   <RecentlySeenStorePopupContent
                     store={store}
                     showRepName={showRepNames}
-                    visitSequenceControls={visitSequenceControls}
+                    visitPlanControls={visitPlanControls}
                   />
                 </InfoWindow>
               )}
@@ -327,7 +326,7 @@ export default function TerritoryMapGMaps({
         </Button>
       )}
 
-      {isVisitSequenceAllDone && (
+      {isVisitPlanAllDone && (
         <div
           className="position-absolute top-0 start-50 translate-middle-x mt-2 px-3 py-2 bg-success-subtle text-success-emphasis fw-semibold rounded shadow-sm"
           style={{ zIndex: 1 }}

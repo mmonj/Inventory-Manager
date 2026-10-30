@@ -6,9 +6,9 @@ import { faClock, faCopy, faExternalLinkAlt } from "@fortawesome/free-solid-svg-
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import {
-  TVisitSequenceStoreControls,
-  VisitSequenceOutcomeControls,
-} from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
+  TVisitPlanStoreControls,
+  VisitPlanOutcomeControls,
+} from "@client/components/qtSurveyWorker/VisitPlanOutcomeControls";
 import {
   encodeQtAddress,
   getFormattedEstimatedTime,
@@ -62,13 +62,13 @@ function groupByDueDate(serviceOrders: TTerritoryServiceOrder[]): TDueDateGroup[
 export function MapPopupContent({
   store,
   showRepNames,
-  visitSequenceControls,
+  visitPlanControls,
 }: {
   store: TTerritoryStore;
   // Splits the service orders by rep (then due date), for the combined territory
   showRepNames: boolean;
-  // Only in a visit sequence
-  visitSequenceControls: TVisitSequenceStoreControls | null;
+  // Only in a visit plan
+  visitPlanControls: TVisitPlanStoreControls | null;
 }) {
   const [clipboardMessage, setClipboardMessage] = useState<string | null>(null);
 
@@ -133,10 +133,10 @@ export function MapPopupContent({
           {clipboardMessage !== null ? clipboardMessage : "Copy Address"}
         </Button>
 
-        {visitSequenceControls !== null && (
-          <VisitSequenceOutcomeControls
+        {visitPlanControls !== null && (
+          <VisitPlanOutcomeControls
             siteId={store.address.SiteId}
-            controls={visitSequenceControls}
+            controls={visitPlanControls}
             className="mt-2"
             textClassName="text-white"
           />

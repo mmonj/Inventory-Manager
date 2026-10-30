@@ -21,10 +21,10 @@ export const REP_ADDRESS_MARKER_ICON = getMarkerPinIcon("#c052f3", "#b535f1");
 // Stores seen recently but no longer in the rep's active schedule.
 export const RECENTLY_SEEN_STORE_MARKER_ICON = getMarkerPinIcon("#ef4444", "#b91c1c");
 
-// Visited stores in a visit sequence, shown only while "show visited" is on.
+// Visited stores in a visit plan, shown only while "show visited" is on.
 export const VISITED_STORE_MARKER_ICON = getMarkerPinIcon("#9ca3af", "#4b5563");
 
-// Skipped stores in a visit sequence, whether or not they have service orders.
+// Skipped stores in a visit plan, whether or not they have service orders.
 export const SKIPPED_STORE_MARKER_ICON = getMarkerPinIcon("#f59e0b", "#b45309");
 
 // Classic Google "My Location" blue-dot look - a plain circle rather than the pin shape used

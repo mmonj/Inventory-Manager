@@ -5,10 +5,10 @@ import { faCheck, faForward, faRotateLeft } from "@fortawesome/free-solid-svg-ic
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
-import { TVisitSequenceOutcome } from "@client/util/qtSurveyWorker/territoryView";
+import { TVisitPlanOutcome } from "@client/util/qtSurveyWorker/territoryView";
 
 /** Why a store was skipped, as the server records it. */
-export type TSkipReason = Exclude<TVisitSequenceOutcome["skip_reason"], "">;
+export type TSkipReason = Exclude<TVisitPlanOutcome["skip_reason"], "">;
 
 const SKIP_REASON_LABELS: Record<TSkipReason, string> = {
   temporarily_closed: "Temporarily closed",
@@ -17,9 +17,9 @@ const SKIP_REASON_LABELS: Record<TSkipReason, string> = {
   other: "Other",
 };
 
-/** The visit sequence outcomes a store's popup or card shows, and the actions that change them. */
-export interface TVisitSequenceStoreControls {
-  outcomesBySiteId: ReadonlyMap<number, TVisitSequenceOutcome>;
+/** The visit plan outcomes a store's popup or card shows, and the actions that change them. */
+export interface TVisitPlanStoreControls {
+  outcomesBySiteId: ReadonlyMap<number, TVisitPlanOutcome>;
   /** Resolves once the server has answered, whether or not it succeeded. */
   onMarkVisited: (siteId: number) => Promise<void>;
   /** Resolves to whether the server recorded the skip. */
@@ -42,7 +42,7 @@ function SkipReasonPicker({
   onCancel,
 }: {
   siteId: number;
-  onSkip: TVisitSequenceStoreControls["onSkip"];
+  onSkip: TVisitPlanStoreControls["onSkip"];
   onCancel: () => void;
 }) {
   const [reason, setReason] = useState<TSkipReason>("temporarily_closed");
@@ -108,16 +108,16 @@ function SkipReasonPicker({
 
 /**
  * "Marked visited/skipped by …" plus Mark Visited, Skip or Undo, for one store in a visit
- * sequence. A skipped store can still be marked visited; a visited one has to be undone first.
+ * plan. A skipped store can still be marked visited; a visited one has to be undone first.
  */
-export function VisitSequenceOutcomeControls({
+export function VisitPlanOutcomeControls({
   siteId,
   controls,
   className = "",
   textClassName = "text-secondary",
 }: {
   siteId: number;
-  controls: TVisitSequenceStoreControls;
+  controls: TVisitPlanStoreControls;
   className?: string;
   /** For the "Marked … by" lines, e.g. light text in a map popup. */
   textClassName?: string;

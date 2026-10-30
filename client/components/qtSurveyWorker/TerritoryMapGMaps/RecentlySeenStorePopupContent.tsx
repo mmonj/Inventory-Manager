@@ -6,21 +6,21 @@ import { faCopy, faExternalLinkAlt } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import {
-  TVisitSequenceStoreControls,
-  VisitSequenceOutcomeControls,
-} from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
+  TVisitPlanStoreControls,
+  VisitPlanOutcomeControls,
+} from "@client/components/qtSurveyWorker/VisitPlanOutcomeControls";
 import { formatLastSeen } from "@client/util/qtSurveyWorker/scheduleUtils";
 import { TTerritoryRecentlySeenStore } from "@client/util/qtSurveyWorker/territoryView";
 
 export function RecentlySeenStorePopupContent({
   store,
   showRepName,
-  visitSequenceControls,
+  visitPlanControls,
 }: {
   store: TTerritoryRecentlySeenStore;
   showRepName: boolean;
-  // Only in a visit sequence
-  visitSequenceControls: TVisitSequenceStoreControls | null;
+  // Only in a visit plan
+  visitPlanControls: TVisitPlanStoreControls | null;
 }) {
   const [clipboardMessage, setClipboardMessage] = useState<string | null>(null);
   const fullAddress = `${store.address_1}, ${store.city}, ${store.state} ${store.zip_code}`;
@@ -56,10 +56,10 @@ export function RecentlySeenStorePopupContent({
           {clipboardMessage !== null ? clipboardMessage : "Copy Address"}
         </Button>
 
-        {visitSequenceControls !== null && store.site_id !== null && (
-          <VisitSequenceOutcomeControls
+        {visitPlanControls !== null && store.site_id !== null && (
+          <VisitPlanOutcomeControls
             siteId={store.site_id}
-            controls={visitSequenceControls}
+            controls={visitPlanControls}
             className="mt-2"
             textClassName="text-white"
           />

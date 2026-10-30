@@ -14,14 +14,14 @@ import {
   formatWeekdayShortDate,
 } from "@client/util/qtSurveyWorker/scheduleUtils";
 import {
-  TVisitSequenceStoreControls,
-  VisitSequenceOutcomeControls,
-} from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
+  TVisitPlanStoreControls,
+  VisitPlanOutcomeControls,
+} from "@client/components/qtSurveyWorker/VisitPlanOutcomeControls";
 import {
   TTerritoryRecentlySeenStore,
   TTerritoryStore,
   TTerritoryStoreEntry,
-  TVisitSequenceView,
+  TVisitPlanView,
   getStoreEstimatedTime,
 } from "@client/util/qtSurveyWorker/territoryView";
 
@@ -35,8 +35,8 @@ interface Props {
   recentlySeenStores?: TTerritoryRecentlySeenStore[];
   // True for the combined territory: each store and service order says which rep it's for
   showRepNames?: boolean;
-  // Only in a visit sequence: the cards are grouped into Remaining, Skipped and Visited instead
-  visitSequence?: { view: TVisitSequenceView; controls: TVisitSequenceStoreControls } | null;
+  // Only in a visit plan: the cards are grouped into Remaining, Skipped and Visited instead
+  visitPlan?: { view: TVisitPlanView; controls: TVisitPlanStoreControls } | null;
 }
 
 function RepBadges({ repUsernames }: { repUsernames: string[] }) {
@@ -284,7 +284,7 @@ function GroupHeading({ title, count }: { title: string; count: number }) {
   );
 }
 
-function VisitSequenceStoreGroup({
+function VisitPlanStoreGroup({
   title,
   storeEntries,
   unscheduledDate,
@@ -295,7 +295,7 @@ function VisitSequenceStoreGroup({
   storeEntries: TTerritoryStoreEntry[];
   unscheduledDate: string | undefined;
   showRepNames: boolean;
-  controls: TVisitSequenceStoreControls;
+  controls: TVisitPlanStoreControls;
 }) {
   return (
     <>
@@ -303,7 +303,7 @@ function VisitSequenceStoreGroup({
       <Accordion className="mb-4">
         {storeEntries.map((storeEntry) => {
           const outcomeControls = (
-            <VisitSequenceOutcomeControls siteId={storeEntry.siteId} controls={controls} />
+            <VisitPlanOutcomeControls siteId={storeEntry.siteId} controls={controls} />
           );
           return storeEntry.kind === "withServiceOrders" ? (
             <ServiceOrderStoreCard
@@ -332,12 +332,12 @@ export function StoreList({
   unscheduledDate,
   recentlySeenStores = [],
   showRepNames = false,
-  visitSequence = null,
+  visitPlan = null,
 }: Props) {
   const storeCount = Object.keys(stores).length;
 
-  if (visitSequence !== null) {
-    const { view, controls } = visitSequence;
+  if (visitPlan !== null) {
+    const { view, controls } = visitPlan;
     return (
       <div>
         {view.isAllDone && (
@@ -351,7 +351,7 @@ export function StoreList({
           view.unmarkableStores.length === 0 &&
           !view.isAllDone && <NoStoresFound />}
         {view.remaining.length > 0 && (
-          <VisitSequenceStoreGroup
+          <VisitPlanStoreGroup
             title="Remaining"
             storeEntries={view.remaining}
             unscheduledDate={unscheduledDate}
@@ -360,7 +360,7 @@ export function StoreList({
           />
         )}
         {view.skipped.length > 0 && (
-          <VisitSequenceStoreGroup
+          <VisitPlanStoreGroup
             title="Skipped"
             storeEntries={view.skipped}
             unscheduledDate={unscheduledDate}
@@ -369,7 +369,7 @@ export function StoreList({
           />
         )}
         {view.visited.length > 0 && (
-          <VisitSequenceStoreGroup
+          <VisitPlanStoreGroup
             title="Visited"
             storeEntries={view.visited}
             unscheduledDate={unscheduledDate}

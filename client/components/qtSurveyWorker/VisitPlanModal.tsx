@@ -15,15 +15,15 @@ interface Props {
   /** Which fields to show (both by default). A hidden field keeps its initial value. */
   shownFields?: "nameAndReps" | "name" | "reps";
   onHide: () => void;
-  /** Saves the visit sequence, resolving to the server's error messages, or [] on success. */
+  /** Saves the visit plan, resolving to the server's error messages, or [] on success. */
   onSubmit: (name: string, repIds: number[]) => Promise<string[]>;
 }
 
 /**
- * Asks for a visit sequence's name and field reps. Mount it fresh each time it opens, so it starts
+ * Asks for a visit plan's name and field reps. Mount it fresh each time it opens, so it starts
  * from the initial values.
  */
-export function VisitSequenceModal(props: Props) {
+export function VisitPlanModal(props: Props) {
   const shownFields = props.shownFields ?? "nameAndReps";
   const [name, setName] = useState(props.initialName);
   const [checkedRepIds, setCheckedRepIds] = useState<Set<number>>(new Set(props.initialRepIds));
@@ -60,7 +60,7 @@ export function VisitSequenceModal(props: Props) {
         </Modal.Header>
         <Modal.Body>
           {shownFields !== "reps" && (
-            <Form.Group className="mb-3" controlId="visit-sequence-name">
+            <Form.Group className="mb-3" controlId="visit-plan-name">
               <Form.Label className="fw-semibold">Name</Form.Label>
               <Form.Control
                 type="text"
@@ -77,7 +77,7 @@ export function VisitSequenceModal(props: Props) {
                 <Form.Check
                   key={rep.id}
                   type="checkbox"
-                  id={`visit-sequence-rep-${rep.id}`}
+                  id={`visit-plan-rep-${rep.id}`}
                   label={rep.username}
                   checked={checkedRepIds.has(rep.id)}
                   onChange={() => toggleRep(rep.id)}

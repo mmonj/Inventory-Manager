@@ -37,48 +37,48 @@ import { Layout } from "@client/components/Layout";
 import { StoreList } from "@client/components/qtSurveyWorker/StoreList";
 import { TerritoryFilterModal } from "@client/components/qtSurveyWorker/TerritoryFilterModal";
 import { TerritoryFiltersActiveBanner } from "@client/components/qtSurveyWorker/TerritoryFiltersActiveBanner";
-import { VisitSequenceModal } from "@client/components/qtSurveyWorker/VisitSequenceModal";
+import { VisitPlanModal } from "@client/components/qtSurveyWorker/VisitPlanModal";
 import {
   TSkipReason,
-  TVisitSequenceStoreControls,
-} from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
+  TVisitPlanStoreControls,
+} from "@client/components/qtSurveyWorker/VisitPlanOutcomeControls";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { TRequestResult, sendJsonRequest } from "@client/util/qtSurveyWorker/sendJsonRequest";
 import {
   TLatLng,
   TRepTerritoryData,
   TTerritoryRep,
-  TVisitSequenceInput,
-  TVisitSequenceOutcome,
+  TVisitPlanInput,
+  TVisitPlanOutcome,
   buildTerritoryView,
 } from "@client/util/qtSurveyWorker/territoryView";
 import {
   TTerritorySelection,
-  getDefaultVisitSequenceName,
+  getDefaultVisitPlanName,
   getPreselectedRepIds,
   restoreTerritorySelection,
   toStoredTerritorySelection,
 } from "@client/util/qtSurveyWorker/territorySelection";
 import {
-  TVisitSequence,
-  TVisitSequenceUpdate,
-  requestCreateVisitSequence,
-  requestDeleteVisitSequence,
+  TVisitPlan,
+  TVisitPlanUpdate,
+  requestCreateVisitPlan,
+  requestDeleteVisitPlan,
   requestMarkStoreVisited,
   requestMarkStoresVisited,
   requestSkipStore,
   requestUndoStoreOutcome,
   requestUndoStoreOutcomes,
-  requestUpdateVisitSequence,
-  requestVisitSequenceOutcomes,
-} from "@client/util/qtSurveyWorker/visitSequenceRequests";
+  requestUpdateVisitPlan,
+  requestVisitPlanOutcomes,
+} from "@client/util/qtSurveyWorker/visitPlanRequests";
 import { toast } from "@client/util/toast";
 
 const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMapGMaps"));
 
 const RELATIVE_TIME_THRESHOLD_HOURS = 12;
-// Holds the whole territory selection (a rep, the combined territory or a visit sequence). The key
-// string predates visit sequences and is kept so a selection saved back then still restores.
+// Holds the whole territory selection (a rep, the combined territory or a visit plan). The key
+// string predates visit plans and is kept so a selection saved back then still restores.
 const TERRITORY_SELECTION_STORAGE_KEY = "lastSelectedRepId";
 const COMBINED_TERRITORY_LABEL = "All Field Reps";
 
@@ -90,15 +90,15 @@ interface TLoadState {
 
 const IDLE_LOAD_STATE: TLoadState = { isLoading: false, isError: false, errorMessages: [] };
 
-/** What the New Visit Sequence modal starts with. */
-interface TNewVisitSequenceDraft {
+/** What the New Visit Plan modal starts with. */
+interface TNewVisitPlanDraft {
   initialName: string;
   initialRepIds: number[];
 }
 
-/** The visit sequence being renamed or having its field reps edited, in the reused modal. */
-interface TEditVisitSequenceDraft {
-  visitSequence: TVisitSequence;
+/** The visit plan being renamed or having its field reps edited, in the reused modal. */
+interface TEditVisitPlanDraft {
+  visitPlan: TVisitPlan;
   shownFields: "name" | "reps";
 }
 
@@ -112,14 +112,14 @@ function requestTerritoryRepData(
   return sendJsonRequest(url, csrfToken);
 }
 
-/** A visit sequence's outcomes, as last confirmed by the server. */
-interface TLoadedVisitSequenceOutcomes {
-  visitSequenceId: number;
-  outcomesBySiteId: Map<number, TVisitSequenceOutcome>;
+/** A visit plan's outcomes, as last confirmed by the server. */
+interface TLoadedVisitPlanOutcomes {
+  visitPlanId: number;
+  outcomesBySiteId: Map<number, TVisitPlanOutcome>;
 }
 
 /**
- * A rep's "Mark all visited" action in a visit sequence, disabled once nothing is left (or while
+ * A rep's "Mark all visited" action in a visit plan, disabled once nothing is left (or while
  * the rep's data is still loading).
  */
 function MarkAllVisitedButton({
@@ -190,11 +190,11 @@ export function Template(props: templates.QtTerritoryViewer) {
     new Map()
   );
   const [loadState, setLoadState] = useState<TLoadState>(IDLE_LOAD_STATE);
-  // Starts from the SSR props; sequences created on this page are added to it.
-  const [visitSequences, setVisitSequences] = useState<TVisitSequence[]>(props.visit_sequences);
-  // Fetched each time a visit sequence is selected
-  const [loadedVisitSequenceOutcomes, setLoadedVisitSequenceOutcomes] =
-    useState<TLoadedVisitSequenceOutcomes | null>(null);
+  // Starts from the SSR props; plans created on this page are added to it.
+  const [visitPlans, setVisitPlans] = useState<TVisitPlan[]>(props.visit_plans);
+  // Fetched each time a visit plan is selected
+  const [loadedVisitPlanOutcomes, setLoadedVisitPlanOutcomes] =
+    useState<TLoadedVisitPlanOutcomes | null>(null);
   // Not persisted: every page load starts on what's left to do
   const [showVisited, setShowVisited] = useState(false);
   // "Sort by distance" asks for the user's location once, each time it's turned on. The location
@@ -204,11 +204,8 @@ export function Template(props: templates.QtTerritoryViewer) {
   const [isLocationUnavailable, setIsLocationUnavailable] = useState(false);
   /** The rep whose remaining stores are being marked visited, while the server answers. */
   const [markingAllVisitedRepId, setMarkingAllVisitedRepId] = useState<number | null>(null);
-  const [newVisitSequenceDraft, setNewVisitSequenceDraft] = useState<TNewVisitSequenceDraft | null>(
-    null
-  );
-  const [editVisitSequenceDraft, setEditVisitSequenceDraft] =
-    useState<TEditVisitSequenceDraft | null>(null);
+  const [newVisitPlanDraft, setNewVisitPlanDraft] = useState<TNewVisitPlanDraft | null>(null);
+  const [editVisitPlanDraft, setEditVisitPlanDraft] = useState<TEditVisitPlanDraft | null>(null);
   // Bumped by every loadRepData call, so a load overtaken by a newer one (e.g. switching reps
   // mid-load) still stores the data it fetched but no longer reports on loadState
   const latestLoadIdRef = useRef(0);
@@ -220,24 +217,24 @@ export function Template(props: templates.QtTerritoryViewer) {
     selection?.kind === "fieldRep"
       ? props.rep_details.find((repDetail) => repDetail.id === selection.repId)
       : undefined;
-  const selectedVisitSequence =
-    selection?.kind === "visitSequence"
-      ? visitSequences.find((visitSequence) => visitSequence.id === selection.visitSequenceId)
+  const selectedVisitPlan =
+    selection?.kind === "visitPlan"
+      ? visitPlans.find((visitPlan) => visitPlan.id === selection.visitPlanId)
       : undefined;
-  // A visit sequence is shown like the combined territory of its field reps
-  const isMultiRepView = isCombinedTerritory || selectedVisitSequence !== undefined;
+  // A visit plan is shown like the combined territory of its field reps
+  const isMultiRepView = isCombinedTerritory || selectedVisitPlan !== undefined;
   const shownReps: TTerritoryRep[] = isCombinedTerritory
     ? allReps
-    : selectedVisitSequence !== undefined
-      ? allReps.filter((rep) => selectedVisitSequence.rep_ids.includes(rep.id))
+    : selectedVisitPlan !== undefined
+      ? allReps.filter((rep) => selectedVisitPlan.rep_ids.includes(rep.id))
       : selectedRepDetail !== undefined
         ? [selectedRepDetail]
         : [];
-  // Changes when the selection changes, and when the selected visit sequence's reps are edited
+  // Changes when the selection changes, and when the selected visit plan's reps are edited
   const shownRepIdsKey = shownReps.map((rep) => rep.id).join(",");
   const selectionLabel = isCombinedTerritory
     ? COMBINED_TERRITORY_LABEL
-    : (selectedVisitSequence?.name ?? selectedRepDetail?.username ?? "Select Representative");
+    : (selectedVisitPlan?.name ?? selectedRepDetail?.username ?? "Select Representative");
   const selectedRepData =
     selectedRepDetail === undefined ? undefined : repDataById.get(selectedRepDetail.id);
   // Lets the store list and map lag behind fast typing instead of blocking the input.
@@ -247,22 +244,21 @@ export function Template(props: templates.QtTerritoryViewer) {
     () => shownReps.map((rep) => ({ rep, repData: repDataById.get(rep.id) })),
     [shownRepIdsKey, repDataById]
   );
-  const selectedVisitSequenceOutcomesBySiteId =
-    selectedVisitSequence !== undefined &&
-    loadedVisitSequenceOutcomes?.visitSequenceId === selectedVisitSequence.id
-      ? loadedVisitSequenceOutcomes.outcomesBySiteId
+  const selectedVisitPlanOutcomesBySiteId =
+    selectedVisitPlan !== undefined && loadedVisitPlanOutcomes?.visitPlanId === selectedVisitPlan.id
+      ? loadedVisitPlanOutcomes.outcomesBySiteId
       : undefined;
-  const visitSequenceInput: TVisitSequenceInput | undefined = useMemo(
+  const visitPlanInput: TVisitPlanInput | undefined = useMemo(
     () =>
-      selectedVisitSequenceOutcomesBySiteId === undefined
+      selectedVisitPlanOutcomesBySiteId === undefined
         ? undefined
         : {
-            outcomesBySiteId: selectedVisitSequenceOutcomesBySiteId,
+            outcomesBySiteId: selectedVisitPlanOutcomesBySiteId,
             showVisited,
             ...(isSortByDistanceOn &&
               distanceSortLocation !== null && { location: distanceSortLocation }),
           },
-    [selectedVisitSequenceOutcomesBySiteId, showVisited, isSortByDistanceOn, distanceSortLocation]
+    [selectedVisitPlanOutcomesBySiteId, showVisited, isSortByDistanceOn, distanceSortLocation]
   );
   const territoryView = useMemo(
     () =>
@@ -273,13 +269,13 @@ export function Template(props: templates.QtTerritoryViewer) {
           selectedDueDate,
           excludedParentCompanies,
           showStoresWithoutPendingServiceOrders,
-          // The rep filter only applies to the combined territory and visit sequences
+          // The rep filter only applies to the combined territory and visit plans
           excludedRepIds: isMultiRepView ? excludedRepIds : new Set(),
         },
-        visitSequenceInput
+        visitPlanInput
       ),
     [
-      visitSequenceInput,
+      visitPlanInput,
       repTerritories,
       deferredSearchText,
       selectedDueDate,
@@ -341,7 +337,7 @@ export function Template(props: templates.QtTerritoryViewer) {
 
   // Fetch whichever shown reps we haven't already fetched whenever the selection changes -
   // reselecting already-loaded reps does not refetch (Refresh Schedule is the only way to force
-  // a fresh fetch once loaded). The combined territory and visit sequences read stored schedules
+  // a fresh fetch once loaded). The combined territory and visit plans read stored schedules
   // only; a single rep honours the page URL's use_cache param.
   useEffect(() => {
     const repsToFetch = shownReps.filter((rep) => !repDataById.has(rep.id));
@@ -354,24 +350,24 @@ export function Template(props: templates.QtTerritoryViewer) {
       : new URLSearchParams(window.location.search).get("use_cache");
     void loadRepData(repsToFetch, useCache);
     // loadRepData/repDataById intentionally excluded - this should only re-run when the
-    // selection (or the selected visit sequence's reps) changes, not on every fetch-state/cache
+    // selection (or the selected visit plan's reps) changes, not on every fetch-state/cache
     // update it causes
   }, [selection, shownRepIdsKey]);
 
-  // Fetch the selected visit sequence's outcomes every time it's selected, so other users' marks
+  // Fetch the selected visit plan's outcomes every time it's selected, so other users' marks
   // show up
   useEffect(() => {
-    if (selection?.kind !== "visitSequence") {
+    if (selection?.kind !== "visitPlan") {
       return;
     }
-    const { visitSequenceId } = selection;
-    void requestVisitSequenceOutcomes(visitSequenceId, djangoContext.csrf_token).then((result) => {
+    const { visitPlanId } = selection;
+    void requestVisitPlanOutcomes(visitPlanId, djangoContext.csrf_token).then((result) => {
       if (!result.isSuccess) {
         toast.error(...result.errorMessages);
         return;
       }
-      setLoadedVisitSequenceOutcomes({
-        visitSequenceId,
+      setLoadedVisitPlanOutcomes({
+        visitPlanId,
         outcomesBySiteId: new Map(
           result.payload.outcomes.map((outcome) => [outcome.site_id, outcome])
         ),
@@ -384,7 +380,7 @@ export function Template(props: templates.QtTerritoryViewer) {
     const restoredSelection = restoreTerritorySelection(
       localStorage.getItem(TERRITORY_SELECTION_STORAGE_KEY),
       props.rep_details.map((rep) => rep.id),
-      props.visit_sequences.map((visitSequence) => visitSequence.id)
+      props.visit_plans.map((visitPlan) => visitPlan.id)
     );
     if (restoredSelection !== null) {
       setSelection(restoredSelection);
@@ -458,18 +454,18 @@ export function Template(props: templates.QtTerritoryViewer) {
     }
   }
 
-  /** Applies an outcome change the server confirmed, unless another sequence was selected since. */
+  /** Applies an outcome change the server confirmed, unless another plan was selected since. */
   function updateOutcomes(
-    visitSequenceId: number,
-    update: (outcomesBySiteId: Map<number, TVisitSequenceOutcome>) => void
+    visitPlanId: number,
+    update: (outcomesBySiteId: Map<number, TVisitPlanOutcome>) => void
   ) {
-    setLoadedVisitSequenceOutcomes((current) => {
-      if (current?.visitSequenceId !== visitSequenceId) {
+    setLoadedVisitPlanOutcomes((current) => {
+      if (current?.visitPlanId !== visitPlanId) {
         return current;
       }
       const outcomesBySiteId = new Map(current.outcomesBySiteId);
       update(outcomesBySiteId);
-      return { visitSequenceId, outcomesBySiteId };
+      return { visitPlanId, outcomesBySiteId };
     });
   }
 
@@ -478,53 +474,53 @@ export function Template(props: templates.QtTerritoryViewer) {
    * its errors in a toast. Resolves to the server's reply, or null if it failed.
    */
   async function applyOutcomeRequest<T>(
-    visitSequenceId: number,
+    visitPlanId: number,
     request: Promise<TRequestResult<T>>,
-    update: (payload: T, outcomesBySiteId: Map<number, TVisitSequenceOutcome>) => void
+    update: (payload: T, outcomesBySiteId: Map<number, TVisitPlanOutcome>) => void
   ): Promise<T | null> {
     const result = await request;
     if (!result.isSuccess) {
       toast.error(...result.errorMessages);
       return null;
     }
-    updateOutcomes(visitSequenceId, (outcomesBySiteId) => update(result.payload, outcomesBySiteId));
+    updateOutcomes(visitPlanId, (outcomesBySiteId) => update(result.payload, outcomesBySiteId));
     return result.payload;
   }
 
-  async function handleMarkStoreVisited(visitSequenceId: number, siteId: number) {
+  async function handleMarkStoreVisited(visitPlanId: number, siteId: number) {
     await applyOutcomeRequest(
-      visitSequenceId,
-      requestMarkStoreVisited(visitSequenceId, siteId, djangoContext.csrf_token),
+      visitPlanId,
+      requestMarkStoreVisited(visitPlanId, siteId, djangoContext.csrf_token),
       ({ outcome }, outcomesBySiteId) => outcomesBySiteId.set(outcome.site_id, outcome)
     );
   }
 
   async function handleSkipStore(
-    visitSequenceId: number,
+    visitPlanId: number,
     siteId: number,
     reason: TSkipReason,
     note: string
   ): Promise<boolean> {
     const payload = await applyOutcomeRequest(
-      visitSequenceId,
-      requestSkipStore(visitSequenceId, siteId, reason, note, djangoContext.csrf_token),
+      visitPlanId,
+      requestSkipStore(visitPlanId, siteId, reason, note, djangoContext.csrf_token),
       ({ outcome }, outcomesBySiteId) => outcomesBySiteId.set(outcome.site_id, outcome)
     );
     return payload !== null;
   }
 
-  async function handleUndoStoreOutcome(visitSequenceId: number, siteId: number) {
+  async function handleUndoStoreOutcome(visitPlanId: number, siteId: number) {
     await applyOutcomeRequest(
-      visitSequenceId,
-      requestUndoStoreOutcome(visitSequenceId, siteId, djangoContext.csrf_token),
+      visitPlanId,
+      requestUndoStoreOutcome(visitPlanId, siteId, djangoContext.csrf_token),
       (payload, outcomesBySiteId) => outcomesBySiteId.delete(payload.site_id)
     );
   }
 
-  async function handleUndoStoreOutcomes(visitSequenceId: number, siteIds: number[]) {
+  async function handleUndoStoreOutcomes(visitPlanId: number, siteIds: number[]) {
     const payload = await applyOutcomeRequest(
-      visitSequenceId,
-      requestUndoStoreOutcomes(visitSequenceId, siteIds, djangoContext.csrf_token),
+      visitPlanId,
+      requestUndoStoreOutcomes(visitPlanId, siteIds, djangoContext.csrf_token),
       ({ site_ids: undoneSiteIds }, outcomesBySiteId) => {
         for (const undoneSiteId of undoneSiteIds) {
           outcomesBySiteId.delete(undoneSiteId);
@@ -537,25 +533,25 @@ export function Template(props: templates.QtTerritoryViewer) {
   }
 
   /**
-   * Marks every one of the rep's remaining stores in the sequence visited (worked out before
+   * Marks every one of the rep's remaining stores in the plan visited (worked out before
    * filters), after a confirm. The toast's Undo reverses exactly the stores this marked.
    */
   async function handleMarkAllRepStoresVisited(
-    visitSequenceId: number,
+    visitPlanId: number,
     rep: TTerritoryRep,
     remainingSiteIds: number[]
   ) {
     if (
       !window.confirm(
-        `Mark all ${remainingSiteIds.length} of ${rep.username}'s remaining stores in this visit sequence visited? Skipped stores are left as they are.`
+        `Mark all ${remainingSiteIds.length} of ${rep.username}'s remaining stores in this visit plan visited? Skipped stores are left as they are.`
       )
     ) {
       return;
     }
     setMarkingAllVisitedRepId(rep.id);
     const payload = await applyOutcomeRequest(
-      visitSequenceId,
-      requestMarkStoresVisited(visitSequenceId, remainingSiteIds, djangoContext.csrf_token),
+      visitPlanId,
+      requestMarkStoresVisited(visitPlanId, remainingSiteIds, djangoContext.csrf_token),
       ({ outcomes }, outcomesBySiteId) => {
         for (const outcome of outcomes) {
           outcomesBySiteId.set(outcome.site_id, outcome);
@@ -574,24 +570,24 @@ export function Template(props: templates.QtTerritoryViewer) {
     const markedSiteIds = markedOutcomes.map((outcome) => outcome.site_id);
     toast.successWithAction(`Marked ${markedSiteIds.length} of ${rep.username}'s stores visited.`, {
       label: "Undo",
-      onClick: () => void handleUndoStoreOutcomes(visitSequenceId, markedSiteIds),
+      onClick: () => void handleUndoStoreOutcomes(visitPlanId, markedSiteIds),
     });
   }
 
-  const visitSequenceStoreControls: TVisitSequenceStoreControls | null =
-    selectedVisitSequence !== undefined && selectedVisitSequenceOutcomesBySiteId !== undefined
+  const visitPlanStoreControls: TVisitPlanStoreControls | null =
+    selectedVisitPlan !== undefined && selectedVisitPlanOutcomesBySiteId !== undefined
       ? {
-          outcomesBySiteId: selectedVisitSequenceOutcomesBySiteId,
-          onMarkVisited: (siteId) => handleMarkStoreVisited(selectedVisitSequence.id, siteId),
+          outcomesBySiteId: selectedVisitPlanOutcomesBySiteId,
+          onMarkVisited: (siteId) => handleMarkStoreVisited(selectedVisitPlan.id, siteId),
           onSkip: (siteId, reason, note) =>
-            handleSkipStore(selectedVisitSequence.id, siteId, reason, note),
-          onUndo: (siteId) => handleUndoStoreOutcome(selectedVisitSequence.id, siteId),
+            handleSkipStore(selectedVisitPlan.id, siteId, reason, note),
+          onUndo: (siteId) => handleUndoStoreOutcome(selectedVisitPlan.id, siteId),
         }
       : null;
 
-  function openNewVisitSequenceModal() {
-    setNewVisitSequenceDraft({
-      initialName: getDefaultVisitSequenceName(new Date()),
+  function openNewVisitPlanModal() {
+    setNewVisitPlanDraft({
+      initialName: getDefaultVisitPlanName(new Date()),
       initialRepIds: getPreselectedRepIds(
         selection,
         allReps.map((rep) => rep.id)
@@ -599,64 +595,57 @@ export function Template(props: templates.QtTerritoryViewer) {
     });
   }
 
-  async function handleCreateVisitSequence(name: string, repIds: number[]): Promise<string[]> {
-    const result = await requestCreateVisitSequence(name, repIds, djangoContext.csrf_token);
+  async function handleCreateVisitPlan(name: string, repIds: number[]): Promise<string[]> {
+    const result = await requestCreateVisitPlan(name, repIds, djangoContext.csrf_token);
     if (!result.isSuccess) {
       return result.errorMessages;
     }
 
-    const visitSequence = result.payload;
-    // The server lists sequences newest first, so a new one goes at the top
-    setVisitSequences((current) => [visitSequence, ...current]);
-    setNewVisitSequenceDraft(null);
-    handleSelectionChange({ kind: "visitSequence", visitSequenceId: visitSequence.id });
-    toast.success(`Created ${visitSequence.name}.`);
+    const visitPlan = result.payload;
+    // The server lists plans newest first, so a new one goes at the top
+    setVisitPlans((current) => [visitPlan, ...current]);
+    setNewVisitPlanDraft(null);
+    handleSelectionChange({ kind: "visitPlan", visitPlanId: visitPlan.id });
+    toast.success(`Created ${visitPlan.name}.`);
     return [];
   }
 
-  async function handleUpdateVisitSequence(
-    visitSequenceId: number,
-    update: TVisitSequenceUpdate
+  async function handleUpdateVisitPlan(
+    visitPlanId: number,
+    update: TVisitPlanUpdate
   ): Promise<string[]> {
-    const result = await requestUpdateVisitSequence(
-      visitSequenceId,
-      update,
-      djangoContext.csrf_token
-    );
+    const result = await requestUpdateVisitPlan(visitPlanId, update, djangoContext.csrf_token);
     if (!result.isSuccess) {
       return result.errorMessages;
     }
 
-    const visitSequence = result.payload;
-    setVisitSequences((current) =>
-      current.map((existing) => (existing.id === visitSequence.id ? visitSequence : existing))
+    const visitPlan = result.payload;
+    setVisitPlans((current) =>
+      current.map((existing) => (existing.id === visitPlan.id ? visitPlan : existing))
     );
-    setEditVisitSequenceDraft(null);
-    toast.success(`Saved ${visitSequence.name}.`);
+    setEditVisitPlanDraft(null);
+    toast.success(`Saved ${visitPlan.name}.`);
     return [];
   }
 
-  /** Deletes the visit sequence after a confirm, and switches the page back to a field rep. */
-  async function handleDeleteVisitSequence(visitSequence: TVisitSequence) {
-    if (
-      !window.confirm(`Delete ${visitSequence.name}? Its visited and skipped stores will be lost.`)
-    ) {
+  /** Deletes the visit plan after a confirm, and switches the page back to a field rep. */
+  async function handleDeleteVisitPlan(visitPlan: TVisitPlan) {
+    if (!window.confirm(`Delete ${visitPlan.name}? Its visited and skipped stores will be lost.`)) {
       return;
     }
 
-    const result = await requestDeleteVisitSequence(visitSequence.id, djangoContext.csrf_token);
+    const result = await requestDeleteVisitPlan(visitPlan.id, djangoContext.csrf_token);
     if (!result.isSuccess) {
       toast.error(...result.errorMessages);
       return;
     }
 
-    setVisitSequences((current) => current.filter((existing) => existing.id !== visitSequence.id));
-    const fallbackRep =
-      allReps.find((rep) => visitSequence.rep_ids.includes(rep.id)) ?? allReps.at(0);
+    setVisitPlans((current) => current.filter((existing) => existing.id !== visitPlan.id));
+    const fallbackRep = allReps.find((rep) => visitPlan.rep_ids.includes(rep.id)) ?? allReps.at(0);
     if (fallbackRep !== undefined) {
       handleSelectionChange({ kind: "fieldRep", repId: fallbackRep.id });
     }
-    toast.success(`Deleted ${visitSequence.name}.`);
+    toast.success(`Deleted ${visitPlan.name}.`);
   }
 
   return (
@@ -685,41 +674,41 @@ export function Template(props: templates.QtTerritoryViewer) {
                     {rep.username}
                   </Dropdown.Item>
                 ))}
-                {visitSequences.length > 0 && (
+                {visitPlans.length > 0 && (
                   <>
                     <Dropdown.Divider />
-                    <Dropdown.Header>Visit Sequences</Dropdown.Header>
-                    {visitSequences.map((visitSequence) => (
+                    <Dropdown.Header>Visit Plans</Dropdown.Header>
+                    {visitPlans.map((visitPlan) => (
                       <Dropdown.Item
-                        key={visitSequence.id}
+                        key={visitPlan.id}
                         onClick={() =>
                           handleSelectionChange({
-                            kind: "visitSequence",
-                            visitSequenceId: visitSequence.id,
+                            kind: "visitPlan",
+                            visitPlanId: visitPlan.id,
                           })
                         }
-                        active={selectedVisitSequence?.id === visitSequence.id}
+                        active={selectedVisitPlan?.id === visitPlan.id}
                       >
-                        {visitSequence.name}
+                        {visitPlan.name}
                       </Dropdown.Item>
                     ))}
                   </>
                 )}
               </DropdownButton>
-              {selectedVisitSequence !== undefined && (
+              {selectedVisitPlan !== undefined && (
                 <Dropdown align="end">
                   <Dropdown.Toggle
-                    id="visit-sequence-actions"
+                    id="visit-plan-actions"
                     variant="outline-secondary"
-                    aria-label="Visit sequence actions"
+                    aria-label="Visit plan actions"
                   >
                     <FontAwesomeIcon icon={faEllipsis} />
                   </Dropdown.Toggle>
                   <Dropdown.Menu>
                     <Dropdown.Item
                       onClick={() =>
-                        setEditVisitSequenceDraft({
-                          visitSequence: selectedVisitSequence,
+                        setEditVisitPlanDraft({
+                          visitPlan: selectedVisitPlan,
                           shownFields: "name",
                         })
                       }
@@ -728,8 +717,8 @@ export function Template(props: templates.QtTerritoryViewer) {
                     </Dropdown.Item>
                     <Dropdown.Item
                       onClick={() =>
-                        setEditVisitSequenceDraft({
-                          visitSequence: selectedVisitSequence,
+                        setEditVisitPlanDraft({
+                          visitPlan: selectedVisitPlan,
                           shownFields: "reps",
                         })
                       }
@@ -739,7 +728,7 @@ export function Template(props: templates.QtTerritoryViewer) {
                     <Dropdown.Divider />
                     <Dropdown.Item
                       className="text-danger"
-                      onClick={() => void handleDeleteVisitSequence(selectedVisitSequence)}
+                      onClick={() => void handleDeleteVisitPlan(selectedVisitPlan)}
                     >
                       Delete
                     </Dropdown.Item>
@@ -773,10 +762,10 @@ export function Template(props: templates.QtTerritoryViewer) {
             <button
               type="button"
               className="btn btn-sm btn-outline-primary ms-auto"
-              onClick={openNewVisitSequenceModal}
+              onClick={openNewVisitPlanModal}
             >
               <FontAwesomeIcon icon={faPlus} className="me-1" />
-              New Visit Sequence
+              New Visit Plan
             </button>
           </div>
         </div>
@@ -838,12 +827,12 @@ export function Template(props: templates.QtTerritoryViewer) {
               </div>
             </div>
 
-            {territoryView.visitSequence !== null && (
+            {territoryView.visitPlan !== null && (
               <div className="d-flex align-items-center flex-wrap gap-3 mb-2">
                 <strong>
-                  {territoryView.visitSequence.progress.visitedCount} visited ·{" "}
-                  {territoryView.visitSequence.progress.skippedCount} skipped ·{" "}
-                  {territoryView.visitSequence.progress.leftCount} left
+                  {territoryView.visitPlan.progress.visitedCount} visited ·{" "}
+                  {territoryView.visitPlan.progress.skippedCount} skipped ·{" "}
+                  {territoryView.visitPlan.progress.leftCount} left
                 </strong>
                 <Form.Check
                   type="switch"
@@ -868,21 +857,21 @@ export function Template(props: templates.QtTerritoryViewer) {
               </div>
             )}
 
-            {/* Every rep in the sequence, whatever the rep filter hides */}
-            {territoryView.visitSequence !== null && selectedVisitSequence !== undefined && (
+            {/* Every rep in the plan, whatever the rep filter hides */}
+            {territoryView.visitPlan !== null && selectedVisitPlan !== undefined && (
               <div className="d-flex flex-wrap gap-2 mb-3">
                 {shownReps.map((rep) => (
                   <MarkAllVisitedButton
                     key={rep.id}
                     repUsername={rep.username}
                     remainingSiteIds={
-                      territoryView.visitSequence?.remainingSiteIdsByRepId.get(rep.id) ?? []
+                      territoryView.visitPlan?.remainingSiteIdsByRepId.get(rep.id) ?? []
                     }
                     isMarking={markingAllVisitedRepId === rep.id}
                     isDisabled={markingAllVisitedRepId !== null}
                     onMarkAll={(remainingSiteIds) =>
                       void handleMarkAllRepStoresVisited(
-                        selectedVisitSequence.id,
+                        selectedVisitPlan.id,
                         rep,
                         remainingSiteIds
                       )
@@ -1004,7 +993,7 @@ export function Template(props: templates.QtTerritoryViewer) {
                     <TerritoryMap
                       stores={territoryView.stores}
                       recentlySeenStores={territoryView.recentlySeenStores}
-                      // No home pins for the combined territory or a visit sequence
+                      // No home pins for the combined territory or a visit plan
                       repAddress={
                         selectedRepDetail !== undefined && selectedRepDetail.address !== ""
                           ? {
@@ -1016,18 +1005,18 @@ export function Template(props: templates.QtTerritoryViewer) {
                           : null
                       }
                       showRepNames={isMultiRepView}
-                      visitSequenceControls={visitSequenceStoreControls}
-                      // In a visit sequence, the user's location is only known while sorting by
+                      visitPlanControls={visitPlanStoreControls}
+                      // In a visit plan, the user's location is only known while sorting by
                       // distance
                       myLocation={
-                        territoryView.visitSequence === null
+                        territoryView.visitPlan === null
                           ? { source: "tracked" }
                           : {
                               source: "given",
                               location: isSortByDistanceOn ? distanceSortLocation : null,
                             }
                       }
-                      isVisitSequenceAllDone={territoryView.visitSequence?.isAllDone ?? false}
+                      isVisitPlanAllDone={territoryView.visitPlan?.isAllDone ?? false}
                     />
                   </Suspense>
                 </Modal.Body>
@@ -1040,9 +1029,9 @@ export function Template(props: templates.QtTerritoryViewer) {
               unscheduledDate={unscheduledDate}
               recentlySeenStores={territoryView.recentlySeenStores}
               showRepNames={isMultiRepView}
-              visitSequence={
-                territoryView.visitSequence !== null && visitSequenceStoreControls !== null
-                  ? { view: territoryView.visitSequence, controls: visitSequenceStoreControls }
+              visitPlan={
+                territoryView.visitPlan !== null && visitPlanStoreControls !== null
+                  ? { view: territoryView.visitPlan, controls: visitPlanStoreControls }
                   : null
               }
             />
@@ -1062,36 +1051,36 @@ export function Template(props: templates.QtTerritoryViewer) {
           onChangeExcludedRepIds={setExcludedRepIds}
         />
 
-        {newVisitSequenceDraft !== null && (
-          <VisitSequenceModal
-            title="New Visit Sequence"
+        {newVisitPlanDraft !== null && (
+          <VisitPlanModal
+            title="New Visit Plan"
             submitLabel="Create"
             reps={allReps}
-            initialName={newVisitSequenceDraft.initialName}
-            initialRepIds={newVisitSequenceDraft.initialRepIds}
-            onHide={() => setNewVisitSequenceDraft(null)}
-            onSubmit={handleCreateVisitSequence}
+            initialName={newVisitPlanDraft.initialName}
+            initialRepIds={newVisitPlanDraft.initialRepIds}
+            onHide={() => setNewVisitPlanDraft(null)}
+            onSubmit={handleCreateVisitPlan}
           />
         )}
 
-        {editVisitSequenceDraft !== null && (
-          <VisitSequenceModal
+        {editVisitPlanDraft !== null && (
+          <VisitPlanModal
             title={
-              editVisitSequenceDraft.shownFields === "name"
-                ? "Rename Visit Sequence"
-                : "Edit Visit Sequence Reps"
+              editVisitPlanDraft.shownFields === "name"
+                ? "Rename Visit Plan"
+                : "Edit Visit Plan Reps"
             }
             submitLabel="Save"
             reps={allReps}
-            initialName={editVisitSequenceDraft.visitSequence.name}
-            initialRepIds={editVisitSequenceDraft.visitSequence.rep_ids}
-            shownFields={editVisitSequenceDraft.shownFields}
-            onHide={() => setEditVisitSequenceDraft(null)}
+            initialName={editVisitPlanDraft.visitPlan.name}
+            initialRepIds={editVisitPlanDraft.visitPlan.rep_ids}
+            shownFields={editVisitPlanDraft.shownFields}
+            onHide={() => setEditVisitPlanDraft(null)}
             // Sends only the field the modal is editing
             onSubmit={(name, repIds) =>
-              handleUpdateVisitSequence(
-                editVisitSequenceDraft.visitSequence.id,
-                editVisitSequenceDraft.shownFields === "name" ? { name } : { repIds }
+              handleUpdateVisitPlan(
+                editVisitPlanDraft.visitPlan.id,
+                editVisitPlanDraft.shownFields === "name" ? { name } : { repIds }
               )
             }
           />

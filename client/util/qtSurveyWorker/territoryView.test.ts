@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore,
-  SurveyWorkerQtraxViewsTemplatesTVisitSequenceOutcome,
+  SurveyWorkerQtraxViewsTemplatesTVisitPlanOutcome,
   SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
   interfaces,
 } from "@reactivated";
@@ -11,7 +11,7 @@ import { makeAddress, makeServiceOrder } from "@client/util/qtSurveyWorker/servi
 import {
   TRepTerritoryData,
   TTerritoryFilters,
-  TVisitSequenceInput,
+  TVisitPlanInput,
   buildTerritoryView,
 } from "@client/util/qtSurveyWorker/territoryView";
 
@@ -601,7 +601,7 @@ describe("buildTerritoryView", () => {
     });
   });
 
-  describe("visit sequence", () => {
+  describe("visit plan", () => {
     const repOne = { id: 1, username: "rep_one" };
     const repTwo = { id: 2, username: "rep_two" };
     const visitedStore = makeAddress({ SiteId: 10, StoreName: "Walmart" });
@@ -621,7 +621,7 @@ describe("buildTerritoryView", () => {
       },
     ];
 
-    function makeOutcome(siteId: number): SurveyWorkerQtraxViewsTemplatesTVisitSequenceOutcome {
+    function makeOutcome(siteId: number): SurveyWorkerQtraxViewsTemplatesTVisitPlanOutcome {
       return {
         site_id: siteId,
         kind: "visited",
@@ -632,7 +632,7 @@ describe("buildTerritoryView", () => {
       };
     }
 
-    function makeSkipOutcome(siteId: number): SurveyWorkerQtraxViewsTemplatesTVisitSequenceOutcome {
+    function makeSkipOutcome(siteId: number): SurveyWorkerQtraxViewsTemplatesTVisitPlanOutcome {
       return {
         ...makeOutcome(siteId),
         kind: "skipped",
@@ -644,7 +644,7 @@ describe("buildTerritoryView", () => {
       visitedSiteIds: number[],
       skippedSiteIds: number[],
       options: { showVisited: boolean } = { showVisited: false }
-    ): TVisitSequenceInput {
+    ): TVisitPlanInput {
       return {
         outcomesBySiteId: new Map([
           ...visitedSiteIds.map((siteId) => [siteId, makeOutcome(siteId)] as const),
@@ -657,7 +657,7 @@ describe("buildTerritoryView", () => {
     function withOutcomes(
       siteIds: number[],
       options: { showVisited: boolean } = { showVisited: true }
-    ): TVisitSequenceInput {
+    ): TVisitPlanInput {
       return {
         outcomesBySiteId: new Map(siteIds.map((siteId) => [siteId, makeOutcome(siteId)])),
         showVisited: options.showVisited,
@@ -671,7 +671,7 @@ describe("buildTerritoryView", () => {
     it("splits the stores into Remaining and Visited, with each store's outcome", () => {
       const view = buildTerritoryView(repTerritories, NO_FILTERS, withOutcomes([10, 30]));
 
-      expect(view.visitSequence?.remaining).toEqual([
+      expect(view.visitPlan?.remaining).toEqual([
         {
           kind: "withServiceOrders",
           siteId: 20,
@@ -686,8 +686,8 @@ describe("buildTerritoryView", () => {
           store: { ...remainingSeenStore, repUsername: "rep_one" },
         },
       ]);
-      expect(siteIdsOf(view.visitSequence?.visited ?? [])).toEqual([10, 30]);
-      expect(view.visitSequence?.outcomesBySiteId).toEqual(
+      expect(siteIdsOf(view.visitPlan?.visited ?? [])).toEqual([10, 30]);
+      expect(view.visitPlan?.outcomesBySiteId).toEqual(
         new Map([
           [10, makeOutcome(10)],
           [30, makeOutcome(30)],
@@ -702,8 +702,8 @@ describe("buildTerritoryView", () => {
         withOutcomes([10, 30], { showVisited: false })
       );
 
-      expect(siteIdsOf(view.visitSequence?.remaining ?? [])).toEqual([20, 40]);
-      expect(view.visitSequence?.visited).toEqual([]);
+      expect(siteIdsOf(view.visitPlan?.remaining ?? [])).toEqual([20, 40]);
+      expect(view.visitPlan?.visited).toEqual([]);
       expect(Object.keys(view.stores)).toEqual(["20"]);
       expect(view.recentlySeenStores).toEqual([{ ...remainingSeenStore, repUsername: "rep_one" }]);
     });
@@ -737,28 +737,28 @@ describe("buildTerritoryView", () => {
 
       const view = buildTerritoryView(sharedRepTerritories, NO_FILTERS, withOutcomes([50]));
 
-      expect(view.visitSequence?.progress).toEqual({
+      expect(view.visitPlan?.progress).toEqual({
         visitedCount: 1,
         skippedCount: 0,
         leftCount: 1,
       });
-      expect(siteIdsOf(view.visitSequence?.visited ?? [])).toEqual([50]);
-      expect(siteIdsOf(view.visitSequence?.remaining ?? [])).toEqual([60]);
+      expect(siteIdsOf(view.visitPlan?.visited ?? [])).toEqual([50]);
+      expect(siteIdsOf(view.visitPlan?.remaining ?? [])).toEqual([60]);
       expect(view.recentlySeenStores).toEqual([{ ...sharedSeenStore, repUsername: "rep_one" }]);
     });
 
-    it("ignores outcomes of stores outside the sequence", () => {
+    it("ignores outcomes of stores outside the plan", () => {
       const view = buildTerritoryView(repTerritories, NO_FILTERS, withOutcomes([10, 999]));
 
-      expect([...(view.visitSequence?.outcomesBySiteId.keys() ?? [])]).toEqual([10]);
-      expect(view.visitSequence?.progress).toEqual({
+      expect([...(view.visitPlan?.outcomesBySiteId.keys() ?? [])]).toEqual([10]);
+      expect(view.visitPlan?.progress).toEqual({
         visitedCount: 1,
         skippedCount: 0,
         leftCount: 3,
       });
     });
 
-    it("counts progress over the whole sequence, whatever filters are on", () => {
+    it("counts progress over the whole plan, whatever filters are on", () => {
       const twoRepTerritories: TRepTerritoryData[] = [
         ...repTerritories,
         {
@@ -781,23 +781,23 @@ describe("buildTerritoryView", () => {
         withOutcomes([10, 30])
       );
 
-      expect(view.visitSequence?.remaining).toEqual([]);
-      expect(view.visitSequence?.visited).toEqual([]);
-      expect(view.visitSequence?.progress).toEqual({
+      expect(view.visitPlan?.remaining).toEqual([]);
+      expect(view.visitPlan?.visited).toEqual([]);
+      expect(view.visitPlan?.progress).toEqual({
         visitedCount: 2,
         skippedCount: 0,
         leftCount: 3,
       });
-      expect(view.visitSequence?.isAllDone).toBe(false);
+      expect(view.visitPlan?.isAllDone).toBe(false);
     });
 
     it("is all done once every store has an outcome", () => {
       expect(
-        buildTerritoryView(repTerritories, NO_FILTERS, withOutcomes([10, 20, 30])).visitSequence
+        buildTerritoryView(repTerritories, NO_FILTERS, withOutcomes([10, 20, 30])).visitPlan
           ?.isAllDone
       ).toBe(false);
       expect(
-        buildTerritoryView(repTerritories, NO_FILTERS, withOutcomes([10, 20, 30, 40])).visitSequence
+        buildTerritoryView(repTerritories, NO_FILTERS, withOutcomes([10, 20, 30, 40])).visitPlan
           ?.isAllDone
       ).toBe(true);
     });
@@ -809,23 +809,23 @@ describe("buildTerritoryView", () => {
         withOutcomes([10])
       );
 
-      expect(view.visitSequence?.isAllDone).toBe(false);
-      expect(view.visitSequence?.progress).toEqual({
+      expect(view.visitPlan?.isAllDone).toBe(false);
+      expect(view.visitPlan?.progress).toEqual({
         visitedCount: 0,
         skippedCount: 0,
         leftCount: 0,
       });
     });
 
-    it("isn't worked out without a visit-sequence input", () => {
+    it("isn't worked out without a visit-plan input", () => {
       const view = buildTerritoryView(repTerritories, NO_FILTERS);
 
-      expect(view.visitSequence).toBeNull();
+      expect(view.visitPlan).toBeNull();
       expect(Object.keys(view.stores)).toEqual(["10", "20"]);
       expect(view.recentlySeenStores.map((store) => store.site_id)).toEqual([30, 40]);
     });
 
-    it("lists each rep's remaining stores across the whole sequence, whatever filters are on", () => {
+    it("lists each rep's remaining stores across the whole plan, whatever filters are on", () => {
       const sharedStore = makeAddress({ SiteId: 50, StoreName: "Shared" });
       const twoRepTerritories: TRepTerritoryData[] = [
         {
@@ -863,7 +863,7 @@ describe("buildTerritoryView", () => {
         withVisitedAndSkipped([10], [40])
       );
 
-      expect(view.visitSequence?.remainingSiteIdsByRepId).toEqual(
+      expect(view.visitPlan?.remainingSiteIdsByRepId).toEqual(
         new Map([
           [repOne.id, [20, 30, 50]],
           [repTwo.id, [50, 70]],
@@ -879,10 +879,10 @@ describe("buildTerritoryView", () => {
           withVisitedAndSkipped([10], [20, 40], { showVisited: true })
         );
 
-        expect(siteIdsOf(view.visitSequence?.remaining ?? [])).toEqual([30]);
-        expect(siteIdsOf(view.visitSequence?.skipped ?? [])).toEqual([20, 40]);
-        expect(siteIdsOf(view.visitSequence?.visited ?? [])).toEqual([10]);
-        expect(view.visitSequence?.outcomesBySiteId.get(20)).toEqual(makeSkipOutcome(20));
+        expect(siteIdsOf(view.visitPlan?.remaining ?? [])).toEqual([30]);
+        expect(siteIdsOf(view.visitPlan?.skipped ?? [])).toEqual([20, 40]);
+        expect(siteIdsOf(view.visitPlan?.visited ?? [])).toEqual([10]);
+        expect(view.visitPlan?.outcomesBySiteId.get(20)).toEqual(makeSkipOutcome(20));
       });
 
       it("shows the Skipped group and pins skipped stores while show visited is off", () => {
@@ -892,21 +892,21 @@ describe("buildTerritoryView", () => {
           withVisitedAndSkipped([10], [20, 40])
         );
 
-        expect(siteIdsOf(view.visitSequence?.skipped ?? [])).toEqual([20, 40]);
-        expect(view.visitSequence?.visited).toEqual([]);
+        expect(siteIdsOf(view.visitPlan?.skipped ?? [])).toEqual([20, 40]);
+        expect(view.visitPlan?.visited).toEqual([]);
         expect(Object.keys(view.stores)).toEqual(["20"]);
         expect(view.recentlySeenStores.map((store) => store.site_id)).toEqual([30, 40]);
       });
 
-      it("counts visited, skipped and left stores over the whole sequence", () => {
+      it("counts visited, skipped and left stores over the whole plan", () => {
         const view = buildTerritoryView(
           repTerritories,
           { ...NO_FILTERS, searchText: "no such store" },
           withVisitedAndSkipped([10], [20, 40, 999])
         );
 
-        expect(view.visitSequence?.skipped).toEqual([]);
-        expect(view.visitSequence?.progress).toEqual({
+        expect(view.visitPlan?.skipped).toEqual([]);
+        expect(view.visitPlan?.progress).toEqual({
           visitedCount: 1,
           skippedCount: 2,
           leftCount: 1,
@@ -916,7 +916,7 @@ describe("buildTerritoryView", () => {
       it("counts skipped stores as done", () => {
         expect(
           buildTerritoryView(repTerritories, NO_FILTERS, withVisitedAndSkipped([10, 30], [20, 40]))
-            .visitSequence?.isAllDone
+            .visitPlan?.isAllDone
         ).toBe(true);
       });
     });
@@ -953,13 +953,13 @@ describe("buildTerritoryView", () => {
           location: userLocation,
         });
 
-        expect(siteIdsOf(view.visitSequence?.remaining ?? [])).toEqual([62, 63, 61, 64]);
+        expect(siteIdsOf(view.visitPlan?.remaining ?? [])).toEqual([62, 63, 61, 64]);
       });
 
       it("leaves Remaining in its usual order without a location", () => {
         const view = buildTerritoryView(sortTerritories, NO_FILTERS, withOutcomes([]));
 
-        expect(siteIdsOf(view.visitSequence?.remaining ?? [])).toEqual([61, 62, 64, 63]);
+        expect(siteIdsOf(view.visitPlan?.remaining ?? [])).toEqual([61, 62, 64, 63]);
       });
 
       it("only sorts Remaining", () => {
@@ -968,8 +968,8 @@ describe("buildTerritoryView", () => {
           location: userLocation,
         });
 
-        expect(siteIdsOf(view.visitSequence?.remaining ?? [])).toEqual([63, 64]);
-        expect(siteIdsOf(view.visitSequence?.visited ?? [])).toEqual([61, 62]);
+        expect(siteIdsOf(view.visitPlan?.remaining ?? [])).toEqual([63, 64]);
+        expect(siteIdsOf(view.visitPlan?.visited ?? [])).toEqual([61, 62]);
       });
     });
 
@@ -1005,11 +1005,11 @@ describe("buildTerritoryView", () => {
           withOutcomes([10], { showVisited: true })
         );
 
-        expect(view.visitSequence?.unmarkableStores).toEqual([
+        expect(view.visitPlan?.unmarkableStores).toEqual([
           { ...unmarkableSeenStore, repUsername: "rep_one" },
         ]);
-        expect(siteIdsOf(view.visitSequence?.remaining ?? [])).toEqual([20, 30, 40]);
-        expect(siteIdsOf(view.visitSequence?.visited ?? [])).toEqual([10]);
+        expect(siteIdsOf(view.visitPlan?.remaining ?? [])).toEqual([20, 30, 40]);
+        expect(siteIdsOf(view.visitPlan?.visited ?? [])).toEqual([10]);
       });
 
       it("count as neither left nor done, so they don't hold up all done", () => {
@@ -1019,12 +1019,12 @@ describe("buildTerritoryView", () => {
           withOutcomes([10, 20, 30, 40])
         );
 
-        expect(view.visitSequence?.progress).toEqual({
+        expect(view.visitPlan?.progress).toEqual({
           visitedCount: 4,
           skippedCount: 0,
           leftCount: 0,
         });
-        expect(view.visitSequence?.isAllDone).toBe(true);
+        expect(view.visitPlan?.isAllDone).toBe(true);
       });
 
       it("follow search like other stores", () => {
@@ -1034,7 +1034,7 @@ describe("buildTerritoryView", () => {
           withOutcomes([])
         );
 
-        expect(view.visitSequence?.unmarkableStores).toEqual([]);
+        expect(view.visitPlan?.unmarkableStores).toEqual([]);
         expect(view.recentlySeenStores.map((store) => store.site_id)).toEqual([30]);
       });
     });
