@@ -36,7 +36,10 @@ import { StoreList } from "@client/components/qtSurveyWorker/StoreList";
 import { TerritoryFilterModal } from "@client/components/qtSurveyWorker/TerritoryFilterModal";
 import { TerritoryFiltersActiveBanner } from "@client/components/qtSurveyWorker/TerritoryFiltersActiveBanner";
 import { VisitSequenceModal } from "@client/components/qtSurveyWorker/VisitSequenceModal";
-import { TVisitSequenceStoreActions } from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
+import {
+  TSkipReason,
+  TVisitSequenceStoreActions,
+} from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { ApiResponse, IHttpError, TNotFoundErrorList } from "@client/types";
 import { fetchByReactivated, getErrorList } from "@client/util/commonUtil";
@@ -471,6 +474,28 @@ export function Template(props: templates.QtTerritoryViewer) {
     );
   }
 
+  async function handleSkipStore(
+    visitSequenceId: number,
+    siteId: number,
+    reason: TSkipReason,
+    note: string
+  ): Promise<boolean> {
+    const result = await sendJsonRequest<interfaces.QtVisitSequenceOutcomeDetail>(
+      reverse("survey_worker:qt_skip_store", { visit_sequence_id: visitSequenceId }),
+      djangoContext.csrf_token,
+      new URLSearchParams({ site_id: siteId.toString(), reason, note })
+    );
+    if (!result.isSuccess) {
+      toast.error(...result.errorMessages);
+      return false;
+    }
+    const { outcome } = result.payload;
+    updateOutcomes(visitSequenceId, (outcomesBySiteId) =>
+      outcomesBySiteId.set(outcome.site_id, outcome)
+    );
+    return true;
+  }
+
   async function handleUndoStoreOutcome(visitSequenceId: number, siteId: number) {
     const result = await sendJsonRequest<interfaces.QtVisitSequenceOutcomeUndone>(
       reverse("survey_worker:qt_undo_store_outcome", { visit_sequence_id: visitSequenceId }),
@@ -491,6 +516,8 @@ export function Template(props: templates.QtTerritoryViewer) {
       ? {
           outcomesBySiteId: selectedVisitSequenceOutcomesBySiteId,
           onMarkVisited: (siteId) => handleMarkStoreVisited(selectedVisitSequence.id, siteId),
+          onSkip: (siteId, reason, note) =>
+            handleSkipStore(selectedVisitSequence.id, siteId, reason, note),
           onUndo: (siteId) => handleUndoStoreOutcome(selectedVisitSequence.id, siteId),
         }
       : null;
@@ -667,6 +694,7 @@ export function Template(props: templates.QtTerritoryViewer) {
               <div className="d-flex align-items-center flex-wrap gap-3 mb-2">
                 <strong>
                   {territoryView.visitSequence.progress.visitedCount} visited ·{" "}
+                  {territoryView.visitSequence.progress.skippedCount} skipped ·{" "}
                   {territoryView.visitSequence.progress.leftCount} left
                 </strong>
                 <Form.Check

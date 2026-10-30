@@ -31,7 +31,7 @@ interface Props {
   recentlySeenStores?: TTerritoryRecentlySeenStore[];
   // True for the combined territory: each store and service order says which rep it's for
   showRepNames?: boolean;
-  // Only in a visit sequence: the cards are grouped into Remaining and Visited instead
+  // Only in a visit sequence: the cards are grouped into Remaining, Skipped and Visited instead
   visitSequence?: { view: TVisitSequenceView; actions: TVisitSequenceStoreActions } | null;
 }
 
@@ -340,13 +340,23 @@ export function StoreList({
             All stores visited or skipped
           </Alert>
         )}
-        {view.remaining.length === 0 && view.visited.length === 0 && !view.isAllDone && (
-          <NoStoresFound />
-        )}
+        {view.remaining.length === 0 &&
+          view.skipped.length === 0 &&
+          view.visited.length === 0 &&
+          !view.isAllDone && <NoStoresFound />}
         {view.remaining.length > 0 && (
           <VisitSequenceStoreGroup
             title="Remaining"
             storeEntries={view.remaining}
+            unscheduledDate={unscheduledDate}
+            showRepNames={showRepNames}
+            actions={actions}
+          />
+        )}
+        {view.skipped.length > 0 && (
+          <VisitSequenceStoreGroup
+            title="Skipped"
+            storeEntries={view.skipped}
             unscheduledDate={unscheduledDate}
             showRepNames={showRepNames}
             actions={actions}

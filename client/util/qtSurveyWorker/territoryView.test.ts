@@ -599,8 +599,32 @@ describe("buildTerritoryView", () => {
       return {
         site_id: siteId,
         kind: "visited",
+        skip_reason: "",
+        skip_note: "",
         marked_by_username: "rep_one",
         marked_at: "2026-10-29T15:00:00Z",
+      };
+    }
+
+    function makeSkipOutcome(siteId: number): SurveyWorkerQtraxViewsTemplatesTVisitSequenceOutcome {
+      return {
+        ...makeOutcome(siteId),
+        kind: "skipped",
+        skip_reason: "temporarily_closed",
+      };
+    }
+
+    function withVisitedAndSkipped(
+      visitedSiteIds: number[],
+      skippedSiteIds: number[],
+      options: { showVisited: boolean } = { showVisited: false }
+    ): TVisitSequenceInput {
+      return {
+        outcomesBySiteId: new Map([
+          ...visitedSiteIds.map((siteId) => [siteId, makeOutcome(siteId)] as const),
+          ...skippedSiteIds.map((siteId) => [siteId, makeSkipOutcome(siteId)] as const),
+        ]),
+        showVisited: options.showVisited,
       };
     }
 
@@ -687,7 +711,11 @@ describe("buildTerritoryView", () => {
 
       const view = buildTerritoryView(sharedRepTerritories, NO_FILTERS, withOutcomes([50]));
 
-      expect(view.visitSequence?.progress).toEqual({ visitedCount: 1, leftCount: 1 });
+      expect(view.visitSequence?.progress).toEqual({
+        visitedCount: 1,
+        skippedCount: 0,
+        leftCount: 1,
+      });
       expect(siteIdsOf(view.visitSequence?.visited ?? [])).toEqual([50]);
       expect(siteIdsOf(view.visitSequence?.remaining ?? [])).toEqual([60]);
       expect(view.recentlySeenStores).toEqual([{ ...sharedSeenStore, repUsername: "rep_one" }]);
@@ -697,7 +725,11 @@ describe("buildTerritoryView", () => {
       const view = buildTerritoryView(repTerritories, NO_FILTERS, withOutcomes([10, 999]));
 
       expect([...(view.visitSequence?.outcomesBySiteId.keys() ?? [])]).toEqual([10]);
-      expect(view.visitSequence?.progress).toEqual({ visitedCount: 1, leftCount: 3 });
+      expect(view.visitSequence?.progress).toEqual({
+        visitedCount: 1,
+        skippedCount: 0,
+        leftCount: 3,
+      });
     });
 
     it("counts progress over the whole sequence, whatever filters are on", () => {
@@ -725,7 +757,11 @@ describe("buildTerritoryView", () => {
 
       expect(view.visitSequence?.remaining).toEqual([]);
       expect(view.visitSequence?.visited).toEqual([]);
-      expect(view.visitSequence?.progress).toEqual({ visitedCount: 2, leftCount: 3 });
+      expect(view.visitSequence?.progress).toEqual({
+        visitedCount: 2,
+        skippedCount: 0,
+        leftCount: 3,
+      });
       expect(view.visitSequence?.isAllDone).toBe(false);
     });
 
@@ -748,7 +784,11 @@ describe("buildTerritoryView", () => {
       );
 
       expect(view.visitSequence?.isAllDone).toBe(false);
-      expect(view.visitSequence?.progress).toEqual({ visitedCount: 0, leftCount: 0 });
+      expect(view.visitSequence?.progress).toEqual({
+        visitedCount: 0,
+        skippedCount: 0,
+        leftCount: 0,
+      });
     });
 
     it("isn't worked out without a visit-sequence input", () => {
@@ -757,6 +797,56 @@ describe("buildTerritoryView", () => {
       expect(view.visitSequence).toBeNull();
       expect(Object.keys(view.stores)).toEqual(["10", "20"]);
       expect(view.recentlySeenStores.map((store) => store.site_id)).toEqual([30, 40]);
+    });
+
+    describe("skipped stores", () => {
+      it("puts skipped stores in the Skipped group, out of Remaining", () => {
+        const view = buildTerritoryView(
+          repTerritories,
+          NO_FILTERS,
+          withVisitedAndSkipped([10], [20, 40], { showVisited: true })
+        );
+
+        expect(siteIdsOf(view.visitSequence?.remaining ?? [])).toEqual([30]);
+        expect(siteIdsOf(view.visitSequence?.skipped ?? [])).toEqual([20, 40]);
+        expect(siteIdsOf(view.visitSequence?.visited ?? [])).toEqual([10]);
+        expect(view.visitSequence?.outcomesBySiteId.get(20)).toEqual(makeSkipOutcome(20));
+      });
+
+      it("shows the Skipped group and pins skipped stores while show visited is off", () => {
+        const view = buildTerritoryView(
+          repTerritories,
+          NO_FILTERS,
+          withVisitedAndSkipped([10], [20, 40])
+        );
+
+        expect(siteIdsOf(view.visitSequence?.skipped ?? [])).toEqual([20, 40]);
+        expect(view.visitSequence?.visited).toEqual([]);
+        expect(Object.keys(view.stores)).toEqual(["20"]);
+        expect(view.recentlySeenStores.map((store) => store.site_id)).toEqual([30, 40]);
+      });
+
+      it("counts visited, skipped and left stores over the whole sequence", () => {
+        const view = buildTerritoryView(
+          repTerritories,
+          { ...NO_FILTERS, searchText: "no such store" },
+          withVisitedAndSkipped([10], [20, 40, 999])
+        );
+
+        expect(view.visitSequence?.skipped).toEqual([]);
+        expect(view.visitSequence?.progress).toEqual({
+          visitedCount: 1,
+          skippedCount: 2,
+          leftCount: 1,
+        });
+      });
+
+      it("counts skipped stores as done", () => {
+        expect(
+          buildTerritoryView(repTerritories, NO_FILTERS, withVisitedAndSkipped([10, 30], [20, 40]))
+            .visitSequence?.isAllDone
+        ).toBe(true);
+      });
     });
   });
 });

@@ -24,6 +24,9 @@ export const RECENTLY_SEEN_STORE_MARKER_ICON = getMarkerPinIcon("#ef4444", "#b91
 // Visited stores in a visit sequence, shown only while "show visited" is on.
 export const VISITED_STORE_MARKER_ICON = getMarkerPinIcon("#9ca3af", "#4b5563");
 
+// Skipped stores in a visit sequence, whether or not they have service orders.
+export const SKIPPED_STORE_MARKER_ICON = getMarkerPinIcon("#f59e0b", "#b45309");
+
 // Classic Google "My Location" blue-dot look - a plain circle rather than the pin shape used
 // for the other markers, so it reads as "you are here" instead of a place.
 export const CURRENT_LOCATION_MARKER_ICON: google.maps.Symbol = {

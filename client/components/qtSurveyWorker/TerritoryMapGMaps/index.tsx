@@ -25,6 +25,7 @@ import {
   RECENTLY_SEEN_STORE_MARKER_ICON,
   REP_ADDRESS_MARKER_ICON,
   SERVICE_ORDER_MARKER_ICON,
+  SKIPPED_STORE_MARKER_ICON,
   VISITED_STORE_MARKER_ICON,
 } from "./markerIcons";
 
@@ -49,7 +50,8 @@ interface Props {
   recentlySeenStores: TTerritoryRecentlySeenStore[];
   // True for the combined territory, where popups say which rep each store/service order is for
   showRepNames: boolean;
-  // Only in a visit sequence: visited stores get grey pins, and popups can change outcomes
+  // Only in a visit sequence: visited stores get grey pins, skipped ones yellow-orange pins, and
+  // popups can change outcomes
   visitSequenceActions: TVisitSequenceStoreActions | null;
   // Shown over the map once every store in the visit sequence has an outcome
   isVisitSequenceAllDone: boolean;
@@ -200,8 +202,20 @@ export default function TerritoryMapGMaps({
     [firstLat, firstLng, resolvedRepAddress]
   );
 
-  function isVisited(siteId: number | null): boolean {
-    return siteId !== null && visitSequenceActions?.outcomesBySiteId.get(siteId) !== undefined;
+  /** The pin for a store in a visit sequence's outcome, or `defaultIcon` without one. */
+  function getStoreMarkerIcon(
+    siteId: number | null,
+    defaultIcon: google.maps.Symbol
+  ): google.maps.Symbol {
+    const outcome =
+      siteId === null ? undefined : visitSequenceActions?.outcomesBySiteId.get(siteId);
+    if (outcome?.kind === "visited") {
+      return VISITED_STORE_MARKER_ICON;
+    }
+    if (outcome?.kind === "skipped") {
+      return SKIPPED_STORE_MARKER_ICON;
+    }
+    return defaultIcon;
   }
 
   if (!isLoaded) {
@@ -221,7 +235,7 @@ export default function TerritoryMapGMaps({
           <Marker
             key={siteId}
             position={{ lat: group.address.Latitude, lng: group.address.Longitude }}
-            icon={isVisited(Number(siteId)) ? VISITED_STORE_MARKER_ICON : SERVICE_ORDER_MARKER_ICON}
+            icon={getStoreMarkerIcon(Number(siteId), SERVICE_ORDER_MARKER_ICON)}
             onClick={() => setActiveMarker({ type: "serviceOrder", siteId: Number(siteId) })}
           >
             {activeMarker?.type === "serviceOrder" && activeMarker.siteId === Number(siteId) && (
@@ -244,11 +258,7 @@ export default function TerritoryMapGMaps({
             <Marker
               key={store.id}
               position={{ lat: store.latitude, lng: store.longitude }}
-              icon={
-                isVisited(store.site_id)
-                  ? VISITED_STORE_MARKER_ICON
-                  : RECENTLY_SEEN_STORE_MARKER_ICON
-              }
+              icon={getStoreMarkerIcon(store.site_id, RECENTLY_SEEN_STORE_MARKER_ICON)}
               onClick={() => setActiveMarker({ type: "recentlySeenStore", storeId: store.id })}
             >
               {activeMarker?.type === "recentlySeenStore" && activeMarker.storeId === store.id && (

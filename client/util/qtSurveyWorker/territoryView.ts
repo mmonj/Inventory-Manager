@@ -69,7 +69,7 @@ export interface TRepSummary {
   scheduleLastRefreshed: string | null;
 }
 
-/** A store's visited mark in a visit sequence. */
+/** A store's visited or skipped mark in a visit sequence. */
 export type TVisitSequenceOutcome = SurveyWorkerQtraxViewsTemplatesTVisitSequenceOutcome;
 
 /** What a selected visit sequence adds to the view. */
@@ -87,6 +87,7 @@ export type TTerritoryStoreEntry =
 /** How far through the whole sequence the user is, whatever filters are on. */
 export interface TVisitSequenceProgress {
   visitedCount: number;
+  skippedCount: number;
   leftCount: number;
 }
 
@@ -95,10 +96,12 @@ export interface TVisitSequenceView {
   outcomesBySiteId: ReadonlyMap<number, TVisitSequenceOutcome>;
   /** Shown stores without an outcome. */
   remaining: TTerritoryStoreEntry[];
+  /** Shown skipped stores. Always shown, whatever "show visited" is. */
+  skipped: TTerritoryStoreEntry[];
   /** Shown visited stores, or none while "show visited" is off. */
   visited: TTerritoryStoreEntry[];
   progress: TVisitSequenceProgress;
-  /** Every store in the sequence has an outcome. */
+  /** Every store in the sequence is visited or skipped. */
   isAllDone: boolean;
 }
 
@@ -106,7 +109,7 @@ export interface TVisitSequenceView {
 export interface TTerritoryView {
   /**
    * Stores with service orders after all filters, keyed by site id. In a visit sequence,
-   * visited stores are left out while "show visited" is off.
+   * visited stores are left out while "show visited" is off (skipped stores stay).
    */
   stores: Record<number, TTerritoryStore>;
   /**
@@ -230,7 +233,7 @@ function toStoreEntries(
   return storeEntries;
 }
 
-/** The stores a visit sequence pins on the map: its Remaining and Visited groups. */
+/** The stores a visit sequence pins on the map: its Remaining, Skipped and Visited groups. */
 function getMapStores(
   shownStoreEntries: TTerritoryStoreEntry[],
   visitSequence: TVisitSequenceView
@@ -238,7 +241,9 @@ function getMapStores(
   const mapStores: Record<number, TTerritoryStore> = {};
   const mapRecentlySeenStores: TTerritoryRecentlySeenStore[] = [];
   const pinnedSiteIds = new Set(
-    [...visitSequence.remaining, ...visitSequence.visited].map((storeEntry) => storeEntry.siteId)
+    [...visitSequence.remaining, ...visitSequence.skipped, ...visitSequence.visited].map(
+      (storeEntry) => storeEntry.siteId
+    )
   );
   for (const storeEntry of shownStoreEntries) {
     if (!pinnedSiteIds.has(storeEntry.siteId)) {
@@ -262,16 +267,21 @@ function buildVisitSequenceView(
   const outcomesBySiteId = new Map(
     [...visitSequenceInput.outcomesBySiteId].filter(([siteId]) => memberSiteIds.has(siteId))
   );
-  const visitedCount = outcomesBySiteId.size;
-  const leftCount = memberSiteIds.size - visitedCount;
+  const outcomeKinds = [...outcomesBySiteId.values()].map((outcome) => outcome.kind);
+  const visitedCount = outcomeKinds.filter((kind) => kind === "visited").length;
+  const skippedCount = outcomeKinds.filter((kind) => kind === "skipped").length;
+  const leftCount = memberSiteIds.size - visitedCount - skippedCount;
+  const hasOutcomeKind = (storeEntry: TTerritoryStoreEntry, kind: TVisitSequenceOutcome["kind"]) =>
+    outcomesBySiteId.get(storeEntry.siteId)?.kind === kind;
 
   return {
     outcomesBySiteId,
     remaining: shownStoreEntries.filter((storeEntry) => !outcomesBySiteId.has(storeEntry.siteId)),
+    skipped: shownStoreEntries.filter((storeEntry) => hasOutcomeKind(storeEntry, "skipped")),
     visited: visitSequenceInput.showVisited
-      ? shownStoreEntries.filter((storeEntry) => outcomesBySiteId.has(storeEntry.siteId))
+      ? shownStoreEntries.filter((storeEntry) => hasOutcomeKind(storeEntry, "visited"))
       : [],
-    progress: { visitedCount, leftCount },
+    progress: { visitedCount, skippedCount, leftCount },
     isAllDone: memberSiteIds.size > 0 && leftCount === 0,
   };
 }
@@ -282,7 +292,7 @@ function buildVisitSequenceView(
  * whose data is missing (still loading, or failed) contributes nothing.
  *
  * Given a visit-sequence input, the reps are a visit sequence's, and the view also works out
- * each store's outcome, the Remaining/Visited split and the sequence's progress.
+ * each store's outcome, the Remaining/Skipped/Visited split and the sequence's progress.
  */
 export function buildTerritoryView(
   repTerritories: TRepTerritoryData[],
