@@ -8,6 +8,13 @@ export interface IToast {
   variant: TToastVariant;
   // Each entry renders on its own line
   messages: string[];
+  // A button under the messages (e.g. Undo). Pressing it dismisses the toast.
+  action?: IToastAction;
+}
+
+export interface IToastAction {
+  label: string;
+  onClick: () => void;
 }
 
 type TListener = (toasts: IToast[]) => void;
@@ -17,6 +24,8 @@ let toasts: IToast[] = [];
 const listeners = new Set<TListener>();
 
 const AUTOHIDE_DELAY_MS = 4000;
+// Longer, so there's time to press the toast's action
+const ACTION_AUTOHIDE_DELAY_MS = 8000;
 
 function notify() {
   for (const listener of listeners) {
@@ -29,12 +38,15 @@ function dismiss(id: number) {
   notify();
 }
 
-function show(variant: TToastVariant, messages: string[]): number {
+function show(variant: TToastVariant, messages: string[], action?: IToastAction): number {
   const id = nextToastId++;
-  toasts = [...toasts, { id, variant, messages }];
+  toasts = [...toasts, { id, variant, messages, action }];
   notify();
 
-  setTimeout(() => dismiss(id), AUTOHIDE_DELAY_MS);
+  setTimeout(
+    () => dismiss(id),
+    action === undefined ? AUTOHIDE_DELAY_MS : ACTION_AUTOHIDE_DELAY_MS
+  );
 
   return id;
 }
@@ -54,5 +66,7 @@ export const toast = {
   error: (...messages: string[]) => show("error", messages),
   info: (...messages: string[]) => show("info", messages),
   warning: (...messages: string[]) => show("warning", messages),
+  /** A success toast with a button, e.g. "Marked 12 stores visited." with Undo. */
+  successWithAction: (message: string, action: IToastAction) => show("success", [message], action),
   dismiss,
 };

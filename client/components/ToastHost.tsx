@@ -1,7 +1,7 @@
 import React from "react";
 
 import classNames from "classnames";
-import { Toast, ToastContainer } from "react-bootstrap";
+import { Button, Toast, ToastContainer } from "react-bootstrap";
 
 import { IToast, TToastVariant, subscribeToasts, toast } from "@client/util/toast";
 
@@ -45,6 +45,19 @@ export function ToastHost() {
             {t.messages.map((message, idx) => (
               <div key={idx}>{message}</div>
             ))}
+            {t.action !== undefined && (
+              <Button
+                size="sm"
+                variant="light"
+                className="mt-2"
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  t.action?.onClick();
+                }}
+              >
+                {t.action.label}
+              </Button>
+            )}
           </Toast.Body>
         </Toast>
       ))}

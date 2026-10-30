@@ -22,6 +22,7 @@ import {
 
 import {
   faArrowsRotate,
+  faCheckDouble,
   faFilter,
   faMapLocationDot,
   faPlus,
@@ -175,6 +176,32 @@ async function requestCreateVisitSequence(
     : result;
 }
 
+/** A rep's "Mark all visited" action in a visit sequence, disabled once nothing is left. */
+function MarkAllVisitedButton({
+  remainingSiteIds,
+  isMarking,
+  isDisabled,
+  onMarkAll,
+}: {
+  remainingSiteIds: number[];
+  isMarking: boolean;
+  isDisabled: boolean;
+  onMarkAll: (remainingSiteIds: number[]) => void;
+}) {
+  return (
+    <ButtonWithSpinner
+      type="button"
+      className="btn btn-sm btn-outline-success text-nowrap"
+      fetchState={{ isLoading: isMarking, isError: false, errorMessages: [] }}
+      disabled={isDisabled || remainingSiteIds.length === 0}
+      onClick={() => onMarkAll(remainingSiteIds)}
+    >
+      <FontAwesomeIcon icon={faCheckDouble} className="me-1" />
+      Mark all visited
+    </ButtonWithSpinner>
+  );
+}
+
 function formatLastRefreshed(isoString: string): string {
   const refreshedDate = new Date(isoString);
   const hoursSince = (Date.now() - refreshedDate.getTime()) / (1000 * 60 * 60);
@@ -223,6 +250,8 @@ export function Template(props: templates.QtTerritoryViewer) {
     useState<TLoadedVisitSequenceOutcomes | null>(null);
   // Not persisted: every page load starts on what's left to do
   const [showVisited, setShowVisited] = useState(false);
+  /** The rep whose remaining stores are being marked visited, while the server answers. */
+  const [markingAllVisitedRepId, setMarkingAllVisitedRepId] = useState<number | null>(null);
   const [newVisitSequenceDraft, setNewVisitSequenceDraft] = useState<TNewVisitSequenceDraft | null>(
     null
   );
@@ -511,6 +540,73 @@ export function Template(props: templates.QtTerritoryViewer) {
     );
   }
 
+  function toSiteIdsRequestBody(siteIds: number[]): URLSearchParams {
+    return new URLSearchParams(siteIds.map((siteId) => ["site_ids", siteId.toString()]));
+  }
+
+  async function handleUndoStoreOutcomes(visitSequenceId: number, siteIds: number[]) {
+    const result = await sendJsonRequest<interfaces.QtVisitSequenceOutcomesUndone>(
+      reverse("survey_worker:qt_undo_store_outcomes", { visit_sequence_id: visitSequenceId }),
+      djangoContext.csrf_token,
+      toSiteIdsRequestBody(siteIds)
+    );
+    if (!result.isSuccess) {
+      toast.error(...result.errorMessages);
+      return;
+    }
+    const undoneSiteIds = result.payload.site_ids;
+    updateOutcomes(visitSequenceId, (outcomesBySiteId) => {
+      for (const siteId of undoneSiteIds) {
+        outcomesBySiteId.delete(siteId);
+      }
+    });
+    toast.success(`Undid the visits to ${undoneSiteIds.length} stores.`);
+  }
+
+  /**
+   * Marks every one of the rep's remaining stores in the sequence visited (worked out before
+   * filters), after a confirm. The toast's Undo reverses exactly the stores this marked.
+   */
+  async function handleMarkAllRepStoresVisited(
+    visitSequenceId: number,
+    rep: TTerritoryRep,
+    remainingSiteIds: number[]
+  ) {
+    if (
+      !window.confirm(
+        `Mark all ${remainingSiteIds.length} of ${rep.username}'s remaining stores in this visit sequence visited? Skipped stores are left as they are.`
+      )
+    ) {
+      return;
+    }
+    setMarkingAllVisitedRepId(rep.id);
+    const result = await sendJsonRequest<interfaces.QtVisitSequenceOutcomes>(
+      reverse("survey_worker:qt_mark_stores_visited", { visit_sequence_id: visitSequenceId }),
+      djangoContext.csrf_token,
+      toSiteIdsRequestBody(remainingSiteIds)
+    );
+    setMarkingAllVisitedRepId(null);
+    if (!result.isSuccess) {
+      toast.error(...result.errorMessages);
+      return;
+    }
+    const markedOutcomes = result.payload.outcomes;
+    updateOutcomes(visitSequenceId, (outcomesBySiteId) => {
+      for (const outcome of markedOutcomes) {
+        outcomesBySiteId.set(outcome.site_id, outcome);
+      }
+    });
+    if (markedOutcomes.length === 0) {
+      toast.info(`${rep.username}'s stores were already visited or skipped.`);
+      return;
+    }
+    const markedSiteIds = markedOutcomes.map((outcome) => outcome.site_id);
+    toast.successWithAction(`Marked ${markedSiteIds.length} of ${rep.username}'s stores visited.`, {
+      label: "Undo",
+      onClick: () => void handleUndoStoreOutcomes(visitSequenceId, markedSiteIds),
+    });
+  }
+
   const visitSequenceStoreActions: TVisitSequenceStoreActions | null =
     selectedVisitSequence !== undefined && selectedVisitSequenceOutcomesBySiteId !== undefined
       ? {
@@ -715,6 +811,7 @@ export function Template(props: templates.QtTerritoryViewer) {
                     <th className="text-end">Stores</th>
                     <th className="text-end">Hours</th>
                     <th>Schedule last refreshed</th>
+                    {territoryView.visitSequence !== null && <th></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -728,6 +825,27 @@ export function Template(props: templates.QtTerritoryViewer) {
                           ? formatLastRefreshed(repSummary.scheduleLastRefreshed)
                           : "N/A"}
                       </td>
+                      {territoryView.visitSequence !== null &&
+                        selectedVisitSequence !== undefined && (
+                          <td className="text-end">
+                            <MarkAllVisitedButton
+                              remainingSiteIds={
+                                territoryView.visitSequence.remainingSiteIdsByRepId.get(
+                                  repSummary.rep.id
+                                ) ?? []
+                              }
+                              isMarking={markingAllVisitedRepId === repSummary.rep.id}
+                              isDisabled={markingAllVisitedRepId !== null}
+                              onMarkAll={(remainingSiteIds) =>
+                                void handleMarkAllRepStoresVisited(
+                                  selectedVisitSequence.id,
+                                  repSummary.rep,
+                                  remainingSiteIds
+                                )
+                              }
+                            />
+                          </td>
+                        )}
                     </tr>
                   ))}
                 </tbody>

@@ -799,6 +799,52 @@ describe("buildTerritoryView", () => {
       expect(view.recentlySeenStores.map((store) => store.site_id)).toEqual([30, 40]);
     });
 
+    it("lists each rep's remaining stores across the whole sequence, whatever filters are on", () => {
+      const sharedStore = makeAddress({ SiteId: 50, StoreName: "Shared" });
+      const twoRepTerritories: TRepTerritoryData[] = [
+        {
+          rep: repOne,
+          repData: makeRepData({
+            serviceOrders: [
+              visitedOrder,
+              remainingOrder,
+              makeServiceOrder({ address: sharedStore }),
+            ],
+            recentlySeenStores: [visitedSeenStore, remainingSeenStore],
+          }),
+        },
+        {
+          rep: repTwo,
+          repData: makeRepData({
+            serviceOrders: [
+              makeServiceOrder({ address: sharedStore }),
+              makeServiceOrder({ address: makeAddress({ SiteId: 70 }) }),
+            ],
+            recentlySeenStores: [makeRecentlySeenStore({ id: 8, site_id: null })],
+          }),
+        },
+      ];
+
+      const view = buildTerritoryView(
+        twoRepTerritories,
+        {
+          searchText: "no such store",
+          selectedDueDate: null,
+          excludedParentCompanies: new Set(["Globex"]),
+          showStoresWithoutPendingServiceOrders: false,
+          excludedRepIds: new Set([repTwo.id]),
+        },
+        withVisitedAndSkipped([10], [40])
+      );
+
+      expect(view.visitSequence?.remainingSiteIdsByRepId).toEqual(
+        new Map([
+          [repOne.id, [20, 30, 50]],
+          [repTwo.id, [50, 70]],
+        ])
+      );
+    });
+
     describe("skipped stores", () => {
       it("puts skipped stores in the Skipped group, out of Remaining", () => {
         const view = buildTerritoryView(

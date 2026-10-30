@@ -100,6 +100,11 @@ export interface TVisitSequenceView {
   skipped: TTerritoryStoreEntry[];
   /** Shown visited stores, or none while "show visited" is off. */
   visited: TTerritoryStoreEntry[];
+  /**
+   * Each of the sequence's reps' stores without an outcome, by site id (ascending), whatever
+   * filters are on. A store in two reps' territories is listed for both.
+   */
+  remainingSiteIdsByRepId: ReadonlyMap<number, number[]>;
   progress: TVisitSequenceProgress;
   /** Every store in the sequence is visited or skipped. */
   isAllDone: boolean;
@@ -193,17 +198,15 @@ function cutAtDueDate(store: TTerritoryStore, dueDate: string): TTerritoryStore 
   return hasDatedServiceOrder ? { ...store, serviceOrders: serviceOrdersDueByDate } : null;
 }
 
-/** Every site id in the reps' territories, before any filter. */
-function getMemberSiteIds(repTerritories: TRepTerritoryData[]): Set<number> {
+/** Every site id in the rep's territory, before any filter. */
+function getRepMemberSiteIds({ repData }: TRepTerritoryData): Set<number> {
   const memberSiteIds = new Set<number>();
-  for (const { repData } of repTerritories) {
-    for (const serviceOrder of repData?.schedule?.ServiceOrders ?? []) {
-      memberSiteIds.add(serviceOrder.Address.SiteId);
-    }
-    for (const store of repData?.recently_seen_stores ?? []) {
-      if (store.site_id !== null) {
-        memberSiteIds.add(store.site_id);
-      }
+  for (const serviceOrder of repData?.schedule?.ServiceOrders ?? []) {
+    memberSiteIds.add(serviceOrder.Address.SiteId);
+  }
+  for (const store of repData?.recently_seen_stores ?? []) {
+    if (store.site_id !== null) {
+      memberSiteIds.add(store.site_id);
     }
   }
   return memberSiteIds;
@@ -263,7 +266,12 @@ function buildVisitSequenceView(
   shownStoreEntries: TTerritoryStoreEntry[],
   visitSequenceInput: TVisitSequenceInput
 ): TVisitSequenceView {
-  const memberSiteIds = getMemberSiteIds(repTerritories);
+  const memberSiteIdsByRepId = new Map(
+    repTerritories.map((repTerritory) => [repTerritory.rep.id, getRepMemberSiteIds(repTerritory)])
+  );
+  const memberSiteIds = new Set(
+    [...memberSiteIdsByRepId.values()].flatMap((repMemberSiteIds) => [...repMemberSiteIds])
+  );
   const outcomesBySiteId = new Map(
     [...visitSequenceInput.outcomesBySiteId].filter(([siteId]) => memberSiteIds.has(siteId))
   );
@@ -281,6 +289,14 @@ function buildVisitSequenceView(
     visited: visitSequenceInput.showVisited
       ? shownStoreEntries.filter((storeEntry) => hasOutcomeKind(storeEntry, "visited"))
       : [],
+    remainingSiteIdsByRepId: new Map(
+      [...memberSiteIdsByRepId].map(([repId, repMemberSiteIds]) => [
+        repId,
+        [...repMemberSiteIds]
+          .filter((siteId) => !outcomesBySiteId.has(siteId))
+          .sort((a, b) => a - b),
+      ])
+    ),
     progress: { visitedCount, skippedCount, leftCount },
     isAllDone: memberSiteIds.size > 0 && leftCount === 0,
   };
