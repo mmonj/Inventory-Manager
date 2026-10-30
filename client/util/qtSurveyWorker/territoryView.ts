@@ -31,6 +31,8 @@ export type TTerritoryRecentlySeenStore = TRecentlySeenStore & { repUsername: st
 export interface TTerritoryStore {
   address: SurveyWorkerQtraxWebsiteTypedefsAddress;
   serviceOrders: TTerritoryServiceOrder[];
+  /** When the store was last seen, left out when there's no store row to tell. */
+  lastSeen?: string;
 }
 
 /** What the user has chosen to narrow the Territory Viewer down to. */
@@ -159,12 +161,20 @@ function getDueDateOptions(serviceOrders: TServiceOrder[]): string[] {
   return [...new Set(weekendDueDates)];
 }
 
-function groupBySiteId(serviceOrders: TTerritoryServiceOrder[]): Record<number, TTerritoryStore> {
+function groupBySiteId(
+  serviceOrders: TTerritoryServiceOrder[],
+  lastSeenBySiteId: ReadonlyMap<number, string>
+): Record<number, TTerritoryStore> {
   const storesBySiteId: Record<number, TTerritoryStore> = {};
   for (const serviceOrder of serviceOrders) {
     const siteId = serviceOrder.Address.SiteId;
     if (!(siteId in storesBySiteId)) {
-      storesBySiteId[siteId] = { address: serviceOrder.Address, serviceOrders: [] };
+      const lastSeen = lastSeenBySiteId.get(siteId);
+      storesBySiteId[siteId] = {
+        address: serviceOrder.Address,
+        serviceOrders: [],
+        ...(lastSeen !== undefined && { lastSeen }),
+      };
     }
     storesBySiteId[siteId].serviceOrders.push(serviceOrder);
   }
@@ -329,13 +339,22 @@ export function buildTerritoryView(
     new Set(allServiceOrders.map((serviceOrder) => serviceOrder.JobClient))
   ).sort();
 
+  // Every rep's Last Seen of a store comes from the same store row, so any rep's will do
+  const lastSeenBySiteId = new Map(
+    repTerritories.flatMap(({ repData }) =>
+      Object.entries(repData?.last_seen_by_site_id ?? {}).map(
+        ([siteId, lastSeen]) => [Number(siteId), lastSeen] as const
+      )
+    )
+  );
   const shownRepUsernames = new Set(shownRepTerritories.map(({ rep }) => rep.username));
   const storesOfShownParentCompanies = groupBySiteId(
     allServiceOrders.filter(
       (serviceOrder) =>
         shownRepUsernames.has(serviceOrder.repUsername) &&
         !filters.excludedParentCompanies.has(serviceOrder.JobClient)
-    )
+    ),
+    lastSeenBySiteId
   );
 
   // A date that isn't among the reps' options (e.g. one picked for another rep) is treated as

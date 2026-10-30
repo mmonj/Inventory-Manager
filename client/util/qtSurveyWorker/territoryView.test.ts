@@ -41,6 +41,7 @@ function makeRecentlySeenStore(
 function makeRepData(options: {
   serviceOrders?: SurveyWorkerQtraxWebsiteTypedefsTServiceOrder[];
   recentlySeenStores?: SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore[];
+  lastSeenBySiteId?: Record<number, string>;
 }): interfaces.QtTerritoryRepData {
   return {
     rep_sync_data: { id: 1, schedule_last_refreshed: null },
@@ -48,6 +49,7 @@ function makeRepData(options: {
       ServiceOrders: options.serviceOrders ?? [],
     } as unknown as interfaces.QtTerritoryRepData["schedule"],
     recently_seen_stores: options.recentlySeenStores ?? [],
+    last_seen_by_site_id: options.lastSeenBySiteId ?? {},
     is_cached: false,
     sync_error: null,
   };
@@ -99,6 +101,30 @@ describe("buildTerritoryView", () => {
     expect(view.stores).toEqual({
       10: { address: firstStore, serviceOrders: fromRep(firstOrder, thirdOrder) },
       20: { address: secondStore, serviceOrders: fromRep(secondOrder) },
+    });
+  });
+
+  describe("Last Seen", () => {
+    const seenStore = makeAddress({ SiteId: 10 });
+    const unseenStore = makeAddress({ SiteId: 20 });
+    const repData = makeRepData({
+      serviceOrders: [
+        makeServiceOrder({ address: seenStore }),
+        makeServiceOrder({ address: unseenStore }),
+      ],
+      lastSeenBySiteId: { 10: "2026-10-20T14:00:00Z" },
+    });
+
+    it("is given for stores with service orders", () => {
+      const view = buildTerritoryView(onlyRep(repData), NO_FILTERS);
+
+      expect(view.stores[10].lastSeen).toBe("2026-10-20T14:00:00Z");
+    });
+
+    it("is left out for a store without a store row", () => {
+      const view = buildTerritoryView(onlyRep(repData), NO_FILTERS);
+
+      expect(view.stores[20]).not.toHaveProperty("lastSeen");
     });
   });
 

@@ -116,6 +116,9 @@ export function MapPopupContent({
           <small>
             {store.address.Latitude}, {store.address.Longitude}
           </small>
+          {store.lastSeen !== undefined && (
+            <div className="mt-1">Last seen: {new Date(store.lastSeen).toLocaleDateString()}</div>
+          )}
         </div>
 
         {/* Copy Address Button */}

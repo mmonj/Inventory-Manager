@@ -107,6 +107,14 @@ function ServiceOrderStoreCard({
               Total Time: <strong>{getFormattedEstimatedTime(totalHours)}</strong>
             </span>
           </div>
+          {store.lastSeen !== undefined && (
+            <div className="d-flex align-items-center text-muted small mt-1">
+              <FontAwesomeIcon icon={faClock} className="me-2" />
+              <span>
+                Last Seen: <strong>{formatLastSeen(store.lastSeen)}</strong>
+              </span>
+            </div>
+          )}
         </div>
       </Accordion.Header>
       {outcomeControls !== undefined && (
