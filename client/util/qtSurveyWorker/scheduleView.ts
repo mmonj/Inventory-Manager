@@ -25,10 +25,35 @@ export interface TScheduleView {
    * auto-schedule dates, so picking one doesn't lock out dates only other windows cover.
    */
   filteredUnscheduledServiceOrders: TServiceOrder[];
+  /**
+   * The Unscheduled list. Once auto-schedule dates are picked, only the filtered ones that fit
+   * at least one of them, since the rest can't be auto-scheduled anyway.
+   */
+  unscheduledServiceOrders: TServiceOrder[];
+  /** The listed ones whose window covers the selected date, or all of them with no date. */
+  schedulableForSelectedDate: TServiceOrder[];
+  /** The listed ones whose window doesn't cover the selected date, shown with the reason. */
+  outsideWindowForSelectedDate: TServiceOrder[];
+  visibleUnscheduledServiceOrderIds: Set<number>;
+  /**
+   * The auto-schedule selection keeps service orders that a filter or search hides, so they're
+   * still checked when they come back. Only the listed checked ones count: for the selected
+   * count, the average hours per day and what gets sent to auto-schedule.
+   */
+  visibleAutoScheduleSelectedServiceOrderIds: Set<number>;
+  /**
+   * A rough estimate while picking: the checked hours spread evenly over the picked dates,
+   * without the server's grouping by store. Null until both are picked.
+   */
+  autoScheduleAverageHoursPerDay: number | null;
   /** Whether the date is a schedulable date for the filtered unscheduled service orders. */
   isDateSchedulable: (date: Date) => boolean;
   /** Whether the calendar lets the date be picked in the current calendar mode. */
   isDatePickable: (date: Date) => boolean;
+}
+
+function isInWindow(so: TServiceOrder, date: Date): boolean {
+  return date >= new Date(so.DateScheduleRangeStart) && date <= new Date(so.DateScheduleRangeEnd);
 }
 
 function startOfDay(date: Date): Date {
@@ -87,6 +112,38 @@ export function buildScheduleView(
 
   const windowDateKeys = getWindowDateKeys(filteredUnscheduledServiceOrders);
 
+  const autoScheduleSelectedDates =
+    calendarMode.kind === "autoSchedule" ? calendarMode.selectedDates : [];
+  const unscheduledServiceOrders =
+    autoScheduleSelectedDates.length === 0
+      ? filteredUnscheduledServiceOrders
+      : filteredUnscheduledServiceOrders.filter((so) =>
+          autoScheduleSelectedDates.some((date) => isInWindow(so, date))
+        );
+
+  const selectedDate = calendarMode.kind === "singleDate" ? calendarMode.selectedDate : undefined;
+  const schedulableForSelectedDate =
+    selectedDate === undefined
+      ? unscheduledServiceOrders
+      : unscheduledServiceOrders.filter((so) => isInWindow(so, selectedDate));
+  const outsideWindowForSelectedDate =
+    selectedDate === undefined
+      ? []
+      : unscheduledServiceOrders.filter((so) => !isInWindow(so, selectedDate));
+
+  const visibleUnscheduledServiceOrderIds = new Set(
+    unscheduledServiceOrders.map((so) => so.ServiceOrderId)
+  );
+  const autoScheduleSelectedServiceOrderIds =
+    calendarMode.kind === "autoSchedule" ? calendarMode.selectedServiceOrderIds : new Set<number>();
+  const visibleAutoScheduleSelectedServiceOrders = unscheduledServiceOrders.filter((so) =>
+    autoScheduleSelectedServiceOrderIds.has(so.ServiceOrderId)
+  );
+  const autoScheduleSelectedHours = visibleAutoScheduleSelectedServiceOrders.reduce(
+    (sum, so) => sum + so.EstimatedTime,
+    0
+  );
+
   function isPast(date: Date): boolean {
     if (toDateKey(date) === todayKey) {
       return !isTodayAllowed;
@@ -101,6 +158,18 @@ export function buildScheduleView(
   return {
     eligibleUnscheduledServiceOrders,
     filteredUnscheduledServiceOrders,
+    unscheduledServiceOrders,
+    schedulableForSelectedDate,
+    outsideWindowForSelectedDate,
+    visibleUnscheduledServiceOrderIds,
+    visibleAutoScheduleSelectedServiceOrderIds: new Set(
+      visibleAutoScheduleSelectedServiceOrders.map((so) => so.ServiceOrderId)
+    ),
+    autoScheduleAverageHoursPerDay:
+      visibleAutoScheduleSelectedServiceOrders.length === 0 ||
+      autoScheduleSelectedDates.length === 0
+        ? null
+        : autoScheduleSelectedHours / autoScheduleSelectedDates.length,
     isDateSchedulable,
     isDatePickable: (date) =>
       isDatePickable(calendarMode, {

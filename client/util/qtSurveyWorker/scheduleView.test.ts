@@ -212,6 +212,152 @@ describe("buildScheduleView", () => {
     });
   });
 
+  describe("unscheduled list", () => {
+    // Window Tuesday to Wednesday, and one for next Monday only
+    const midweekOrder = makeUnscheduledOrder();
+    const nextMondayOrder = makeServiceOrder({
+      address: STORE,
+      windowStart: "2026-11-09T00:00:00",
+      dueDate: "2026-11-09T00:00:00",
+      dateScheduled: UNSCHEDULED_DATE,
+      estimatedTime: 3,
+    });
+    const orders = [midweekOrder, nextMondayOrder];
+    const schedule = makeSchedule({ serviceOrders: orders });
+
+    it("leaves out service orders whose window has closed", () => {
+      const closedOrder = makeServiceOrder({
+        address: STORE,
+        windowStart: "2026-10-26T00:00:00",
+        dueDate: "2026-10-31T00:00:00",
+        dateScheduled: UNSCHEDULED_DATE,
+      });
+
+      const view = buildScheduleView(
+        makeSchedule({ serviceOrders: [closedOrder, midweekOrder] }),
+        SINGLE_DATE,
+        noFiltersFor([closedOrder, midweekOrder]),
+        TODAY
+      );
+
+      expect(view.unscheduledServiceOrders).toEqual([midweekOrder]);
+    });
+
+    it("counts every eligible service order, whatever the filters hide", () => {
+      const view = buildScheduleView(
+        schedule,
+        SINGLE_DATE,
+        { selectedJobClients: new Set(), searchQuery: "" },
+        TODAY
+      );
+
+      expect(view.unscheduledServiceOrders).toEqual([]);
+      expect(view.eligibleUnscheduledServiceOrders).toEqual(orders);
+    });
+
+    it("keeps only the service orders that fit a picked auto-schedule date", () => {
+      const view = buildScheduleView(
+        schedule,
+        { ...AUTO_SCHEDULE, selectedDates: [NEXT_MONDAY] },
+        noFiltersFor(orders),
+        TODAY
+      );
+
+      expect(view.unscheduledServiceOrders).toEqual([nextMondayOrder]);
+    });
+
+    it("splits by whether the selected date is inside each window", () => {
+      const view = buildScheduleView(
+        schedule,
+        { kind: "singleDate", selectedDate: TOMORROW },
+        noFiltersFor(orders),
+        TODAY
+      );
+
+      expect(view.schedulableForSelectedDate).toEqual([midweekOrder]);
+      expect(view.outsideWindowForSelectedDate).toEqual([nextMondayOrder]);
+    });
+
+    it("counts everything as schedulable while no date is selected", () => {
+      const view = buildScheduleView(schedule, SINGLE_DATE, noFiltersFor(orders), TODAY);
+
+      expect(view.schedulableForSelectedDate).toEqual(orders);
+      expect(view.outsideWindowForSelectedDate).toEqual([]);
+    });
+  });
+
+  describe("auto-schedule selection", () => {
+    const acmeOrder = makeServiceOrder({
+      address: STORE,
+      parentCompany: "Acme",
+      windowStart: "2026-11-03T00:00:00",
+      dueDate: "2026-11-04T00:00:00",
+      dateScheduled: UNSCHEDULED_DATE,
+      estimatedTime: 2,
+    });
+    const globexOrder = makeServiceOrder({
+      address: STORE,
+      parentCompany: "Globex",
+      windowStart: "2026-11-03T00:00:00",
+      dueDate: "2026-11-04T00:00:00",
+      dateScheduled: UNSCHEDULED_DATE,
+      estimatedTime: 5,
+    });
+    const schedule = makeSchedule({ serviceOrders: [acmeOrder, globexOrder] });
+    const bothSelected: TCalendarMode = {
+      kind: "autoSchedule",
+      selectedDates: [TOMORROW, WEDNESDAY],
+      selectedServiceOrderIds: new Set([acmeOrder.ServiceOrderId, globexOrder.ServiceOrderId]),
+    };
+
+    it("counts only the checked service orders still in the list", () => {
+      const view = buildScheduleView(
+        schedule,
+        bothSelected,
+        { selectedJobClients: new Set(["Acme"]), searchQuery: "" },
+        TODAY
+      );
+
+      expect(view.visibleUnscheduledServiceOrderIds).toEqual(new Set([acmeOrder.ServiceOrderId]));
+      expect(view.visibleAutoScheduleSelectedServiceOrderIds).toEqual(
+        new Set([acmeOrder.ServiceOrderId])
+      );
+    });
+
+    it("averages the visible checked hours over the picked dates", () => {
+      const view = buildScheduleView(
+        schedule,
+        bothSelected,
+        noFiltersFor([acmeOrder, globexOrder]),
+        TODAY
+      );
+
+      expect(view.autoScheduleAverageHoursPerDay).toBe(3.5);
+    });
+
+    it("has no average until both dates and service orders are picked", () => {
+      const view = buildScheduleView(
+        schedule,
+        { ...bothSelected, selectedDates: [] },
+        noFiltersFor([acmeOrder, globexOrder]),
+        TODAY
+      );
+
+      expect(view.autoScheduleAverageHoursPerDay).toBeNull();
+    });
+
+    it("has nothing selected outside auto-schedule", () => {
+      const view = buildScheduleView(
+        schedule,
+        SINGLE_DATE,
+        noFiltersFor([acmeOrder, globexOrder]),
+        TODAY
+      );
+
+      expect(view.visibleAutoScheduleSelectedServiceOrderIds).toEqual(new Set());
+    });
+  });
+
   it("has no schedulable dates before a schedule loads", () => {
     const view = buildScheduleView(null, SINGLE_DATE, noFiltersFor([]), TODAY);
 

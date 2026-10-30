@@ -50,9 +50,6 @@ import { useFetch } from "../hooks/useFetch";
 import "@client/scss/react-day-picker.scss";
 
 const LAST_SELECTED_REP_ID_KEY = "calendar-rep-id-last-used";
-// shared so modes without auto-schedule dates don't hand downstream useMemo hooks a new array
-// on every render
-const NO_DATES: Date[] = [];
 
 interface ICalendarModeCheckboxProps {
   kind: TEnterableModeKind;
@@ -115,7 +112,7 @@ export function Template(props: templates.QtSchedule) {
 
   const selectedDate = calendarMode.kind === "singleDate" ? calendarMode.selectedDate : undefined;
   const autoScheduleSelectedDates =
-    calendarMode.kind === "autoSchedule" ? calendarMode.selectedDates : NO_DATES;
+    calendarMode.kind === "autoSchedule" ? calendarMode.selectedDates : [];
   const selectedDateKey = selectedDate ? toDateKey(selectedDate) : null;
 
   React.useEffect(() => {
@@ -429,97 +426,34 @@ export function Template(props: templates.QtSchedule) {
       ),
     [schedule, calendarMode, selectedJobClients, unscheduledSearchQuery, todayKey]
   );
-  const { eligibleUnscheduledServiceOrders, filteredUnscheduledServiceOrders } = scheduleView;
-
-  // The Unscheduled list. In auto-schedule mode, only show SOs schedulable on at least one of
-  // the selected dates - the backend groups SOs by their own scheduling window per date, so an
-  // SO that can't land on any selected date is just noise here. No dates selected yet - show
-  // everything (unfiltered by date), same as normal mode.
-  const unscheduledServiceOrders = React.useMemo(() => {
-    if (autoScheduleSelectedDates.length === 0) {
-      return filteredUnscheduledServiceOrders;
-    }
-
-    return filteredUnscheduledServiceOrders.filter((so) => {
-      const rangeStart = new Date(so.DateScheduleRangeStart);
-      const rangeEnd = new Date(so.DateScheduleRangeEnd);
-      return autoScheduleSelectedDates.some((date) => date >= rangeStart && date <= rangeEnd);
-    });
-  }, [filteredUnscheduledServiceOrders, autoScheduleSelectedDates]);
+  const {
+    eligibleUnscheduledServiceOrders,
+    filteredUnscheduledServiceOrders,
+    unscheduledServiceOrders,
+    visibleUnscheduledServiceOrderIds,
+    visibleAutoScheduleSelectedServiceOrderIds,
+    autoScheduleAverageHoursPerDay,
+  } = scheduleView;
 
   const isSearchFilterActive = unscheduledSearchQuery.trim() !== "";
   const isUnscheduledFilterActive = isJobClientFilterActive || isSearchFilterActive;
 
-  // Split by whether the currently selected date falls within each SO's scheduling window -
-  // schedulable SOs get the "Schedule on <date>" action, the rest show why they can't be
-  // scheduled on that date instead of disappearing from the list.
-  const schedulableForSelectedDate = React.useMemo(() => {
-    if (selectedDate === undefined) {
-      return unscheduledServiceOrders;
-    }
-
-    return unscheduledServiceOrders.filter((so) => {
-      const rangeStart = new Date(so.DateScheduleRangeStart);
-      const rangeEnd = new Date(so.DateScheduleRangeEnd);
-      return selectedDate >= rangeStart && selectedDate <= rangeEnd;
-    });
-  }, [unscheduledServiceOrders, selectedDate]);
-
-  const outsideWindowForSelectedDate = React.useMemo(() => {
-    if (selectedDate === undefined) {
-      return [];
-    }
-
-    const schedulableIds = new Set(schedulableForSelectedDate.map((so) => so.ServiceOrderId));
-    return unscheduledServiceOrders.filter((so) => !schedulableIds.has(so.ServiceOrderId));
-  }, [unscheduledServiceOrders, schedulableForSelectedDate, selectedDate]);
-
   const groupedSchedulableForSelectedDate = React.useMemo(
-    () => sortServiceOrdersBy(schedulableForSelectedDate, unscheduledOrderBy),
-    [schedulableForSelectedDate, unscheduledOrderBy]
+    () => sortServiceOrdersBy(scheduleView.schedulableForSelectedDate, unscheduledOrderBy),
+    [scheduleView.schedulableForSelectedDate, unscheduledOrderBy]
   );
   const groupedOutsideWindowForSelectedDate = React.useMemo(
-    () => sortServiceOrdersBy(outsideWindowForSelectedDate, unscheduledOrderBy),
-    [outsideWindowForSelectedDate, unscheduledOrderBy]
+    () => sortServiceOrdersBy(scheduleView.outsideWindowForSelectedDate, unscheduledOrderBy),
+    [scheduleView.outsideWindowForSelectedDate, unscheduledOrderBy]
   );
 
-  const visibleUnscheduledSoIds = React.useMemo(
-    () => new Set(unscheduledServiceOrders.map((so) => so.ServiceOrderId)),
-    [unscheduledServiceOrders]
-  );
-
-  // The auto-schedule selection keeps SOs that a filter or search hides, so they're still
-  // checked when they come back into view. Only the visible checked ones count: for the
-  // selected count, the average hours per day and what gets sent to auto-schedule.
   const autoScheduleSelectedSoIds =
     calendarMode.kind === "autoSchedule" ? calendarMode.selectedServiceOrderIds : null;
-  const visibleAutoScheduleSelectedSoIds = React.useMemo(() => {
-    if (autoScheduleSelectedSoIds === null) {
-      return new Set<number>();
-    }
-    return new Set([...visibleUnscheduledSoIds].filter((id) => autoScheduleSelectedSoIds.has(id)));
-  }, [visibleUnscheduledSoIds, autoScheduleSelectedSoIds]);
-
-  // Naive average: total hours of the selected SOs divided evenly across the selected
-  // dates. Doesn't account for the backend's per-store/location bucketing (see
-  // build_auto_schedule_groups) - that's the backend's job, this is just a rough estimate
-  // for the user while picking dates/SOs.
-  const autoScheduleAverageHoursPerDay = React.useMemo(() => {
-    if (visibleAutoScheduleSelectedSoIds.size === 0 || autoScheduleSelectedDates.length === 0) {
-      return null;
-    }
-
-    const totalHours = unscheduledServiceOrders
-      .filter((so) => visibleAutoScheduleSelectedSoIds.has(so.ServiceOrderId))
-      .reduce((sum, so) => sum + so.EstimatedTime, 0);
-
-    return totalHours / autoScheduleSelectedDates.length;
-  }, [unscheduledServiceOrders, visibleAutoScheduleSelectedSoIds, autoScheduleSelectedDates]);
 
   async function handleExecuteAutoSchedule() {
     if (
       selectedRepId === null ||
-      visibleAutoScheduleSelectedSoIds.size === 0 ||
+      visibleAutoScheduleSelectedServiceOrderIds.size === 0 ||
       autoScheduleSelectedDates.length === 0
     ) {
       return;
@@ -529,7 +463,8 @@ export function Template(props: templates.QtSchedule) {
     const serviceOrderIds = serviceOrders
       .filter(
         (so) =>
-          visibleAutoScheduleSelectedSoIds.has(so.ServiceOrderId) && so.Address.IsPhysicalVisit
+          visibleAutoScheduleSelectedServiceOrderIds.has(so.ServiceOrderId) &&
+          so.Address.IsPhysicalVisit
       )
       .map((so) => so.ServiceOrderId);
     const dateKeys = autoScheduleSelectedDates.map((date) => toDateKey(date));
@@ -921,8 +856,8 @@ export function Template(props: templates.QtSchedule) {
                     {calendarMode.kind === "autoSchedule" && (
                       <div className="d-flex align-items-center gap-2">
                         <span className="text-muted small text-nowrap">
-                          {visibleAutoScheduleSelectedSoIds.size}/{visibleUnscheduledSoIds.size}{" "}
-                          currently selected
+                          {visibleAutoScheduleSelectedServiceOrderIds.size}/
+                          {visibleUnscheduledServiceOrderIds.size} currently selected
                         </span>
                         <Button
                           variant="outline-secondary"
@@ -930,7 +865,7 @@ export function Template(props: templates.QtSchedule) {
                           onClick={() =>
                             dispatchCalendarMode({
                               type: "selectServiceOrders",
-                              serviceOrderIds: visibleUnscheduledSoIds,
+                              serviceOrderIds: visibleUnscheduledServiceOrderIds,
                             })
                           }
                         >
@@ -942,7 +877,7 @@ export function Template(props: templates.QtSchedule) {
                           onClick={() =>
                             dispatchCalendarMode({
                               type: "deselectServiceOrders",
-                              serviceOrderIds: visibleUnscheduledSoIds,
+                              serviceOrderIds: visibleUnscheduledServiceOrderIds,
                             })
                           }
                         >
@@ -1095,7 +1030,7 @@ export function Template(props: templates.QtSchedule) {
                         type="button"
                         className="btn btn-primary btn-sm"
                         disabled={
-                          visibleAutoScheduleSelectedSoIds.size === 0 ||
+                          visibleAutoScheduleSelectedServiceOrderIds.size === 0 ||
                           autoScheduleSelectedDates.length === 0
                         }
                         fetchState={executeAutoScheduleFetch}
@@ -1138,7 +1073,7 @@ export function Template(props: templates.QtSchedule) {
                       automatically assign the selected service orders to those dates.
                     </div>
                     <strong>
-                      {visibleAutoScheduleSelectedSoIds.size} SO(s),{" "}
+                      {visibleAutoScheduleSelectedServiceOrderIds.size} SO(s),{" "}
                       {autoScheduleSelectedDates.length} date(s) selected
                       {autoScheduleAverageHoursPerDay !== null &&
                         ` (~${autoScheduleAverageHoursPerDay.toFixed(2)} avg hrs/day)`}
