@@ -15,6 +15,7 @@ import {
   faArrowsRotate,
   faFilter,
   faMapLocationDot,
+  faPlus,
   faTimes,
   faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
@@ -25,6 +26,7 @@ import { Layout } from "@client/components/Layout";
 import { StoreList } from "@client/components/qtSurveyWorker/StoreList";
 import { TerritoryFilterModal } from "@client/components/qtSurveyWorker/TerritoryFilterModal";
 import { TerritoryFiltersActiveBanner } from "@client/components/qtSurveyWorker/TerritoryFiltersActiveBanner";
+import { VisitSequenceModal } from "@client/components/qtSurveyWorker/VisitSequenceModal";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { ApiResponse, IHttpError, TNotFoundErrorList } from "@client/types";
 import { fetchByReactivated, getErrorList } from "@client/util/commonUtil";
@@ -35,6 +37,8 @@ import {
 } from "@client/util/qtSurveyWorker/territoryView";
 import {
   TTerritorySelection,
+  getDefaultVisitSequenceName,
+  getPreselectedRepIds,
   restoreTerritorySelection,
   toStoredTerritorySelection,
 } from "@client/util/qtSurveyWorker/territorySelection";
@@ -53,6 +57,14 @@ interface TLoadState {
 }
 
 const IDLE_LOAD_STATE: TLoadState = { isLoading: false, isError: false, errorMessages: [] };
+
+type TVisitSequence = templates.QtTerritoryViewer["visit_sequences"][number];
+
+/** What the New Visit Sequence modal starts with. */
+interface TNewVisitSequenceDraft {
+  initialName: string;
+  initialRepIds: number[];
+}
 
 type TRepDataRequestResult =
   | { isSuccess: true; repData: interfaces.QtTerritoryRepData }
@@ -75,6 +87,43 @@ async function requestTerritoryRepData(
       return { isSuccess: false, errorMessages };
     }
     return { isSuccess: true, repData: await response.json() };
+  } catch (error) {
+    return {
+      isSuccess: false,
+      errorMessages: [error instanceof Error ? error.message : "Unexpected error occurred"],
+    };
+  }
+}
+
+type TCreateVisitSequenceResult =
+  | { isSuccess: true; visitSequence: TVisitSequence }
+  | { isSuccess: false; errorMessages: string[] };
+
+async function requestCreateVisitSequence(
+  name: string,
+  repIds: number[],
+  csrfToken: string
+): Promise<TCreateVisitSequenceResult> {
+  const requestBody = new URLSearchParams({ name });
+  for (const repId of repIds) {
+    requestBody.append("rep_ids", repId.toString());
+  }
+
+  try {
+    const response = await fetchByReactivated<interfaces.QtVisitSequenceDetail>(
+      reverse("survey_worker:qt_create_visit_sequence"),
+      csrfToken,
+      "POST",
+      requestBody,
+      "application/x-www-form-urlencoded"
+    );
+    if (!response.ok) {
+      const errorMessages = await getErrorList(
+        response as unknown as ApiResponse<IHttpError | TNotFoundErrorList>
+      );
+      return { isSuccess: false, errorMessages };
+    }
+    return { isSuccess: true, visitSequence: (await response.json()).visit_sequence };
   } catch (error) {
     return {
       isSuccess: false,
@@ -124,6 +173,11 @@ export function Template(props: templates.QtTerritoryViewer) {
     new Map()
   );
   const [loadState, setLoadState] = useState<TLoadState>(IDLE_LOAD_STATE);
+  // Starts from the SSR props; sequences created on this page are added to it.
+  const [visitSequences, setVisitSequences] = useState<TVisitSequence[]>(props.visit_sequences);
+  const [newVisitSequenceDraft, setNewVisitSequenceDraft] = useState<TNewVisitSequenceDraft | null>(
+    null
+  );
   // Bumped by every loadRepData call, so a load overtaken by a newer one (e.g. switching reps
   // mid-load) still stores the data it fetched but no longer reports on loadState
   const latestLoadIdRef = useRef(0);
@@ -135,14 +189,22 @@ export function Template(props: templates.QtTerritoryViewer) {
     selection?.kind === "fieldRep"
       ? props.rep_details.find((repDetail) => repDetail.id === selection.repId)
       : undefined;
+  const selectedVisitSequence =
+    selection?.kind === "visitSequence"
+      ? visitSequences.find((visitSequence) => visitSequence.id === selection.visitSequenceId)
+      : undefined;
+  // A visit sequence is shown like the combined territory of its field reps
+  const isMultiRepView = isCombinedTerritory || selectedVisitSequence !== undefined;
   const shownReps: TTerritoryRep[] = isCombinedTerritory
     ? allReps
-    : selectedRepDetail !== undefined
-      ? [selectedRepDetail]
-      : [];
+    : selectedVisitSequence !== undefined
+      ? allReps.filter((rep) => selectedVisitSequence.rep_ids.includes(rep.id))
+      : selectedRepDetail !== undefined
+        ? [selectedRepDetail]
+        : [];
   const selectionLabel = isCombinedTerritory
     ? COMBINED_TERRITORY_LABEL
-    : (selectedRepDetail?.username ?? "Select Representative");
+    : (selectedVisitSequence?.name ?? selectedRepDetail?.username ?? "Select Representative");
   const selectedRepData =
     selectedRepDetail === undefined ? undefined : repDataById.get(selectedRepDetail.id);
   // Lets the store list and map lag behind fast typing instead of blocking the input.
@@ -159,8 +221,8 @@ export function Template(props: templates.QtTerritoryViewer) {
         selectedDueDate,
         excludedParentCompanies,
         showStoresWithoutPendingServiceOrders,
-        // The rep filter only applies to the combined territory
-        excludedRepIds: isCombinedTerritory ? excludedRepIds : new Set(),
+        // The rep filter only applies to the combined territory and visit sequences
+        excludedRepIds: isMultiRepView ? excludedRepIds : new Set(),
       }),
     [
       repTerritories,
@@ -168,7 +230,7 @@ export function Template(props: templates.QtTerritoryViewer) {
       selectedDueDate,
       excludedParentCompanies,
       showStoresWithoutPendingServiceOrders,
-      isCombinedTerritory,
+      isMultiRepView,
       excludedRepIds,
     ]
   );
@@ -223,15 +285,15 @@ export function Template(props: templates.QtTerritoryViewer) {
 
   // Fetch whichever shown reps we haven't already fetched whenever the selection changes -
   // reselecting already-loaded reps does not refetch (Refresh Schedule is the only way to force
-  // a fresh fetch once loaded). The combined territory reads stored schedules only; a single
-  // rep honours the page URL's use_cache param.
+  // a fresh fetch once loaded). The combined territory and visit sequences read stored schedules
+  // only; a single rep honours the page URL's use_cache param.
   useEffect(() => {
     const repsToFetch = shownReps.filter((rep) => !repDataById.has(rep.id));
     if (repsToFetch.length === 0) {
       return;
     }
 
-    const useCache = isCombinedTerritory
+    const useCache = isMultiRepView
       ? "on"
       : new URLSearchParams(window.location.search).get("use_cache");
     void loadRepData(repsToFetch, useCache);
@@ -243,7 +305,8 @@ export function Template(props: templates.QtTerritoryViewer) {
   useEffect(() => {
     const restoredSelection = restoreTerritorySelection(
       localStorage.getItem(LAST_SELECTED_REP_ID_KEY),
-      props.rep_details.map((rep) => rep.id)
+      props.rep_details.map((rep) => rep.id),
+      props.visit_sequences.map((visitSequence) => visitSequence.id)
     );
     if (restoredSelection !== null) {
       setSelection(restoredSelection);
@@ -285,8 +348,34 @@ export function Template(props: templates.QtTerritoryViewer) {
 
     const isSuccess = await loadRepData(shownReps, "off");
     if (isSuccess) {
-      toast.success(isCombinedTerritory ? "Schedules refreshed." : "Schedule refreshed.");
+      toast.success(isMultiRepView ? "Schedules refreshed." : "Schedule refreshed.");
     }
+  }
+
+  function openNewVisitSequenceModal() {
+    setNewVisitSequenceDraft({
+      initialName: getDefaultVisitSequenceName(new Date()),
+      initialRepIds: getPreselectedRepIds(
+        selection,
+        allReps.map((rep) => rep.id)
+      ),
+    });
+  }
+
+  async function handleCreateVisitSequence(name: string, repIds: number[]): Promise<string[]> {
+    const result = await requestCreateVisitSequence(name, repIds, djangoContext.csrf_token);
+    if (!result.isSuccess) {
+      return result.errorMessages;
+    }
+
+    const { visitSequence } = result;
+    setVisitSequences((current) =>
+      [...current, visitSequence].sort((a, b) => a.name.localeCompare(b.name))
+    );
+    setNewVisitSequenceDraft(null);
+    handleSelectionChange({ kind: "visitSequence", visitSequenceId: visitSequence.id });
+    toast.success(`Created ${visitSequence.name}.`);
+    return [];
   }
 
   return (
@@ -319,6 +408,26 @@ export function Template(props: templates.QtTerritoryViewer) {
                   {rep.username}
                 </Dropdown.Item>
               ))}
+              {visitSequences.length > 0 && (
+                <>
+                  <Dropdown.Divider />
+                  <Dropdown.Header>Visit Sequences</Dropdown.Header>
+                  {visitSequences.map((visitSequence) => (
+                    <Dropdown.Item
+                      key={visitSequence.id}
+                      onClick={() =>
+                        handleSelectionChange({
+                          kind: "visitSequence",
+                          visitSequenceId: visitSequence.id,
+                        })
+                      }
+                      active={selectedVisitSequence?.id === visitSequence.id}
+                    >
+                      {visitSequence.name}
+                    </Dropdown.Item>
+                  ))}
+                </>
+              )}
             </DropdownButton>
           </div>
 
@@ -343,6 +452,14 @@ export function Template(props: templates.QtTerritoryViewer) {
                 Filters
               </button>
             )}
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-primary ms-auto"
+              onClick={openNewVisitSequenceModal}
+            >
+              <FontAwesomeIcon icon={faPlus} className="me-1" />
+              New Visit Sequence
+            </button>
           </div>
         </div>
 
@@ -388,7 +505,7 @@ export function Template(props: templates.QtTerritoryViewer) {
                     territoryView.recentlySeenStores.length}{" "}
                   stores shown
                 </strong>
-                {!isCombinedTerritory && (
+                {!isMultiRepView && (
                   <div className="text-secondary">
                     Schedule last refreshed:{" "}
                     {selectedRepData?.rep_sync_data.schedule_last_refreshed != null
@@ -403,7 +520,7 @@ export function Template(props: templates.QtTerritoryViewer) {
               </div>
             </div>
 
-            {isCombinedTerritory && territoryView.repSummaries.length > 0 && (
+            {isMultiRepView && territoryView.repSummaries.length > 0 && (
               <Table size="sm" responsive className="mb-4">
                 <thead>
                   <tr>
@@ -515,7 +632,7 @@ export function Template(props: templates.QtTerritoryViewer) {
                     <TerritoryMap
                       stores={territoryView.stores}
                       recentlySeenStores={territoryView.recentlySeenStores}
-                      // No home pins for the combined territory
+                      // No home pins for the combined territory or a visit sequence
                       repAddress={
                         selectedRepDetail !== undefined && selectedRepDetail.address !== ""
                           ? {
@@ -526,7 +643,7 @@ export function Template(props: templates.QtTerritoryViewer) {
                             }
                           : null
                       }
-                      showRepNames={isCombinedTerritory}
+                      showRepNames={isMultiRepView}
                     />
                   </Suspense>
                 </Modal.Body>
@@ -538,7 +655,7 @@ export function Template(props: templates.QtTerritoryViewer) {
               stores={territoryView.stores}
               unscheduledDate={unscheduledDate}
               recentlySeenStores={territoryView.recentlySeenStores}
-              showRepNames={isCombinedTerritory}
+              showRepNames={isMultiRepView}
             />
           </>
         )}
@@ -551,10 +668,22 @@ export function Template(props: templates.QtTerritoryViewer) {
           parentCompanies={territoryView.parentCompanies}
           excludedParentCompanies={excludedParentCompanies}
           onChangeExcludedParentCompanies={setExcludedParentCompanies}
-          reps={isCombinedTerritory ? allReps : null}
+          reps={isMultiRepView ? shownReps : null}
           excludedRepIds={excludedRepIds}
           onChangeExcludedRepIds={setExcludedRepIds}
         />
+
+        {newVisitSequenceDraft !== null && (
+          <VisitSequenceModal
+            title="New Visit Sequence"
+            submitLabel="Create"
+            reps={allReps}
+            initialName={newVisitSequenceDraft.initialName}
+            initialRepIds={newVisitSequenceDraft.initialRepIds}
+            onHide={() => setNewVisitSequenceDraft(null)}
+            onSubmit={handleCreateVisitSequence}
+          />
+        )}
       </div>
     </Layout>
   );
