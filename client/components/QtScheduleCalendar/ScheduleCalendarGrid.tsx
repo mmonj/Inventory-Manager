@@ -14,11 +14,7 @@ import {
   getDatePickerSelection,
 } from "@client/util/qtSurveyWorker/calendarMode";
 import { formatTotalHours, toDateKey } from "@client/util/qtSurveyWorker/scheduleUtils";
-
-interface ICalendarDaySummary {
-  serviceOrderCount: number;
-  totalHours: number;
-}
+import { TDaySummary } from "@client/util/qtSurveyWorker/scheduleView";
 
 type TDateSelectionAction = Extract<TCalendarModeAction, { type: "selectDate" | "selectDates" }>;
 
@@ -26,7 +22,7 @@ interface Props {
   /** Drives only the green highlight, in every mode. It never decides what can be picked. */
   isDateSchedulable: (date: Date) => boolean;
   isDatePickable: (date: Date) => boolean;
-  daySummaries: Map<string, ICalendarDaySummary>;
+  daySummaries: Map<string, TDaySummary>;
   calendarMode: TCalendarMode;
   onSelectDates: (action: TDateSelectionAction) => void;
 }
@@ -84,5 +80,3 @@ export function ScheduleCalendarGrid(props: Props) {
     </Card>
   );
 }
-
-export type { ICalendarDaySummary };

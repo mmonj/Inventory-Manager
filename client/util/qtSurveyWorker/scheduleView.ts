@@ -13,6 +13,12 @@ export interface TScheduleFilters {
   searchQuery: string;
 }
 
+/** What's scheduled on one calendar date. */
+export interface TDaySummary {
+  serviceOrderCount: number;
+  totalHours: number;
+}
+
 /** Everything the Schedule page shows for a field rep's schedule under the current filters. */
 export interface TScheduleView {
   /**
@@ -46,6 +52,13 @@ export interface TScheduleView {
    * without the server's grouping by store. Null until both are picked.
    */
   autoScheduleAverageHoursPerDay: number | null;
+  /** Keyed by date key, for every date with something scheduled on it. */
+  daySummaries: Map<string, TDaySummary>;
+  /** Everything scheduled on the selected date, or nothing with no date selected. */
+  serviceOrdersForSelectedDate: TServiceOrder[];
+  physicalVisitServiceOrdersForSelectedDate: TServiceOrder[];
+  /** Physical visits scheduled on the date, leaving out entries like drive time. */
+  getPhysicalVisitsOn: (date: Date) => TServiceOrder[];
   /** Whether the date is a schedulable date for the filtered unscheduled service orders. */
   isDateSchedulable: (date: Date) => boolean;
   /** Whether the calendar lets the date be picked in the current calendar mode. */
@@ -60,6 +73,24 @@ function startOfDay(date: Date): Date {
   const dayStart = new Date(date);
   dayStart.setHours(0, 0, 0, 0);
   return dayStart;
+}
+
+/** Qt has its own same-day cutoff, after which it stops allowing scheduling today. */
+function isTodayAllowed(schedule: TSchedule, today: Date): boolean {
+  const todayKey = toDateKey(today);
+  return schedule.AllowSchedulingDates.some((isoStr) => toDateKey(new Date(isoStr)) === todayKey);
+}
+
+/**
+ * The date to select right after a field rep's schedule first loads: today, or tomorrow once
+ * Qt has stopped allowing scheduling today.
+ */
+export function getDefaultSelectedDate(schedule: TSchedule, today: Date): Date {
+  const defaultDate = startOfDay(today);
+  if (!isTodayAllowed(schedule, today)) {
+    defaultDate.setDate(defaultDate.getDate() + 1);
+  }
+  return defaultDate;
 }
 
 /**
@@ -90,10 +121,8 @@ export function buildScheduleView(
 ): TScheduleView {
   const todayStart = startOfDay(today);
   const todayKey = toDateKey(todayStart);
-  // Qt has its own same-day cutoff, so today counts as past once Qt stops allowing it
-  const isTodayAllowed =
-    schedule !== null &&
-    schedule.AllowSchedulingDates.some((isoStr) => toDateKey(new Date(isoStr)) === todayKey);
+  // Today counts as past once Qt's same-day cutoff has passed
+  const isTodayPast = schedule === null || !isTodayAllowed(schedule, todayStart);
 
   const eligibleUnscheduledServiceOrders =
     schedule === null
@@ -144,9 +173,32 @@ export function buildScheduleView(
     0
   );
 
+  const scheduledServiceOrders =
+    schedule === null
+      ? []
+      : schedule.ServiceOrders.filter((so) => so.DateScheduled !== schedule.UnscheduledDate);
+
+  const daySummaries = new Map<string, TDaySummary>();
+  for (const so of scheduledServiceOrders) {
+    const dateKey = toDateKey(new Date(so.DateScheduled));
+    const daySummary = daySummaries.get(dateKey) ?? { serviceOrderCount: 0, totalHours: 0 };
+    daySummary.serviceOrderCount += 1;
+    daySummary.totalHours += so.EstimatedTime;
+    daySummaries.set(dateKey, daySummary);
+  }
+
+  function getServiceOrdersOn(date: Date): TServiceOrder[] {
+    const dateKey = toDateKey(date);
+    return scheduledServiceOrders.filter((so) => toDateKey(new Date(so.DateScheduled)) === dateKey);
+  }
+
+  function getPhysicalVisitsOn(date: Date): TServiceOrder[] {
+    return getServiceOrdersOn(date).filter((so) => so.Address.IsPhysicalVisit);
+  }
+
   function isPast(date: Date): boolean {
     if (toDateKey(date) === todayKey) {
-      return !isTodayAllowed;
+      return isTodayPast;
     }
     return date < todayStart;
   }
@@ -170,6 +222,12 @@ export function buildScheduleView(
       autoScheduleSelectedDates.length === 0
         ? null
         : autoScheduleSelectedHours / autoScheduleSelectedDates.length,
+    daySummaries,
+    serviceOrdersForSelectedDate:
+      selectedDate === undefined ? [] : getServiceOrdersOn(selectedDate),
+    physicalVisitServiceOrdersForSelectedDate:
+      selectedDate === undefined ? [] : getPhysicalVisitsOn(selectedDate),
+    getPhysicalVisitsOn,
     isDateSchedulable,
     isDatePickable: (date) =>
       isDatePickable(calendarMode, {

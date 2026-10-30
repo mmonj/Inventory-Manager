@@ -11,7 +11,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ButtonWithSpinner } from "@client/components/ButtonWithSpinner";
 import {
   CopyScheduleModal,
-  ICalendarDaySummary,
   JobClientFilterModal,
   ScheduleCalendarGrid,
   ScheduledServiceOrderListItem,
@@ -41,7 +40,10 @@ import {
   toDateKey,
   withServiceOrdersRescheduled,
 } from "@client/util/qtSurveyWorker/scheduleUtils";
-import { buildScheduleView } from "@client/util/qtSurveyWorker/scheduleView";
+import {
+  buildScheduleView,
+  getDefaultSelectedDate,
+} from "@client/util/qtSurveyWorker/scheduleView";
 import { toast } from "@client/util/toast";
 
 import { Layout } from "../components/Layout";
@@ -113,7 +115,6 @@ export function Template(props: templates.QtSchedule) {
   const selectedDate = calendarMode.kind === "singleDate" ? calendarMode.selectedDate : undefined;
   const autoScheduleSelectedDates =
     calendarMode.kind === "autoSchedule" ? calendarMode.selectedDates : [];
-  const selectedDateKey = selectedDate ? toDateKey(selectedDate) : null;
 
   React.useEffect(() => {
     // Only update on an actual successful fetch - useFetch nulls `data` the instant a new
@@ -159,17 +160,10 @@ export function Template(props: templates.QtSchedule) {
   // below, not from forceFresh refetches (auto-schedule/bulk-unschedule/clear-date), where the
   // user's current selection must be left alone.
   function selectDefaultDate(schedule: TSchedule) {
-    const todayKey = toDateKey(new Date());
-    const isTodayAllowed = schedule.AllowSchedulingDates.some(
-      (isoStr) => toDateKey(new Date(isoStr)) === todayKey
-    );
-
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    if (!isTodayAllowed) {
-      date.setDate(date.getDate() + 1);
-    }
-    dispatchCalendarMode({ type: "selectDate", date });
+    dispatchCalendarMode({
+      type: "selectDate",
+      date: getDefaultSelectedDate(schedule, new Date()),
+    });
   }
 
   async function handleSelectRep(event: React.ChangeEvent<HTMLSelectElement>) {
@@ -340,14 +334,6 @@ export function Template(props: templates.QtSchedule) {
     rescheduleServiceOrdersLocally([so.ServiceOrderId], schedule.UnscheduledDate);
   }
 
-  function getPhysicalVisitServiceOrderIdsForDate(dateKey: string): number[] {
-    return serviceOrders
-      .filter(
-        (so) => so.Address.IsPhysicalVisit && toDateKey(new Date(so.DateScheduled)) === dateKey
-      )
-      .map((so) => so.ServiceOrderId);
-  }
-
   async function handleExecuteSwap() {
     if (
       selectedRepId === null ||
@@ -362,8 +348,8 @@ export function Template(props: templates.QtSchedule) {
     const dateBKey = toDateKey(dateB);
 
     // only physical-visit SOs are swappable between dates
-    const serviceOrderIdsA = getPhysicalVisitServiceOrderIdsForDate(dateAKey);
-    const serviceOrderIdsB = getPhysicalVisitServiceOrderIdsForDate(dateBKey);
+    const serviceOrderIdsA = scheduleView.getPhysicalVisitsOn(dateA).map((so) => so.ServiceOrderId);
+    const serviceOrderIdsB = scheduleView.getPhysicalVisitsOn(dateB).map((so) => so.ServiceOrderId);
 
     if (serviceOrderIdsA.length === 0 && serviceOrderIdsB.length === 0) {
       alert("Neither selected date has any physical-visit service orders to swap.");
@@ -427,6 +413,7 @@ export function Template(props: templates.QtSchedule) {
     [schedule, calendarMode, selectedJobClients, unscheduledSearchQuery, todayKey]
   );
   const {
+    serviceOrdersForSelectedDate,
     eligibleUnscheduledServiceOrders,
     filteredUnscheduledServiceOrders,
     unscheduledServiceOrders,
@@ -594,46 +581,13 @@ export function Template(props: templates.QtSchedule) {
     );
   }
 
-  const daySummaries = React.useMemo(() => {
-    const summaries = new Map<string, ICalendarDaySummary>();
-
-    for (const so of serviceOrders) {
-      if (schedule !== null && so.DateScheduled === schedule.UnscheduledDate) {
-        continue;
-      }
-
-      const dateKey = toDateKey(new Date(so.DateScheduled));
-      const existing = summaries.get(dateKey) ?? { serviceOrderCount: 0, totalHours: 0 };
-      existing.serviceOrderCount += 1;
-      existing.totalHours += so.EstimatedTime;
-      summaries.set(dateKey, existing);
-    }
-
-    return summaries;
-  }, [serviceOrders, schedule]);
-
-  const serviceOrdersForSelectedDate = React.useMemo(() => {
-    if (selectedDateKey === null) {
-      return [];
-    }
-
-    return serviceOrders.filter((so) => {
-      if (schedule !== null && so.DateScheduled === schedule.UnscheduledDate) {
-        return false;
-      }
-      return toDateKey(new Date(so.DateScheduled)) === selectedDateKey;
-    });
-  }, [serviceOrders, selectedDateKey, schedule]);
   const groupedServiceOrdersForSelectedDate = React.useMemo(
     () => groupByStore(serviceOrdersForSelectedDate),
     [serviceOrdersForSelectedDate]
   );
   // Clear Date only unschedules physical-visit SOs, matching execute_bulk_unschedule's
   // server-side filtering - non-physical-visit entries (e.g. drive-time) are left scheduled
-  const physicalVisitServiceOrdersForSelectedDate = React.useMemo(
-    () => serviceOrdersForSelectedDate.filter((so) => so.Address.IsPhysicalVisit),
-    [serviceOrdersForSelectedDate]
-  );
+  const { physicalVisitServiceOrdersForSelectedDate } = scheduleView;
 
   async function handleClearScheduledDate() {
     if (
@@ -1106,7 +1060,7 @@ export function Template(props: templates.QtSchedule) {
                 <ScheduleCalendarGrid
                   isDateSchedulable={scheduleView.isDateSchedulable}
                   isDatePickable={scheduleView.isDatePickable}
-                  daySummaries={daySummaries}
+                  daySummaries={scheduleView.daySummaries}
                   calendarMode={calendarMode}
                   onSelectDates={dispatchCalendarMode}
                 />

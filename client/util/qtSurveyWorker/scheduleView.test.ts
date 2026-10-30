@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { TCalendarMode } from "@client/util/qtSurveyWorker/calendarMode";
 import { TSchedule, TServiceOrder } from "@client/util/qtSurveyWorker/scheduleUtils";
-import { TScheduleFilters, buildScheduleView } from "@client/util/qtSurveyWorker/scheduleView";
+import {
+  TScheduleFilters,
+  buildScheduleView,
+  getDefaultSelectedDate,
+} from "@client/util/qtSurveyWorker/scheduleView";
 import { makeAddress, makeServiceOrder } from "@client/util/qtSurveyWorker/serviceOrderFixtures";
 
 // 2026-11-01 is a Sunday, 2026-11-02 a Monday.
@@ -358,9 +362,83 @@ describe("buildScheduleView", () => {
     });
   });
 
+  describe("scheduled service orders", () => {
+    const tuesdayVisit = makeServiceOrder({
+      address: STORE,
+      dateScheduled: "2026-11-03T00:00:00",
+      estimatedTime: 2,
+    });
+    const tuesdayDriveTime = makeServiceOrder({
+      address: makeAddress({ SiteId: 20, IsPhysicalVisit: false }),
+      dateScheduled: "2026-11-03T00:00:00",
+      estimatedTime: 0.5,
+    });
+    const wednesdayVisit = makeServiceOrder({
+      address: STORE,
+      dateScheduled: "2026-11-04T00:00:00",
+      estimatedTime: 1,
+    });
+    const orders = [tuesdayVisit, tuesdayDriveTime, wednesdayVisit, makeUnscheduledOrder()];
+    const schedule = makeSchedule({ serviceOrders: orders });
+
+    it("sums each scheduled date's service orders and hours", () => {
+      const view = buildScheduleView(schedule, SINGLE_DATE, noFiltersFor(orders), TODAY);
+
+      expect(view.daySummaries).toEqual(
+        new Map([
+          ["2026-11-03", { serviceOrderCount: 2, totalHours: 2.5 }],
+          ["2026-11-04", { serviceOrderCount: 1, totalHours: 1 }],
+        ])
+      );
+    });
+
+    it("lists what's scheduled on the selected date, and its physical visits", () => {
+      const view = buildScheduleView(
+        schedule,
+        { kind: "singleDate", selectedDate: TOMORROW },
+        noFiltersFor(orders),
+        TODAY
+      );
+
+      expect(view.serviceOrdersForSelectedDate).toEqual([tuesdayVisit, tuesdayDriveTime]);
+      expect(view.physicalVisitServiceOrdersForSelectedDate).toEqual([tuesdayVisit]);
+    });
+
+    it("lists nothing while no date is selected", () => {
+      const view = buildScheduleView(schedule, SINGLE_DATE, noFiltersFor(orders), TODAY);
+
+      expect(view.serviceOrdersForSelectedDate).toEqual([]);
+      expect(view.physicalVisitServiceOrdersForSelectedDate).toEqual([]);
+    });
+
+    it("finds the physical visits on any date", () => {
+      const view = buildScheduleView(schedule, SINGLE_DATE, noFiltersFor(orders), TODAY);
+
+      expect(view.getPhysicalVisitsOn(TOMORROW)).toEqual([tuesdayVisit]);
+      expect(view.getPhysicalVisitsOn(NEXT_MONDAY)).toEqual([]);
+    });
+  });
+
   it("has no schedulable dates before a schedule loads", () => {
     const view = buildScheduleView(null, SINGLE_DATE, noFiltersFor([]), TODAY);
 
     expect(view.isDateSchedulable(TOMORROW)).toBe(false);
+  });
+});
+
+describe("getDefaultSelectedDate", () => {
+  it("is today while Qt still allows scheduling today", () => {
+    const schedule = makeSchedule({ serviceOrders: [] });
+
+    expect(getDefaultSelectedDate(schedule, TODAY)).toEqual(new Date(2026, 10, 2));
+  });
+
+  it("is tomorrow once Qt's same-day cutoff has passed", () => {
+    const schedule = makeSchedule({
+      serviceOrders: [],
+      allowSchedulingDates: ["2026-11-03T00:00:00"],
+    });
+
+    expect(getDefaultSelectedDate(schedule, TODAY)).toEqual(TOMORROW);
   });
 });
