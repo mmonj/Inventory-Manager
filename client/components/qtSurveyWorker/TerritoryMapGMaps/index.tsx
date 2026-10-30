@@ -9,6 +9,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { fetchByReactivated } from "@client/util/commonUtil";
 import {
+  TLatLng,
   TTerritoryRecentlySeenStore,
   TTerritoryStore,
 } from "@client/util/qtSurveyWorker/territoryView";
@@ -53,6 +54,11 @@ interface Props {
   // Only in a visit sequence: visited stores get grey pins, skipped ones yellow-orange pins, and
   // popups can change outcomes
   visitSequenceActions: TVisitSequenceStoreActions | null;
+  // Where the "my location" dot comes from. "tracked": the map asks for the user's location when
+  // it loads and keeps following it. "given": the dot is drawn at `location` (none while null),
+  // and the map never asks for the location itself, as in a visit sequence, where it's only
+  // asked for when "Sort by distance" is turned on.
+  myLocation: { source: "tracked" } | { source: "given"; location: TLatLng | null };
   // Shown over the map once every store in the visit sequence has an outcome
   isVisitSequenceAllDone: boolean;
 }
@@ -65,6 +71,7 @@ export default function TerritoryMapGMaps({
   recentlySeenStores,
   showRepNames,
   visitSequenceActions,
+  myLocation,
   isVisitSequenceAllDone,
 }: Props) {
   const context = useContext(Context);
@@ -81,7 +88,9 @@ export default function TerritoryMapGMaps({
   const [activeMarker, setActiveMarker] = useState<TActiveMarker | null>(null);
   // Geocoded client-side (see effect below) when repAddress.lat/lng aren't already resolved.
   const [geocodedRepAddress, setGeocodedRepAddress] = useState<TRepAddressResolved | null>(null);
-  const [currentLocation, setCurrentLocation] = useState<google.maps.LatLngLiteral | null>(null);
+  const [trackedLocation, setTrackedLocation] = useState<google.maps.LatLngLiteral | null>(null);
+  const isLocationTracked = myLocation.source === "tracked";
+  const currentLocation = myLocation.source === "tracked" ? trackedLocation : myLocation.location;
   const [locationError, setLocationError] = useState<string | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
 
@@ -140,7 +149,7 @@ export default function TerritoryMapGMaps({
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const location = { lat: position.coords.latitude, lng: position.coords.longitude };
-        setCurrentLocation(location);
+        setTrackedLocation(location);
         setLocationError(null);
         map?.panTo(location);
       },
@@ -153,13 +162,13 @@ export default function TerritoryMapGMaps({
   // Keep the blue dot current for as long as the map is mounted
   // Independent of the manual "Show your location" button
   useEffect(() => {
-    if (!isLoaded) {
+    if (!isLoaded || !isLocationTracked) {
       return;
     }
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        setCurrentLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+        setTrackedLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
         setLocationError(null);
       },
       (error) => {
@@ -168,18 +177,26 @@ export default function TerritoryMapGMaps({
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [isLoaded]);
+  }, [isLoaded, isLocationTracked]);
 
   // Auto-request the user's location once, right after the map first mounts and centers on
   // its default (rep address / first service order) - this is a second, follow-up step, not
   // a replacement for that initial centering, so it doesn't touch `defaultCenter` itself.
   useEffect(() => {
-    if (!isLoaded) {
+    if (!isLoaded || !isLocationTracked) {
       return;
     }
 
     handleShowMyLocation();
-  }, [isLoaded]);
+  }, [isLoaded, isLocationTracked]);
+
+  // Bring a given location into view when it arrives
+  const givenLocation = myLocation.source === "given" ? myLocation.location : null;
+  useEffect(() => {
+    if (givenLocation !== null) {
+      map?.panTo(givenLocation);
+    }
+  }, [map, givenLocation?.lat, givenLocation?.lng]);
 
   const validEntries = Object.entries(stores).filter(
     ([_, group]) => group.address.StoreName.trim().toLowerCase() !== "no store visit reqd"
@@ -291,22 +308,24 @@ export default function TerritoryMapGMaps({
         )}
       </GoogleMap>
 
-      <Button
-        variant="dark"
-        className="shadow-sm border d-flex align-items-center justify-content-center p-0 rounded-circle"
-        style={{
-          position: "absolute",
-          bottom: "9.0rem",
-          right: "0.7rem",
-          width: "2.5rem",
-          height: "2.5rem",
-          zIndex: 1,
-        }}
-        onClick={handleShowMyLocation}
-        title="Show your location"
-      >
-        <FontAwesomeIcon icon={faLocationCrosshairs} size="lg" />
-      </Button>
+      {isLocationTracked && (
+        <Button
+          variant="dark"
+          className="shadow-sm border d-flex align-items-center justify-content-center p-0 rounded-circle"
+          style={{
+            position: "absolute",
+            bottom: "9.0rem",
+            right: "0.7rem",
+            width: "2.5rem",
+            height: "2.5rem",
+            zIndex: 1,
+          }}
+          onClick={handleShowMyLocation}
+          title="Show your location"
+        >
+          <FontAwesomeIcon icon={faLocationCrosshairs} size="lg" />
+        </Button>
+      )}
 
       {isVisitSequenceAllDone && (
         <div
@@ -317,7 +336,7 @@ export default function TerritoryMapGMaps({
         </div>
       )}
 
-      {locationError !== null && (
+      {isLocationTracked && locationError !== null && (
         <div
           className="position-absolute bottom-0 start-0 m-2 px-2 py-1 bg-danger-subtle text-danger-emphasis small rounded"
           style={{ zIndex: 1 }}

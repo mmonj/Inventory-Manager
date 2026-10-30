@@ -79,6 +79,14 @@ export interface TVisitSequenceInput {
   /** The sequence's outcomes, including those of stores no longer in it. */
   outcomesBySiteId: ReadonlyMap<number, TVisitSequenceOutcome>;
   showVisited: boolean;
+  /** The user's location, given while "Sort by distance" is on, to sort Remaining by. */
+  location?: TLatLng;
+}
+
+/** A point on the map, in degrees. */
+export interface TLatLng {
+  lat: number;
+  lng: number;
 }
 
 /** One store in a visit sequence's card list, of either kind. */
@@ -96,7 +104,7 @@ export interface TVisitSequenceProgress {
 export interface TVisitSequenceView {
   /** Outcomes of the stores in the sequence. Outcomes of stores outside it are left out. */
   outcomesBySiteId: ReadonlyMap<number, TVisitSequenceOutcome>;
-  /** Shown stores without an outcome. */
+  /** Shown stores without an outcome, nearest first when given a location. */
   remaining: TTerritoryStoreEntry[];
   /** Shown skipped stores. Always shown, whatever "show visited" is. */
   skipped: TTerritoryStoreEntry[];
@@ -246,6 +254,49 @@ function toStoreEntries(
   return storeEntries;
 }
 
+/** Where the map pins the store, or null if it can't. */
+function getStoreEntryLatLng(storeEntry: TTerritoryStoreEntry): TLatLng | null {
+  if (storeEntry.kind === "withServiceOrders") {
+    return { lat: storeEntry.store.address.Latitude, lng: storeEntry.store.address.Longitude };
+  }
+  const { latitude, longitude } = storeEntry.store;
+  return latitude === null || longitude === null ? null : { lat: latitude, lng: longitude };
+}
+
+const EARTH_RADIUS_KM = 6371;
+
+function toRadians(degrees: number): number {
+  return (degrees * Math.PI) / 180;
+}
+
+/** The straight-line (great-circle) distance between two points, in kilometres. */
+function getDistanceKm(from: TLatLng, to: TLatLng): number {
+  const latDelta = toRadians(to.lat - from.lat);
+  const lngDelta = toRadians(to.lng - from.lng);
+  const haversine =
+    Math.sin(latDelta / 2) ** 2 +
+    Math.cos(toRadians(from.lat)) * Math.cos(toRadians(to.lat)) * Math.sin(lngDelta / 2) ** 2;
+  return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(haversine));
+}
+
+/** The store entries nearest `location` first. Stores the map can't pin go last, in order. */
+function sortByDistance(
+  storeEntries: TTerritoryStoreEntry[],
+  location: TLatLng
+): TTerritoryStoreEntry[] {
+  return (
+    storeEntries
+      .map((storeEntry) => {
+        const storeLatLng = getStoreEntryLatLng(storeEntry);
+        const distanceKm = storeLatLng === null ? Infinity : getDistanceKm(location, storeLatLng);
+        return { storeEntry, distanceKm };
+      })
+      // Infinity - Infinity is NaN, so two unpinned stores compare equal and keep their order
+      .sort((a, b) => a.distanceKm - b.distanceKm || 0)
+      .map(({ storeEntry }) => storeEntry)
+  );
+}
+
 /** The stores a visit sequence pins on the map: its Remaining, Skipped and Visited groups. */
 function getMapStores(
   shownStoreEntries: TTerritoryStoreEntry[],
@@ -292,9 +343,16 @@ function buildVisitSequenceView(
   const hasOutcomeKind = (storeEntry: TTerritoryStoreEntry, kind: TVisitSequenceOutcome["kind"]) =>
     outcomesBySiteId.get(storeEntry.siteId)?.kind === kind;
 
+  const remaining = shownStoreEntries.filter(
+    (storeEntry) => !outcomesBySiteId.has(storeEntry.siteId)
+  );
+
   return {
     outcomesBySiteId,
-    remaining: shownStoreEntries.filter((storeEntry) => !outcomesBySiteId.has(storeEntry.siteId)),
+    remaining:
+      visitSequenceInput.location === undefined
+        ? remaining
+        : sortByDistance(remaining, visitSequenceInput.location),
     skipped: shownStoreEntries.filter((storeEntry) => hasOutcomeKind(storeEntry, "skipped")),
     visited: visitSequenceInput.showVisited
       ? shownStoreEntries.filter((storeEntry) => hasOutcomeKind(storeEntry, "visited"))

@@ -920,5 +920,57 @@ describe("buildTerritoryView", () => {
         ).toBe(true);
       });
     });
+
+    describe("distance sort", () => {
+      // Due east of the user, 1, 2 and 3 hundredths of a degree of longitude away, listed
+      // farthest first so the default order isn't the distance order.
+      const userLocation = { lat: 40.0, lng: -89.0 };
+      const farStore = makeAddress({ SiteId: 61, Latitude: 40.0, Longitude: -88.97 });
+      const nearStore = makeAddress({ SiteId: 62, Latitude: 40.0, Longitude: -88.99 });
+      const middleSeenStore = makeRecentlySeenStore({
+        id: 3,
+        site_id: 63,
+        latitude: 40.0,
+        longitude: -88.98,
+      });
+      const unpinnedSeenStore = makeRecentlySeenStore({ id: 4, site_id: 64 });
+      const sortTerritories: TRepTerritoryData[] = [
+        {
+          rep: repOne,
+          repData: makeRepData({
+            serviceOrders: [
+              makeServiceOrder({ address: farStore }),
+              makeServiceOrder({ address: nearStore }),
+            ],
+            recentlySeenStores: [unpinnedSeenStore, middleSeenStore],
+          }),
+        },
+      ];
+
+      it("sorts Remaining nearest first, with stores the map can't pin last", () => {
+        const view = buildTerritoryView(sortTerritories, NO_FILTERS, {
+          ...withOutcomes([]),
+          location: userLocation,
+        });
+
+        expect(siteIdsOf(view.visitSequence?.remaining ?? [])).toEqual([62, 63, 61, 64]);
+      });
+
+      it("leaves Remaining in its usual order without a location", () => {
+        const view = buildTerritoryView(sortTerritories, NO_FILTERS, withOutcomes([]));
+
+        expect(siteIdsOf(view.visitSequence?.remaining ?? [])).toEqual([61, 62, 64, 63]);
+      });
+
+      it("only sorts Remaining", () => {
+        const view = buildTerritoryView(sortTerritories, NO_FILTERS, {
+          ...withVisitedAndSkipped([61, 62], [], { showVisited: true }),
+          location: userLocation,
+        });
+
+        expect(siteIdsOf(view.visitSequence?.remaining ?? [])).toEqual([63, 64]);
+        expect(siteIdsOf(view.visitSequence?.visited ?? [])).toEqual([61, 62]);
+      });
+    });
   });
 });

@@ -46,6 +46,7 @@ import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { ApiResponse, IHttpError, TNotFoundErrorList } from "@client/types";
 import { fetchByReactivated, getErrorList } from "@client/util/commonUtil";
 import {
+  TLatLng,
   TRepTerritoryData,
   TTerritoryRep,
   TVisitSequenceInput,
@@ -259,6 +260,11 @@ export function Template(props: templates.QtTerritoryViewer) {
     useState<TLoadedVisitSequenceOutcomes | null>(null);
   // Not persisted: every page load starts on what's left to do
   const [showVisited, setShowVisited] = useState(false);
+  // "Sort by distance" asks for the user's location once, each time it's turned on. The location
+  // isn't tracked: it's whatever the browser answered then.
+  const [isSortByDistanceOn, setIsSortByDistanceOn] = useState(false);
+  const [distanceSortLocation, setDistanceSortLocation] = useState<TLatLng | null>(null);
+  const [isLocationUnavailable, setIsLocationUnavailable] = useState(false);
   /** The rep whose remaining stores are being marked visited, while the server answers. */
   const [markingAllVisitedRepId, setMarkingAllVisitedRepId] = useState<number | null>(null);
   const [newVisitSequenceDraft, setNewVisitSequenceDraft] = useState<TNewVisitSequenceDraft | null>(
@@ -313,8 +319,13 @@ export function Template(props: templates.QtTerritoryViewer) {
     () =>
       selectedVisitSequenceOutcomesBySiteId === undefined
         ? undefined
-        : { outcomesBySiteId: selectedVisitSequenceOutcomesBySiteId, showVisited },
-    [selectedVisitSequenceOutcomesBySiteId, showVisited]
+        : {
+            outcomesBySiteId: selectedVisitSequenceOutcomesBySiteId,
+            showVisited,
+            ...(isSortByDistanceOn &&
+              distanceSortLocation !== null && { location: distanceSortLocation }),
+          },
+    [selectedVisitSequenceOutcomesBySiteId, showVisited, isSortByDistanceOn, distanceSortLocation]
   );
   const territoryView = useMemo(
     () =>
@@ -473,6 +484,31 @@ export function Template(props: templates.QtTerritoryViewer) {
     setSearchText("");
     setSelection(nextSelection);
     localStorage.setItem(LAST_SELECTED_REP_ID_KEY, toStoredTerritorySelection(nextSelection));
+  }
+
+  /** Turning the sort on asks for the user's location once. A denial disables the toggle. */
+  function handleToggleSortByDistance(isOn: boolean) {
+    setIsSortByDistanceOn(isOn);
+    setDistanceSortLocation(null);
+    if (!isOn) {
+      return;
+    }
+    if (!("geolocation" in navigator)) {
+      setIsSortByDistanceOn(false);
+      setIsLocationUnavailable(true);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) =>
+        setDistanceSortLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        }),
+      () => {
+        setIsSortByDistanceOn(false);
+        setIsLocationUnavailable(true);
+      }
+    );
   }
 
   async function handleRefreshSchedule() {
@@ -909,6 +945,19 @@ export function Template(props: templates.QtTerritoryViewer) {
                   checked={showVisited}
                   onChange={(event) => setShowVisited(event.target.checked)}
                 />
+                <Form.Check
+                  type="switch"
+                  id="sort-by-distance"
+                  label="Sort by distance"
+                  checked={isSortByDistanceOn}
+                  disabled={isLocationUnavailable}
+                  onChange={(event) => handleToggleSortByDistance(event.target.checked)}
+                />
+                {isLocationUnavailable && (
+                  <small className="text-secondary">
+                    Your location isn&apos;t available, so stores can&apos;t be sorted by distance.
+                  </small>
+                )}
               </div>
             )}
 
@@ -1059,6 +1108,16 @@ export function Template(props: templates.QtTerritoryViewer) {
                       }
                       showRepNames={isMultiRepView}
                       visitSequenceActions={visitSequenceStoreActions}
+                      // In a visit sequence, the user's location is only known while sorting by
+                      // distance
+                      myLocation={
+                        territoryView.visitSequence === null
+                          ? { source: "tracked" }
+                          : {
+                              source: "given",
+                              location: isSortByDistanceOn ? distanceSortLocation : null,
+                            }
+                      }
                       isVisitSequenceAllDone={territoryView.visitSequence?.isAllDone ?? false}
                     />
                   </Suspense>
