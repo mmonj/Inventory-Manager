@@ -12,6 +12,8 @@ interface Props {
   reps: TTerritoryRep[];
   initialName: string;
   initialRepIds: number[];
+  /** Which fields to show (both by default). A hidden field keeps its initial value. */
+  shownFields?: "nameAndReps" | "name" | "reps";
   onHide: () => void;
   /** Saves the visit sequence, resolving to the server's error messages, or [] on success. */
   onSubmit: (name: string, repIds: number[]) => Promise<string[]>;
@@ -22,6 +24,7 @@ interface Props {
  * from the initial values.
  */
 export function VisitSequenceModal(props: Props) {
+  const shownFields = props.shownFields ?? "nameAndReps";
   const [name, setName] = useState(props.initialName);
   const [checkedRepIds, setCheckedRepIds] = useState<Set<number>>(new Set(props.initialRepIds));
   const [isSaving, setIsSaving] = useState(false);
@@ -56,27 +59,33 @@ export function VisitSequenceModal(props: Props) {
           <Modal.Title>{props.title}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form.Group className="mb-3" controlId="visit-sequence-name">
-            <Form.Label className="fw-semibold">Name</Form.Label>
-            <Form.Control
-              type="text"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </Form.Group>
+          {shownFields !== "reps" && (
+            <Form.Group className="mb-3" controlId="visit-sequence-name">
+              <Form.Label className="fw-semibold">Name</Form.Label>
+              <Form.Control
+                type="text"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </Form.Group>
+          )}
 
-          <div className="fw-semibold mb-2">Field Reps</div>
-          {props.reps.map((rep) => (
-            <Form.Check
-              key={rep.id}
-              type="checkbox"
-              id={`visit-sequence-rep-${rep.id}`}
-              label={rep.username}
-              checked={checkedRepIds.has(rep.id)}
-              onChange={() => toggleRep(rep.id)}
-              className="mb-2"
-            />
-          ))}
+          {shownFields !== "name" && (
+            <>
+              <div className="fw-semibold mb-2">Field Reps</div>
+              {props.reps.map((rep) => (
+                <Form.Check
+                  key={rep.id}
+                  type="checkbox"
+                  id={`visit-sequence-rep-${rep.id}`}
+                  label={rep.username}
+                  checked={checkedRepIds.has(rep.id)}
+                  onChange={() => toggleRep(rep.id)}
+                  className="mb-2"
+                />
+              ))}
+            </>
+          )}
 
           {errorMessages.length > 0 && (
             <Alert variant="danger" className="mt-3 mb-0">

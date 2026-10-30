@@ -23,6 +23,7 @@ import {
 import {
   faArrowsRotate,
   faCheckDouble,
+  faEllipsis,
   faFilter,
   faMapLocationDot,
   faPlus,
@@ -80,6 +81,12 @@ type TVisitSequence = templates.QtTerritoryViewer["visit_sequences"][number];
 interface TNewVisitSequenceDraft {
   initialName: string;
   initialRepIds: number[];
+}
+
+/** The visit sequence being renamed or having its field reps edited, in the reused modal. */
+interface TEditVisitSequenceDraft {
+  visitSequence: TVisitSequence;
+  shownFields: "name" | "reps";
 }
 
 type TRepDataRequestResult =
@@ -152,22 +159,24 @@ interface TLoadedVisitSequenceOutcomes {
   outcomesBySiteId: Map<number, TVisitSequenceOutcome>;
 }
 
-type TCreateVisitSequenceResult =
+type TSaveVisitSequenceResult =
   | { isSuccess: true; visitSequence: TVisitSequence }
   | { isSuccess: false; errorMessages: string[] };
 
-async function requestCreateVisitSequence(
+/** Creates or updates a visit sequence, depending on the url. */
+async function requestSaveVisitSequence(
+  url: string,
   name: string,
   repIds: number[],
   csrfToken: string
-): Promise<TCreateVisitSequenceResult> {
+): Promise<TSaveVisitSequenceResult> {
   const requestBody = new URLSearchParams({ name });
   for (const repId of repIds) {
     requestBody.append("rep_ids", repId.toString());
   }
 
   const result = await sendJsonRequest<interfaces.QtVisitSequenceDetail>(
-    reverse("survey_worker:qt_create_visit_sequence"),
+    url,
     csrfToken,
     requestBody
   );
@@ -255,6 +264,8 @@ export function Template(props: templates.QtTerritoryViewer) {
   const [newVisitSequenceDraft, setNewVisitSequenceDraft] = useState<TNewVisitSequenceDraft | null>(
     null
   );
+  const [editVisitSequenceDraft, setEditVisitSequenceDraft] =
+    useState<TEditVisitSequenceDraft | null>(null);
   // Bumped by every loadRepData call, so a load overtaken by a newer one (e.g. switching reps
   // mid-load) still stores the data it fetched but no longer reports on loadState
   const latestLoadIdRef = useRef(0);
@@ -279,6 +290,8 @@ export function Template(props: templates.QtTerritoryViewer) {
       : selectedRepDetail !== undefined
         ? [selectedRepDetail]
         : [];
+  // Changes when the selection changes, and when the selected visit sequence's reps are edited
+  const shownRepIdsKey = shownReps.map((rep) => rep.id).join(",");
   const selectionLabel = isCombinedTerritory
     ? COMBINED_TERRITORY_LABEL
     : (selectedVisitSequence?.name ?? selectedRepDetail?.username ?? "Select Representative");
@@ -289,7 +302,7 @@ export function Template(props: templates.QtTerritoryViewer) {
 
   const repTerritories: TRepTerritoryData[] = useMemo(
     () => shownReps.map((rep) => ({ rep, repData: repDataById.get(rep.id) })),
-    [selection, repDataById]
+    [shownRepIdsKey, repDataById]
   );
   const selectedVisitSequenceOutcomesBySiteId =
     selectedVisitSequence !== undefined &&
@@ -392,8 +405,9 @@ export function Template(props: templates.QtTerritoryViewer) {
       : new URLSearchParams(window.location.search).get("use_cache");
     void loadRepData(repsToFetch, useCache);
     // loadRepData/repDataById intentionally excluded - this should only re-run when the
-    // selection itself changes, not on every fetch-state/cache update it causes
-  }, [selection]);
+    // selection (or the selected visit sequence's reps) changes, not on every fetch-state/cache
+    // update it causes
+  }, [selection, shownRepIdsKey]);
 
   // Fetch the selected visit sequence's outcomes every time it's selected, so other users' marks
   // show up
@@ -629,7 +643,12 @@ export function Template(props: templates.QtTerritoryViewer) {
   }
 
   async function handleCreateVisitSequence(name: string, repIds: number[]): Promise<string[]> {
-    const result = await requestCreateVisitSequence(name, repIds, djangoContext.csrf_token);
+    const result = await requestSaveVisitSequence(
+      reverse("survey_worker:qt_create_visit_sequence"),
+      name,
+      repIds,
+      djangoContext.csrf_token
+    );
     if (!result.isSuccess) {
       return result.errorMessages;
     }
@@ -644,6 +663,59 @@ export function Template(props: templates.QtTerritoryViewer) {
     return [];
   }
 
+  async function handleUpdateVisitSequence(
+    visitSequenceId: number,
+    name: string,
+    repIds: number[]
+  ): Promise<string[]> {
+    const result = await requestSaveVisitSequence(
+      reverse("survey_worker:qt_update_visit_sequence", { visit_sequence_id: visitSequenceId }),
+      name,
+      repIds,
+      djangoContext.csrf_token
+    );
+    if (!result.isSuccess) {
+      return result.errorMessages;
+    }
+
+    const { visitSequence } = result;
+    setVisitSequences((current) =>
+      current
+        .map((existing) => (existing.id === visitSequence.id ? visitSequence : existing))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    );
+    setEditVisitSequenceDraft(null);
+    toast.success(`Saved ${visitSequence.name}.`);
+    return [];
+  }
+
+  /** Deletes the visit sequence after a confirm, and switches the page back to a field rep. */
+  async function handleDeleteVisitSequence(visitSequence: TVisitSequence) {
+    if (
+      !window.confirm(`Delete ${visitSequence.name}? Its visited and skipped stores will be lost.`)
+    ) {
+      return;
+    }
+
+    const result = await sendJsonRequest<interfaces.QtVisitSequenceDeleted>(
+      reverse("survey_worker:qt_delete_visit_sequence", { visit_sequence_id: visitSequence.id }),
+      djangoContext.csrf_token,
+      new URLSearchParams()
+    );
+    if (!result.isSuccess) {
+      toast.error(...result.errorMessages);
+      return;
+    }
+
+    setVisitSequences((current) => current.filter((existing) => existing.id !== visitSequence.id));
+    const fallbackRep =
+      allReps.find((rep) => visitSequence.rep_ids.includes(rep.id)) ?? allReps.at(0);
+    if (fallbackRep !== undefined) {
+      handleSelectionChange({ kind: "fieldRep", repId: fallbackRep.id });
+    }
+    toast.success(`Deleted ${visitSequence.name}.`);
+  }
+
   return (
     <Layout navbar={<NavigationBar />} title="Territory Viewer">
       <div className="container mt-4">
@@ -652,49 +724,86 @@ export function Template(props: templates.QtTerritoryViewer) {
         <div className="mb-4">
           <div className="mb-3">
             <label className="form-label fw-semibold">Field Representative:</label>
-            <DropdownButton
-              id="rep-select"
-              title={selectionLabel}
-              variant="secondary"
-              className="w-100"
-            >
-              <Dropdown.Header>Field Reps</Dropdown.Header>
-              <Dropdown.Item
-                onClick={() => handleSelectionChange({ kind: "combinedTerritory" })}
-                active={isCombinedTerritory}
-              >
-                {COMBINED_TERRITORY_LABEL}
-              </Dropdown.Item>
-              {props.rep_details.map((rep) => (
+            <div className="d-flex gap-2">
+              <DropdownButton id="rep-select" title={selectionLabel} variant="secondary">
+                <Dropdown.Header>Field Reps</Dropdown.Header>
                 <Dropdown.Item
-                  key={rep.id}
-                  onClick={() => handleSelectionChange({ kind: "fieldRep", repId: rep.id })}
-                  active={selectedRepDetail?.id === rep.id}
+                  onClick={() => handleSelectionChange({ kind: "combinedTerritory" })}
+                  active={isCombinedTerritory}
                 >
-                  {rep.username}
+                  {COMBINED_TERRITORY_LABEL}
                 </Dropdown.Item>
-              ))}
-              {visitSequences.length > 0 && (
-                <>
-                  <Dropdown.Divider />
-                  <Dropdown.Header>Visit Sequences</Dropdown.Header>
-                  {visitSequences.map((visitSequence) => (
+                {props.rep_details.map((rep) => (
+                  <Dropdown.Item
+                    key={rep.id}
+                    onClick={() => handleSelectionChange({ kind: "fieldRep", repId: rep.id })}
+                    active={selectedRepDetail?.id === rep.id}
+                  >
+                    {rep.username}
+                  </Dropdown.Item>
+                ))}
+                {visitSequences.length > 0 && (
+                  <>
+                    <Dropdown.Divider />
+                    <Dropdown.Header>Visit Sequences</Dropdown.Header>
+                    {visitSequences.map((visitSequence) => (
+                      <Dropdown.Item
+                        key={visitSequence.id}
+                        onClick={() =>
+                          handleSelectionChange({
+                            kind: "visitSequence",
+                            visitSequenceId: visitSequence.id,
+                          })
+                        }
+                        active={selectedVisitSequence?.id === visitSequence.id}
+                      >
+                        {visitSequence.name}
+                      </Dropdown.Item>
+                    ))}
+                  </>
+                )}
+              </DropdownButton>
+              {selectedVisitSequence !== undefined && (
+                <Dropdown align="end">
+                  <Dropdown.Toggle
+                    id="visit-sequence-actions"
+                    variant="outline-secondary"
+                    aria-label="Visit sequence actions"
+                  >
+                    <FontAwesomeIcon icon={faEllipsis} />
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu>
                     <Dropdown.Item
-                      key={visitSequence.id}
                       onClick={() =>
-                        handleSelectionChange({
-                          kind: "visitSequence",
-                          visitSequenceId: visitSequence.id,
+                        setEditVisitSequenceDraft({
+                          visitSequence: selectedVisitSequence,
+                          shownFields: "name",
                         })
                       }
-                      active={selectedVisitSequence?.id === visitSequence.id}
                     >
-                      {visitSequence.name}
+                      Rename
                     </Dropdown.Item>
-                  ))}
-                </>
+                    <Dropdown.Item
+                      onClick={() =>
+                        setEditVisitSequenceDraft({
+                          visitSequence: selectedVisitSequence,
+                          shownFields: "reps",
+                        })
+                      }
+                    >
+                      Edit reps
+                    </Dropdown.Item>
+                    <Dropdown.Divider />
+                    <Dropdown.Item
+                      className="text-danger"
+                      onClick={() => void handleDeleteVisitSequence(selectedVisitSequence)}
+                    >
+                      Delete
+                    </Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown>
               )}
-            </DropdownButton>
+            </div>
           </div>
 
           <div className="text-secondary d-flex align-items-center gap-2">
@@ -994,6 +1103,25 @@ export function Template(props: templates.QtTerritoryViewer) {
             initialRepIds={newVisitSequenceDraft.initialRepIds}
             onHide={() => setNewVisitSequenceDraft(null)}
             onSubmit={handleCreateVisitSequence}
+          />
+        )}
+
+        {editVisitSequenceDraft !== null && (
+          <VisitSequenceModal
+            title={
+              editVisitSequenceDraft.shownFields === "name"
+                ? "Rename Visit Sequence"
+                : "Edit Visit Sequence Reps"
+            }
+            submitLabel="Save"
+            reps={allReps}
+            initialName={editVisitSequenceDraft.visitSequence.name}
+            initialRepIds={editVisitSequenceDraft.visitSequence.rep_ids}
+            shownFields={editVisitSequenceDraft.shownFields}
+            onHide={() => setEditVisitSequenceDraft(null)}
+            onSubmit={(name, repIds) =>
+              handleUpdateVisitSequence(editVisitSequenceDraft.visitSequence.id, name, repIds)
+            }
           />
         )}
       </div>
