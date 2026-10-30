@@ -12,7 +12,6 @@ import {
   TCalendarMode,
   TCalendarModeAction,
   getDatePickerSelection,
-  isDatePickable,
 } from "@client/util/qtSurveyWorker/calendarMode";
 import { formatTotalHours, toDateKey } from "@client/util/qtSurveyWorker/scheduleUtils";
 
@@ -24,40 +23,15 @@ interface ICalendarDaySummary {
 type TDateSelectionAction = Extract<TCalendarModeAction, { type: "selectDate" | "selectDates" }>;
 
 interface Props {
-  isTodayAllowed: boolean;
-  schedulableDateKeys: Set<string>;
+  /** Drives only the green highlight, in every mode. It never decides what can be picked. */
+  isDateSchedulable: (date: Date) => boolean;
+  isDatePickable: (date: Date) => boolean;
   daySummaries: Map<string, ICalendarDaySummary>;
   calendarMode: TCalendarMode;
   onSelectDates: (action: TDateSelectionAction) => void;
 }
 
 export function ScheduleCalendarGrid(props: Props) {
-  // Whether the date isn't in the past - the one floor every mode shares. Today has its own
-  // eligibility rule (the service's own same-day cutoff) instead of the plain date comparison.
-  function isNotInPast(date: Date): boolean {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const isToday = toDateKey(date) === toDateKey(today);
-    return isToday ? props.isTodayAllowed : date >= today;
-  }
-
-  // Purely informational: does at least one Unscheduled SO's window cover this day (after the
-  // Job Client filter and search, but not narrowed to the picked auto-schedule dates).
-  // Drives only the green "selectable" highlight, in every mode - it's a signal, not a
-  // selection gate, so it never affects whether the date can actually be clicked.
-  function isSchedulable(date: Date): boolean {
-    return isNotInPast(date) && props.schedulableDateKeys.has(toDateKey(date));
-  }
-
-  function isSelectable(date: Date): boolean {
-    return isDatePickable(props.calendarMode, {
-      date,
-      isPast: !isNotInPast(date),
-      isSchedulable: props.schedulableDateKeys.has(toDateKey(date)),
-    });
-  }
-
   function renderDayContent(dayProps: DayContentProps) {
     const summary = props.daySummaries.get(toDateKey(dayProps.date));
 
@@ -92,8 +66,8 @@ export function ScheduleCalendarGrid(props: Props) {
           onSelect: (dates) => props.onSelectDates({ type: "selectDates", dates: dates ?? [] }),
         };
   const sharedDayPickerProps = {
-    disabled: (date: Date) => !isSelectable(date),
-    modifiers: { selectable: isSchedulable },
+    disabled: (date: Date) => !props.isDatePickable(date),
+    modifiers: { selectable: props.isDateSchedulable },
     modifiersClassNames: { selectable: "qt-day-selectable" },
     components: { DayContent: renderDayContent },
     showOutsideDays: true,

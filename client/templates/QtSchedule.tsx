@@ -35,14 +35,13 @@ import {
   formatShortDate,
   formatWeekdayShortDate,
   formatWindow,
-  getServiceOrderSearchKey,
   groupByStore,
   isSunday,
-  matchesSearch,
   sortServiceOrdersBy,
   toDateKey,
   withServiceOrdersRescheduled,
 } from "@client/util/qtSurveyWorker/scheduleUtils";
+import { buildScheduleView } from "@client/util/qtSurveyWorker/scheduleView";
 import { toast } from "@client/util/toast";
 
 import { Layout } from "../components/Layout";
@@ -418,40 +417,19 @@ export function Template(props: templates.QtSchedule) {
     }
   }
 
-  // Every SO that's still unscheduled and whose window hasn't closed, before either the Job
-  // Client filter or the search box is applied. Used as the fixed denominator for the
-  // "showing X of Y" banner, so Y reflects the true total regardless of which filters are on.
-  const eligibleUnscheduledServiceOrders = React.useMemo(() => {
-    if (schedule === null) {
-      return [];
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return serviceOrders.filter((so) => {
-      if (so.DateScheduled !== schedule.UnscheduledDate) {
-        return false;
-      }
-
-      return new Date(so.DateScheduleRangeEnd) >= today;
-    });
-  }, [serviceOrders, schedule]);
-
-  // Deliberately NOT filtered by selectedDate - all such SOs stay visible in the Unscheduled
-  // list regardless of which date is picked (split into schedulable/outside-window groups
-  // below instead of hiding anything). Also not narrowed to the picked auto-schedule dates:
-  // the calendar's schedulable dates come from this set, so picking one auto-schedule date
-  // doesn't lock out dates that only other SOs' windows cover.
-  const filteredUnscheduledServiceOrders = React.useMemo(() => {
-    return eligibleUnscheduledServiceOrders.filter((so) => {
-      if (!selectedJobClients.has(so.JobClient)) {
-        return false;
-      }
-
-      return matchesSearch(getServiceOrderSearchKey(so), unscheduledSearchQuery);
-    });
-  }, [eligibleUnscheduledServiceOrders, selectedJobClients, unscheduledSearchQuery]);
+  // Keyed by today's date so the view rolls over at midnight, not on every render
+  const todayKey = toDateKey(new Date());
+  const scheduleView = React.useMemo(
+    () =>
+      buildScheduleView(
+        schedule,
+        calendarMode,
+        { selectedJobClients, searchQuery: unscheduledSearchQuery },
+        new Date(`${todayKey}T00:00:00`)
+      ),
+    [schedule, calendarMode, selectedJobClients, unscheduledSearchQuery, todayKey]
+  );
+  const { eligibleUnscheduledServiceOrders, filteredUnscheduledServiceOrders } = scheduleView;
 
   // The Unscheduled list. In auto-schedule mode, only show SOs schedulable on at least one of
   // the selected dates - the backend groups SOs by their own scheduling window per date, so an
@@ -680,39 +658,6 @@ export function Template(props: templates.QtSchedule) {
       () => dispatchCalendarMode({ type: "scheduleChangeApplied" })
     );
   }
-
-  const isTodayAllowed = React.useMemo(() => {
-    if (schedule === null) {
-      return false;
-    }
-
-    const todayKey = toDateKey(new Date());
-    return schedule.AllowSchedulingDates.some((isoStr) => toDateKey(new Date(isoStr)) === todayKey);
-  }, [schedule]);
-
-  // Date keys the calendar highlights as schedulable: every day actually covered by at least
-  // one Unscheduled SO's [DateScheduleRangeStart, DateScheduleRangeEnd] window (after the Job
-  // Client filter and search, but before the auto-schedule date narrowing) - not
-  // just a min/max span, since a date inside that overall span can still have nothing left
-  // that's actually schedulable on it (e.g. every SO whose window covered it has since been
-  // scheduled elsewhere or expired).
-  const schedulableDateKeys = React.useMemo(() => {
-    const dateKeys = new Set<string>();
-
-    for (const so of filteredUnscheduledServiceOrders) {
-      const cursor = new Date(so.DateScheduleRangeStart);
-      cursor.setHours(0, 0, 0, 0);
-      const rangeEnd = new Date(so.DateScheduleRangeEnd);
-      rangeEnd.setHours(0, 0, 0, 0);
-
-      while (cursor <= rangeEnd) {
-        dateKeys.add(toDateKey(cursor));
-        cursor.setDate(cursor.getDate() + 1);
-      }
-    }
-
-    return dateKeys;
-  }, [filteredUnscheduledServiceOrders]);
 
   const daySummaries = React.useMemo(() => {
     const summaries = new Map<string, ICalendarDaySummary>();
@@ -1224,8 +1169,8 @@ export function Template(props: templates.QtSchedule) {
                   )}
 
                 <ScheduleCalendarGrid
-                  isTodayAllowed={isTodayAllowed}
-                  schedulableDateKeys={schedulableDateKeys}
+                  isDateSchedulable={scheduleView.isDateSchedulable}
+                  isDatePickable={scheduleView.isDatePickable}
                   daySummaries={daySummaries}
                   calendarMode={calendarMode}
                   onSelectDates={dispatchCalendarMode}

@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore,
-  SurveyWorkerQtraxWebsiteTypedefsAddress,
   SurveyWorkerQtraxWebsiteTypedefsTServiceOrder,
   interfaces,
 } from "@reactivated";
 
+import { makeAddress, makeServiceOrder } from "@client/util/qtSurveyWorker/serviceOrderFixtures";
 import {
   TRepTerritoryData,
   TTerritoryFilters,
@@ -18,73 +18,6 @@ const SATURDAY = "2026-10-31T00:00:00";
 const SUNDAY = "2026-11-01T00:00:00";
 const MONDAY = "2026-11-02T00:00:00";
 const NEXT_SATURDAY = "2026-11-07T00:00:00";
-
-function makeAddress(
-  overrides: Partial<SurveyWorkerQtraxWebsiteTypedefsAddress> & { SiteId: number }
-): SurveyWorkerQtraxWebsiteTypedefsAddress {
-  return {
-    StoreName: `Store ${overrides.SiteId}`,
-    StoreNumber: `${overrides.SiteId}`,
-    StreetAddress: `${overrides.SiteId} Main St`,
-    City: "Springfield",
-    State: "IL",
-    PostalCode: "62701",
-    Latitude: 39.8,
-    Longitude: -89.6,
-    Phone: null,
-    IsPhysicalVisit: true,
-    IncludeInMileage: true,
-    MapLink: "",
-    StoreNumberSortable: `${overrides.SiteId}`,
-    IsAtPrsHQ: false,
-    IsDone: null,
-    ...overrides,
-  };
-}
-
-let nextServiceOrderId = 1;
-
-function makeServiceOrder(options: {
-  address: SurveyWorkerQtraxWebsiteTypedefsAddress;
-  parentCompany?: string;
-  description?: string;
-  dueDate?: string;
-  estimatedTime?: number;
-}): SurveyWorkerQtraxWebsiteTypedefsTServiceOrder {
-  const dueDate = options.dueDate ?? SATURDAY;
-  return {
-    JobId: 1,
-    ServiceOrderDescription: options.description ?? "Reset aisle",
-    NoVisitNecessary: false,
-    DateScheduleRangeStart: "2026-10-26T00:00:00",
-    DateScheduleRangeEnd: dueDate,
-    DateScheduled: "",
-    EstimatedTime: options.estimatedTime ?? 1,
-    RepId: 1,
-    RequiresTimeScheduling: false,
-    NeedsTeamLeaderWarning: false,
-    WaitForTeamLeaderToSchedule: false,
-    TimeRemaingThisWeek: 0,
-    Distance: 0,
-    CanPrintInstructions: false,
-    IsPastDue: false,
-    DateScheduleRangeStartOriginal: "2026-10-26T00:00:00",
-    DateScheduleRangeEndOriginal: dueDate,
-    TimeSchedulingRequired: false,
-    TSDE: false,
-    CanUnschedule: true,
-    CheckInDate: null,
-    JobClient: options.parentCompany ?? "Acme",
-    IsTLTM: false,
-    TeamLeader: null,
-    TeamMembers: null,
-    VoltCheckInRequired: false,
-    Priority: 0,
-    RepUnassignable: false,
-    Address: options.address,
-    ServiceOrderId: nextServiceOrderId++,
-  };
-}
 
 function makeRecentlySeenStore(
   overrides: Partial<SurveyWorkerQtraxViewsTemplatesTRecentlySeenStore> & { id: number }
