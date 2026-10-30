@@ -1065,7 +1065,7 @@ export function Template(props: templates.QtSchedule) {
                   onSelectDates={dispatchCalendarMode}
                 />
 
-                {(calendarMode.kind === "singleDate" || calendarMode.kind === "autoSchedule") && (
+                {calendarMode.kind === "singleDate" && (
                   <Card className="mt-4">
                     <Card.Header className="bg-primary text-white d-flex align-items-center justify-content-between gap-3">
                       <span>
