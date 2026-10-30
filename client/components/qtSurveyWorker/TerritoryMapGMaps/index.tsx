@@ -16,7 +16,7 @@ import {
 
 import { GoogleMap, InfoWindow, Marker, useJsApiLoader } from "@react-google-maps/api";
 
-import { TVisitSequenceStoreActions } from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
+import { TVisitSequenceStoreControls } from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
 
 import { MapPopupContent } from "./MapPopupContent";
 import { RecentlySeenStorePopupContent } from "./RecentlySeenStorePopupContent";
@@ -53,7 +53,7 @@ interface Props {
   showRepNames: boolean;
   // Only in a visit sequence: visited stores get grey pins, skipped ones yellow-orange pins, and
   // popups can change outcomes
-  visitSequenceActions: TVisitSequenceStoreActions | null;
+  visitSequenceControls: TVisitSequenceStoreControls | null;
   // Where the "my location" dot comes from. "tracked": the map asks for the user's location when
   // it loads and keeps following it. "given": the dot is drawn at `location` (none while null),
   // and the map never asks for the location itself, as in a visit sequence, where it's only
@@ -70,7 +70,7 @@ export default function TerritoryMapGMaps({
   repAddress,
   recentlySeenStores,
   showRepNames,
-  visitSequenceActions,
+  visitSequenceControls,
   myLocation,
   isVisitSequenceAllDone,
 }: Props) {
@@ -225,7 +225,7 @@ export default function TerritoryMapGMaps({
     defaultIcon: google.maps.Symbol
   ): google.maps.Symbol {
     const outcome =
-      siteId === null ? undefined : visitSequenceActions?.outcomesBySiteId.get(siteId);
+      siteId === null ? undefined : visitSequenceControls?.outcomesBySiteId.get(siteId);
     if (outcome?.kind === "visited") {
       return VISITED_STORE_MARKER_ICON;
     }
@@ -260,7 +260,7 @@ export default function TerritoryMapGMaps({
                 <MapPopupContent
                   store={group}
                   showRepNames={showRepNames}
-                  visitSequenceActions={visitSequenceActions}
+                  visitSequenceControls={visitSequenceControls}
                 />
               </InfoWindow>
             )}
@@ -283,7 +283,7 @@ export default function TerritoryMapGMaps({
                   <RecentlySeenStorePopupContent
                     store={store}
                     showRepName={showRepNames}
-                    visitSequenceActions={visitSequenceActions}
+                    visitSequenceControls={visitSequenceControls}
                   />
                 </InfoWindow>
               )}

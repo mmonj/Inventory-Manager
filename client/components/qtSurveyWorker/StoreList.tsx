@@ -8,9 +8,13 @@ import { faClock, faExternalLinkAlt, faMapMarkerAlt } from "@fortawesome/free-so
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { encodeQtAddress, getFormattedEstimatedTime } from "@client/util/commonUtil";
-import { formatDateRange, formatWeekdayShortDate } from "@client/util/qtSurveyWorker/scheduleUtils";
 import {
-  TVisitSequenceStoreActions,
+  formatDateRange,
+  formatLastSeen,
+  formatWeekdayShortDate,
+} from "@client/util/qtSurveyWorker/scheduleUtils";
+import {
+  TVisitSequenceStoreControls,
   VisitSequenceOutcomeControls,
 } from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
 import {
@@ -32,7 +36,7 @@ interface Props {
   // True for the combined territory: each store and service order says which rep it's for
   showRepNames?: boolean;
   // Only in a visit sequence: the cards are grouped into Remaining, Skipped and Visited instead
-  visitSequence?: { view: TVisitSequenceView; actions: TVisitSequenceStoreActions } | null;
+  visitSequence?: { view: TVisitSequenceView; controls: TVisitSequenceStoreControls } | null;
 }
 
 function RepBadges({ repUsernames }: { repUsernames: string[] }) {
@@ -45,13 +49,6 @@ function RepBadges({ repUsernames }: { repUsernames: string[] }) {
       ))}
     </div>
   );
-}
-
-function formatLastSeen(lastSeen: string | null): string {
-  if (lastSeen === null) {
-    return "Never";
-  }
-  return new Date(lastSeen).toLocaleDateString();
 }
 
 function formatScheduledStatus(
@@ -292,13 +289,13 @@ function VisitSequenceStoreGroup({
   storeEntries,
   unscheduledDate,
   showRepNames,
-  actions,
+  controls,
 }: {
   title: string;
   storeEntries: TTerritoryStoreEntry[];
   unscheduledDate: string | undefined;
   showRepNames: boolean;
-  actions: TVisitSequenceStoreActions;
+  controls: TVisitSequenceStoreControls;
 }) {
   return (
     <>
@@ -306,7 +303,7 @@ function VisitSequenceStoreGroup({
       <Accordion className="mb-4">
         {storeEntries.map((storeEntry) => {
           const outcomeControls = (
-            <VisitSequenceOutcomeControls siteId={storeEntry.siteId} actions={actions} />
+            <VisitSequenceOutcomeControls siteId={storeEntry.siteId} controls={controls} />
           );
           return storeEntry.kind === "withServiceOrders" ? (
             <ServiceOrderStoreCard
@@ -340,7 +337,7 @@ export function StoreList({
   const storeCount = Object.keys(stores).length;
 
   if (visitSequence !== null) {
-    const { view, actions } = visitSequence;
+    const { view, controls } = visitSequence;
     return (
       <div>
         {view.isAllDone && (
@@ -351,6 +348,7 @@ export function StoreList({
         {view.remaining.length === 0 &&
           view.skipped.length === 0 &&
           view.visited.length === 0 &&
+          view.unmarkableStores.length === 0 &&
           !view.isAllDone && <NoStoresFound />}
         {view.remaining.length > 0 && (
           <VisitSequenceStoreGroup
@@ -358,7 +356,7 @@ export function StoreList({
             storeEntries={view.remaining}
             unscheduledDate={unscheduledDate}
             showRepNames={showRepNames}
-            actions={actions}
+            controls={controls}
           />
         )}
         {view.skipped.length > 0 && (
@@ -367,7 +365,7 @@ export function StoreList({
             storeEntries={view.skipped}
             unscheduledDate={unscheduledDate}
             showRepNames={showRepNames}
-            actions={actions}
+            controls={controls}
           />
         )}
         {view.visited.length > 0 && (
@@ -376,8 +374,21 @@ export function StoreList({
             storeEntries={view.visited}
             unscheduledDate={unscheduledDate}
             showRepNames={showRepNames}
-            actions={actions}
+            controls={controls}
           />
+        )}
+        {view.unmarkableStores.length > 0 && (
+          <>
+            <GroupHeading title="Can't Be Marked" count={view.unmarkableStores.length} />
+            <p className="text-secondary small">
+              These stores have no site id yet, so they can&apos;t be marked visited or skipped.
+            </p>
+            <Accordion className="mb-4">
+              {view.unmarkableStores.map((store) => (
+                <RecentlySeenStoreCard key={store.id} store={store} showRepNames={showRepNames} />
+              ))}
+            </Accordion>
+          </>
         )}
       </div>
     );

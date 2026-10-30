@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { ApiResponse, IHttpError, TNotFoundErrorList } from "@client/types";
-import { getErrorList } from "@client/util/commonUtil";
+import { getFailureMessages } from "@client/util/commonUtil";
 
 export function useFetch<T>() {
   const [data, setData] = useState<T | null>(null);
@@ -39,12 +39,9 @@ export function useFetch<T>() {
         setData(() => null);
         setIsError(() => true);
 
-        let messages: string[];
-        if (errorResp instanceof Error) {
-          messages = [errorResp.message];
-        } else {
-          messages = await getErrorList(errorResp as ApiResponse<IHttpError | TNotFoundErrorList>);
-        }
+        const messages = await getFailureMessages(
+          errorResp as ApiResponse<IHttpError | TNotFoundErrorList> | Error
+        );
         setErrorMessages(() => messages);
 
         return [false, errorResp, messages] as const;

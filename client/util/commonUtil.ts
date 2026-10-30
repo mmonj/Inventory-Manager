@@ -15,6 +15,16 @@ export async function getErrorList(
   }
 }
 
+/**
+ * The messages to show for a failed request: the error list of a non-2xx response, or the message
+ * of an error thrown along the way (e.g. a network failure).
+ */
+export async function getFailureMessages(
+  failure: ApiResponse<IHttpError | TNotFoundErrorList> | Error
+): Promise<string[]> {
+  return failure instanceof Error ? [failure.message] : getErrorList(failure);
+}
+
 export function areSetsEqual<T>(a: Set<T>, b: Set<T>): boolean {
   const result = a.size === b.size && [...a].every((value) => b.has(value));
   if (result) {

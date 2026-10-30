@@ -84,6 +84,11 @@ export function toDateKey(date: Date): string {
 }
 
 /** Formats a Date as "M/D", e.g. "7/29". */
+/** A store's Last Seen, as shown on its card and popup. */
+export function formatLastSeen(lastSeen: string | null): string {
+  return lastSeen === null ? "Never" : new Date(lastSeen).toLocaleDateString();
+}
+
 export function formatShortDate(date: Date): string {
   return `${date.getMonth() + 1}/${date.getDate()}`;
 }

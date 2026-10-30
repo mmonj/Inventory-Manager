@@ -972,5 +972,71 @@ describe("buildTerritoryView", () => {
         expect(siteIdsOf(view.visitSequence?.visited ?? [])).toEqual([61, 62]);
       });
     });
+
+    describe("recently seen stores without a site id", () => {
+      const unmarkableSeenStore = makeRecentlySeenStore({ id: 9, site_id: null, name: "Dollar" });
+      const territoriesWithUnmarkableStore: TRepTerritoryData[] = [
+        {
+          rep: repOne,
+          repData: makeRepData({
+            serviceOrders: [visitedOrder, remainingOrder],
+            recentlySeenStores: [visitedSeenStore, remainingSeenStore, unmarkableSeenStore],
+          }),
+        },
+      ];
+
+      it("are pinned on the map, like in the combined territory", () => {
+        const view = buildTerritoryView(
+          territoriesWithUnmarkableStore,
+          NO_FILTERS,
+          withOutcomes([], { showVisited: false })
+        );
+
+        expect(view.recentlySeenStores).toContainEqual({
+          ...unmarkableSeenStore,
+          repUsername: "rep_one",
+        });
+      });
+
+      it("are listed apart from Remaining, Skipped and Visited", () => {
+        const view = buildTerritoryView(
+          territoriesWithUnmarkableStore,
+          NO_FILTERS,
+          withOutcomes([10], { showVisited: true })
+        );
+
+        expect(view.visitSequence?.unmarkableStores).toEqual([
+          { ...unmarkableSeenStore, repUsername: "rep_one" },
+        ]);
+        expect(siteIdsOf(view.visitSequence?.remaining ?? [])).toEqual([20, 30, 40]);
+        expect(siteIdsOf(view.visitSequence?.visited ?? [])).toEqual([10]);
+      });
+
+      it("count as neither left nor done, so they don't hold up all done", () => {
+        const view = buildTerritoryView(
+          territoriesWithUnmarkableStore,
+          NO_FILTERS,
+          withOutcomes([10, 20, 30, 40])
+        );
+
+        expect(view.visitSequence?.progress).toEqual({
+          visitedCount: 4,
+          skippedCount: 0,
+          leftCount: 0,
+        });
+        expect(view.visitSequence?.isAllDone).toBe(true);
+      });
+
+      it("follow search like other stores", () => {
+        const view = buildTerritoryView(
+          territoriesWithUnmarkableStore,
+          { ...NO_FILTERS, searchText: "Kroger" },
+          withOutcomes([])
+        );
+
+        expect(view.visitSequence?.unmarkableStores).toEqual([]);
+        expect(view.recentlySeenStores.map((store) => store.site_id)).toEqual([30]);
+      });
+    });
   });
 });

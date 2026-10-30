@@ -111,6 +111,12 @@ export interface TVisitSequenceView {
   /** Shown visited stores, or none while "show visited" is off. */
   visited: TTerritoryStoreEntry[];
   /**
+   * Shown recently seen stores without a site id. Outcomes are keyed by site id, so these can't
+   * be marked: they're pinned and listed like in the combined territory, but count as neither
+   * left nor done, so they never hold up "all done".
+   */
+  unmarkableStores: TTerritoryRecentlySeenStore[];
+  /**
    * Each of the sequence's reps' stores without an outcome, by site id (ascending), whatever
    * filters are on. A store in two reps' territories is listed for both.
    */
@@ -232,7 +238,7 @@ function getRepMemberSiteIds({ repData }: TRepTerritoryData): Set<number> {
 
 /**
  * The shown stores as card-list entries, one per site id. Recently seen stores without a site id
- * are left out, since outcomes are keyed by site id.
+ * are left out (see TVisitSequenceView.unmarkableStores).
  */
 function toStoreEntries(
   stores: Record<number, TTerritoryStore>,
@@ -297,7 +303,10 @@ function sortByDistance(
   );
 }
 
-/** The stores a visit sequence pins on the map: its Remaining, Skipped and Visited groups. */
+/**
+ * The stores a visit sequence pins on the map: its Remaining, Skipped and Visited groups, plus the
+ * stores it can't mark.
+ */
 function getMapStores(
   shownStoreEntries: TTerritoryStoreEntry[],
   visitSequence: TVisitSequenceView
@@ -319,12 +328,14 @@ function getMapStores(
       mapRecentlySeenStores.push(storeEntry.store);
     }
   }
+  mapRecentlySeenStores.push(...visitSequence.unmarkableStores);
   return { stores: mapStores, recentlySeenStores: mapRecentlySeenStores };
 }
 
 function buildVisitSequenceView(
   repTerritories: TRepTerritoryData[],
   shownStoreEntries: TTerritoryStoreEntry[],
+  shownRecentlySeenStores: TTerritoryRecentlySeenStore[],
   visitSequenceInput: TVisitSequenceInput
 ): TVisitSequenceView {
   const memberSiteIdsByRepId = new Map(
@@ -357,6 +368,7 @@ function buildVisitSequenceView(
     visited: visitSequenceInput.showVisited
       ? shownStoreEntries.filter((storeEntry) => hasOutcomeKind(storeEntry, "visited"))
       : [],
+    unmarkableStores: shownRecentlySeenStores.filter((store) => store.site_id === null),
     remainingSiteIdsByRepId: new Map(
       [...memberSiteIdsByRepId].map(([repId, repMemberSiteIds]) => [
         repId,
@@ -482,7 +494,12 @@ export function buildTerritoryView(
   const visitSequence =
     visitSequenceInput === undefined
       ? null
-      : buildVisitSequenceView(repTerritories, shownStoreEntries, visitSequenceInput);
+      : buildVisitSequenceView(
+          repTerritories,
+          shownStoreEntries,
+          recentlySeenStores,
+          visitSequenceInput
+        );
 
   return {
     ...(visitSequence === null

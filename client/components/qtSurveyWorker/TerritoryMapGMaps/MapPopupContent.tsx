@@ -6,7 +6,7 @@ import { faClock, faCopy, faExternalLinkAlt } from "@fortawesome/free-solid-svg-
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import {
-  TVisitSequenceStoreActions,
+  TVisitSequenceStoreControls,
   VisitSequenceOutcomeControls,
 } from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
 import {
@@ -14,6 +14,7 @@ import {
   getFormattedEstimatedTime,
   reformatServiceOrderDescription,
 } from "@client/util/commonUtil";
+import { formatLastSeen } from "@client/util/qtSurveyWorker/scheduleUtils";
 import {
   TTerritoryServiceOrder,
   TTerritoryStore,
@@ -61,13 +62,13 @@ function groupByDueDate(serviceOrders: TTerritoryServiceOrder[]): TDueDateGroup[
 export function MapPopupContent({
   store,
   showRepNames,
-  visitSequenceActions,
+  visitSequenceControls,
 }: {
   store: TTerritoryStore;
   // Splits the service orders by rep (then due date), for the combined territory
   showRepNames: boolean;
   // Only in a visit sequence
-  visitSequenceActions: TVisitSequenceStoreActions | null;
+  visitSequenceControls: TVisitSequenceStoreControls | null;
 }) {
   const [clipboardMessage, setClipboardMessage] = useState<string | null>(null);
 
@@ -117,7 +118,7 @@ export function MapPopupContent({
             {store.address.Latitude}, {store.address.Longitude}
           </small>
           {store.lastSeen !== undefined && (
-            <div className="mt-1">Last seen: {new Date(store.lastSeen).toLocaleDateString()}</div>
+            <div className="mt-1">Last seen: {formatLastSeen(store.lastSeen)}</div>
           )}
         </div>
 
@@ -132,10 +133,10 @@ export function MapPopupContent({
           {clipboardMessage !== null ? clipboardMessage : "Copy Address"}
         </Button>
 
-        {visitSequenceActions !== null && (
+        {visitSequenceControls !== null && (
           <VisitSequenceOutcomeControls
             siteId={store.address.SiteId}
-            actions={visitSequenceActions}
+            controls={visitSequenceControls}
             className="mt-2"
             textClassName="text-white"
           />

@@ -17,8 +17,8 @@ const SKIP_REASON_LABELS: Record<TSkipReason, string> = {
   other: "Other",
 };
 
-/** What a store's popup or card needs to show and change its outcome in a visit sequence. */
-export interface TVisitSequenceStoreActions {
+/** The visit sequence outcomes a store's popup or card shows, and the actions that change them. */
+export interface TVisitSequenceStoreControls {
   outcomesBySiteId: ReadonlyMap<number, TVisitSequenceOutcome>;
   /** Resolves once the server has answered, whether or not it succeeded. */
   onMarkVisited: (siteId: number) => Promise<void>;
@@ -42,7 +42,7 @@ function SkipReasonPicker({
   onCancel,
 }: {
   siteId: number;
-  onSkip: TVisitSequenceStoreActions["onSkip"];
+  onSkip: TVisitSequenceStoreControls["onSkip"];
   onCancel: () => void;
 }) {
   const [reason, setReason] = useState<TSkipReason>("temporarily_closed");
@@ -112,19 +112,19 @@ function SkipReasonPicker({
  */
 export function VisitSequenceOutcomeControls({
   siteId,
-  actions,
+  controls,
   className = "",
   textClassName = "text-secondary",
 }: {
   siteId: number;
-  actions: TVisitSequenceStoreActions;
+  controls: TVisitSequenceStoreControls;
   className?: string;
   /** For the "Marked … by" lines, e.g. light text in a map popup. */
   textClassName?: string;
 }) {
   const [isSaving, setIsSaving] = useState(false);
   const [isPickingSkipReason, setIsPickingSkipReason] = useState(false);
-  const outcome = actions.outcomesBySiteId.get(siteId);
+  const outcome = controls.outcomesBySiteId.get(siteId);
 
   async function handleClick(action: (siteId: number) => Promise<void>) {
     setIsSaving(true);
@@ -139,7 +139,7 @@ export function VisitSequenceOutcomeControls({
       <div className={className}>
         <SkipReasonPicker
           siteId={siteId}
-          onSkip={actions.onSkip}
+          onSkip={controls.onSkip}
           onCancel={() => setIsPickingSkipReason(false)}
         />
       </div>
@@ -152,7 +152,7 @@ export function VisitSequenceOutcomeControls({
       className="btn btn-sm btn-success"
       spinnerVariant="light"
       fetchState={fetchState}
-      onClick={() => void handleClick(actions.onMarkVisited)}
+      onClick={() => void handleClick(controls.onMarkVisited)}
     >
       <FontAwesomeIcon icon={faCheck} className="me-1" />
       Mark Visited
@@ -163,7 +163,7 @@ export function VisitSequenceOutcomeControls({
       type="button"
       className="btn btn-sm btn-outline-secondary"
       fetchState={fetchState}
-      onClick={() => void handleClick(actions.onUndo)}
+      onClick={() => void handleClick(controls.onUndo)}
     >
       <FontAwesomeIcon icon={faRotateLeft} className="me-1" />
       Undo

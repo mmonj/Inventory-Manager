@@ -40,11 +40,10 @@ import { TerritoryFiltersActiveBanner } from "@client/components/qtSurveyWorker/
 import { VisitSequenceModal } from "@client/components/qtSurveyWorker/VisitSequenceModal";
 import {
   TSkipReason,
-  TVisitSequenceStoreActions,
+  TVisitSequenceStoreControls,
 } from "@client/components/qtSurveyWorker/VisitSequenceOutcomeControls";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
-import { ApiResponse, IHttpError, TNotFoundErrorList } from "@client/types";
-import { fetchByReactivated, getErrorList } from "@client/util/commonUtil";
+import { TRequestResult, sendJsonRequest } from "@client/util/qtSurveyWorker/sendJsonRequest";
 import {
   TLatLng,
   TRepTerritoryData,
@@ -60,12 +59,27 @@ import {
   restoreTerritorySelection,
   toStoredTerritorySelection,
 } from "@client/util/qtSurveyWorker/territorySelection";
+import {
+  TVisitSequence,
+  TVisitSequenceUpdate,
+  requestCreateVisitSequence,
+  requestDeleteVisitSequence,
+  requestMarkStoreVisited,
+  requestMarkStoresVisited,
+  requestSkipStore,
+  requestUndoStoreOutcome,
+  requestUndoStoreOutcomes,
+  requestUpdateVisitSequence,
+  requestVisitSequenceOutcomes,
+} from "@client/util/qtSurveyWorker/visitSequenceRequests";
 import { toast } from "@client/util/toast";
 
 const TerritoryMap = lazy(() => import("@client/components/qtSurveyWorker/TerritoryMapGMaps"));
 
 const RELATIVE_TIME_THRESHOLD_HOURS = 12;
-const LAST_SELECTED_REP_ID_KEY = "lastSelectedRepId";
+// Holds the whole territory selection (a rep, the combined territory or a visit sequence). The key
+// string predates visit sequences and is kept so a selection saved back then still restores.
+const TERRITORY_SELECTION_STORAGE_KEY = "lastSelectedRepId";
 const COMBINED_TERRITORY_LABEL = "All Field Reps";
 
 interface TLoadState {
@@ -75,8 +89,6 @@ interface TLoadState {
 }
 
 const IDLE_LOAD_STATE: TLoadState = { isLoading: false, isError: false, errorMessages: [] };
-
-type TVisitSequence = templates.QtTerritoryViewer["visit_sequences"][number];
 
 /** What the New Visit Sequence modal starts with. */
 interface TNewVisitSequenceDraft {
@@ -90,68 +102,14 @@ interface TEditVisitSequenceDraft {
   shownFields: "name" | "reps";
 }
 
-type TRepDataRequestResult =
-  | { isSuccess: true; repData: interfaces.QtTerritoryRepData }
-  | { isSuccess: false; errorMessages: string[] };
-
-async function requestTerritoryRepData(
+function requestTerritoryRepData(
   repId: number,
   useCache: string | null,
   csrfToken: string
-): Promise<TRepDataRequestResult> {
+): Promise<TRequestResult<interfaces.QtTerritoryRepData>> {
   const baseUrl = reverse("survey_worker:qt_territory_rep_data", { rep_id: repId });
   const url = useCache !== null ? `${baseUrl}?use_cache=${useCache}` : baseUrl;
-
-  try {
-    const response = await fetchByReactivated<interfaces.QtTerritoryRepData>(url, csrfToken, "GET");
-    if (!response.ok) {
-      const errorMessages = await getErrorList(
-        response as unknown as ApiResponse<IHttpError | TNotFoundErrorList>
-      );
-      return { isSuccess: false, errorMessages };
-    }
-    return { isSuccess: true, repData: await response.json() };
-  } catch (error) {
-    return {
-      isSuccess: false,
-      errorMessages: [error instanceof Error ? error.message : "Unexpected error occurred"],
-    };
-  }
-}
-
-type TRequestResult<T> =
-  { isSuccess: true; payload: T } | { isSuccess: false; errorMessages: string[] };
-
-/** Sends a form-encoded POST (or a GET without `requestBody`) and parses its JSON reply. */
-async function sendJsonRequest<T>(
-  url: string,
-  csrfToken: string,
-  requestBody?: URLSearchParams
-): Promise<TRequestResult<T>> {
-  try {
-    const response =
-      requestBody === undefined
-        ? await fetchByReactivated<T>(url, csrfToken, "GET")
-        : await fetchByReactivated<T>(
-            url,
-            csrfToken,
-            "POST",
-            requestBody,
-            "application/x-www-form-urlencoded"
-          );
-    if (!response.ok) {
-      const errorMessages = await getErrorList(
-        response as unknown as ApiResponse<IHttpError | TNotFoundErrorList>
-      );
-      return { isSuccess: false, errorMessages };
-    }
-    return { isSuccess: true, payload: await response.json() };
-  } catch (error) {
-    return {
-      isSuccess: false,
-      errorMessages: [error instanceof Error ? error.message : "Unexpected error occurred"],
-    };
-  }
+  return sendJsonRequest(url, csrfToken);
 }
 
 /** A visit sequence's outcomes, as last confirmed by the server. */
@@ -160,39 +118,18 @@ interface TLoadedVisitSequenceOutcomes {
   outcomesBySiteId: Map<number, TVisitSequenceOutcome>;
 }
 
-type TSaveVisitSequenceResult =
-  | { isSuccess: true; visitSequence: TVisitSequence }
-  | { isSuccess: false; errorMessages: string[] };
-
-/** Creates or updates a visit sequence, depending on the url. */
-async function requestSaveVisitSequence(
-  url: string,
-  name: string,
-  repIds: number[],
-  csrfToken: string
-): Promise<TSaveVisitSequenceResult> {
-  const requestBody = new URLSearchParams({ name });
-  for (const repId of repIds) {
-    requestBody.append("rep_ids", repId.toString());
-  }
-
-  const result = await sendJsonRequest<interfaces.QtVisitSequenceDetail>(
-    url,
-    csrfToken,
-    requestBody
-  );
-  return result.isSuccess
-    ? { isSuccess: true, visitSequence: result.payload.visit_sequence }
-    : result;
-}
-
-/** A rep's "Mark all visited" action in a visit sequence, disabled once nothing is left. */
+/**
+ * A rep's "Mark all visited" action in a visit sequence, disabled once nothing is left (or while
+ * the rep's data is still loading).
+ */
 function MarkAllVisitedButton({
+  repUsername,
   remainingSiteIds,
   isMarking,
   isDisabled,
   onMarkAll,
 }: {
+  repUsername: string;
   remainingSiteIds: number[];
   isMarking: boolean;
   isDisabled: boolean;
@@ -207,7 +144,7 @@ function MarkAllVisitedButton({
       onClick={() => onMarkAll(remainingSiteIds)}
     >
       <FontAwesomeIcon icon={faCheckDouble} className="me-1" />
-      Mark all visited
+      Mark all visited: {repUsername}
     </ButtonWithSpinner>
   );
 }
@@ -381,10 +318,11 @@ export function Template(props: templates.QtTerritoryViewer) {
         continue;
       }
 
-      if (result.repData.sync_error !== null) {
-        toast.warning(repLabel + result.repData.sync_error);
+      const repData = result.payload;
+      if (repData.sync_error !== null) {
+        toast.warning(repLabel + repData.sync_error);
       }
-      setRepDataById((current) => new Map(current).set(rep.id, result.repData));
+      setRepDataById((current) => new Map(current).set(rep.id, repData));
     }
 
     if (loadId !== latestLoadIdRef.current) {
@@ -427,12 +365,7 @@ export function Template(props: templates.QtTerritoryViewer) {
       return;
     }
     const { visitSequenceId } = selection;
-    void sendJsonRequest<interfaces.QtVisitSequenceOutcomes>(
-      reverse("survey_worker:qt_visit_sequence_outcomes", {
-        visit_sequence_id: visitSequenceId,
-      }),
-      djangoContext.csrf_token
-    ).then((result) => {
+    void requestVisitSequenceOutcomes(visitSequenceId, djangoContext.csrf_token).then((result) => {
       if (!result.isSuccess) {
         toast.error(...result.errorMessages);
         return;
@@ -449,7 +382,7 @@ export function Template(props: templates.QtTerritoryViewer) {
   // Restore the last selection on mount, falling back to the first rep
   useEffect(() => {
     const restoredSelection = restoreTerritorySelection(
-      localStorage.getItem(LAST_SELECTED_REP_ID_KEY),
+      localStorage.getItem(TERRITORY_SELECTION_STORAGE_KEY),
       props.rep_details.map((rep) => rep.id),
       props.visit_sequences.map((visitSequence) => visitSequence.id)
     );
@@ -483,7 +416,10 @@ export function Template(props: templates.QtTerritoryViewer) {
   function handleSelectionChange(nextSelection: TTerritorySelection) {
     setSearchText("");
     setSelection(nextSelection);
-    localStorage.setItem(LAST_SELECTED_REP_ID_KEY, toStoredTerritorySelection(nextSelection));
+    localStorage.setItem(
+      TERRITORY_SELECTION_STORAGE_KEY,
+      toStoredTerritorySelection(nextSelection)
+    );
   }
 
   /** Turning the sort on asks for the user's location once. A denial disables the toggle. */
@@ -537,19 +473,29 @@ export function Template(props: templates.QtTerritoryViewer) {
     });
   }
 
-  async function handleMarkStoreVisited(visitSequenceId: number, siteId: number) {
-    const result = await sendJsonRequest<interfaces.QtVisitSequenceOutcomeDetail>(
-      reverse("survey_worker:qt_mark_store_visited", { visit_sequence_id: visitSequenceId }),
-      djangoContext.csrf_token,
-      new URLSearchParams({ site_id: siteId.toString() })
-    );
+  /**
+   * Waits for an outcome request and applies what the server confirmed with `update`, or shows
+   * its errors in a toast. Resolves to the server's reply, or null if it failed.
+   */
+  async function applyOutcomeRequest<T>(
+    visitSequenceId: number,
+    request: Promise<TRequestResult<T>>,
+    update: (payload: T, outcomesBySiteId: Map<number, TVisitSequenceOutcome>) => void
+  ): Promise<T | null> {
+    const result = await request;
     if (!result.isSuccess) {
       toast.error(...result.errorMessages);
-      return;
+      return null;
     }
-    const { outcome } = result.payload;
-    updateOutcomes(visitSequenceId, (outcomesBySiteId) =>
-      outcomesBySiteId.set(outcome.site_id, outcome)
+    updateOutcomes(visitSequenceId, (outcomesBySiteId) => update(result.payload, outcomesBySiteId));
+    return result.payload;
+  }
+
+  async function handleMarkStoreVisited(visitSequenceId: number, siteId: number) {
+    await applyOutcomeRequest(
+      visitSequenceId,
+      requestMarkStoreVisited(visitSequenceId, siteId, djangoContext.csrf_token),
+      ({ outcome }, outcomesBySiteId) => outcomesBySiteId.set(outcome.site_id, outcome)
     );
   }
 
@@ -559,58 +505,35 @@ export function Template(props: templates.QtTerritoryViewer) {
     reason: TSkipReason,
     note: string
   ): Promise<boolean> {
-    const result = await sendJsonRequest<interfaces.QtVisitSequenceOutcomeDetail>(
-      reverse("survey_worker:qt_skip_store", { visit_sequence_id: visitSequenceId }),
-      djangoContext.csrf_token,
-      new URLSearchParams({ site_id: siteId.toString(), reason, note })
+    const payload = await applyOutcomeRequest(
+      visitSequenceId,
+      requestSkipStore(visitSequenceId, siteId, reason, note, djangoContext.csrf_token),
+      ({ outcome }, outcomesBySiteId) => outcomesBySiteId.set(outcome.site_id, outcome)
     );
-    if (!result.isSuccess) {
-      toast.error(...result.errorMessages);
-      return false;
-    }
-    const { outcome } = result.payload;
-    updateOutcomes(visitSequenceId, (outcomesBySiteId) =>
-      outcomesBySiteId.set(outcome.site_id, outcome)
-    );
-    return true;
+    return payload !== null;
   }
 
   async function handleUndoStoreOutcome(visitSequenceId: number, siteId: number) {
-    const result = await sendJsonRequest<interfaces.QtVisitSequenceOutcomeUndone>(
-      reverse("survey_worker:qt_undo_store_outcome", { visit_sequence_id: visitSequenceId }),
-      djangoContext.csrf_token,
-      new URLSearchParams({ site_id: siteId.toString() })
+    await applyOutcomeRequest(
+      visitSequenceId,
+      requestUndoStoreOutcome(visitSequenceId, siteId, djangoContext.csrf_token),
+      (payload, outcomesBySiteId) => outcomesBySiteId.delete(payload.site_id)
     );
-    if (!result.isSuccess) {
-      toast.error(...result.errorMessages);
-      return;
-    }
-    updateOutcomes(visitSequenceId, (outcomesBySiteId) =>
-      outcomesBySiteId.delete(result.payload.site_id)
-    );
-  }
-
-  function toSiteIdsRequestBody(siteIds: number[]): URLSearchParams {
-    return new URLSearchParams(siteIds.map((siteId) => ["site_ids", siteId.toString()]));
   }
 
   async function handleUndoStoreOutcomes(visitSequenceId: number, siteIds: number[]) {
-    const result = await sendJsonRequest<interfaces.QtVisitSequenceOutcomesUndone>(
-      reverse("survey_worker:qt_undo_store_outcomes", { visit_sequence_id: visitSequenceId }),
-      djangoContext.csrf_token,
-      toSiteIdsRequestBody(siteIds)
-    );
-    if (!result.isSuccess) {
-      toast.error(...result.errorMessages);
-      return;
-    }
-    const undoneSiteIds = result.payload.site_ids;
-    updateOutcomes(visitSequenceId, (outcomesBySiteId) => {
-      for (const siteId of undoneSiteIds) {
-        outcomesBySiteId.delete(siteId);
+    const payload = await applyOutcomeRequest(
+      visitSequenceId,
+      requestUndoStoreOutcomes(visitSequenceId, siteIds, djangoContext.csrf_token),
+      ({ site_ids: undoneSiteIds }, outcomesBySiteId) => {
+        for (const undoneSiteId of undoneSiteIds) {
+          outcomesBySiteId.delete(undoneSiteId);
+        }
       }
-    });
-    toast.success(`Undid the visits to ${undoneSiteIds.length} stores.`);
+    );
+    if (payload !== null) {
+      toast.success(`Undid the visits to ${payload.site_ids.length} stores.`);
+    }
   }
 
   /**
@@ -630,22 +553,20 @@ export function Template(props: templates.QtTerritoryViewer) {
       return;
     }
     setMarkingAllVisitedRepId(rep.id);
-    const result = await sendJsonRequest<interfaces.QtVisitSequenceOutcomes>(
-      reverse("survey_worker:qt_mark_stores_visited", { visit_sequence_id: visitSequenceId }),
-      djangoContext.csrf_token,
-      toSiteIdsRequestBody(remainingSiteIds)
+    const payload = await applyOutcomeRequest(
+      visitSequenceId,
+      requestMarkStoresVisited(visitSequenceId, remainingSiteIds, djangoContext.csrf_token),
+      ({ outcomes }, outcomesBySiteId) => {
+        for (const outcome of outcomes) {
+          outcomesBySiteId.set(outcome.site_id, outcome);
+        }
+      }
     );
     setMarkingAllVisitedRepId(null);
-    if (!result.isSuccess) {
-      toast.error(...result.errorMessages);
+    if (payload === null) {
       return;
     }
-    const markedOutcomes = result.payload.outcomes;
-    updateOutcomes(visitSequenceId, (outcomesBySiteId) => {
-      for (const outcome of markedOutcomes) {
-        outcomesBySiteId.set(outcome.site_id, outcome);
-      }
-    });
+    const markedOutcomes = payload.outcomes;
     if (markedOutcomes.length === 0) {
       toast.info(`${rep.username}'s stores were already visited or skipped.`);
       return;
@@ -657,7 +578,7 @@ export function Template(props: templates.QtTerritoryViewer) {
     });
   }
 
-  const visitSequenceStoreActions: TVisitSequenceStoreActions | null =
+  const visitSequenceStoreControls: TVisitSequenceStoreControls | null =
     selectedVisitSequence !== undefined && selectedVisitSequenceOutcomesBySiteId !== undefined
       ? {
           outcomesBySiteId: selectedVisitSequenceOutcomesBySiteId,
@@ -679,17 +600,12 @@ export function Template(props: templates.QtTerritoryViewer) {
   }
 
   async function handleCreateVisitSequence(name: string, repIds: number[]): Promise<string[]> {
-    const result = await requestSaveVisitSequence(
-      reverse("survey_worker:qt_create_visit_sequence"),
-      name,
-      repIds,
-      djangoContext.csrf_token
-    );
+    const result = await requestCreateVisitSequence(name, repIds, djangoContext.csrf_token);
     if (!result.isSuccess) {
       return result.errorMessages;
     }
 
-    const { visitSequence } = result;
+    const visitSequence = result.payload;
     setVisitSequences((current) =>
       [...current, visitSequence].sort((a, b) => a.name.localeCompare(b.name))
     );
@@ -701,20 +617,18 @@ export function Template(props: templates.QtTerritoryViewer) {
 
   async function handleUpdateVisitSequence(
     visitSequenceId: number,
-    name: string,
-    repIds: number[]
+    update: TVisitSequenceUpdate
   ): Promise<string[]> {
-    const result = await requestSaveVisitSequence(
-      reverse("survey_worker:qt_update_visit_sequence", { visit_sequence_id: visitSequenceId }),
-      name,
-      repIds,
+    const result = await requestUpdateVisitSequence(
+      visitSequenceId,
+      update,
       djangoContext.csrf_token
     );
     if (!result.isSuccess) {
       return result.errorMessages;
     }
 
-    const { visitSequence } = result;
+    const visitSequence = result.payload;
     setVisitSequences((current) =>
       current
         .map((existing) => (existing.id === visitSequence.id ? visitSequence : existing))
@@ -733,11 +647,7 @@ export function Template(props: templates.QtTerritoryViewer) {
       return;
     }
 
-    const result = await sendJsonRequest<interfaces.QtVisitSequenceDeleted>(
-      reverse("survey_worker:qt_delete_visit_sequence", { visit_sequence_id: visitSequence.id }),
-      djangoContext.csrf_token,
-      new URLSearchParams()
-    );
+    const result = await requestDeleteVisitSequence(visitSequence.id, djangoContext.csrf_token);
     if (!result.isSuccess) {
       toast.error(...result.errorMessages);
       return;
@@ -961,6 +871,30 @@ export function Template(props: templates.QtTerritoryViewer) {
               </div>
             )}
 
+            {/* Every rep in the sequence, whatever the rep filter hides */}
+            {territoryView.visitSequence !== null && selectedVisitSequence !== undefined && (
+              <div className="d-flex flex-wrap gap-2 mb-3">
+                {shownReps.map((rep) => (
+                  <MarkAllVisitedButton
+                    key={rep.id}
+                    repUsername={rep.username}
+                    remainingSiteIds={
+                      territoryView.visitSequence?.remainingSiteIdsByRepId.get(rep.id) ?? []
+                    }
+                    isMarking={markingAllVisitedRepId === rep.id}
+                    isDisabled={markingAllVisitedRepId !== null}
+                    onMarkAll={(remainingSiteIds) =>
+                      void handleMarkAllRepStoresVisited(
+                        selectedVisitSequence.id,
+                        rep,
+                        remainingSiteIds
+                      )
+                    }
+                  />
+                ))}
+              </div>
+            )}
+
             {isMultiRepView && territoryView.repSummaries.length > 0 && (
               <Table size="sm" responsive className="mb-4">
                 <thead>
@@ -969,7 +903,6 @@ export function Template(props: templates.QtTerritoryViewer) {
                     <th className="text-end">Stores</th>
                     <th className="text-end">Hours</th>
                     <th>Schedule last refreshed</th>
-                    {territoryView.visitSequence !== null && <th></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -983,27 +916,6 @@ export function Template(props: templates.QtTerritoryViewer) {
                           ? formatLastRefreshed(repSummary.scheduleLastRefreshed)
                           : "N/A"}
                       </td>
-                      {territoryView.visitSequence !== null &&
-                        selectedVisitSequence !== undefined && (
-                          <td className="text-end">
-                            <MarkAllVisitedButton
-                              remainingSiteIds={
-                                territoryView.visitSequence.remainingSiteIdsByRepId.get(
-                                  repSummary.rep.id
-                                ) ?? []
-                              }
-                              isMarking={markingAllVisitedRepId === repSummary.rep.id}
-                              isDisabled={markingAllVisitedRepId !== null}
-                              onMarkAll={(remainingSiteIds) =>
-                                void handleMarkAllRepStoresVisited(
-                                  selectedVisitSequence.id,
-                                  repSummary.rep,
-                                  remainingSiteIds
-                                )
-                              }
-                            />
-                          </td>
-                        )}
                     </tr>
                   ))}
                 </tbody>
@@ -1107,7 +1019,7 @@ export function Template(props: templates.QtTerritoryViewer) {
                           : null
                       }
                       showRepNames={isMultiRepView}
-                      visitSequenceActions={visitSequenceStoreActions}
+                      visitSequenceControls={visitSequenceStoreControls}
                       // In a visit sequence, the user's location is only known while sorting by
                       // distance
                       myLocation={
@@ -1132,8 +1044,8 @@ export function Template(props: templates.QtTerritoryViewer) {
               recentlySeenStores={territoryView.recentlySeenStores}
               showRepNames={isMultiRepView}
               visitSequence={
-                territoryView.visitSequence !== null && visitSequenceStoreActions !== null
-                  ? { view: territoryView.visitSequence, actions: visitSequenceStoreActions }
+                territoryView.visitSequence !== null && visitSequenceStoreControls !== null
+                  ? { view: territoryView.visitSequence, controls: visitSequenceStoreControls }
                   : null
               }
             />
@@ -1178,8 +1090,12 @@ export function Template(props: templates.QtTerritoryViewer) {
             initialRepIds={editVisitSequenceDraft.visitSequence.rep_ids}
             shownFields={editVisitSequenceDraft.shownFields}
             onHide={() => setEditVisitSequenceDraft(null)}
+            // Sends only the field the modal is editing
             onSubmit={(name, repIds) =>
-              handleUpdateVisitSequence(editVisitSequenceDraft.visitSequence.id, name, repIds)
+              handleUpdateVisitSequence(
+                editVisitSequenceDraft.visitSequence.id,
+                editVisitSequenceDraft.shownFields === "name" ? { name } : { repIds }
+              )
             }
           />
         )}
