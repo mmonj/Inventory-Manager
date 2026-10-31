@@ -115,7 +115,7 @@ function ServiceOrderStoreCard({
         </div>
       </Accordion.Header>
       {outcomeControls !== undefined && (
-        <div className="px-3 py-2 border-top">{outcomeControls}</div>
+        <div className="store-card-outcome-controls bg-white">{outcomeControls}</div>
       )}
       <Accordion.Body className="bg-light">
         <div className="mb-3 d-flex justify-content-end">
@@ -229,7 +229,7 @@ function RecentlySeenStoreCard({
         </div>
       </Accordion.Header>
       {outcomeControls !== undefined && (
-        <div className="px-3 py-2 border-top">{outcomeControls}</div>
+        <div className="store-card-outcome-controls bg-body-secondary">{outcomeControls}</div>
       )}
       <Accordion.Body className="bg-body-secondary">
         <div className="d-flex justify-content-end mb-3">

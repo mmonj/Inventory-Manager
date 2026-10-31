@@ -119,12 +119,29 @@ $max-width-rem-values: 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100;
   }
 }
 
+// Bootstrap's translucent default barely shows against the dark theme
+.dropdown-menu {
+  --bs-dropdown-border-color: var(--bs-border-color);
+}
+
+$accordion-open-tint: rgba(bs.$blue, 0.13);
+
 .accordion-button {
   background-color: transparent;
 }
 
 .accordion-button:not(.collapsed) {
-  background-color: rgba(bs.$blue, 0.13);
+  background-color: $accordion-open-tint;
+}
+
+// Sits under an accordion header, reading as part of it
+.store-card-outcome-controls {
+  // The top padding clears the header's focus ring
+  padding: 0.25rem var(--bs-accordion-btn-padding-x) var(--bs-accordion-btn-padding-y);
+}
+
+.accordion-header:has(.accordion-button:not(.collapsed)) + .store-card-outcome-controls {
+  background-image: linear-gradient($accordion-open-tint, $accordion-open-tint);
 }
 
 // hover effects for cards
