@@ -143,7 +143,7 @@ export function Template(props: templates.QtSchedule) {
   async function fetchScheduleForRep(repId: number, forceFresh = false) {
     const baseUrl = reverse("survey_worker:qt_view_rep_schedule", { rep_id: repId });
     // forceFresh overrides the URL's use_cache param - used right after a server-side mutation
-    // (e.g. auto-scheduling) where a cached/recently-modified response would be stale.
+    // (e.g. auto-scheduling), to get what Qt reports rather than the stored schedule.
     const useCache = forceFresh
       ? "off"
       : new URLSearchParams(window.location.search).get("use_cache");
