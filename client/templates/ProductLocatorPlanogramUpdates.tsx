@@ -9,9 +9,13 @@ import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { fetchByReactivated } from "@client/util/commonUtil";
-import { type TChainStep, buildMovePlan } from "@client/util/productLocator/movePlan";
+import {
+  type TChainStep,
+  type TPlanogramUpdate,
+  buildMovePlan,
+} from "@client/util/productLocator/movePlan";
 
-type TPlanogramUpdate = templates.ProductLocatorPlanogramUpdates["planogram_updates"][number];
+import "@client/scss/product_locator/monospace-text.scss";
 
 function describeStep(step: TChainStep): string {
   switch (step.kind) {
@@ -29,17 +33,17 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
   // The move checklist only helps whoever is physically rearranging the shelf: applying an
   // update replaces the planogram's locations with new_plano server-side regardless of what's
   // checked off, so this state is deliberately not persisted.
-  const [completedMoves, setCompletedMoves] = useState<Set<string>>(new Set());
+  const [completedStepKeys, setCompletedStepKeys] = useState<Set<string>>(new Set());
   const djangoContext = useContext(Context);
   const applyFetcher = useFetch<interfaces.IPlanogramUpdateApplied>();
 
-  function toggleMoveCompleted(moveKey: string) {
-    setCompletedMoves((prev) => {
+  function toggleStepCompleted(stepKey: string) {
+    setCompletedStepKeys((prev) => {
       const next = new Set(prev);
-      if (next.has(moveKey)) {
-        next.delete(moveKey);
+      if (next.has(stepKey)) {
+        next.delete(stepKey);
       } else {
-        next.add(moveKey);
+        next.add(stepKey);
       }
       return next;
     });
@@ -95,7 +99,7 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                     className={planogramUpdate.status !== "pending" ? "text-muted bg-light" : ""}
                     onClick={() => {
                       setSelectedUpdate(planogramUpdate);
-                      setCompletedMoves(new Set());
+                      setCompletedStepKeys(new Set());
                     }}
                   >
                     <div className="d-flex justify-content-between align-items-center">
@@ -167,12 +171,9 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
 
                 {movePlan && movePlan.productsToPull.length > 0 && (
                   <Alert variant="warning" className="mb-4">
-                    <strong>The following products should be pulled</strong> as the new planogram
-                    has no place for them at these locations:
-                    <ul
-                      className="mb-0 mt-2"
-                      style={{ fontFamily: 'Consolas, "Courier New", monospace' }}
-                    >
+                    <strong>The following products at these locations should be pulled</strong> as
+                    the new planogram has no place for them:
+                    <ul className="mb-0 mt-2 monospace-text">
                       {movePlan.productsToPull.map(({ location, product }) => (
                         <li key={`${location}:${product.upc}`}>
                           <strong>{location}</strong> — {product.name} ({product.upc})
@@ -194,12 +195,7 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                       </small>
                       <hr className="flex-grow-1 ms-2" />
                     </div>
-                    <p
-                      className="text-muted mb-2"
-                      style={{ fontFamily: 'Consolas, "Courier New", monospace' }}
-                    >
-                      {route.join(" → ")}
-                    </p>
+                    <p className="text-muted mb-2 monospace-text">{route.join(" → ")}</p>
                     {isCircular && (
                       <p className="text-info fw-semibold mb-2">
                         This chain is circular, so every location in it is full. Pull one card aside
@@ -209,28 +205,23 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                     {deadEndPulls.map(({ location, product }) => (
                       <p key={product.upc} className="text-warning fw-semibold mb-2">
                         Pull {product.name} ({product.upc}) from{" "}
-                        <span style={{ fontFamily: 'Consolas, "Courier New", monospace' }}>
-                          {location}
-                        </span>{" "}
-                        first. It no longer belongs there.
+                        <span className="monospace-text">{location}</span> first. It no longer
+                        belongs there.
                       </p>
                     ))}
                     <ListGroup variant="flush" className="border rounded">
                       {steps.map((step) => {
-                        const isCompleted = completedMoves.has(step.key);
+                        const isCompleted = completedStepKeys.has(step.key);
                         return (
                           <ListGroup.Item
                             key={step.key}
                             action
-                            onClick={() => toggleMoveCompleted(step.key)}
+                            onClick={() => toggleStepCompleted(step.key)}
                             style={{ cursor: "pointer" }}
                             className="d-flex align-items-center justify-content-between gap-2"
                           >
                             <span
-                              style={{ fontFamily: 'Consolas, "Courier New", monospace' }}
-                              className={
-                                isCompleted ? "text-decoration-line-through text-muted" : ""
-                              }
+                              className={`monospace-text ${isCompleted ? "text-decoration-line-through text-muted" : ""}`}
                             >
                               <strong>{describeStep(step)}</strong> - {step.product.name} (
                               {step.product.upc})

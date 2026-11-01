@@ -1,6 +1,7 @@
 import type { templates } from "@reactivated";
 
-type TPlanogramUpdate = templates.ProductLocatorPlanogramUpdates["planogram_updates"][number];
+export type TPlanogramUpdate =
+  templates.ProductLocatorPlanogramUpdates["planogram_updates"][number];
 type TOldLayout = TPlanogramUpdate["old_plano"];
 type TNewLayout = TPlanogramUpdate["new_plano"];
 type TPlanoProduct = TNewLayout[string];
@@ -29,7 +30,7 @@ export interface IPlaceStep {
 
 export type TChainStep = IMoveStep | IPullAsideStep | IPlaceStep;
 
-export interface IProductToPull {
+export interface ILocatedProduct {
   location: string;
   product: TPlanoProduct;
 }
@@ -40,20 +41,20 @@ export interface IMoveChain {
   // In the order they're physically done, which runs against the direction the cards travel
   steps: TChainStep[];
   isCircular: boolean;
-  deadEndPulls: IProductToPull[];
+  deadEndPulls: ILocatedProduct[];
 }
 
 export interface IMovePlan {
   chains: IMoveChain[];
-  productsToPull: IProductToPull[];
+  productsToPull: ILocatedProduct[];
 }
 
 function compareLocations(firstLocation: string, secondLocation: string): number {
   return firstLocation.localeCompare(secondLocation, undefined, { numeric: true });
 }
 
-function groupOldCopiesByUpc(oldLayout: TOldLayout): Map<string, IProductToPull[]> {
-  const oldCopiesByUpc = new Map<string, IProductToPull[]>();
+function groupOldCopiesByUpc(oldLayout: TOldLayout): Map<string, ILocatedProduct[]> {
+  const oldCopiesByUpc = new Map<string, ILocatedProduct[]>();
   const sortedLocations = Object.keys(oldLayout).sort(compareLocations);
 
   for (const location of sortedLocations) {
@@ -74,22 +75,22 @@ function findNewLocations(upc: string, newLayout: TNewLayout): string[] {
     .sort(compareLocations);
 }
 
-function buildMove(source: IProductToPull, toLocation: string): IMoveStep {
+function buildMove(oldCopy: ILocatedProduct, toLocation: string): IMoveStep {
   return {
     kind: "move",
-    key: `${source.location}:${toLocation}:${source.product.upc}`,
-    fromLocation: source.location,
+    key: `${oldCopy.location}:${toLocation}:${oldCopy.product.upc}`,
+    fromLocation: oldCopy.location,
     toLocation,
-    product: source.product,
+    product: oldCopy.product,
   };
 }
 
 // Both lists run in natural order. A card that keeps any of its old locations gets no moves at
 // all: the scanner finds it at its gained locations later.
 function assignOldCopies(
-  oldCopies: IProductToPull[],
+  oldCopies: ILocatedProduct[],
   newLocations: string[]
-): { moves: IMoveStep[]; extraCopies: IProductToPull[] } {
+): { moves: IMoveStep[]; extraCopies: ILocatedProduct[] } {
   const leavingCopies = oldCopies.filter((copy) => !newLocations.includes(copy.location));
 
   if (leavingCopies.length < oldCopies.length || newLocations.length === 0) {
@@ -104,10 +105,10 @@ function assignOldCopies(
   };
 }
 
-function assignLayouts(
+function pairOldCopiesWithNewLocations(
   oldLayout: TOldLayout,
   newLayout: TNewLayout
-): { moves: IMoveStep[]; productsToPull: IProductToPull[] } {
+): { moves: IMoveStep[]; productsToPull: ILocatedProduct[] } {
   const assignments = [...groupOldCopiesByUpc(oldLayout)].map(([upc, oldCopies]) =>
     assignOldCopies(oldCopies, findNewLocations(upc, newLayout))
   );
@@ -134,7 +135,7 @@ function assignLayouts(
 // back to it, run out, or fall into a loop that it isn't part of.
 function findLoopFrom(
   startingLocation: string,
-  arrivingMoves: Map<string, IMoveStep>
+  arrivingMoveByLocation: Map<string, IMoveStep>
 ): IMoveStep[] {
   const loopMoves: IMoveStep[] = [];
   const visitedLocations = new Set<string>();
@@ -142,7 +143,7 @@ function findLoopFrom(
 
   while (!visitedLocations.has(currentLocation)) {
     visitedLocations.add(currentLocation);
-    const arrivingMove = arrivingMoves.get(currentLocation);
+    const arrivingMove = arrivingMoveByLocation.get(currentLocation);
     if (arrivingMove === undefined) {
       return [];
     }
@@ -154,7 +155,10 @@ function findLoopFrom(
   return currentLocation === startingLocation ? loopMoves : [];
 }
 
-function findLoops(moves: IMoveStep[], arrivingMoves: Map<string, IMoveStep>): IMoveStep[][] {
+function findLoops(
+  moves: IMoveStep[],
+  arrivingMoveByLocation: Map<string, IMoveStep>
+): IMoveStep[][] {
   const loopedLocations = new Set<string>();
 
   return moves.flatMap((move) => {
@@ -162,7 +166,7 @@ function findLoops(moves: IMoveStep[], arrivingMoves: Map<string, IMoveStep>): I
       return [];
     }
 
-    const loopMoves = findLoopFrom(move.fromLocation, arrivingMoves);
+    const loopMoves = findLoopFrom(move.fromLocation, arrivingMoveByLocation);
     loopMoves.forEach((loopMove) => loopedLocations.add(loopMove.fromLocation));
     return loopMoves.length > 0 ? [loopMoves] : [];
   });
@@ -188,14 +192,14 @@ function claimStraightChain(firstMove: IMoveStep, unclaimedMoves: Set<IMoveStep>
 // A fork's branches each become their own chain, and a location in a loop can fork too. So loops
 // are claimed first, and a straight chain starts where nothing unclaimed still moves in.
 function groupMovesIntoChains(moves: IMoveStep[]): IMoveStep[][] {
-  const arrivingMoves = new Map(moves.map((move) => [move.toLocation, move]));
-  const loops = findLoops(moves, arrivingMoves);
+  const arrivingMoveByLocation = new Map(moves.map((move) => [move.toLocation, move]));
+  const loops = findLoops(moves, arrivingMoveByLocation);
   const unclaimedMoves = new Set(moves);
   loops.flat().forEach((move) => unclaimedMoves.delete(move));
 
   const findNextChainStart = () =>
     [...unclaimedMoves].find((move) => {
-      const arrivingMove = arrivingMoves.get(move.fromLocation);
+      const arrivingMove = arrivingMoveByLocation.get(move.fromLocation);
       return arrivingMove === undefined || !unclaimedMoves.has(arrivingMove);
     });
 
@@ -232,7 +236,7 @@ function buildCircularSteps(chainMoves: IMoveStep[]): TChainStep[] {
   ];
 }
 
-function buildChain(chainMoves: IMoveStep[], productsToPull: IProductToPull[]): IMoveChain {
+function buildChain(chainMoves: IMoveStep[], productsToPull: ILocatedProduct[]): IMoveChain {
   const startingLocation = chainMoves[0].fromLocation;
   const lastLocation = chainMoves[chainMoves.length - 1].toLocation;
   const isCircular = lastLocation === startingLocation;
@@ -248,7 +252,7 @@ function buildChain(chainMoves: IMoveStep[], productsToPull: IProductToPull[]): 
 }
 
 export function buildMovePlan(oldLayout: TOldLayout, newLayout: TNewLayout): IMovePlan {
-  const { moves, productsToPull } = assignLayouts(oldLayout, newLayout);
+  const { moves, productsToPull } = pairOldCopiesWithNewLocations(oldLayout, newLayout);
   const chains = groupMovesIntoChains(moves)
     .map((chainMoves) => buildChain(chainMoves, productsToPull))
     .sort((firstChain, secondChain) => compareLocations(firstChain.route[0], secondChain.route[0]));
