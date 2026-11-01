@@ -9,12 +9,7 @@ import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { fetchByReactivated } from "@client/util/commonUtil";
-import {
-  IProductMoveChain,
-  chaseProductMoves,
-  findChangedLocations,
-  findRemovedProducts,
-} from "@client/util/productLocator/chaseMoves";
+import { buildMovePlan } from "@client/util/productLocator/movePlan";
 
 type TPlanogramUpdate = templates.ProductLocatorPlanogramUpdates["planogram_updates"][number];
 
@@ -39,17 +34,9 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
     });
   }
 
-  const changedLocations: string[] = selectedUpdate
-    ? findChangedLocations(selectedUpdate.old_plano, selectedUpdate.new_plano)
-    : [];
-
-  const moveChains: IProductMoveChain[] = selectedUpdate
-    ? chaseProductMoves(selectedUpdate.old_plano, selectedUpdate.new_plano, changedLocations)
-    : [];
-
-  const removedProducts = selectedUpdate
-    ? findRemovedProducts(selectedUpdate.old_plano, selectedUpdate.new_plano, changedLocations)
-    : [];
+  const movePlan = selectedUpdate
+    ? buildMovePlan(selectedUpdate.old_plano, selectedUpdate.new_plano)
+    : null;
 
   async function handleApply(planogramUpdate: TPlanogramUpdate) {
     const confirmed = window.confirm(
@@ -167,7 +154,7 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                   )
                 )}
 
-                {removedProducts.length > 0 && (
+                {movePlan && movePlan.productsToPull.length > 0 && (
                   <Alert variant="warning" className="mb-4">
                     <strong>The following products should be pulled</strong> as they are no longer
                     part of the new planogram:
@@ -175,7 +162,7 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                       className="mb-0 mt-2"
                       style={{ fontFamily: 'Consolas, "Courier New", monospace' }}
                     >
-                      {removedProducts.map(({ location, product }) => (
+                      {movePlan.productsToPull.map(({ location, product }) => (
                         <li key={`${location}:${product.upc}`}>
                           <strong>{location}</strong> — {product.name} ({product.upc})
                         </li>
@@ -184,83 +171,72 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                   </Alert>
                 )}
 
-                {moveChains.length === 0 ? (
-                  <p className="text-muted mb-0">No product location changes detected.</p>
-                ) : (
-                  moveChains.map(({ moves, isCircular }, chainIdx) => (
-                    <div key={chainIdx} className={chainIdx > 0 ? "mt-4" : ""}>
-                      <div className="d-flex align-items-center mb-2">
-                        <small className="text-uppercase text-muted fw-bold">
-                          Chain {chainIdx + 1}
-                        </small>
-                        <hr className="flex-grow-1 ms-2" />
-                      </div>
-                      <p
-                        className="text-muted mb-2"
-                        style={{ fontFamily: 'Consolas, "Courier New", monospace' }}
-                      >
-                        {moves[0].fromLocation}
-                        {moves.map((move) => ` → ${move.toLocation}`).join("")}
-                      </p>
-                      {isCircular ? (
-                        <p className="text-info fw-semibold mb-2">
-                          This chain is circular — its products shift around, so nothing needs
-                          emptying first.
-                        </p>
-                      ) : (
-                        <p className="text-warning fw-semibold mb-2">
-                          Empty out{" "}
-                          <span style={{ fontFamily: 'Consolas, "Courier New", monospace' }}>
-                            {moves[moves.length - 1].toLocation}
-                          </span>{" "}
-                          entirely first — its contents have no new location.
-                        </p>
-                      )}
-                      {/* chaseProductMoves discovers each chain by walking forward from its
-                          starting location, but the moves must physically be carried out in
-                          the opposite order: the last hop's location has nowhere further to
-                          go, so it must be emptied first to make room for the hop before it,
-                          and so on back to the start. For a circular chain there is no true
-                          dead end (the walk stopped because it looped back on itself), so this
-                          reversal is still a reasonable execution order even though nothing
-                          actually needs emptying first. */}
-                      <ListGroup variant="flush" className="border rounded">
-                        {[...moves].reverse().map((move) => {
-                          const moveKey = `${move.fromLocation}:${move.product.upc}`;
-                          const isCompleted = completedMoves.has(moveKey);
-                          return (
-                            <ListGroup.Item
-                              key={moveKey}
-                              action
-                              onClick={() => toggleMoveCompleted(moveKey)}
-                              style={{ cursor: "pointer" }}
-                              className="d-flex align-items-center justify-content-between gap-2"
-                            >
-                              <span
-                                style={{ fontFamily: 'Consolas, "Courier New", monospace' }}
-                                className={
-                                  isCompleted ? "text-decoration-line-through text-muted" : ""
-                                }
-                              >
-                                <strong>
-                                  {move.fromLocation} → {move.toLocation}
-                                </strong>{" "}
-                                - {move.product.name} ({move.product.upc})
-                              </span>
-                              <FontAwesomeIcon
-                                icon={faCircleCheck}
-                                className={
-                                  isCompleted ? "text-success" : "text-secondary opacity-25"
-                                }
-                                size="lg"
-                              />
-                            </ListGroup.Item>
-                          );
-                        })}
-                      </ListGroup>
-                    </div>
-                  ))
+                {movePlan?.chains.length === 0 && movePlan.productsToPull.length === 0 && (
+                  <p className="text-muted mb-0">No cards need moving or pulling.</p>
                 )}
+
+                {movePlan?.chains.map(({ route, steps, isCircular, deadEndPulls }, chainIdx) => (
+                  <div key={chainIdx} className={chainIdx > 0 ? "mt-4" : ""}>
+                    <div className="d-flex align-items-center mb-2">
+                      <small className="text-uppercase text-muted fw-bold">
+                        Chain {chainIdx + 1}
+                      </small>
+                      <hr className="flex-grow-1 ms-2" />
+                    </div>
+                    <p
+                      className="text-muted mb-2"
+                      style={{ fontFamily: 'Consolas, "Courier New", monospace' }}
+                    >
+                      {route.join(" → ")}
+                    </p>
+                    {isCircular && (
+                      <p className="text-info fw-semibold mb-2">
+                        This chain is circular — its products shift around, so nothing needs
+                        emptying first.
+                      </p>
+                    )}
+                    {deadEndPulls.map(({ location, product }) => (
+                      <p key={product.upc} className="text-warning fw-semibold mb-2">
+                        Pull {product.name} ({product.upc}) from{" "}
+                        <span style={{ fontFamily: 'Consolas, "Courier New", monospace' }}>
+                          {location}
+                        </span>{" "}
+                        first. It has no new location.
+                      </p>
+                    ))}
+                    <ListGroup variant="flush" className="border rounded">
+                      {steps.map((step) => {
+                        const isCompleted = completedMoves.has(step.key);
+                        return (
+                          <ListGroup.Item
+                            key={step.key}
+                            action
+                            onClick={() => toggleMoveCompleted(step.key)}
+                            style={{ cursor: "pointer" }}
+                            className="d-flex align-items-center justify-content-between gap-2"
+                          >
+                            <span
+                              style={{ fontFamily: 'Consolas, "Courier New", monospace' }}
+                              className={
+                                isCompleted ? "text-decoration-line-through text-muted" : ""
+                              }
+                            >
+                              <strong>
+                                {step.fromLocation} → {step.toLocation}
+                              </strong>{" "}
+                              - {step.product.name} ({step.product.upc})
+                            </span>
+                            <FontAwesomeIcon
+                              icon={faCircleCheck}
+                              className={isCompleted ? "text-success" : "text-secondary opacity-25"}
+                              size="lg"
+                            />
+                          </ListGroup.Item>
+                        );
+                      })}
+                    </ListGroup>
+                  </div>
+                ))}
               </Accordion.Body>
             </Accordion.Item>
           </Accordion>
