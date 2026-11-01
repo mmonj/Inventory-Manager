@@ -40,3 +40,4 @@ class ICreatePlanogram:
     plano_type: str
     store_id: int
     horizontal_section_thresholds: list[str] | None = None
+    planogram_text_dump: str = ""

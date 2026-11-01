@@ -109,3 +109,5 @@ class ISubmitPlanogramProductsResult(NamedTuple):
 @interface
 class IPlanogramCreated(NamedTuple):
     planogram: Pick[Planogram, "pk", "name", "date_start", "date_end", "plano_type_info"]
+    num_products_added: int
+    num_products_parsed: int

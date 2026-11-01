@@ -13,6 +13,9 @@ import { EditPlanogramModal } from "@client/components/productLocator/EditPlanog
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { fetchByReactivated } from "@client/util/commonUtil";
+import { toast } from "@client/util/toast";
+
+import "@client/scss/product_locator/monospace-text.scss";
 
 type SelectOption = { value: number; label: string };
 
@@ -92,6 +95,7 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
     const name = formData.get("name") as string;
     const planoType = formData.get("plano_type") as string;
     const thresholdsRaw = (formData.get("horizontal_section_thresholds") as string).trim();
+    const planogramTextDump = formData.get("planogram_text_dump") as string;
 
     const horizontalSectionThresholds = thresholdsRaw
       ? thresholdsRaw
@@ -108,7 +112,7 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
       return;
     }
 
-    const [isSuccess] = await createPlanogramFetcher.fetchData(() =>
+    const [isSuccess, createdPlanogram] = await createPlanogramFetcher.fetchData(() =>
       fetchByReactivated<interfaces.IPlanogramCreated>(
         reverse("product_locator:create_planogram"),
         djangoContext.csrf_token,
@@ -118,12 +122,21 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
           plano_type: planoType,
           store_id: selectedStore.value,
           horizontal_section_thresholds: horizontalSectionThresholds,
+          planogram_text_dump: planogramTextDump,
         })
       )
     );
 
     if (isSuccess) {
       formElement.reset();
+
+      if (createdPlanogram.num_products_parsed > 0) {
+        toast.success(
+          `Created "${createdPlanogram.planogram.name}" with ${String(createdPlanogram.num_products_added)} of ${String(createdPlanogram.num_products_parsed)} item(s).`
+        );
+      } else {
+        toast.success(`Created "${createdPlanogram.planogram.name}".`);
+      }
 
       try {
         await refetchPlanograms();
@@ -320,6 +333,21 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
                     Optional. Enter single-character section letters separated by commas or spaces.
                     The section letter(s) will indicate the row letter(s) after which a visual
                     separator is created when displaying the planogram grid.
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <label htmlFor="planogram_text_dump" className="form-label fw-bold">
+                    Planogram Text Dump
+                  </label>
+                  <textarea
+                    className="form-control monospace-text"
+                    id="planogram_text_dump"
+                    name="planogram_text_dump"
+                    rows={10}
+                  />
+                  <div className="form-text">
+                    Optional. Leave blank to create an empty planogram.
                   </div>
                 </div>
 

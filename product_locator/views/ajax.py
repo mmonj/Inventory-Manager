@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models import Count, Prefetch
 from django.http import HttpResponse
 from rest_framework.decorators import api_view, permission_classes
@@ -258,8 +259,28 @@ def create_planogram(request: DrfRequest) -> HttpResponse:
     except ValidationError as ex:
         raise DrfValidationError(ex.messages) from ex
 
-    planogram.save()
+    planogram_text_dump = request_data.planogram_text_dump
+    product_list, parse_errors = (
+        planogram_parser.parse_data(planogram_text_dump)
+        if planogram_text_dump.strip()
+        else ([], [])
+    )
+    if parse_errors:
+        return error_json_response(parse_errors, status=400)
+
+    with transaction.atomic():
+        planogram.save()
+
+        add_result = util.add_location_records(product_list, planogram)
+        if not add_result.ok:
+            # Roll back the planogram too -- a failed text dump must not leave it behind empty.
+            transaction.set_rollback(True)
+            return error_json_response(add_result.err, status=400)
 
     logger.info("Created planogram '%s' for store '%s'", planogram.name, store.name)
 
-    return interfaces_response.IPlanogramCreated(planogram=planogram).render(request)
+    return interfaces_response.IPlanogramCreated(
+        planogram=planogram,
+        num_products_added=add_result.value,
+        num_products_parsed=len(product_list),
+    ).render(request)

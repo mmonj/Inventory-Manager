@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
@@ -254,12 +256,14 @@ def test_delete_endpoint_refuses_regular_users(
     assert Planogram.objects.filter(pk=planogram.pk).exists()
 
 
-def test_apply_endpoint_lets_superusers_through(planogram: Planogram) -> None:
+def test_apply_endpoint_lets_superusers_through(
+    superuser_client: Client, planogram: Planogram
+) -> None:
     update = queue_update(planogram, imported_product("A1", UPC_1))
-    client = Client()
-    client.force_login(get_user_model().objects.create_superuser(username="admin", password="x"))  # noqa: S106 -- test-only credential
 
-    response = client.post(reverse("product_locator:apply_planogram_update", args=[update.pk]))
+    response = superuser_client.post(
+        reverse("product_locator:apply_planogram_update", args=[update.pk])
+    )
 
     assert response.status_code == 200
     assert layout_of(planogram) == {"A1": [UPC_1]}
@@ -308,3 +312,92 @@ def test_store_planograms_count_ignores_a_pending_update(
     queue_update(planogram, imported_product("A1", UPC_2), imported_product("A2", UPC_3))
 
     assert product_counts_for_store(regular_user_client, planogram) == [1]
+
+
+@pytest.fixture
+def superuser_client() -> Client:
+    client = Client()
+    client.force_login(get_user_model().objects.create_superuser(username="admin", password="x"))  # noqa: S106 -- test-only credential
+    return client
+
+
+def post_new_planogram(client: Client, store: Store, planogram_text_dump: str) -> Any:
+    return client.post(
+        reverse("product_locator:create_planogram"),
+        {
+            "name": "Fall Plano",
+            "plano_type": Planogram.PlanoType.SEASONAL,
+            "store_id": store.pk,
+            "planogram_text_dump": planogram_text_dump,
+        },
+        content_type="application/json",
+        headers={"Accept": "application/json"},
+    )
+
+
+@pytest.fixture
+def store() -> Store:
+    return Store.objects.create(name="T2000")
+
+
+def test_creating_with_a_text_dump_fills_the_new_planogram(
+    superuser_client: Client, store: Store
+) -> None:
+    text_dump = f"A1 Section 1 {UPC_1} Cat Box\nA2 Section 1 {UPC_2} Spectacular"
+
+    response = post_new_planogram(superuser_client, store, text_dump)
+
+    assert response.status_code == 200
+    assert response.json()["num_products_added"] == 2
+    assert response.json()["num_products_parsed"] == 2
+    assert layout_of(store.planograms.get()) == {"A1": [UPC_1], "A2": [UPC_2]}
+
+
+def test_creating_with_a_text_dump_queues_no_planogram_update(
+    superuser_client: Client, store: Store
+) -> None:
+    response = post_new_planogram(superuser_client, store, f"A1 Section 1 {UPC_1} Cat Box")
+
+    assert response.status_code == 200
+    assert not PlanogramUpdate.objects.exists()
+
+
+def test_creating_with_a_text_dump_allows_two_products_at_one_location(
+    superuser_client: Client, store: Store
+) -> None:
+    text_dump = f"A1 Section 1 {UPC_1} Cat Box\nA1 Section 1 {UPC_2} Spectacular"
+
+    response = post_new_planogram(superuser_client, store, text_dump)
+
+    assert response.status_code == 200
+    assert layout_of(store.planograms.get()) == {"A1": [UPC_1, UPC_2]}
+
+
+@pytest.mark.parametrize("blank_text_dump", ["", " \n\t "])
+def test_creating_with_a_blank_text_dump_makes_an_empty_planogram(
+    superuser_client: Client, store: Store, blank_text_dump: str
+) -> None:
+    response = post_new_planogram(superuser_client, store, blank_text_dump)
+
+    assert response.status_code == 200
+    assert response.json()["num_products_parsed"] == 0
+    assert layout_of(store.planograms.get()) == {}
+
+
+def test_unparseable_text_dump_creates_no_planogram(superuser_client: Client, store: Store) -> None:
+    response = post_new_planogram(superuser_client, store, "not a planogram line")
+
+    assert response.status_code == 400
+    assert not store.planograms.exists()
+
+
+def test_invalid_product_in_text_dump_creates_no_planogram(
+    superuser_client: Client, store: Store
+) -> None:
+    overlong_name = "x" * 101
+
+    response = post_new_planogram(superuser_client, store, f"A1 Section 1 {UPC_1} {overlong_name}")
+
+    assert response.status_code == 400
+    assert not store.planograms.exists()
+    assert not Product.objects.filter(upc=UPC_1).exists()
