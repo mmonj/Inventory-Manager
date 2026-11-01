@@ -89,12 +89,11 @@ class IPlanogramUpdateApplied(NamedTuple):
         PlanogramUpdate,
         "pk",
         "label",
-        "is_applied",
         "planogram.pk",
         "planogram.name",
     ]
     num_locations_removed: int
-    num_products_added: int
+    num_locations_added: int
 
 
 @interface

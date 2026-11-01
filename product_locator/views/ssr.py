@@ -2,6 +2,7 @@ import logging
 from typing import TYPE_CHECKING, cast
 
 from django.contrib.auth.decorators import login_required
+from django.db.models import Case, IntegerField, Value, When
 from django.http import HttpRequest, HttpResponse
 from django.urls import reverse_lazy
 from django.views.decorators.http import require_http_methods
@@ -9,9 +10,11 @@ from django.views.decorators.http import require_http_methods
 from product_locator.views import templates
 
 from ..models import Planogram, PlanogramUpdate, ProductScanAudit, Store
+from ..planogram_updates import get_old_plano
+from .permissions import superuser_required
 
 if TYPE_CHECKING:
-    from ..models import TPlanoTypeValue
+    from ..models import TPlanogramUpdateStatus, TPlanoTypeValue
 
 logger = logging.getLogger("main_logger")
 
@@ -33,12 +36,20 @@ def scanner(request: HttpRequest) -> HttpResponse:
 
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
+@superuser_required
 @require_http_methods(["GET"])
 def planogram_updates(request: HttpRequest) -> HttpResponse:
     updates = (
         PlanogramUpdate.objects.all()
         .select_related("planogram", "planogram__store")
-        .order_by("is_applied", "-datetime_created")
+        .annotate(
+            is_pending=Case(
+                When(status=PlanogramUpdate.Status.PENDING, then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField(),
+            )
+        )
+        .order_by("-is_pending", "-datetime_created")
     )
 
     return templates.ProductLocatorPlanogramUpdates(
@@ -46,8 +57,8 @@ def planogram_updates(request: HttpRequest) -> HttpResponse:
             templates.TPlanogramUpdate(
                 pk=update.pk,
                 label=update.label,
-                is_applied=update.is_applied,
-                old_plano=update.old_plano,
+                status=cast("TPlanogramUpdateStatus", update.status),
+                old_plano=get_old_plano(update),
                 new_plano=update.new_plano,
                 planogram=update.planogram,
             )
@@ -69,6 +80,7 @@ def scan_audit(request: HttpRequest) -> HttpResponse:
 
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))
+@superuser_required
 @require_http_methods(["GET"])
 def manage_planograms(request: HttpRequest) -> HttpResponse:
     stores = Store.objects.all()

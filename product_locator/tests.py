@@ -14,7 +14,10 @@ class ImportTest(TestCase):
         with file.open(encoding="utf8") as fd:
             self.data_dump = fd.read()
 
-        user = get_user_model().objects.create_user(username="testuser", password="testpass123")  # noqa: S106 -- test-only credential
+        user = get_user_model().objects.create_superuser(
+            username="testuser",
+            password="testpass123",  # noqa: S106 -- test-only credential
+        )
         self.client.force_login(user)
 
     def test_import(self) -> None:

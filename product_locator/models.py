@@ -17,6 +17,7 @@ class Store(models.Model):
 
 
 TPlanoTypeValue = Literal["inline", "seasonal", "other"]
+TPlanogramUpdateStatus = Literal["pending", "applied", "superseded"]
 
 
 class Planogram(models.Model):
@@ -131,13 +132,19 @@ class ProductScanAudit(models.Model):
 
 
 class PlanogramUpdate(CommonModel):
+    class Status(models.TextChoices):
+        PENDING = ("pending", "Pending")
+        APPLIED = ("applied", "Applied")
+        SUPERSEDED = ("superseded", "Superseded")
+
     label = models.CharField(max_length=100, blank=False)
     planogram = models.ForeignKey(
         Planogram, on_delete=models.CASCADE, related_name="planogram_updates"
     )
-    old_plano = models.JSONField()
+    # Only stored once applied. See planogram_updates.get_old_plano
+    old_plano = models.JSONField(null=True, blank=True)
     new_plano = models.JSONField()
-    is_applied = models.BooleanField(default=False)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
 
     def __str__(self) -> str:
         return f"{self.label} - {self.planogram}"

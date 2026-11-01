@@ -12,4 +12,6 @@ class IPlanoProduct(TypedDict):
     name: str
 
 
-TPlanoSnapshot = dict[str, IPlanoProduct]
+# A home location can hold several products until an update is applied, then exactly one
+TOldPlanoSnapshot = dict[str, list[IPlanoProduct]]
+TNewPlanoSnapshot = dict[str, IPlanoProduct]

@@ -2,8 +2,8 @@ from typing import NamedTuple
 
 from reactivated import Pick, template
 
-from ..models import Planogram, ProductScanAudit, Store
-from ..types import IPlanoProduct
+from ..models import Planogram, ProductScanAudit, Store, TPlanogramUpdateStatus
+from ..types import TNewPlanoSnapshot, TOldPlanoSnapshot
 
 
 @template
@@ -34,9 +34,9 @@ class ProductLocatorScanAudit(NamedTuple):
 class TPlanogramUpdate(NamedTuple):
     pk: int
     label: str
-    is_applied: bool
-    old_plano: dict[str, IPlanoProduct]
-    new_plano: dict[str, IPlanoProduct]
+    status: TPlanogramUpdateStatus
+    old_plano: TOldPlanoSnapshot
+    new_plano: TNewPlanoSnapshot
     planogram: Pick[Planogram, "pk", "name", "store.pk", "store.name"]
 
 

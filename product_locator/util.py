@@ -3,8 +3,10 @@ import logging
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from .models import HomeLocation, Planogram, PlanogramUpdate, Product
-from .types import IImportedProductInfo, TPlanoSnapshot
+from server.utils.typedefs import TFailure, TResult, TSuccess
+
+from .models import HomeLocation, Planogram, Product
+from .types import IImportedProductInfo
 
 logger = logging.getLogger("main_logger")
 
@@ -12,9 +14,9 @@ logger = logging.getLogger("main_logger")
 def add_location_records(
     product_list: list[IImportedProductInfo],
     planogram: Planogram,
-) -> tuple[int, list[str]]:
+) -> TResult[int, list[str]]:
     """
-    Validates every product's UPC before writing anything. If any product is invalid, no
+    Validates every new product before writing anything. If any product is invalid, no
     HomeLocation/Product/relation writes from this call are persisted (all-or-nothing import).
     """
     product_errors: list[str] = []
@@ -23,7 +25,9 @@ def add_location_records(
             continue
 
         try:
-            Product(upc=product_data["upc"], name=product_data["name"]).clean()
+            Product(upc=product_data["upc"], name=product_data["name"]).full_clean(
+                validate_unique=False
+            )
         except ValidationError as ex:
             logger.exception("Errors in creating new product: %s", ex.messages)
             product_errors.extend(
@@ -32,7 +36,7 @@ def add_location_records(
             )
 
     if product_errors:
-        return 0, product_errors
+        return TFailure(product_errors)
 
     with transaction.atomic():
         new_locations = [
@@ -60,68 +64,4 @@ def add_location_records(
 
             product.home_locations.add(home_location)
 
-    return num_products_added, []
-
-
-def build_plano_snapshot(planogram: Planogram) -> TPlanoSnapshot:
-    snapshot: TPlanoSnapshot = {}
-
-    for home_location in planogram.locations.prefetch_related("products").all():
-        product = home_location.products.first()
-        if product is None:
-            continue
-
-        snapshot[home_location.name] = {"upc": product.upc, "name": product.name}
-
-    return snapshot
-
-
-def build_new_plano_snapshot(product_list: list[IImportedProductInfo]) -> TPlanoSnapshot:
-    return {
-        product_data["location"]: {"upc": product_data["upc"], "name": product_data["name"]}
-        for product_data in product_list
-    }
-
-
-def create_planogram_update(
-    label: str, product_list: list[IImportedProductInfo], planogram: Planogram
-) -> PlanogramUpdate:
-    superseded_count = planogram.planogram_updates.filter(is_applied=False).update(is_applied=True)
-    if superseded_count > 0:
-        logger.info(
-            "%d previously queued but unapplied update(s) for planogram '%s' have been invalidated",
-            superseded_count,
-            planogram,
-        )
-
-    return PlanogramUpdate.objects.create(
-        label=label,
-        planogram=planogram,
-        old_plano=build_plano_snapshot(planogram),
-        new_plano=build_new_plano_snapshot(product_list),
-    )
-
-
-def apply_planogram_update(planogram_update: PlanogramUpdate) -> tuple[int, int, list[str]]:
-    planogram = planogram_update.planogram
-
-    product_list: list[IImportedProductInfo] = [
-        {"location": location, "upc": product["upc"], "name": product["name"]}
-        for location, product in planogram_update.new_plano.items()
-    ]
-
-    with transaction.atomic():
-        num_locations_removed, _ = planogram.locations.all().delete()
-        logger.info("Deleted all existing home locations for planogram: %s", planogram)
-
-        num_products_added, product_errors = add_location_records(product_list, planogram)
-        if product_errors:
-            # Roll back the delete too -- an invalid UPC must not leave the planogram cleared
-            # out with nothing re-added.
-            transaction.set_rollback(True)
-            return 0, 0, product_errors
-
-        planogram_update.is_applied = True
-        planogram_update.save(update_fields=["is_applied"])
-
-    return num_locations_removed, num_products_added, product_errors
+    return TSuccess(num_products_added)

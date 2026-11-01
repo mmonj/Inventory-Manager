@@ -10,9 +10,9 @@ from rest_framework.exceptions import ValidationError as DrfValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request as DrfRequest
 
-from server.utils.common import validate_structure
+from server.utils.common import error_json_response, validate_structure
 
-from .. import planogram_parser, util
+from .. import planogram_parser, planogram_updates, util
 from ..models import HomeLocation, Planogram, PlanogramUpdate, Product, ProductScanAudit, Store
 from . import interfaces_response
 from .interfaces_request import (
@@ -23,6 +23,7 @@ from .interfaces_request import (
     INewScanAuditRequest,
     ISubmitPlanogramProducts,
 )
+from .permissions import IsSuperuser
 
 logger = logging.getLogger("main_logger")
 
@@ -142,7 +143,7 @@ def get_planograms_by_store(request: DrfRequest, store_id: int) -> HttpResponse:
 
 
 @api_view(["DELETE"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsSuperuser])
 def delete_planogram(request: DrfRequest, planogram_id: int) -> HttpResponse:
     planogram = Planogram.objects.filter(pk=planogram_id).first()
 
@@ -155,33 +156,28 @@ def delete_planogram(request: DrfRequest, planogram_id: int) -> HttpResponse:
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsSuperuser])
 def apply_planogram_update(request: DrfRequest, planogram_update_id: int) -> HttpResponse:
-    planogram_update = (
-        PlanogramUpdate.objects.select_related("planogram").filter(pk=planogram_update_id).first()
-    )
+    planogram_update = PlanogramUpdate.objects.filter(pk=planogram_update_id).first()
 
     if planogram_update is None:
-        raise DrfNotFound(f"PlanogramUpdate with ID {planogram_update_id} not found")
+        return error_json_response(
+            [f"PlanogramUpdate with ID {planogram_update_id} not found"], status=404
+        )
 
-    if planogram_update.is_applied:
-        raise DrfValidationError("This planogram update has already been applied.")
-
-    num_locations_removed, num_products_added, product_errors = util.apply_planogram_update(
-        planogram_update
-    )
-    if product_errors:
-        raise DrfValidationError(product_errors)
+    apply_result = planogram_updates.apply_planogram_update(planogram_update)
+    if not apply_result.ok:
+        return error_json_response(apply_result.err, status=400)
 
     return interfaces_response.IPlanogramUpdateApplied(
-        planogram_update=planogram_update,
-        num_locations_removed=num_locations_removed,
-        num_products_added=num_products_added,
+        planogram_update=apply_result.value.planogram_update,
+        num_locations_removed=apply_result.value.num_locations_removed,
+        num_locations_added=apply_result.value.num_locations_added,
     ).render(request)
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsSuperuser])
 def submit_planogram_products(request: DrfRequest) -> HttpResponse:
     request_data = validate_structure(request.data, ISubmitPlanogramProducts)
 
@@ -205,28 +201,31 @@ def submit_planogram_products(request: DrfRequest) -> HttpResponse:
         raise DrfValidationError("The selected planogram does not have an associated store.")
 
     if request_data.is_reset_planogram:
-        label = request_data.label.strip()
-        if not label:
-            raise DrfValidationError("A label is required when resetting a planogram.")
+        queue_result = planogram_updates.queue_planogram_update(
+            request_data.label, product_list, planogram
+        )
+        if not queue_result.ok:
+            return error_json_response(queue_result.err, status=400)
 
-        planogram_update = util.create_planogram_update(label, product_list, planogram)
         return interfaces_response.ISubmitPlanogramProductsResult(
-            num_products_added=None, num_products_parsed=None, planogram_update=planogram_update
+            num_products_added=None,
+            num_products_parsed=None,
+            planogram_update=queue_result.value,
         ).render(request)
 
-    num_products_added, product_errors = util.add_location_records(product_list, planogram)
-    if product_errors:
-        raise DrfValidationError(product_errors)
+    add_result = util.add_location_records(product_list, planogram)
+    if not add_result.ok:
+        return error_json_response(add_result.err, status=400)
 
     return interfaces_response.ISubmitPlanogramProductsResult(
-        num_products_added=num_products_added,
+        num_products_added=add_result.value,
         num_products_parsed=len(product_list),
         planogram_update=None,
     ).render(request)
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsSuperuser])
 def create_planogram(request: DrfRequest) -> HttpResponse:
     request_data = validate_structure(request.data, ICreatePlanogram)
 

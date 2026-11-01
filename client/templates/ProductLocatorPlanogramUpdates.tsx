@@ -12,25 +12,11 @@ import { fetchByReactivated } from "@client/util/commonUtil";
 import {
   IProductMoveChain,
   chaseProductMoves,
-  findEmptiedLocations,
+  findChangedLocations,
+  findRemovedProducts,
 } from "@client/util/productLocator/chaseMoves";
 
 type TPlanogramUpdate = templates.ProductLocatorPlanogramUpdates["planogram_updates"][number];
-
-function getChangedLocations(planogramUpdate: TPlanogramUpdate): string[] {
-  const { old_plano, new_plano } = planogramUpdate;
-  const allLocations = new Set([...Object.keys(old_plano), ...Object.keys(new_plano)]);
-
-  return [...allLocations].filter((location) => {
-    const oldProduct = old_plano[location];
-    const newProduct = new_plano[location];
-    // old_plano/new_plano are sparse dicts at runtime (only locations with a product are
-    // keyed), but tsconfig lacks noUncheckedIndexedAccess, so TS treats these lookups as
-    // always-defined.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    return oldProduct?.upc !== newProduct?.upc;
-  });
-}
 
 export function Template(props: templates.ProductLocatorPlanogramUpdates) {
   const [selectedUpdate, setSelectedUpdate] = useState<TPlanogramUpdate | null>(null);
@@ -53,20 +39,16 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
     });
   }
 
-  const moveChains: IProductMoveChain[] = selectedUpdate
-    ? chaseProductMoves(
-        selectedUpdate.old_plano,
-        selectedUpdate.new_plano,
-        getChangedLocations(selectedUpdate)
-      )
+  const changedLocations: string[] = selectedUpdate
+    ? findChangedLocations(selectedUpdate.old_plano, selectedUpdate.new_plano)
     : [];
 
-  const emptiedLocations: string[] = selectedUpdate
-    ? findEmptiedLocations(
-        selectedUpdate.old_plano,
-        selectedUpdate.new_plano,
-        getChangedLocations(selectedUpdate)
-      )
+  const moveChains: IProductMoveChain[] = selectedUpdate
+    ? chaseProductMoves(selectedUpdate.old_plano, selectedUpdate.new_plano, changedLocations)
+    : [];
+
+  const removedProducts = selectedUpdate
+    ? findRemovedProducts(selectedUpdate.old_plano, selectedUpdate.new_plano, changedLocations)
     : [];
 
   async function handleApply(planogramUpdate: TPlanogramUpdate) {
@@ -86,7 +68,7 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
     );
 
     if (isSuccess) {
-      setSelectedUpdate((prev) => (prev ? { ...prev, is_applied: true } : prev));
+      setSelectedUpdate((prev) => (prev ? { ...prev, status: "applied" } : prev));
     }
   }
 
@@ -111,8 +93,8 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                     key={planogramUpdate.pk}
                     action
                     active={selectedUpdate?.pk === planogramUpdate.pk}
-                    disabled={planogramUpdate.is_applied}
-                    className={planogramUpdate.is_applied ? "text-muted bg-light" : ""}
+                    disabled={planogramUpdate.status !== "pending"}
+                    className={planogramUpdate.status !== "pending" ? "text-muted bg-light" : ""}
                     onClick={() => {
                       setSelectedUpdate(planogramUpdate);
                       setCompletedMoves(new Set());
@@ -126,7 +108,14 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                           {planogramUpdate.planogram.name}
                         </small>
                       </div>
-                      {planogramUpdate.is_applied && <Badge bg="secondary">Applied</Badge>}
+                      {planogramUpdate.status === "applied" && (
+                        <Badge bg="secondary">Applied</Badge>
+                      )}
+                      {planogramUpdate.status === "superseded" && (
+                        <Badge bg="light" text="dark">
+                          Superseded
+                        </Badge>
+                      )}
                     </div>
                   </ListGroup.Item>
                 ))}
@@ -143,7 +132,7 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
               </Accordion.Header>
               <Accordion.Body className="p-4">
                 <div className="d-flex justify-content-end mb-3">
-                  {!selectedUpdate.is_applied && (
+                  {selectedUpdate.status === "pending" && (
                     <Button
                       variant="success"
                       size="sm"
@@ -169,27 +158,26 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                   <Alert variant="success">
                     Removed {applyFetcher.data.num_locations_removed} previous location
                     {applyFetcher.data.num_locations_removed === 1 ? "" : "s"}. Added{" "}
-                    {applyFetcher.data.num_products_added} new location
-                    {applyFetcher.data.num_products_added === 1 ? "" : "s"}.
+                    {applyFetcher.data.num_locations_added} new location
+                    {applyFetcher.data.num_locations_added === 1 ? "" : "s"}.
                   </Alert>
                 ) : (
-                  selectedUpdate.is_applied && (
+                  selectedUpdate.status === "applied" && (
                     <Alert variant="secondary">This update has already been applied.</Alert>
                   )
                 )}
 
-                {emptiedLocations.length > 0 && (
+                {removedProducts.length > 0 && (
                   <Alert variant="warning" className="mb-4">
-                    <strong>The following locations should be emptied out</strong> as their products
-                    are no longer part of the new planogram:
+                    <strong>The following products should be pulled</strong> as they are no longer
+                    part of the new planogram:
                     <ul
                       className="mb-0 mt-2"
                       style={{ fontFamily: 'Consolas, "Courier New", monospace' }}
                     >
-                      {emptiedLocations.map((location) => (
-                        <li key={location}>
-                          <strong>{location}</strong> — {selectedUpdate.old_plano[location].name} (
-                          {selectedUpdate.old_plano[location].upc})
+                      {removedProducts.map(({ location, product }) => (
+                        <li key={`${location}:${product.upc}`}>
+                          <strong>{location}</strong> — {product.name} ({product.upc})
                         </li>
                       ))}
                     </ul>
@@ -216,8 +204,8 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                       </p>
                       {isCircular ? (
                         <p className="text-info fw-semibold mb-2">
-                          This chain is circular — everything gets shifted, no products get
-                          discarded.
+                          This chain is circular — its products shift around, so nothing needs
+                          emptying first.
                         </p>
                       ) : (
                         <p className="text-warning fw-semibold mb-2">
@@ -238,7 +226,7 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                           actually needs emptying first. */}
                       <ListGroup variant="flush" className="border rounded">
                         {[...moves].reverse().map((move) => {
-                          const moveKey = move.fromLocation;
+                          const moveKey = `${move.fromLocation}:${move.product.upc}`;
                           const isCompleted = completedMoves.has(moveKey);
                           return (
                             <ListGroup.Item
