@@ -2,7 +2,7 @@ import logging
 from typing import Any
 
 from django.core.exceptions import ValidationError
-from django.db.models import Prefetch
+from django.db.models import Count, Prefetch
 from django.http import HttpResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import NotFound as DrfNotFound
@@ -135,11 +135,20 @@ def create_new_scan_audit(request: DrfRequest) -> HttpResponse:
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_planograms_by_store(request: DrfRequest, store_id: int) -> HttpResponse:
-    planograms = Planogram.objects.filter(store__pk=store_id, date_end__isnull=True).order_by(
-        "-date_start"
+    planograms = (
+        Planogram.objects.filter(store__pk=store_id, date_end__isnull=True)
+        .annotate(product_count=Count("locations__products", distinct=True))
+        .order_by("-date_start")
     )
 
-    return interfaces_response.IPlanogramsByStore(planograms=list(planograms)).render(request)
+    return interfaces_response.IPlanogramsByStore(
+        planograms=[
+            interfaces_response.TStorePlanogram(
+                planogram=planogram, product_count=planogram.product_count
+            )
+            for planogram in planograms
+        ]
+    ).render(request)
 
 
 @api_view(["DELETE"])

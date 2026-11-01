@@ -46,18 +46,21 @@ class IScanAuditCreation(NamedTuple):
     scan_audit: Pick[ProductScanAudit, "pk", "product_type", "datetime_created"]
 
 
+class TStorePlanogram(NamedTuple):
+    planogram: Pick[
+        Planogram,
+        "pk",
+        "name",
+        "date_start",
+        "date_end",
+        "plano_type_info",
+    ]
+    product_count: int
+
+
 @interface
 class IPlanogramsByStore(NamedTuple):
-    planograms: list[
-        Pick[
-            Planogram,
-            "pk",
-            "name",
-            "date_start",
-            "date_end",
-            "plano_type_info",
-        ]
-    ]
+    planograms: list[TStorePlanogram]
 
 
 @interface

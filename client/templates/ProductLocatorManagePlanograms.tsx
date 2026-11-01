@@ -200,9 +200,10 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
                         {[...planogramsFetcher.data.planograms]
                           .sort(
                             (a, b) =>
-                              new Date(b.date_start).getTime() - new Date(a.date_start).getTime()
+                              new Date(b.planogram.date_start).getTime() -
+                              new Date(a.planogram.date_start).getTime()
                           )
-                          .map((planogram) => {
+                          .map(({ planogram, product_count: productCount }) => {
                             const isSeasonal = planogram.plano_type_info.value === "seasonal";
                             return (
                               <ListGroup.Item
@@ -219,6 +220,8 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
                                   <h6 className="mb-1 fw-bold">{planogram.name}</h6>
                                   <small className="text-muted">
                                     Started: {new Date(planogram.date_start).toLocaleDateString()}
+                                    {" · "}
+                                    {productCount} product{productCount !== 1 ? "s" : ""}
                                   </small>
                                 </div>
                                 <div className="d-flex align-items-center gap-2">

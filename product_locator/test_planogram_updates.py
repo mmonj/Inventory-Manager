@@ -272,3 +272,39 @@ def test_manage_pages_refuse_regular_users(regular_user_client: Client, route_na
     response = regular_user_client.get(reverse(route_name))
 
     assert response.status_code == 403
+
+
+def product_counts_for_store(client: Client, planogram: Planogram) -> list[int]:
+    response = client.get(
+        reverse("product_locator:get_planograms_by_store", args=[planogram.store_id]),
+        headers={"Accept": "application/json"},
+    )
+    assert response.status_code == 200
+    return [entry["product_count"] for entry in response.json()["planograms"]]
+
+
+def test_store_planograms_count_a_product_at_several_locations_once(
+    regular_user_client: Client, planogram: Planogram
+) -> None:
+    place_product(planogram, "A1", UPC_1)
+    place_product(planogram, "A1", UPC_2)
+    place_product(planogram, "C4", UPC_1)
+
+    assert product_counts_for_store(regular_user_client, planogram) == [2]
+
+
+def test_store_planograms_count_an_empty_planogram_as_zero(
+    regular_user_client: Client, planogram: Planogram
+) -> None:
+    HomeLocation.objects.create(name="A1", planogram=planogram)
+
+    assert product_counts_for_store(regular_user_client, planogram) == [0]
+
+
+def test_store_planograms_count_ignores_a_pending_update(
+    regular_user_client: Client, planogram: Planogram
+) -> None:
+    place_product(planogram, "A1", UPC_1)
+    queue_update(planogram, imported_product("A1", UPC_2), imported_product("A2", UPC_3))
+
+    assert product_counts_for_store(regular_user_client, planogram) == [1]
