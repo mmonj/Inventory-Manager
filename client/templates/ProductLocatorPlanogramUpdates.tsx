@@ -167,8 +167,8 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
 
                 {movePlan && movePlan.productsToPull.length > 0 && (
                   <Alert variant="warning" className="mb-4">
-                    <strong>The following products should be pulled</strong> as they are no longer
-                    part of the new planogram:
+                    <strong>The following products should be pulled</strong> as the new planogram
+                    has no place for them at these locations:
                     <ul
                       className="mb-0 mt-2"
                       style={{ fontFamily: 'Consolas, "Courier New", monospace' }}
@@ -212,7 +212,7 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                         <span style={{ fontFamily: 'Consolas, "Courier New", monospace' }}>
                           {location}
                         </span>{" "}
-                        first. It has no new location.
+                        first. It no longer belongs there.
                       </p>
                     ))}
                     <ListGroup variant="flush" className="border rounded">
