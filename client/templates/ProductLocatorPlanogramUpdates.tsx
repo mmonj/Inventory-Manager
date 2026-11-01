@@ -9,9 +9,20 @@ import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { fetchByReactivated } from "@client/util/commonUtil";
-import { buildMovePlan } from "@client/util/productLocator/movePlan";
+import { type TChainStep, buildMovePlan } from "@client/util/productLocator/movePlan";
 
 type TPlanogramUpdate = templates.ProductLocatorPlanogramUpdates["planogram_updates"][number];
+
+function describeStep(step: TChainStep): string {
+  switch (step.kind) {
+    case "move":
+      return `${step.fromLocation} → ${step.toLocation}`;
+    case "pullAside":
+      return `Pull aside from ${step.location}`;
+    case "place":
+      return `Place in ${step.location}`;
+  }
+}
 
 export function Template(props: templates.ProductLocatorPlanogramUpdates) {
   const [selectedUpdate, setSelectedUpdate] = useState<TPlanogramUpdate | null>(null);
@@ -191,8 +202,8 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                     </p>
                     {isCircular && (
                       <p className="text-info fw-semibold mb-2">
-                        This chain is circular — its products shift around, so nothing needs
-                        emptying first.
+                        This chain is circular, so every location in it is full. Pull one card aside
+                        to free a location, then place that card last.
                       </p>
                     )}
                     {deadEndPulls.map(({ location, product }) => (
@@ -221,10 +232,8 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
                                 isCompleted ? "text-decoration-line-through text-muted" : ""
                               }
                             >
-                              <strong>
-                                {step.fromLocation} → {step.toLocation}
-                              </strong>{" "}
-                              - {step.product.name} ({step.product.upc})
+                              <strong>{describeStep(step)}</strong> - {step.product.name} (
+                              {step.product.upc})
                             </span>
                             <FontAwesomeIcon
                               icon={faCircleCheck}

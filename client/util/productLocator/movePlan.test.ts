@@ -87,10 +87,9 @@ describe("buildMovePlan", () => {
         { B3: NEW_VERSION, A1: OTHER_CARD }
       );
 
-      expect(plan.chains).toHaveLength(1);
-      expect(plan.chains[0].route).toEqual(["A1", "B3", "A1"]);
-      expect(plan.chains[0].isCircular).toBe(true);
-      expect(plan.chains[0].steps).toHaveLength(2);
+      expect(plan.chains.map((chain) => [chain.route, chain.isCircular])).toEqual([
+        [["A1", "B3", "A1"], true],
+      ]);
     });
 
     it("finds a longer loop alongside a straight chain", () => {
@@ -103,6 +102,97 @@ describe("buildMovePlan", () => {
         [["A2", "B5", "C1", "A2"], true],
         [["D1", "E1"], false],
       ]);
+    });
+  });
+
+  describe("circular chains", () => {
+    it("holds a card aside for a straight swap and places it last", () => {
+      const plan = buildMovePlan(
+        { A1: [NEW_VERSION], B3: [OTHER_CARD] },
+        { A1: OTHER_CARD, B3: NEW_VERSION }
+      );
+
+      expect(plan.chains[0].steps).toEqual([
+        {
+          kind: "pullAside",
+          key: "pull-aside:A1:B3:222222222222",
+          location: "A1",
+          product: NEW_VERSION,
+        },
+        {
+          kind: "move",
+          key: "B3:A1:333333333333",
+          fromLocation: "B3",
+          toLocation: "A1",
+          product: OTHER_CARD,
+        },
+        { kind: "place", key: "place:A1:B3:222222222222", location: "B3", product: NEW_VERSION },
+      ]);
+    });
+
+    it("works back around a longer loop so each move lands on a freed location", () => {
+      const plan = buildMovePlan(
+        { C1: [SECOND_CARD], A2: [NEW_VERSION], B5: [OTHER_CARD] },
+        { B5: NEW_VERSION, C1: OTHER_CARD, A2: SECOND_CARD }
+      );
+
+      expect(plan.chains).toEqual([
+        {
+          route: ["A2", "B5", "C1", "A2"],
+          steps: [
+            {
+              kind: "pullAside",
+              key: "pull-aside:A2:B5:222222222222",
+              location: "A2",
+              product: NEW_VERSION,
+            },
+            {
+              kind: "move",
+              key: "C1:A2:444444444444",
+              fromLocation: "C1",
+              toLocation: "A2",
+              product: SECOND_CARD,
+            },
+            {
+              kind: "move",
+              key: "B5:C1:333333333333",
+              fromLocation: "B5",
+              toLocation: "C1",
+              product: OTHER_CARD,
+            },
+            {
+              kind: "place",
+              key: "place:A2:B5:222222222222",
+              location: "B5",
+              product: NEW_VERSION,
+            },
+          ],
+          isCircular: true,
+          deadEndPulls: [],
+        },
+      ]);
+    });
+
+    it("gives every step in a plan its own key", () => {
+      const plan = buildMovePlan(
+        { A1: [NEW_VERSION], B3: [OTHER_CARD], C1: [SECOND_CARD], D2: [REMOVED_CARD] },
+        { A1: OTHER_CARD, B3: NEW_VERSION, C1: REMOVED_CARD, D2: SECOND_CARD }
+      );
+
+      expect(plan.chains.flatMap((chain) => chain.steps.map((step) => step.key))).toEqual([
+        "pull-aside:A1:B3:222222222222",
+        "B3:A1:333333333333",
+        "place:A1:B3:222222222222",
+        "pull-aside:C1:D2:444444444444",
+        "D2:C1:555555555555",
+        "place:C1:D2:444444444444",
+      ]);
+    });
+
+    it("leaves a straight chain's steps as plain moves", () => {
+      const plan = buildMovePlan({ A1: [NEW_VERSION] }, { B3: NEW_VERSION });
+
+      expect(plan.chains[0].steps).toEqual([A1_TO_B3]);
     });
   });
 

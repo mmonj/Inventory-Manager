@@ -13,6 +13,22 @@ export interface IMoveStep {
   product: TPlanoProduct;
 }
 
+export interface IPullAsideStep {
+  kind: "pullAside";
+  key: string;
+  location: string;
+  product: TPlanoProduct;
+}
+
+export interface IPlaceStep {
+  kind: "place";
+  key: string;
+  location: string;
+  product: TPlanoProduct;
+}
+
+export type TChainStep = IMoveStep | IPullAsideStep | IPlaceStep;
+
 export interface IProductToPull {
   location: string;
   product: TPlanoProduct;
@@ -21,8 +37,8 @@ export interface IProductToPull {
 export interface IMoveChain {
   // Every location the chain visits, in the direction the cards travel
   route: string[];
-  // In the order they're physically done, which is the reverse of the route
-  steps: IMoveStep[];
+  // In the order they're physically done, which runs against the direction the cards travel
+  steps: TChainStep[];
   isCircular: boolean;
   deadEndPulls: IProductToPull[];
 }
@@ -96,6 +112,26 @@ function claimChainMoves(startingLocation: string, unclaimedMoves: IMoveStep[]):
   return chainMoves;
 }
 
+function buildCircularSteps(chainMoves: IMoveStep[]): TChainStep[] {
+  const [heldCardMove, ...remainingMoves] = chainMoves;
+
+  return [
+    {
+      kind: "pullAside",
+      key: `pull-aside:${heldCardMove.key}`,
+      location: heldCardMove.fromLocation,
+      product: heldCardMove.product,
+    },
+    ...remainingMoves.reverse(),
+    {
+      kind: "place",
+      key: `place:${heldCardMove.key}`,
+      location: heldCardMove.toLocation,
+      product: heldCardMove.product,
+    },
+  ];
+}
+
 function buildChain(chainMoves: IMoveStep[], productsToPull: IProductToPull[]): IMoveChain {
   const startingLocation = chainMoves[0].fromLocation;
   const lastLocation = chainMoves[chainMoves.length - 1].toLocation;
@@ -103,7 +139,7 @@ function buildChain(chainMoves: IMoveStep[], productsToPull: IProductToPull[]): 
 
   return {
     route: [startingLocation, ...chainMoves.map((move) => move.toLocation)],
-    steps: [...chainMoves].reverse(),
+    steps: isCircular ? buildCircularSteps(chainMoves) : [...chainMoves].reverse(),
     isCircular,
     deadEndPulls: isCircular
       ? []
