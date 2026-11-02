@@ -29,6 +29,11 @@ ajax = [
         name="add_new_product_location",
     ),
     path(
+        "ajax/carry_over_home_locations/",
+        ajax_views.carry_over_home_locations,
+        name="carry_over_home_locations",
+    ),
+    path(
         "ajax/add_upc_to_scan_audit/",
         ajax_views.add_upc_to_scan_audit,
         name="add_upc_to_scan_audit",

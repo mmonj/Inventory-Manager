@@ -1,0 +1,9 @@
+// Bootstrap gives every modal the same z-index, so these keep the first modal under the second
+// modal's backdrop.
+.modal-backdrop.carryover-modal-backdrop {
+  z-index: 1060;
+}
+
+.modal.carryover-modal {
+  z-index: 1065;
+}

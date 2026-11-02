@@ -28,6 +28,14 @@ class IAddNewProductLocation:
 
 
 @frozen
+class ICarryOverHomeLocations:
+    upc: str
+    older_product_id: int
+    planogram_ids: list[int]
+    store_id: int
+
+
+@frozen
 class IEditPlanogram:
     planogram_id: int
     name: str

@@ -19,6 +19,7 @@ from .interfaces_request import (
     GetProductLocationRequest,
     IAddNewProductLocation,
     IAppendScanAudit,
+    ICarryOverHomeLocations,
     ICreatePlanogram,
     IEditPlanogram,
     INewScanAuditRequest,
@@ -101,6 +102,28 @@ def add_new_product_location(request: DrfRequest) -> HttpResponse:
         return error_json_response(assign_result.err, status=400)
 
     return interfaces_response.IHomeLocationUpdate(home_location=assign_result.value).render(
+        request
+    )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def carry_over_home_locations(request: DrfRequest) -> HttpResponse:
+    request_data = validate_structure(request.data, ICarryOverHomeLocations)
+
+    older_product = Product.objects.filter(pk=request_data.older_product_id).first()
+    if older_product is None:
+        return error_json_response(
+            [f"Product with ID {request_data.older_product_id} not found"], status=404
+        )
+
+    carryover_result = home_locations.carry_over_home_locations(
+        request_data.upc, older_product, request_data.planogram_ids, request_data.store_id
+    )
+    if not carryover_result.ok:
+        return error_json_response(carryover_result.err, status=400)
+
+    return interfaces_response.IProductLocatorProduct(product=carryover_result.value).render(
         request
     )
 

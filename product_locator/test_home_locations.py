@@ -12,6 +12,7 @@ from .models import HomeLocation, Planogram, Product, ProductScanAudit, Store
 pytestmark = pytest.mark.django_db
 
 UPC_1 = "012345678905"
+OLDER_UPC = "036000291452"
 
 
 @pytest.fixture
@@ -51,6 +52,22 @@ def post_scan(client: Client, scan_audit: ProductScanAudit, upc: str) -> Any:
         reverse("product_locator:add_upc_to_scan_audit"),
         data={"scan_audit_id": scan_audit.pk, "upc": upc},
         content_type="application/json",
+    )
+
+
+def post_carryover(
+    client: Client, older_product: Product, planograms: list[Planogram], store: Store
+) -> Any:
+    return client.post(
+        reverse("product_locator:carry_over_home_locations"),
+        data={
+            "upc": UPC_1,
+            "older_product_id": older_product.pk,
+            "planogram_ids": [planogram.pk for planogram in planograms],
+            "store_id": store.pk,
+        },
+        content_type="application/json",
+        headers={"accept": "application/json"},
     )
 
 
@@ -253,3 +270,104 @@ def test_scan_audit_keeps_the_name_of_an_existing_upc(
     product.refresh_from_db()
     assert product.name == "Original Card"
     assert list(scan_audit.products_in_stock.all()) == [product]
+
+
+def test_carryover_creates_the_product_with_the_older_name_and_returns_it(
+    logged_in_client: Client, planogram: Planogram, store: Store
+) -> None:
+    older_product = Product.objects.create(upc=OLDER_UPC, name="Older Card")
+    older_product.home_locations.add(HomeLocation.objects.create(name="A1", planogram=planogram))
+
+    response = post_carryover(logged_in_client, older_product, [planogram], store)
+
+    assert response.status_code == 200
+    assert response.json()["product"]["upc"] == UPC_1
+    assert response.json()["product"]["name"] == "Older Card"
+    product = Product.objects.get(upc=UPC_1)
+    assert product.name == "Older Card"
+    assert [location.name for location in product.home_locations.all()] == ["A1"]
+
+
+def test_carryover_links_every_older_location_in_a_chosen_planogram_only(
+    logged_in_client: Client, planogram: Planogram, store: Store
+) -> None:
+    unchosen_planogram = Planogram.objects.create(name="Seasonal", store=store)
+    older_product = Product.objects.create(upc=OLDER_UPC, name="Older Card")
+    older_product.home_locations.add(
+        HomeLocation.objects.create(name="A1", planogram=planogram),
+        HomeLocation.objects.create(name="B2", planogram=planogram),
+        HomeLocation.objects.create(name="C3", planogram=unchosen_planogram),
+    )
+
+    response = post_carryover(logged_in_client, older_product, [planogram], store)
+
+    assert response.status_code == 200
+    product = Product.objects.get(upc=UPC_1)
+    assert sorted(location.name for location in product.home_locations.all()) == ["A1", "B2"]
+
+
+def test_carryover_leaves_the_older_product_its_home_locations(
+    logged_in_client: Client, planogram: Planogram, store: Store
+) -> None:
+    older_product = Product.objects.create(upc=OLDER_UPC, name="Older Card")
+    older_product.home_locations.add(HomeLocation.objects.create(name="A1", planogram=planogram))
+
+    response = post_carryover(logged_in_client, older_product, [planogram], store)
+
+    assert response.status_code == 200
+    assert [location.name for location in older_product.home_locations.all()] == ["A1"]
+    assert HomeLocation.objects.count() == 1
+
+
+def test_carryover_links_an_existing_name_outside_the_grammar(
+    logged_in_client: Client, planogram: Planogram, store: Store
+) -> None:
+    older_product = Product.objects.create(upc=OLDER_UPC, name="Older Card")
+    older_product.home_locations.add(
+        HomeLocation.objects.create(name="OUTDATED99", planogram=planogram)
+    )
+
+    response = post_carryover(logged_in_client, older_product, [planogram], store)
+
+    assert response.status_code == 200
+    product = Product.objects.get(upc=UPC_1)
+    assert [location.name for location in product.home_locations.all()] == ["OUTDATED99"]
+
+
+def test_carryover_never_links_a_planogram_from_another_store(
+    logged_in_client: Client, planogram: Planogram, store: Store
+) -> None:
+    other_store = Store.objects.create(name="T2000")
+    older_product = Product.objects.create(upc=OLDER_UPC, name="Older Card")
+    older_product.home_locations.add(HomeLocation.objects.create(name="A1", planogram=planogram))
+
+    post_carryover(logged_in_client, older_product, [planogram], other_store)
+
+    assert not HomeLocation.objects.filter(products__upc=UPC_1).exists()
+
+
+def test_carryover_requires_a_login(planogram: Planogram, store: Store) -> None:
+    older_product = Product.objects.create(upc=OLDER_UPC, name="Older Card")
+
+    response = post_carryover(Client(), older_product, [planogram], store)
+
+    assert response.status_code in {401, 403}
+    assert not Product.objects.filter(upc=UPC_1).exists()
+
+
+def test_search_by_name_includes_each_product_upc(
+    logged_in_client: Client, planogram: Planogram, store: Store
+) -> None:
+    older_product = Product.objects.create(upc=OLDER_UPC, name="Older Card")
+    older_product.home_locations.add(HomeLocation.objects.create(name="A1", planogram=planogram))
+
+    response = logged_in_client.get(
+        reverse(
+            "product_locator:get_product_locations_by_name",
+            kwargs={"store_id": store.pk, "product_name": "older"},
+        ),
+        headers={"accept": "application/json"},
+    )
+
+    assert response.status_code == 200
+    assert [product["upc"] for product in response.json()["products"]] == [OLDER_UPC]

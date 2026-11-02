@@ -16,6 +16,7 @@ class MatchingProducts(NamedTuple):
         Pick[
             Product,
             "pk",
+            "upc",
             "name",
             "home_locations.pk",
             "home_locations.name",

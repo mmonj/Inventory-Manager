@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getPlanogramSections } from "./planogramUtil";
+import { getPlanogramSections, getPlanogramsFromHomeLocations } from "./planogramUtil";
 
 function storePlanogram(name: string, dateStart: string, isOutdated: boolean) {
   return {
@@ -42,5 +42,37 @@ describe("getPlanogramSections", () => {
     const sections = getPlanogramSections([storePlanogram("Inline", "2026-01-01", false)]);
 
     expect(sectionNames(sections)).toEqual([["Current", ["Inline"]]]);
+  });
+});
+
+function homeLocation(pk: number, planogramPk: number, planogramName: string) {
+  return {
+    pk,
+    name: `A${pk}`,
+    display_name: `A${pk} - ${planogramName}`,
+    planogram: {
+      pk: planogramPk,
+      name: planogramName,
+      plano_type_info: { value: "regular" as const, label: "Regular Planogram" },
+    },
+  };
+}
+
+describe("getPlanogramsFromHomeLocations", () => {
+  it("gives one entry per planogram when a product has several home locations in it", () => {
+    const planograms = getPlanogramsFromHomeLocations([
+      homeLocation(1, 10, "Inline"),
+      homeLocation(2, 20, "Seasonal"),
+      homeLocation(3, 10, "Inline"),
+    ]);
+
+    expect(planograms.map(({ pk, name }) => [pk, name])).toEqual([
+      [10, "Inline"],
+      [20, "Seasonal"],
+    ]);
+  });
+
+  it("gives an empty list for a product with no home locations", () => {
+    expect(getPlanogramsFromHomeLocations([])).toEqual([]);
   });
 });

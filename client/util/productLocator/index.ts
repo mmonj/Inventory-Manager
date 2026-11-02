@@ -58,6 +58,29 @@ export function getRelatedProducts(
   );
 }
 
+export function postHomeLocationCarryover(
+  upc: string,
+  olderProductId: number,
+  planogramIds: number[],
+  storeId: number,
+  csrfToken: string
+): Promise<ApiResponse<interfaces.IProductLocatorProduct>> {
+  return fetch(reverse("product_locator:carry_over_home_locations"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrfToken,
+    },
+    body: JSON.stringify({
+      upc,
+      older_product_id: olderProductId,
+      planogram_ids: planogramIds,
+      store_id: storeId,
+    }),
+  });
+}
+
 export function postToScanAudit(
   scan_audit_id: number,
   upc: string,

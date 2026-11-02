@@ -56,6 +56,29 @@ def assign_home_location(
     return TSuccess(home_location)
 
 
+def carry_over_home_locations(
+    upc: str, older_product: Product, planogram_ids: list[int], store_id: int
+) -> TResult[Product, list[str]]:
+    """
+    Gives the Product at `upc` the home locations `older_product` has in the chosen planograms,
+    creating it with the older name if needed. The older Product keeps its home locations.
+    """
+    with transaction.atomic():
+        product_result = find_or_create_product(upc, older_product.name)
+        if not product_result.ok:
+            return product_result
+
+        older_home_locations = older_product.home_locations.filter(
+            planogram_id__in=planogram_ids, planogram__store_id=store_id
+        )
+        logger.info(
+            "Carrying over locations from '%s' to '%s'", older_product, product_result.value
+        )
+        product_result.value.home_locations.add(*older_home_locations)
+
+    return product_result
+
+
 def check_new_products(product_list: list[IImportedProductInfo]) -> TResult[None, list[str]]:
     """
     Validates every product that doesn't exist yet. Writes nothing.

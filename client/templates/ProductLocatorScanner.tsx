@@ -56,13 +56,22 @@ export function Template(props: templates.ProductLocatorScanner) {
     setStore(() => storeFromQueryParam);
   }
 
-  async function scanSuccessCallback(decodedText: string): Promise<void> {
-    console.log("Scanned code:", decodedText);
-    setScannedUpc(() => decodedText);
+  async function lookUpProduct(upc: string): Promise<void> {
+    setScannedUpc(() => upc);
 
     await getProductFetcher.fetchData(() =>
-      getProductLocation(decodedText, store!.pk, reverse("product_locator:get_product_location"))
+      getProductLocation(upc, store!.pk, reverse("product_locator:get_product_location"))
     );
+  }
+
+  async function scanSuccessCallback(decodedText: string): Promise<void> {
+    console.log("Scanned code:", decodedText);
+    await lookUpProduct(decodedText);
+  }
+
+  async function handleCarryoverSuccess(upc: string): Promise<void> {
+    setModalShow(() => false);
+    await lookUpProduct(upc);
   }
 
   return (
@@ -226,6 +235,7 @@ export function Template(props: templates.ProductLocatorScanner) {
               storeId={store.pk}
               modalShow={modalShow}
               onHide={() => setModalShow(() => false)}
+              onCarryoverSuccess={handleCarryoverSuccess}
             />
           )}
         </section>
