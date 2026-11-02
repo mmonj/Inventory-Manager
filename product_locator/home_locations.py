@@ -5,10 +5,55 @@ from django.db import transaction
 
 from server.utils.typedefs import TFailure, TResult, TSuccess
 
+from . import home_location_names
 from .models import HomeLocation, Planogram, Product
 from .types import IImportedProductInfo
 
 logger = logging.getLogger("main_logger")
+
+
+def find_or_create_product(upc: str, name: str = "") -> TResult[Product, list[str]]:
+    """
+    The name is used only when creating the Product. An existing Product keeps its name.
+    """
+    try:
+        product, _is_new_product = Product.objects.get_or_create(upc=upc, defaults={"name": name})
+    except ValidationError as ex:
+        return TFailure(ex.messages)
+
+    return TSuccess(product)
+
+
+def assign_home_location(
+    upc: str, product_name: str, location_name: str, planogram: Planogram, store_id: int
+) -> TResult[HomeLocation, list[str]]:
+    """
+    Places a product at a home location, creating either if needed. A refusal writes nothing.
+    """
+    normalized_name = home_location_names.normalize_location_name(location_name)
+    if not home_location_names.is_valid_location_name(normalized_name):
+        return TFailure(
+            [f"'{location_name}' is not a valid location. Use a letter and 1-3 digits, like A15."]
+        )
+
+    if planogram.is_outdated:
+        return TFailure([f"Planogram '{planogram.name}' has ended."])
+
+    if planogram.store_id != store_id:
+        return TFailure([f"Planogram '{planogram.name}' belongs to another store."])
+
+    with transaction.atomic():
+        product_result = find_or_create_product(upc, product_name)
+        if not product_result.ok:
+            return product_result
+
+        home_location, _is_new_location = HomeLocation.objects.get_or_create(
+            name=normalized_name, planogram=planogram
+        )
+        logger.info("Adding location '%s' to product '%s'", home_location, product_result.value)
+        product_result.value.home_locations.add(home_location)
+
+    return TSuccess(home_location)
 
 
 def check_new_products(product_list: list[IImportedProductInfo]) -> TResult[None, list[str]]:

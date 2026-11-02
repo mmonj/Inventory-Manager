@@ -74,7 +74,7 @@ export function ProductLocatorModal({
     const formElm = event.target as HTMLFormElement;
 
     await locUpdateProps.fetchData(() =>
-      postNewProductLocation(formData, formElm, djangoContext.csrf_token)
+      postNewProductLocation(formData, formElm, storeId, djangoContext.csrf_token)
     );
   }
 
@@ -253,7 +253,7 @@ export function ProductLocatorModal({
               <input
                 ref={newLocationValueRef}
                 type="text"
-                pattern="[a-zA-Z][0-9]{1,2}"
+                pattern="[a-zA-Z][0-9]{1,3}"
                 name="new-location-name"
                 id="location-name-update"
                 className="form-control form-control-lg"

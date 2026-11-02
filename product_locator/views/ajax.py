@@ -12,7 +12,7 @@ from rest_framework.request import Request as DrfRequest
 
 from server.utils.common import error_json_response, validate_structure
 
-from .. import home_location_names, planogram_import, planogram_updates
+from .. import home_locations, planogram_import, planogram_updates
 from ..models import HomeLocation, Planogram, PlanogramUpdate, Product, ProductScanAudit, Store
 from . import interfaces_response
 from .interfaces_request import (
@@ -84,23 +84,25 @@ def get_product_locations_by_name(
 def add_new_product_location(request: DrfRequest) -> HttpResponse:
     request_data = validate_structure(request.data, IAddNewProductLocation)
 
-    product = Product.objects.filter(upc=request_data.upc).first()
-    if product is None:
-        try:
-            product = Product.objects.create(upc=request_data.upc, name=request_data.product_name)
-        except ValidationError as ex:
-            raise DrfValidationError(ex.messages) from ex
+    planogram = Planogram.objects.filter(pk=request_data.planogram_id).first()
+    if planogram is None:
+        return error_json_response(
+            [f"Planogram with ID {request_data.planogram_id} not found"], status=404
+        )
 
-    planogram = Planogram.objects.get(id=request_data.planogram_id)
-    location, _is_new_location = HomeLocation.objects.select_related("planogram").get_or_create(
-        name=home_location_names.normalize_location_name(request_data.location), planogram=planogram
+    assign_result = home_locations.assign_home_location(
+        request_data.upc,
+        request_data.product_name,
+        request_data.location,
+        planogram,
+        request_data.store_id,
     )
+    if not assign_result.ok:
+        return error_json_response(assign_result.err, status=400)
 
-    if location not in product.home_locations.select_related("planogram", "planogram__store").all():
-        logger.info("Adding location '%s' to product '%s'", location, product)
-        product.home_locations.add(location)
-
-    return interfaces_response.IHomeLocationUpdate(home_location=location).render(request)
+    return interfaces_response.IHomeLocationUpdate(home_location=assign_result.value).render(
+        request
+    )
 
 
 @api_view(["POST"])

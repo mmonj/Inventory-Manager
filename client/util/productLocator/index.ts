@@ -19,12 +19,14 @@ export function getProductLocation(
 export function postNewProductLocation(
   formData: FormData,
   formElm: HTMLFormElement,
+  storeId: number,
   csrfTokenValue: string
 ): Promise<ApiResponse<interfaces.IHomeLocationUpdate>> {
   const payload = {
     upc: formData.get("upc-number"),
     product_name: formData.get("product-name"),
     planogram_id: formData.get("planogram-id"),
+    store_id: storeId,
     location: formData.get("new-location-name"),
   };
 

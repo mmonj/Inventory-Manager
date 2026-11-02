@@ -44,6 +44,7 @@ def add_location_through_view(
             "product_name": "Card",
             "location": location,
             "planogram_id": planogram.pk,
+            "store_id": planogram.store_id,
         },
         content_type="application/json",
     )

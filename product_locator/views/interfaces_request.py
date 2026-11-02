@@ -22,7 +22,8 @@ class INewScanAuditRequest:
 class IAddNewProductLocation:
     upc: str
     product_name: str
-    planogram_id: str
+    planogram_id: int
+    store_id: int
     location: str
 
 
