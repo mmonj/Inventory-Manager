@@ -19,10 +19,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { useFetch } from "@client/hooks/useFetch";
 import { postNewProductLocation } from "@client/util/productLocator";
-import {
-  LOCATION_NAME_INPUT_PATTERN,
-  TProductLookupStatus,
-} from "@client/util/productLocator/addLocationForm";
+import { LOCATION_NAME_INPUT_PATTERN } from "@client/util/productLocator/addLocationForm";
+import { TStartedProductLookup } from "@client/util/productLocator/productLookup";
 
 import { ErrorAlert } from "../ErrorAlert";
 import { LoadingSpinner } from "../LoadingSpinner";
@@ -37,13 +35,9 @@ interface ICarryoverRequest {
 }
 
 interface Props {
-  modalShow: boolean;
+  lookup: TStartedProductLookup;
   onHide: () => void;
   planograms: templates.ProductLocatorScanner["planograms"];
-  scannedUpc: string;
-  lookupStatus: TProductLookupStatus;
-  lookupErrorMessages: string[];
-  productName?: string;
   storeId: number;
   onAddSuccess: (upc: string) => void;
   onCarryoverOpenChange: (isOpen: boolean) => void;
@@ -51,13 +45,9 @@ interface Props {
 }
 
 export function ProductLocatorModal({
-  modalShow,
+  lookup,
   onHide,
   planograms,
-  scannedUpc,
-  lookupStatus,
-  lookupErrorMessages,
-  productName,
   storeId,
   onAddSuccess,
   onCarryoverOpenChange,
@@ -69,8 +59,9 @@ export function ProductLocatorModal({
 
   // Only a finished lookup that found no Product makes this a new UPC. Anything else keeps the name
   // locked, so a name the server would ignore or a blank one can't be sent as if it counted.
-  const isNameEditable = lookupStatus === "not-found" && !locUpdateProps.isLoading;
-  const canSubmit = lookupStatus === "found" || lookupStatus === "not-found";
+  const isNameEditable = lookup.status === "not-found" && !locUpdateProps.isLoading;
+  const canSubmit = lookup.status === "found" || lookup.status === "not-found";
+  const productName = lookup.status === "found" ? lookup.product.name : undefined;
 
   const productNameRef = React.useRef<HTMLInputElement>(null);
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
@@ -80,13 +71,13 @@ export function ProductLocatorModal({
 
     await locUpdateProps.fetchData(
       () => postNewProductLocation(formData, formElm, storeId, djangoContext.csrf_token),
-      () => onAddSuccess(scannedUpc)
+      () => onAddSuccess(lookup.upc)
     );
   }
 
   function handleOpenCarryover(): void {
     setCarryoverRequest({
-      upc: scannedUpc,
+      upc: lookup.upc,
       initialSearchText: productNameRef.current!.value.trim(),
     });
     onCarryoverOpenChange(true);
@@ -100,7 +91,7 @@ export function ProductLocatorModal({
   return (
     <>
       <Modal
-        show={modalShow}
+        show
         onHide={onHide}
         size="lg"
         aria-labelledby="contained-modal-title-vcenter"
@@ -128,7 +119,7 @@ export function ProductLocatorModal({
                   UPC Number
                 </label>
                 <input
-                  value={scannedUpc}
+                  value={lookup.upc}
                   type="text"
                   name="upc-number"
                   id="upc-number-location-update"
@@ -227,8 +218,8 @@ export function ProductLocatorModal({
               </Button>
             </div>
 
-            {lookupStatus === "failed" && (
-              <ErrorAlert errorMessages={lookupErrorMessages} className="mt-3 mb-0" />
+            {lookup.status === "failed" && (
+              <ErrorAlert errorMessages={lookup.errorMessages} className="mt-3 mb-0" />
             )}
             {locUpdateProps.isError && (
               <ErrorAlert errorMessages={locUpdateProps.errorMessages} className="mt-3 mb-0" />
