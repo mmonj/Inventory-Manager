@@ -6,6 +6,7 @@ from checkdigit import gs1
 from natsort import natsorted
 
 from .types import IImportedProductInfo
+from .util import normalize_location_name
 
 logger = logging.getLogger("main_logger")
 
@@ -53,7 +54,7 @@ def parse_data(
                 {
                     "upc": upc,
                     "name": match.group("name").strip(),
-                    "location": match.group("location").strip(),
+                    "location": normalize_location_name(match.group("location")),
                 }
             )
 

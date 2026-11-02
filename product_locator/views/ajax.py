@@ -94,7 +94,7 @@ def add_new_product_location(request: DrfRequest) -> HttpResponse:
 
     planogram = Planogram.objects.get(id=request_data.planogram_id)
     location, _is_new_location = HomeLocation.objects.select_related("planogram").get_or_create(
-        name=request_data.location, planogram=planogram
+        name=util.normalize_location_name(request_data.location), planogram=planogram
     )
 
     if location not in product.home_locations.select_related("planogram", "planogram__store").all():

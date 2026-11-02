@@ -3,6 +3,8 @@ from typing import Any, Literal, NamedTuple, cast
 from checkdigit import gs1
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
+from django.db.models.functions import Trim, Upper
 from django.utils import timezone
 
 from products.types import UPC_A_LENGTH
@@ -79,6 +81,13 @@ class HomeLocation(models.Model):
 
     class Meta:
         unique_together = ("name", "planogram")
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(name=Upper(Trim("name"))),
+                name="home_location_name_is_canonical",
+                violation_error_message="Location names must be uppercase with no outer spaces.",
+            )
+        ]
 
     def __str__(self) -> str:
         return f"{self.name} - {self.planogram}"

@@ -11,6 +11,10 @@ from .types import IImportedProductInfo
 logger = logging.getLogger("main_logger")
 
 
+def normalize_location_name(name: str) -> str:
+    return name.strip().upper()
+
+
 def add_location_records(
     product_list: list[IImportedProductInfo],
     planogram: Planogram,
