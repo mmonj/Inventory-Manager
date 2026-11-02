@@ -7,7 +7,7 @@ from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import HomeLocation, Planogram, Product, Store
+from .models import HomeLocation, Planogram, Product, ProductScanAudit, Store
 
 pytestmark = pytest.mark.django_db
 
@@ -25,6 +25,11 @@ def planogram(store: Store) -> Planogram:
 
 
 @pytest.fixture
+def scan_audit() -> ProductScanAudit:
+    return ProductScanAudit.objects.create(product_type="Cards")
+
+
+@pytest.fixture
 def logged_in_client() -> Client:
     user = get_user_model().objects.create_user(username="location_tester")
     client = Client()
@@ -37,6 +42,14 @@ def post_add_location(client: Client, **overrides: Any) -> Any:
     return client.post(
         reverse("product_locator:add_new_product_location"),
         data=request_body,
+        content_type="application/json",
+    )
+
+
+def post_scan(client: Client, scan_audit: ProductScanAudit, upc: str) -> Any:
+    return client.post(
+        reverse("product_locator:add_upc_to_scan_audit"),
+        data={"scan_audit_id": scan_audit.pk, "upc": upc},
         content_type="application/json",
     )
 
@@ -206,3 +219,37 @@ def test_add_location_requires_a_login(planogram: Planogram, store: Store) -> No
 
     assert response.status_code in {401, 403}
     assert not Product.objects.exists()
+
+
+@pytest.mark.parametrize("upc", ["012345678900", "123"], ids=["bad_check_digit", "too_short"])
+def test_scan_audit_refuses_an_invalid_upc(
+    logged_in_client: Client, scan_audit: ProductScanAudit, upc: str
+) -> None:
+    response = post_scan(logged_in_client, scan_audit, upc)
+
+    assert_refused(response)
+    assert not scan_audit.products_in_stock.exists()
+
+
+def test_scan_audit_adds_a_new_upc_with_a_blank_name(
+    logged_in_client: Client, scan_audit: ProductScanAudit
+) -> None:
+    response = post_scan(logged_in_client, scan_audit, UPC_1)
+
+    assert response.status_code == 200
+    product = Product.objects.get(upc=UPC_1)
+    assert product.name == ""
+    assert list(scan_audit.products_in_stock.all()) == [product]
+
+
+def test_scan_audit_keeps_the_name_of_an_existing_upc(
+    logged_in_client: Client, scan_audit: ProductScanAudit
+) -> None:
+    product = Product.objects.create(upc=UPC_1, name="Original Card")
+
+    response = post_scan(logged_in_client, scan_audit, UPC_1)
+
+    assert response.status_code == 200
+    product.refresh_from_db()
+    assert product.name == "Original Card"
+    assert list(scan_audit.products_in_stock.all()) == [product]

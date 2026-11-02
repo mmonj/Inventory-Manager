@@ -114,13 +114,13 @@ def add_upc_to_scan_audit(request: DrfRequest) -> HttpResponse:
     if scan_audit is None:
         raise DrfNotFound(f"Scan Audit ID '{request_data.scan_audit_id}' not found")
 
-    product = Product.objects.filter(upc=request_data.upc).first()
-    if product is None:
-        product = Product.objects.create(upc=request_data.upc, name="")
+    product_result = home_locations.find_or_create_product(request_data.upc)
+    if not product_result.ok:
+        return error_json_response(product_result.err, status=400)
 
-    scan_audit.products_in_stock.add(product)
+    scan_audit.products_in_stock.add(product_result.value)
 
-    return interfaces_response.IProductLocatorProduct(product=product).render(request)
+    return interfaces_response.IProductLocatorProduct(product=product_result.value).render(request)
 
 
 @api_view(["POST"])
