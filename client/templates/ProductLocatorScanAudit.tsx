@@ -5,6 +5,7 @@ import { Context, interfaces, templates } from "@reactivated";
 import { format } from "date-fns";
 
 import { BarcodeScanner } from "@client/components/BarcodeScanner";
+import { ErrorAlert } from "@client/components/ErrorAlert";
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
@@ -123,6 +124,9 @@ export function Template(props: templates.ProductLocatorScanAudit) {
               >
                 Create
               </button>
+              {createNewScanAuditFetch.isError && (
+                <ErrorAlert errorMessages={createNewScanAuditFetch.errorMessages} />
+              )}
             </div>
           </form>
         )}
@@ -137,6 +141,12 @@ export function Template(props: templates.ProductLocatorScanAudit) {
             />
           </div>
         </section>
+      )}
+
+      {addToScanAuditFetch.isError && (
+        <div className="px-2 mw-rem-60 mx-auto">
+          <ErrorAlert errorMessages={addToScanAuditFetch.errorMessages} />
+        </div>
       )}
 
       <ol className="list-group list-group-numbered px-2 mw-rem-60 mx-auto">

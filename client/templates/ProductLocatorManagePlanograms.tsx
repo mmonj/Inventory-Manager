@@ -8,6 +8,7 @@ import Select from "react-select";
 
 import { faPencilAlt, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { ErrorAlert } from "@client/components/ErrorAlert";
 import { Layout } from "@client/components/Layout";
 import { LoadingSpinner } from "@client/components/LoadingSpinner";
 import { EditPlanogramModal } from "@client/components/productLocator/EditPlanogramModal";
@@ -28,6 +29,7 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
   const djangoContext = useContext(Context);
   const planogramsFetcher = useFetch<interfaces.IPlanogramsByStore>();
   const createPlanogramFetcher = useFetch<interfaces.IPlanogramCreated>();
+  const deletePlanogramFetcher = useFetch<interfaces.ISuccess>();
 
   async function refetchPlanograms() {
     if (selectedStore) {
@@ -73,16 +75,16 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
 
     if (!secondConfirm) return;
 
-    try {
-      await fetchByReactivated<interfaces.ISuccess>(
+    const [isSuccess] = await deletePlanogramFetcher.fetchData(() =>
+      fetchByReactivated<interfaces.ISuccess>(
         reverse("product_locator:delete_planogram", { planogram_id: planogramId }),
         djangoContext.csrf_token,
         "DELETE"
-      );
+      )
+    );
 
+    if (isSuccess) {
       await refetchPlanograms();
-    } catch (error) {
-      alert(`Failed to delete planogram: ${String(error)}`);
     }
   }
 
@@ -187,6 +189,10 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
               ))}
             </ul>
           </Alert>
+        )}
+
+        {deletePlanogramFetcher.isError && (
+          <ErrorAlert errorMessages={deletePlanogramFetcher.errorMessages} />
         )}
 
         {/* Planograms List */}
