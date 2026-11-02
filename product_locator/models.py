@@ -16,7 +16,7 @@ class Store(models.Model):
         return self.name
 
 
-TPlanoTypeValue = Literal["inline", "seasonal", "other"]
+TPlanoTypeValue = Literal["regular", "seasonal", "other"]
 TPlanogramUpdateStatus = Literal["pending", "applied", "superseded"]
 
 

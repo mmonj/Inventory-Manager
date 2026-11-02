@@ -54,9 +54,9 @@ ajax = [
         name="apply_planogram_update",
     ),
     path(
-        "ajax/submit_planogram_products/",
-        ajax_views.submit_planogram_products,
-        name="submit_planogram_products",
+        "ajax/edit_planogram/",
+        ajax_views.edit_planogram,
+        name="edit_planogram",
     ),
     path(
         "ajax/create_planogram/",

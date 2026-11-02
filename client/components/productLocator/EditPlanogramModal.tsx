@@ -1,6 +1,6 @@
 import React, { useContext, useState } from "react";
 
-import { Context, interfaces, reverse } from "@reactivated";
+import { Context, interfaces, reverse, templates } from "@reactivated";
 import { Alert, Button, Modal } from "react-bootstrap";
 import { format } from "date-fns";
 
@@ -15,21 +15,33 @@ import { useFetch } from "@client/hooks/useFetch";
 import { fetchByReactivated } from "@client/util/commonUtil";
 import { toast } from "@client/util/toast";
 
+import "@client/scss/product_locator/monospace-text.scss";
+
+type TPlanoType = templates.ProductLocatorManagePlanograms["plano_type_choices"][number];
+
 interface Props {
   show: boolean;
   onHide: () => void;
   storeName: string;
-  planogram: { pk: number; name: string };
+  planogram: { pk: number; name: string; planoType: TPlanoType["value"] };
+  planoTypeChoices: TPlanoType[];
   onSuccess: () => void;
 }
 
 export function EditPlanogramModal(props: Props) {
   const djangoContext = useContext(Context);
-  const submitFetcher = useFetch<interfaces.ISubmitPlanogramProductsResult>();
+  const submitFetcher = useFetch<interfaces.IPlanogramEdited>();
 
+  const [name, setName] = useState(props.planogram.name);
+  const [planoType, setPlanoType] = useState(props.planogram.planoType);
   const [planogramTextDump, setPlanogramTextDump] = useState("");
   const [isResetPlanogram, setIsResetPlanogram] = useState(false);
   const [label, setLabel] = useState("");
+
+  const hasTextDump = planogramTextDump.trim() !== "";
+  const isResetRequested = hasTextDump && isResetPlanogram;
+  const hasChanges =
+    name.trim() !== props.planogram.name || planoType !== props.planogram.planoType || hasTextDump;
 
   function getDefaultResetLabel() {
     return `${format(new Date(), "MM-dd-yy")} reset`;
@@ -43,42 +55,43 @@ export function EditPlanogramModal(props: Props) {
   }
 
   function handleHide() {
-    setPlanogramTextDump("");
-    setIsResetPlanogram(false);
-    setLabel("");
-    submitFetcher.setData(null as unknown as interfaces.ISubmitPlanogramProductsResult);
-    props.onHide();
+    if (!submitFetcher.isLoading) {
+      props.onHide();
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const [isSuccess, data] = await submitFetcher.fetchData(() =>
-      fetchByReactivated<interfaces.ISubmitPlanogramProductsResult>(
-        reverse("product_locator:submit_planogram_products"),
+      fetchByReactivated<interfaces.IPlanogramEdited>(
+        reverse("product_locator:edit_planogram"),
         djangoContext.csrf_token,
         "POST",
         JSON.stringify({
           planogram_id: props.planogram.pk,
+          name,
+          plano_type: planoType,
           planogram_text_dump: planogramTextDump,
-          is_reset_planogram: isResetPlanogram,
+          is_reset_planogram: isResetRequested,
           label,
         })
       )
     );
 
     if (isSuccess) {
-      setPlanogramTextDump("");
-
       if (data.planogram_update !== null) {
         toast.success(`Queued planogram update "${data.planogram_update.label}".`);
-      } else {
+      } else if (data.num_products_parsed !== null) {
         toast.success(
           `Submitted ${String(data.num_products_added)} out of ${String(data.num_products_parsed)} item(s) successfully.`
         );
+      } else {
+        toast.success(`Saved "${data.planogram.name}".`);
       }
 
       props.onSuccess();
+      props.onHide();
     }
   }
 
@@ -87,41 +100,78 @@ export function EditPlanogramModal(props: Props) {
       <Modal.Header closeButton className="bg-primary text-white">
         <Modal.Title>
           <FontAwesomeIcon icon={faPencilAlt} className="me-2" />
-          Edit Planogram Products — {props.planogram.name}
+          Edit Planogram — {props.planogram.name}
           {props.storeName !== "" && ` (${props.storeName})`}
         </Modal.Title>
       </Modal.Header>
       <Modal.Body className="p-3">
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
+            <label htmlFor="edit-planogram-name" className="form-label fw-semibold">
+              Planogram Name
+            </label>
+            <input
+              type="text"
+              id="edit-planogram-name"
+              className="form-control"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              maxLength={50}
+              required
+            />
+          </div>
+
+          <div className="mb-3">
+            <label htmlFor="edit-planogram-type" className="form-label fw-semibold">
+              Planogram Type
+            </label>
+            <select
+              id="edit-planogram-type"
+              className="form-select"
+              value={planoType}
+              onChange={(event) => setPlanoType(event.target.value as TPlanoType["value"])}
+              required
+            >
+              {props.planoTypeChoices.map((choice) => (
+                <option key={choice.value} value={choice.value}>
+                  {choice.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="mb-3">
             <label htmlFor="planogram-text-dump" className="form-label fw-semibold">
               Planogram Text Dump
             </label>
             <textarea
               id="planogram-text-dump"
-              className="form-control"
+              className="form-control monospace-text"
               rows={10}
               value={planogramTextDump}
               onChange={(event) => setPlanogramTextDump(event.target.value)}
-              style={{ fontFamily: 'Consolas, "Courier New", monospace' }}
-              required
             />
+            <small className="form-text text-muted">
+              Optional. Leave blank to keep the planogram&apos;s products as they are.
+            </small>
           </div>
 
-          <div className="mb-3 form-check">
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="is-reset-planogram"
-              checked={isResetPlanogram}
-              onChange={(event) => handleResetPlanogramToggle(event.target.checked)}
-            />
-            <label className="form-check-label" htmlFor="is-reset-planogram">
-              Reset Planogram
-            </label>
-          </div>
+          {hasTextDump && (
+            <div className="mb-3 form-check">
+              <input
+                type="checkbox"
+                className="form-check-input"
+                id="is-reset-planogram"
+                checked={isResetPlanogram}
+                onChange={(event) => handleResetPlanogramToggle(event.target.checked)}
+              />
+              <label className="form-check-label" htmlFor="is-reset-planogram">
+                Reset Planogram
+              </label>
+            </div>
+          )}
 
-          {isResetPlanogram && (
+          {isResetRequested && (
             <div className="mb-3">
               <label htmlFor="planogram-update-label" className="form-label fw-semibold">
                 Label
@@ -141,13 +191,18 @@ export function EditPlanogramModal(props: Props) {
           )}
 
           <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-            <Button variant="outline-secondary" onClick={handleHide} type="button">
+            <Button
+              variant="outline-secondary"
+              onClick={handleHide}
+              type="button"
+              disabled={submitFetcher.isLoading}
+            >
               Cancel
             </Button>
             <Button
               type="submit"
               variant="primary"
-              disabled={submitFetcher.isLoading || planogramTextDump.trim() === ""}
+              disabled={submitFetcher.isLoading || !hasChanges}
             >
               <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
               Submit

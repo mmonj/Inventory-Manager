@@ -27,8 +27,10 @@ class IAddNewProductLocation:
 
 
 @frozen
-class ISubmitPlanogramProducts:
+class IEditPlanogram:
     planogram_id: int
+    name: str
+    plano_type: str
     planogram_text_dump: str
     is_reset_planogram: bool
     label: str

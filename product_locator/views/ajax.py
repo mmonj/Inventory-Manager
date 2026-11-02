@@ -21,8 +21,8 @@ from .interfaces_request import (
     IAddNewProductLocation,
     IAppendScanAudit,
     ICreatePlanogram,
+    IEditPlanogram,
     INewScanAuditRequest,
-    ISubmitPlanogramProducts,
 )
 from .permissions import IsSuperuser
 
@@ -188,49 +188,42 @@ def apply_planogram_update(request: DrfRequest, planogram_update_id: int) -> Htt
 
 @api_view(["POST"])
 @permission_classes([IsSuperuser])
-def submit_planogram_products(request: DrfRequest) -> HttpResponse:
-    request_data = validate_structure(request.data, ISubmitPlanogramProducts)
+def edit_planogram(request: DrfRequest) -> HttpResponse:
+    request_data = validate_structure(request.data, IEditPlanogram)
 
     planogram = (
         Planogram.objects.select_related("store").filter(pk=request_data.planogram_id).first()
     )
     if planogram is None:
-        raise DrfNotFound(f"Planogram with ID {request_data.planogram_id} not found")
-
-    if not request_data.planogram_text_dump.strip():
-        raise DrfValidationError("You have submitted an empty planogram text dump.")
-
-    product_list, parse_errors = planogram_parser.parse_data(request_data.planogram_text_dump)
-    if parse_errors:
-        raise DrfValidationError(parse_errors)
-
-    if not product_list:
-        raise DrfValidationError("You have submitted data that resulted in 0 items being parsed.")
-
-    if planogram.store is None:
-        raise DrfValidationError("The selected planogram does not have an associated store.")
-
-    if request_data.is_reset_planogram:
-        queue_result = planogram_updates.queue_planogram_update(
-            request_data.label, product_list, planogram
+        return error_json_response(
+            [f"Planogram with ID {request_data.planogram_id} not found"], status=404
         )
-        if not queue_result.ok:
-            return error_json_response(queue_result.err, status=400)
 
-        return interfaces_response.ISubmitPlanogramProductsResult(
-            num_products_added=None,
-            num_products_parsed=None,
-            planogram_update=queue_result.value,
-        ).render(request)
+    planogram.name = request_data.name.strip()
+    planogram.plano_type = request_data.plano_type
+    try:
+        planogram.full_clean()
+    except ValidationError as ex:
+        return error_json_response(ex.messages, status=400)
 
-    add_result = util.add_location_records(product_list, planogram)
-    if not add_result.ok:
-        return error_json_response(add_result.err, status=400)
+    with transaction.atomic():
+        text_dump_result = planogram_updates.apply_planogram_text_dump(
+            request_data.planogram_text_dump,
+            planogram,
+            is_reset_planogram=request_data.is_reset_planogram,
+            label=request_data.label,
+        )
+        if text_dump_result.ok:
+            planogram.save(update_fields=["name", "plano_type"])
 
-    return interfaces_response.ISubmitPlanogramProductsResult(
-        num_products_added=add_result.value,
-        num_products_parsed=len(product_list),
-        planogram_update=None,
+    if not text_dump_result.ok:
+        return error_json_response(text_dump_result.err, status=400)
+
+    return interfaces_response.IPlanogramEdited(
+        planogram=planogram,
+        num_products_added=text_dump_result.value.num_products_added,
+        num_products_parsed=text_dump_result.value.num_products_parsed,
+        planogram_update=text_dump_result.value.planogram_update,
     ).render(request)
 
 
@@ -244,7 +237,7 @@ def create_planogram(request: DrfRequest) -> HttpResponse:
         raise DrfNotFound(f"Store with ID {request_data.store_id} not found")
 
     planogram_kwargs: dict[str, Any] = {
-        "name": request_data.name,
+        "name": request_data.name.strip(),
         "plano_type": request_data.plano_type,
         "store": store,
     }

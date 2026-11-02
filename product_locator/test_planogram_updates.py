@@ -221,7 +221,7 @@ def regular_user_client() -> Client:
 
 
 @pytest.mark.parametrize(
-    "route_name", ["product_locator:submit_planogram_products", "product_locator:create_planogram"]
+    "route_name", ["product_locator:edit_planogram", "product_locator:create_planogram"]
 )
 def test_manage_endpoints_refuse_regular_users(
     regular_user_client: Client, route_name: str
@@ -321,11 +321,13 @@ def superuser_client() -> Client:
     return client
 
 
-def post_new_planogram(client: Client, store: Store, planogram_text_dump: str) -> Any:
+def post_new_planogram(
+    client: Client, store: Store, planogram_text_dump: str, name: str = "Fall Plano"
+) -> Any:
     return client.post(
         reverse("product_locator:create_planogram"),
         {
-            "name": "Fall Plano",
+            "name": name,
             "plano_type": Planogram.PlanoType.SEASONAL,
             "store_id": store.pk,
             "planogram_text_dump": planogram_text_dump,
@@ -338,6 +340,20 @@ def post_new_planogram(client: Client, store: Store, planogram_text_dump: str) -
 @pytest.fixture
 def store() -> Store:
     return Store.objects.create(name="T2000")
+
+
+def test_creating_trims_the_planogram_name(superuser_client: Client, store: Store) -> None:
+    response = post_new_planogram(superuser_client, store, "", name="  Fall Plano  ")
+
+    assert response.status_code == 200
+    assert store.planograms.get().name == "Fall Plano"
+
+
+def test_creating_refuses_a_blank_planogram_name(superuser_client: Client, store: Store) -> None:
+    response = post_new_planogram(superuser_client, store, "", name="   ")
+
+    assert response.status_code == 400
+    assert not store.planograms.exists()
 
 
 def test_creating_with_a_text_dump_fills_the_new_planogram(
@@ -401,3 +417,161 @@ def test_invalid_product_in_text_dump_creates_no_planogram(
     assert response.status_code == 400
     assert not store.planograms.exists()
     assert not Product.objects.filter(upc=UPC_1).exists()
+
+
+def post_planogram_edit(client: Client, planogram: Planogram, **overrides: Any) -> Any:
+    return client.post(
+        reverse("product_locator:edit_planogram"),
+        {
+            "planogram_id": planogram.pk,
+            "name": planogram.name,
+            "plano_type": planogram.plano_type,
+            "planogram_text_dump": "",
+            "is_reset_planogram": False,
+            "label": "",
+            **overrides,
+        },
+        content_type="application/json",
+        headers={"Accept": "application/json"},
+    )
+
+
+def test_editing_renames_a_planogram(superuser_client: Client, planogram: Planogram) -> None:
+    response = post_planogram_edit(superuser_client, planogram, name="  Fall Plano  ")
+
+    assert response.status_code == 200
+    assert response.json()["planogram"]["name"] == "Fall Plano"
+    assert response.json()["num_products_parsed"] is None
+    planogram.refresh_from_db()
+    assert planogram.name == "Fall Plano"
+
+
+def test_editing_changes_the_planogram_type(superuser_client: Client, planogram: Planogram) -> None:
+    response = post_planogram_edit(
+        superuser_client, planogram, plano_type=Planogram.PlanoType.SEASONAL
+    )
+
+    assert response.status_code == 200
+    planogram.refresh_from_db()
+    assert planogram.plano_type == Planogram.PlanoType.SEASONAL
+
+
+def test_editing_refuses_an_unknown_planogram_type(
+    superuser_client: Client, planogram: Planogram
+) -> None:
+    response = post_planogram_edit(superuser_client, planogram, plano_type="bogus")
+
+    assert response.status_code == 400
+    planogram.refresh_from_db()
+    assert planogram.plano_type == Planogram.PlanoType.REGULAR
+
+
+def test_editing_refuses_a_blank_name(superuser_client: Client, planogram: Planogram) -> None:
+    response = post_planogram_edit(superuser_client, planogram, name="   ")
+
+    assert response.status_code == 400
+    planogram.refresh_from_db()
+    assert planogram.name == "Inline"
+
+
+def test_editing_refuses_a_name_used_by_an_outdated_planogram_in_the_store(
+    superuser_client: Client, planogram: Planogram
+) -> None:
+    Planogram.objects.create(name="Old Plano", store=planogram.store, date_end="2026-01-01")
+
+    response = post_planogram_edit(superuser_client, planogram, name="Old Plano")
+
+    assert response.status_code == 400
+    planogram.refresh_from_db()
+    assert planogram.name == "Inline"
+
+
+def test_editing_allows_a_name_used_in_another_store(
+    superuser_client: Client, planogram: Planogram, store: Store
+) -> None:
+    Planogram.objects.create(name="Fall Plano", store=store)
+
+    response = post_planogram_edit(superuser_client, planogram, name="Fall Plano")
+
+    assert response.status_code == 200
+
+
+def test_editing_with_a_text_dump_saves_the_name_and_the_products(
+    superuser_client: Client, planogram: Planogram
+) -> None:
+    response = post_planogram_edit(
+        superuser_client,
+        planogram,
+        name="Fall Plano",
+        planogram_text_dump=f"A1 Section 1 {UPC_1} Cat Box",
+    )
+
+    assert response.status_code == 200
+    assert response.json()["num_products_added"] == 1
+    assert response.json()["num_products_parsed"] == 1
+    planogram.refresh_from_db()
+    assert planogram.name == "Fall Plano"
+    assert layout_of(planogram) == {"A1": [UPC_1]}
+
+
+def test_editing_with_a_reset_queues_an_update_and_saves_the_name(
+    superuser_client: Client, planogram: Planogram
+) -> None:
+    response = post_planogram_edit(
+        superuser_client,
+        planogram,
+        name="Fall Plano",
+        planogram_text_dump=f"A1 Section 1 {UPC_1} Cat Box",
+        is_reset_planogram=True,
+        label="Fall reset",
+    )
+
+    assert response.status_code == 200
+    assert response.json()["planogram_update"]["label"] == "Fall reset"
+    planogram.refresh_from_db()
+    assert planogram.name == "Fall Plano"
+    assert layout_of(planogram) == {}
+
+
+def test_editing_with_a_reset_needs_a_text_dump(
+    superuser_client: Client, planogram: Planogram
+) -> None:
+    response = post_planogram_edit(
+        superuser_client, planogram, name="Fall Plano", is_reset_planogram=True, label="Fall reset"
+    )
+
+    assert response.status_code == 400
+    planogram.refresh_from_db()
+    assert planogram.name == "Inline"
+
+
+@pytest.mark.parametrize(
+    "failing_overrides",
+    [
+        {"planogram_text_dump": "not a planogram line"},
+        {"planogram_text_dump": f"A1 Section 1 {UPC_1} {'x' * 101}"},
+        {
+            "planogram_text_dump": f"A1 Section 1 {UPC_1} Cat Box",
+            "is_reset_planogram": True,
+            "label": "   ",
+        },
+    ],
+    ids=["unparseable-dump", "invalid-product", "reset-without-label"],
+)
+def test_failed_edit_saves_nothing(
+    superuser_client: Client, planogram: Planogram, failing_overrides: dict[str, Any]
+) -> None:
+    response = post_planogram_edit(
+        superuser_client,
+        planogram,
+        name="Fall Plano",
+        plano_type=Planogram.PlanoType.SEASONAL,
+        **failing_overrides,
+    )
+
+    assert response.status_code == 400
+    planogram.refresh_from_db()
+    assert planogram.name == "Inline"
+    assert planogram.plano_type == Planogram.PlanoType.REGULAR
+    assert layout_of(planogram) == {}
+    assert not PlanogramUpdate.objects.exists()

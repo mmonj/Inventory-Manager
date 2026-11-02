@@ -100,7 +100,8 @@ class IPlanogramUpdateApplied(NamedTuple):
 
 
 @interface
-class ISubmitPlanogramProductsResult(NamedTuple):
+class IPlanogramEdited(NamedTuple):
+    planogram: Pick[Planogram, "pk", "name"]
     num_products_added: int | None
     num_products_parsed: int | None
     planogram_update: Pick[PlanogramUpdate, "pk", "label"] | None

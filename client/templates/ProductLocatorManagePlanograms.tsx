@@ -18,12 +18,11 @@ import { toast } from "@client/util/toast";
 import "@client/scss/product_locator/monospace-text.scss";
 
 type SelectOption = { value: number; label: string };
+type EditablePlanogram = React.ComponentProps<typeof EditPlanogramModal>["planogram"];
 
 export function Template(props: templates.ProductLocatorManagePlanograms) {
   const [selectedStore, setSelectedStore] = useState<SelectOption | null>(null);
-  const [editingPlanogram, setEditingPlanogram] = useState<{ pk: number; name: string } | null>(
-    null
-  );
+  const [editingPlanogram, setEditingPlanogram] = useState<EditablePlanogram | null>(null);
   const djangoContext = useContext(Context);
   const planogramsFetcher = useFetch<interfaces.IPlanogramsByStore>();
   const createPlanogramFetcher = useFetch<interfaces.IPlanogramCreated>();
@@ -251,9 +250,10 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
                                       setEditingPlanogram({
                                         pk: planogram.pk,
                                         name: planogram.name,
+                                        planoType: planogram.plano_type_info.value,
                                       })
                                     }
-                                    title="Edit planogram products"
+                                    title="Edit planogram"
                                   >
                                     <FontAwesomeIcon icon={faPencilAlt} />
                                   </Button>
@@ -384,6 +384,7 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
           onHide={() => setEditingPlanogram(null)}
           storeName={selectedStore?.label ?? ""}
           planogram={editingPlanogram}
+          planoTypeChoices={props.plano_type_choices}
           onSuccess={refetchPlanograms}
         />
       )}
