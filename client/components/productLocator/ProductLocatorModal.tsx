@@ -43,6 +43,7 @@ interface Props {
   onHide: () => void;
   planograms: templates.ProductLocatorScanner["planograms"];
   scannedUpc: string;
+  isExistingProduct: boolean;
   productName?: string;
   storeId: number;
 }
@@ -52,6 +53,7 @@ export function ProductLocatorModal({
   onHide,
   planograms,
   scannedUpc,
+  isExistingProduct,
   productName,
   storeId,
 }: Props) {
@@ -160,35 +162,43 @@ export function ProductLocatorModal({
                 Product Name
               </label>
               <div className="d-flex gap-2">
+                {/* The camera keeps scanning behind this modal, so the lookup can change while it's
+                    open. The key remounts the input to pick up the new defaultValue. */}
                 <input
+                  key={isExistingProduct ? "existing-product" : "new-product"}
                   ref={productNameRef}
                   defaultValue={productName}
                   type="text"
                   name="product-name"
                   id="product-name-location-update"
                   className="form-control form-control-lg"
+                  readOnly={isExistingProduct}
                   required
                 />
-                <OverlayTrigger
-                  trigger={["hover", "focus", "click"]}
-                  overlay={
-                    <Tooltip>Search by name for the same product that has a different UPC</Tooltip>
-                  }
-                >
-                  <Button
-                    onClick={handleSearchRelatedNames}
-                    type="button"
-                    variant="outline-primary"
-                    size="lg"
-                    className="px-3"
-                    aria-label="Search by name for the same product that has a different UPC"
+                {!isExistingProduct && (
+                  <OverlayTrigger
+                    trigger={["hover", "focus", "click"]}
+                    overlay={
+                      <Tooltip>
+                        Search by name for the same product that has a different UPC
+                      </Tooltip>
+                    }
                   >
-                    {!relatedProductsFetch.isLoading && <FontAwesomeIcon icon={faSearch} />}
-                    {relatedProductsFetch.isLoading && (
-                      <LoadingSpinner isBlockElement={false} size="sm" />
-                    )}
-                  </Button>
-                </OverlayTrigger>
+                    <Button
+                      onClick={handleSearchRelatedNames}
+                      type="button"
+                      variant="outline-primary"
+                      size="lg"
+                      className="px-3"
+                      aria-label="Search by name for the same product that has a different UPC"
+                    >
+                      {!relatedProductsFetch.isLoading && <FontAwesomeIcon icon={faSearch} />}
+                      {relatedProductsFetch.isLoading && (
+                        <LoadingSpinner isBlockElement={false} size="sm" />
+                      )}
+                    </Button>
+                  </OverlayTrigger>
+                )}
               </div>
             </div>
 

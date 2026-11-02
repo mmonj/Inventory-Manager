@@ -221,6 +221,7 @@ export function Template(props: templates.ProductLocatorScanner) {
             <ProductLocatorModal
               scannedUpc={scannedUpc}
               planograms={props.planograms}
+              isExistingProduct={getProductFetcher.data !== null}
               productName={getProductFetcher.data?.product.name ?? undefined}
               storeId={store.pk}
               modalShow={modalShow}
