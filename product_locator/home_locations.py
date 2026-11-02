@@ -49,8 +49,8 @@ def assign_home_location(
     """
     Places a product at a home location, creating either if needed. A refusal writes nothing.
     """
-    normalized_name = home_location_names.normalize_location_name(location_name)
-    if not home_location_names.is_valid_location_name(normalized_name):
+    normalized_location_name = home_location_names.normalize_location_name(location_name)
+    if not home_location_names.is_valid_home_location_name(normalized_location_name):
         return TFailure(
             [f"'{location_name}' is not a valid location. Use a letter and 1-3 digits, like A15."]
         )
@@ -64,8 +64,8 @@ def assign_home_location(
         if not product_result.ok:
             return product_result
 
-        home_location, _is_new_location = HomeLocation.objects.get_or_create(
-            name=normalized_name, planogram=planogram
+        home_location, _is_new_home_location = HomeLocation.objects.get_or_create(
+            name=normalized_location_name, planogram=planogram
         )
         logger.info("Adding location '%s' to product '%s'", home_location, product_result.value)
         product_result.value.home_locations.add(home_location)
@@ -112,7 +112,7 @@ def carry_over_home_locations(
             return product_result
 
         logger.info(
-            "Carrying over locations from '%s' to '%s'", older_product, product_result.value
+            "Carrying over home locations from '%s' to '%s'", older_product, product_result.value
         )
         product_result.value.home_locations.add(*older_home_locations)
 

@@ -10,7 +10,6 @@ import { Context, interfaces, reverse, templates } from "@reactivated";
 
 import {
   faCheckCircle,
-  faExclamationTriangle,
   faMapMarkerAlt,
   faPlusCircle,
   faSearch,
@@ -20,11 +19,16 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { useFetch } from "@client/hooks/useFetch";
 import { postNewProductLocation } from "@client/util/productLocator";
+import {
+  LOCATION_NAME_INPUT_PATTERN,
+  TProductLookupStatus,
+} from "@client/util/productLocator/addLocationForm";
 
+import { ErrorAlert } from "../ErrorAlert";
 import { LoadingSpinner } from "../LoadingSpinner";
 import { CarryoverModal } from "./CarryoverModal";
 
-const MAGNIFIER_LABEL =
+const FIND_SAME_PRODUCT_LABEL =
   "Find the same product under a different UPC, and copy its name and locations";
 
 interface ICarryoverRequest {
@@ -37,9 +41,12 @@ interface Props {
   onHide: () => void;
   planograms: templates.ProductLocatorScanner["planograms"];
   scannedUpc: string;
-  isExistingProduct: boolean;
+  lookupStatus: TProductLookupStatus;
+  lookupErrorMessages: string[];
   productName?: string;
   storeId: number;
+  onAddSuccess: (upc: string) => void;
+  onCarryoverOpenChange: (isOpen: boolean) => void;
   onCarryoverSuccess: (upc: string) => void;
 }
 
@@ -48,14 +55,22 @@ export function ProductLocatorModal({
   onHide,
   planograms,
   scannedUpc,
-  isExistingProduct,
+  lookupStatus,
+  lookupErrorMessages,
   productName,
   storeId,
+  onAddSuccess,
+  onCarryoverOpenChange,
   onCarryoverSuccess,
 }: Props) {
   const locUpdateProps = useFetch<interfaces.IHomeLocationUpdate>();
   const djangoContext = React.useContext(Context);
   const [carryoverRequest, setCarryoverRequest] = React.useState<ICarryoverRequest | null>(null);
+
+  // Only a finished lookup that found no Product makes this a new UPC. Anything else keeps the name
+  // locked, so a name the server would ignore or a blank one can't be sent as if it counted.
+  const isNameEditable = lookupStatus === "not-found" && !locUpdateProps.isLoading;
+  const canSubmit = lookupStatus === "found" || lookupStatus === "not-found";
 
   const productNameRef = React.useRef<HTMLInputElement>(null);
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
@@ -63,18 +78,23 @@ export function ProductLocatorModal({
     const formData = new FormData(event.target as HTMLFormElement);
     const formElm = event.target as HTMLFormElement;
 
-    await locUpdateProps.fetchData(() =>
-      postNewProductLocation(formData, formElm, storeId, djangoContext.csrf_token)
+    await locUpdateProps.fetchData(
+      () => postNewProductLocation(formData, formElm, storeId, djangoContext.csrf_token),
+      () => onAddSuccess(scannedUpc)
     );
   }
 
   function handleOpenCarryover(): void {
-    // The camera keeps scanning behind the modals, so the UPC is pinned here. The rep is working on
-    // the one shown when they opened the search, whatever gets scanned after it.
     setCarryoverRequest({
       upc: scannedUpc,
       initialSearchText: productNameRef.current!.value.trim(),
     });
+    onCarryoverOpenChange(true);
+  }
+
+  function handleCloseCarryover(): void {
+    setCarryoverRequest(null);
+    onCarryoverOpenChange(false);
   }
 
   return (
@@ -122,22 +142,23 @@ export function ProductLocatorModal({
                 </label>
                 <div className="d-flex gap-2">
                   {/* The camera keeps scanning behind this modal, so the lookup can change while it's
-                    open. The key remounts the input to pick up the new defaultValue. */}
+                    open. The key remounts the input to pick up the new defaultValue, and leaves
+                    typed text alone for as long as there's no stored name to show. */}
                   <input
-                    key={isExistingProduct ? "existing-product" : "new-product"}
+                    key={productName ?? ""}
                     ref={productNameRef}
                     defaultValue={productName}
                     type="text"
                     name="product-name"
                     id="product-name-location-update"
                     className="form-control form-control-lg"
-                    readOnly={isExistingProduct}
+                    readOnly={!isNameEditable}
                     required
                   />
-                  {!isExistingProduct && (
+                  {isNameEditable && (
                     <OverlayTrigger
                       trigger={["hover", "focus"]}
-                      overlay={<Tooltip>{MAGNIFIER_LABEL}</Tooltip>}
+                      overlay={<Tooltip>{FIND_SAME_PRODUCT_LABEL}</Tooltip>}
                     >
                       <Button
                         onClick={handleOpenCarryover}
@@ -145,7 +166,7 @@ export function ProductLocatorModal({
                         variant="outline-primary"
                         size="lg"
                         className="px-3"
-                        aria-label={MAGNIFIER_LABEL}
+                        aria-label={FIND_SAME_PRODUCT_LABEL}
                       >
                         <FontAwesomeIcon icon={faSearch} />
                       </Button>
@@ -182,7 +203,7 @@ export function ProductLocatorModal({
                 </label>
                 <input
                   type="text"
-                  pattern="[a-zA-Z][0-9]{1,3}"
+                  pattern={LOCATION_NAME_INPUT_PATTERN}
                   name="new-location-name"
                   id="location-name-update"
                   className="form-control form-control-lg"
@@ -197,7 +218,7 @@ export function ProductLocatorModal({
                 <FontAwesomeIcon icon={faTimes} className="me-2" />
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" size="lg">
+              <Button type="submit" variant="primary" size="lg" disabled={!canSubmit}>
                 <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
                 Submit Changes
                 {locUpdateProps.isLoading && (
@@ -206,17 +227,11 @@ export function ProductLocatorModal({
               </Button>
             </div>
 
+            {lookupStatus === "failed" && (
+              <ErrorAlert errorMessages={lookupErrorMessages} className="mt-3 mb-0" />
+            )}
             {locUpdateProps.isError && (
-              <Alert variant="danger" className="mt-3 mb-0">
-                <div className="d-flex align-items-center">
-                  <FontAwesomeIcon icon={faExclamationTriangle} className="me-2 fs-5" />
-                  <div>
-                    {locUpdateProps.errorMessages.map((msg, index) => (
-                      <div key={index}>{msg}</div>
-                    ))}
-                  </div>
-                </div>
-              </Alert>
+              <ErrorAlert errorMessages={locUpdateProps.errorMessages} className="mt-3 mb-0" />
             )}
             {!locUpdateProps.isError && !locUpdateProps.isLoading && locUpdateProps.data && (
               <Alert variant="success" className="mt-3 mb-0">
@@ -234,8 +249,11 @@ export function ProductLocatorModal({
           upc={carryoverRequest.upc}
           initialSearchText={carryoverRequest.initialSearchText}
           storeId={storeId}
-          onHide={() => setCarryoverRequest(null)}
-          onSuccess={() => onCarryoverSuccess(carryoverRequest.upc)}
+          onHide={handleCloseCarryover}
+          onSuccess={() => {
+            handleCloseCarryover();
+            onCarryoverSuccess(carryoverRequest.upc);
+          }}
         />
       )}
     </>

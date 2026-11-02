@@ -8,7 +8,7 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import Client
 from django.urls import reverse
 
-from .home_location_names import is_valid_location_name, normalize_location_name
+from .home_location_names import is_valid_home_location_name, normalize_location_name
 from .home_locations import add_location_records
 from .models import HomeLocation, Planogram, PlanogramUpdate, Store
 from .planogram_parser import parse_data
@@ -87,7 +87,7 @@ def test_normalizing_strips_and_uppercases(name: str) -> None:
 
 @pytest.mark.parametrize("name", ["A1", "Z99", "B123"])
 def test_validity_check_accepts_a_letter_and_one_to_three_digits(name: str) -> None:
-    assert is_valid_location_name(name)
+    assert is_valid_home_location_name(name)
 
 
 @pytest.mark.parametrize(
@@ -108,7 +108,7 @@ def test_validity_check_accepts_a_letter_and_one_to_three_digits(name: str) -> N
     ],
 )
 def test_validity_check_rejects_anything_else(name: str) -> None:
-    assert not is_valid_location_name(name)
+    assert not is_valid_home_location_name(name)
 
 
 def test_manual_add_treats_case_and_whitespace_variants_as_one_location(

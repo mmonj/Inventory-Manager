@@ -3,7 +3,7 @@ import type { interfaces } from "@reactivated";
 type TStorePlanogram = interfaces.IPlanogramsByStore["planograms"][number];
 type TMatchingHomeLocation =
   interfaces.MatchingProducts["products"][number]["home_locations"][number];
-export type TMatchingPlanogram = TMatchingHomeLocation["planogram"];
+type TMatchingPlanogram = TMatchingHomeLocation["planogram"];
 
 interface PlanogramSection {
   title: "Current" | "Outdated";

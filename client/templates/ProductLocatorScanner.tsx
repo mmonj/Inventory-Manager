@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 
 import Alert from "react-bootstrap/Alert";
 import Badge from "react-bootstrap/Badge";
@@ -11,6 +11,7 @@ import {
   faCheckCircle,
   faExclamationTriangle,
   faPlusCircle,
+  faRedo,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
@@ -23,6 +24,7 @@ import { ProductLocatorModal } from "@client/components/productLocator/ProductLo
 import { LocationItem } from "@client/components/productLocator/productLocatorIndex";
 import { useFetch } from "@client/hooks/useFetch";
 import { getProductLocation } from "@client/util/productLocator";
+import { getProductLookupStatus } from "@client/util/productLocator/addLocationForm";
 
 import "@client/scss/stock_tracker/scanner.scss";
 import "@client/scss/product_locator/location-item.scss";
@@ -42,7 +44,11 @@ function handleStoreSubmission(storePk: string): void {
 export function Template(props: templates.ProductLocatorScanner) {
   const [store, setStore] = useState<TStore | null>(null);
   const [scannedUpc, setScannedUpc] = useState("");
+  const [notFoundUpc, setNotFoundUpc] = useState<string | null>(null);
   const [modalShow, setModalShow] = useState(false);
+  // Refs, since BarcodeScanner holds on to the scan callback from its first render
+  const latestUpcRef = useRef("");
+  const isCarryoverOpenRef = useRef(false);
   const getProductFetcher = useFetch<interfaces.IProductLocations>();
   const djangoContext = React.useContext(Context);
 
@@ -56,17 +62,46 @@ export function Template(props: templates.ProductLocatorScanner) {
     setStore(() => storeFromQueryParam);
   }
 
-  async function lookUpProduct(upc: string): Promise<void> {
-    setScannedUpc(() => upc);
+  const lookupStatus = getProductLookupStatus({
+    isLoading: getProductFetcher.isLoading,
+    isError: getProductFetcher.isError,
+    hasProduct: getProductFetcher.data !== null,
+    isNotFound: notFoundUpc === scannedUpc,
+  });
 
-    await getProductFetcher.fetchData(() =>
-      getProductLocation(upc, store!.pk, reverse("product_locator:get_product_location"))
-    );
+  async function lookUpProduct(upc: string): Promise<void> {
+    latestUpcRef.current = upc;
+    setScannedUpc(() => upc);
+    setNotFoundUpc(() => null);
+
+    await getProductFetcher.fetchData(async () => {
+      const lookupResponse = await getProductLocation(
+        upc,
+        store!.pk,
+        reverse("product_locator:get_product_location")
+      );
+      // useFetch doesn't report a status, and a 404 is the only failure that means a new UPC
+      if (lookupResponse.status === 404) {
+        setNotFoundUpc(() => upc);
+      }
+
+      return lookupResponse;
+    });
   }
 
   async function scanSuccessCallback(decodedText: string): Promise<void> {
     console.log("Scanned code:", decodedText);
+    // The camera keeps scanning behind the modals. A Carryover is pinned to the UPC it opened on,
+    // and the Add Location modal under it has to stay as the rep left it.
+    if (isCarryoverOpenRef.current) return;
+
     await lookUpProduct(decodedText);
+  }
+
+  async function handleAddSuccess(upc: string): Promise<void> {
+    if (upc === latestUpcRef.current) {
+      await lookUpProduct(upc);
+    }
   }
 
   async function handleCarryoverSuccess(upc: string): Promise<void> {
@@ -209,7 +244,21 @@ export function Template(props: templates.ProductLocatorScanner) {
                 </Alert>
               )}
 
-              {(!!getProductFetcher.data || getProductFetcher.isError) && (
+              {lookupStatus === "failed" && (
+                <div className="my-4 text-center">
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="shadow-sm"
+                    onClick={() => void lookUpProduct(scannedUpc)}
+                  >
+                    <FontAwesomeIcon icon={faRedo} className="me-2" />
+                    Try again
+                  </Button>
+                </div>
+              )}
+
+              {(lookupStatus === "found" || lookupStatus === "not-found") && (
                 <div className="my-4 text-center">
                   <Button
                     variant="primary"
@@ -230,11 +279,18 @@ export function Template(props: templates.ProductLocatorScanner) {
             <ProductLocatorModal
               scannedUpc={scannedUpc}
               planograms={props.planograms}
-              isExistingProduct={getProductFetcher.data !== null}
-              productName={getProductFetcher.data?.product.name ?? undefined}
+              lookupStatus={lookupStatus}
+              lookupErrorMessages={getProductFetcher.errorMessages}
+              productName={
+                lookupStatus === "found" ? getProductFetcher.data?.product.name : undefined
+              }
               storeId={store.pk}
               modalShow={modalShow}
               onHide={() => setModalShow(() => false)}
+              onAddSuccess={handleAddSuccess}
+              onCarryoverOpenChange={(isOpen) => {
+                isCarryoverOpenRef.current = isOpen;
+              }}
               onCarryoverSuccess={handleCarryoverSuccess}
             />
           )}

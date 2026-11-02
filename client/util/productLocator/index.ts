@@ -7,11 +7,11 @@ export function getProductLocation(
   store_id: number,
   action_path: string
 ): Promise<ApiResponse<interfaces.IProductLocations>> {
-  const params = new URLSearchParams();
-  params.append("upc", upc);
-  params.append("store_id", store_id.toString());
+  const searchParams = new URLSearchParams();
+  searchParams.append("upc", upc);
+  searchParams.append("store_id", store_id.toString());
 
-  const action_url = action_path + "?" + params.toString();
+  const action_url = action_path + "?" + searchParams.toString();
 
   return fetch(action_url, { method: "GET", headers: { Accept: "application/json" } });
 }
@@ -51,10 +51,10 @@ export function getRelatedProducts(
 
   // The name goes in the query string since reverse() doesn't encode, and a path segment can't
   // hold a "/" even when encoded
-  const params = new URLSearchParams({ product_name: productName });
+  const searchParams = new URLSearchParams({ product_name: productName });
   const searchUrl = reverse("product_locator:get_product_locations_by_name", { store_id: storeId });
 
-  return fetch(`${searchUrl}?${params.toString()}`, { headers: headers });
+  return fetch(`${searchUrl}?${searchParams.toString()}`, { headers: headers });
 }
 
 export function postHomeLocationCarryover(
