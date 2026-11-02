@@ -9,32 +9,23 @@ from .types import IImportedProductInfo
 
 logger = logging.getLogger("main_logger")
 
+LOCATION_PATTERN = r"[a-z][0-9]{1,3}"
+UPC_RE = re.compile(r"\b\d{12}\b")
+
 # ITEM_ATTRIBUTES_RE = r"(.+?)[ \t]+(\d{12})(?:[ \t]+\d)?[ \t]+([a-z]\d+)"
 ITEM_ATTRIBUTES_RE = re.compile(
-    r"(.+?)[ \t]+(\d{12})(?:[ \t]+\w)?[ \t]+(\w{2,3})[ \t]*", flags=re.MULTILINE | re.IGNORECASE
+    r"(?P<name>.+?)[ \t]+(?P<upc>\d{12})(?:[ \t]+\w)?[ \t]+"
+    rf"(?P<location>{LOCATION_PATTERN})\b[ \t]*",
+    flags=re.MULTILINE | re.IGNORECASE,
 )
 # matches "<location> Section <n> <upc> <name>", where <name> runs until the next
 # location/section/upc triplet or the end of the line, e.g.:
 # "A1 Section 1 843740198695 Cat BoX H1 Section 1 843740135607 Spectacular"
 LOCATION_FIRST_ITEM_ATTRIBUTES_RE = re.compile(
-    r"\b([a-z]\d{1,2})[ \t]+Section[ \t]+\d+[ \t]+(\d{12})[ \t]+(.*?)"
-    r"(?=[ \t]+[a-z]\d{1,2}[ \t]+Section[ \t]+\d+[ \t]+\d{12}|[ \t]*$)",
+    rf"\b(?P<location>{LOCATION_PATTERN})[ \t]+Section[ \t]+\d+[ \t]+(?P<upc>\d{{12}})[ \t]+"
+    rf"(?P<name>.*?)(?=[ \t]+{LOCATION_PATTERN}[ \t]+Section[ \t]+\d+[ \t]+\d{{12}}|[ \t]*$)",
     flags=re.IGNORECASE,
 )
-LOCATION_RE = re.compile(r"\b[a-z][0-9][0-9]?\b", flags=re.IGNORECASE)
-
-COMMON_OCR_CHAR_ERRORS = {
-    "0": ["O", "o"],
-    "1": ["I", "l", "i"],
-    "2": ["Z", "z"],
-    "3": ["B"],
-    "4": ["A"],
-    "5": ["S", "s"],
-    "6": ["G"],
-    "7": ["T"],
-    "8": ["B"],
-    "9": ["g", "q"],
-}
 
 
 def parse_data(
@@ -45,36 +36,14 @@ def parse_data(
     invalid_upcs: list[str] = []
     errors: list[str] = []
 
-    for line in planogram_text_dump.strip().split("\n"):
-        location_first_matches = list(LOCATION_FIRST_ITEM_ATTRIBUTES_RE.finditer(line))
-        if location_first_matches:
-            for match in location_first_matches:
-                location = match.group(1)
-                upc = match.group(2).strip()
-                name = match.group(3)
-
-                if not gs1.validate(upc):
-                    invalid_upcs.append(upc)
-                    continue
-
-                product_list.append(
-                    {
-                        "upc": upc,
-                        "name": name.strip(),
-                        "location": fix_location_ocr_inaccuracies(location.strip()),
-                    }
-                )
-            continue
-
-        matches = list(ITEM_ATTRIBUTES_RE.finditer(line))
+    for line in planogram_text_dump.strip().splitlines():
+        matches = match_whole_line(line)
         if not matches:
             lines_not_matched.append(line)
             continue
 
         for match in matches:
-            name = match.group(1)
-            upc = match.group(2).strip()
-            location = match.group(3)
+            upc = match.group("upc").strip()
 
             if not gs1.validate(upc):
                 invalid_upcs.append(upc)
@@ -83,8 +52,8 @@ def parse_data(
             product_list.append(
                 {
                     "upc": upc,
-                    "name": name.strip(),
-                    "location": fix_location_ocr_inaccuracies(location.strip()),
+                    "name": match.group("name").strip(),
+                    "location": match.group("location").strip(),
                 }
             )
 
@@ -100,6 +69,29 @@ def parse_data(
     # assert_unique(product_list, "location", key=lambda e: e["location"])
 
     return natsorted(product_list, key=lambda p: p["location"], reverse=True), errors
+
+
+def match_whole_line(line: str) -> list[re.Match[str]]:
+    """
+    Returns the line's item matches, or nothing if any part of the line isn't a well-formed item.
+    A malformed item must not be skipped over or absorbed into the name of its neighbor.
+    """
+    for item_re in (LOCATION_FIRST_ITEM_ATTRIBUTES_RE, ITEM_ATTRIBUTES_RE):
+        matches = list(item_re.finditer(line))
+        if matches and is_whole_line_matched(matches, line):
+            return matches
+
+    return []
+
+
+def is_whole_line_matched(matches: list[re.Match[str]], line: str) -> bool:
+    match_starts = [match.start() for match in matches] + [len(line)]
+    match_ends = [0] + [match.end() for match in matches]
+    has_gaps = any(
+        line[end:start].strip() for end, start in zip(match_ends, match_starts, strict=True)
+    )
+
+    return not has_gaps and not any(UPC_RE.search(match.group("name")) for match in matches)
 
 
 def assert_unique(
@@ -119,45 +111,3 @@ def assert_unique(
         uniques.add(value)
 
     logger.info("Validated as unique all %s values", unique_type)
-
-
-def fix_location_ocr_inaccuracies(location: str) -> str:
-    """
-    Fix OCR inaccuracies for the 2-3 letter product location string
-
-    Args:
-        location (str): product location string (location on planogram)
-
-    Returns:
-        str: product location string (location on planogram) with OCR fixes applied
-    """
-    if LOCATION_RE.match(location):
-        return location
-
-    if len(location) not in (2, 3):
-        raise ValueError(f"Location string '{location}' is not the right length")
-
-    result = ""
-    for idx, char in enumerate(location):
-        if idx == 0 and char.isnumeric():
-            result += COMMON_OCR_CHAR_ERRORS.get(char, [char])[0]
-        elif idx > 0 and char.isalpha():
-            fixed_char = get_numeric_ocr_char(char)
-            if fixed_char == "":
-                raise ValueError(
-                    f"Error in attempt to fix location {location}; fix not found for char: {char}"
-                )
-
-            result += fixed_char
-        else:
-            result += char
-
-    return result
-
-
-def get_numeric_ocr_char(char: str) -> str:
-    for number, char_list in COMMON_OCR_CHAR_ERRORS.items():
-        if char in char_list:
-            return number
-
-    return ""

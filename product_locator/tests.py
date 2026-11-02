@@ -9,7 +9,7 @@ from . import models
 
 class ImportTest(TestCase):
     def setUp(self) -> None:
-        file = Path(__file__).parent / "testfiles" / "ocr_data_dump.txt"
+        file = Path(__file__).parent / "testfiles" / "planogram_text_dump.txt"
 
         with file.open(encoding="utf8") as fd:
             self.data_dump = fd.read()

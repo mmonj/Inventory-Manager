@@ -6,6 +6,7 @@ from django.test import Client
 from django.urls import reverse
 
 from .models import HomeLocation, Planogram, PlanogramUpdate, Product, Store
+from .planogram_parser import parse_data
 from .planogram_updates import apply_planogram_update, get_old_plano, queue_planogram_update
 from .types import IImportedProductInfo
 
@@ -575,3 +576,81 @@ def test_failed_edit_saves_nothing(
     assert planogram.plano_type == Planogram.PlanoType.REGULAR
     assert layout_of(planogram) == {}
     assert not PlanogramUpdate.objects.exists()
+
+
+@pytest.mark.parametrize("location", ["XYZ", "14", "Bl", "A_1", "A1Z9", "A1234"])
+def test_parsing_rejects_a_location_that_is_not_a_letter_and_digits(location: str) -> None:
+    line = f"Cat Box {UPC_1} {location}"
+
+    product_list, parse_errors = parse_data(line)
+
+    assert product_list == []
+    assert parse_errors == [f"No data was parsed from line: {line}"]
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        f"Cat Box {UPC_1} XYZ Dog Toy {UPC_2} A1",
+        f"Cat Box {UPC_1} A1 Dog Toy {UPC_2} XYZ",
+        f"A1 Section 1 {UPC_1} Cat Box XYZ Section 1 {UPC_2} Dog Toy",
+        f"XYZ Section 1 {UPC_1} Cat Box A1 Section 1 {UPC_2} Dog Toy",
+        f"Cat Box {UPC_1} A12.5",
+        f"Cat Box {UPC_1} A1-2",
+    ],
+    ids=[
+        "tail-bad-first",
+        "tail-bad-last",
+        "section-bad-last",
+        "section-bad-first",
+        "trailing-dot",
+        "trailing-dash",
+    ],
+)
+def test_parsing_rejects_a_line_with_any_malformed_entry(line: str) -> None:
+    product_list, parse_errors = parse_data(line)
+
+    assert product_list == []
+    assert parse_errors == [f"No data was parsed from line: {line}"]
+
+
+def test_parsing_reads_several_entries_on_one_line() -> None:
+    product_list, parse_errors = parse_data(f"Cat Box {UPC_1} A1 Dog Toy {UPC_2} A2")
+
+    assert parse_errors == []
+    assert sorted(product["upc"] for product in product_list) == sorted([UPC_1, UPC_2])
+
+
+@pytest.mark.parametrize(
+    "line", [f"Cat Box {UPC_1} A123", f"A123 Section 1 {UPC_1} Cat Box"], ids=["tail", "section"]
+)
+def test_parsing_accepts_a_three_digit_location(line: str) -> None:
+    product_list, parse_errors = parse_data(line)
+
+    assert parse_errors == []
+    assert product_list == [{"upc": UPC_1, "name": "Cat Box", "location": "A123"}]
+
+
+def test_creating_with_a_bad_location_creates_no_planogram(
+    superuser_client: Client, store: Store
+) -> None:
+    response = post_new_planogram(superuser_client, store, f"Cat Box {UPC_1} XYZ")
+
+    assert response.status_code == 400
+    assert not store.planograms.exists()
+
+
+def test_editing_with_a_bad_location_saves_nothing(
+    superuser_client: Client, planogram: Planogram
+) -> None:
+    response = post_planogram_edit(
+        superuser_client,
+        planogram,
+        name="Fall Plano",
+        planogram_text_dump=f"Cat Box {UPC_1} XYZ",
+    )
+
+    assert response.status_code == 400
+    planogram.refresh_from_db()
+    assert planogram.name == "Inline"
+    assert layout_of(planogram) == {}

@@ -41,8 +41,6 @@ def apply_planogram_text_dump(
         )
 
     product_list, parse_errors = planogram_parser.parse_data(planogram_text_dump)
-    if not product_list and not parse_errors:
-        parse_errors = ["You have submitted data that resulted in 0 items being parsed."]
     if parse_errors:
         return TFailure(parse_errors)
 
