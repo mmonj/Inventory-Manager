@@ -30,6 +30,7 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
   const planogramsFetcher = useFetch<interfaces.IPlanogramsByStore>();
   const createPlanogramFetcher = useFetch<interfaces.IPlanogramCreated>();
   const deletePlanogramFetcher = useFetch<interfaces.ISuccess>();
+  const [lastDeleteStoreId, setLastDeleteStoreId] = useState<number | null>(null);
 
   async function refetchPlanograms() {
     if (selectedStore) {
@@ -75,6 +76,7 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
 
     if (!secondConfirm) return;
 
+    setLastDeleteStoreId(selectedStore?.value ?? null);
     const [isSuccess] = await deletePlanogramFetcher.fetchData(() =>
       fetchByReactivated<interfaces.ISuccess>(
         reverse("product_locator:delete_planogram", { planogram_id: planogramId }),
@@ -191,7 +193,7 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
           </Alert>
         )}
 
-        {deletePlanogramFetcher.isError && (
+        {deletePlanogramFetcher.isError && selectedStore?.value === lastDeleteStoreId && (
           <ErrorAlert errorMessages={deletePlanogramFetcher.errorMessages} />
         )}
 

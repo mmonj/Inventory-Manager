@@ -19,7 +19,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useFetch } from "@client/hooks/useFetch";
 import { postNewProductLocation } from "@client/util/productLocator";
 import { LOCATION_NAME_INPUT_PATTERN } from "@client/util/productLocator/addLocationForm";
-import { TStartedProductLookup } from "@client/util/productLocator/productLookup";
+import { TAssignableProductLookup } from "@client/util/productLocator/productLookup";
 
 import { ErrorAlert } from "../ErrorAlert";
 import { LoadingSpinner } from "../LoadingSpinner";
@@ -34,7 +34,7 @@ interface ICarryoverRequest {
 }
 
 interface Props {
-  lookup: TStartedProductLookup;
+  lookup: TAssignableProductLookup;
   onHide: () => void;
   planograms: templates.ProductLocatorScanner["planograms"];
   storeId: number;
@@ -54,10 +54,10 @@ export function ProductLocatorModal({
   const djangoContext = React.useContext(Context);
   const [carryoverRequest, setCarryoverRequest] = React.useState<ICarryoverRequest | null>(null);
 
-  // Only a finished lookup that found no Product makes this a new UPC. Anything else keeps the name
-  // locked, so a name the server would ignore or a blank one can't be sent as if it counted.
-  const isNameEditable = lookup.status === "not-found" && !locUpdateProps.isLoading;
-  const canSubmit = lookup.status === "found" || lookup.status === "not-found";
+  // Only a lookup that found no Product makes this a new UPC. A found Product keeps its name locked,
+  // so a name the server would ignore can't be sent as if it counted.
+  const isSubmitting = locUpdateProps.isLoading;
+  const isNameEditable = lookup.status === "not-found" && !isSubmitting;
   const productName = lookup.status === "found" ? lookup.product.name : undefined;
 
   const productNameRef = React.useRef<HTMLInputElement>(null);
@@ -70,6 +70,13 @@ export function ProductLocatorModal({
       () => postNewProductLocation(formData, formElm, storeId, djangoContext.csrf_token),
       () => onAddSuccess(lookup.upc)
     );
+  }
+
+  // A cancelled submit would still write, and its success would close a modal reopened for another UPC
+  function handleHide(): void {
+    if (!isSubmitting) {
+      onHide();
+    }
   }
 
   function handleOpenCarryover(): void {
@@ -87,12 +94,12 @@ export function ProductLocatorModal({
     <>
       <Modal
         show
-        onHide={onHide}
+        onHide={handleHide}
         size="lg"
         aria-labelledby="contained-modal-title-vcenter"
         centered
       >
-        <Modal.Header closeButton className="bg-primary text-white">
+        <Modal.Header closeButton={!isSubmitting} className="bg-primary text-white">
           <Modal.Title id="contained-modal-title-vcenter">
             <FontAwesomeIcon icon={faPlusCircle} className="me-2" />
             Add Location
@@ -196,22 +203,24 @@ export function ProductLocatorModal({
               </div>
             </fieldset>
             <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-              <Button variant="outline-secondary" size="lg" onClick={onHide}>
+              <Button
+                variant="outline-secondary"
+                size="lg"
+                disabled={isSubmitting}
+                onClick={onHide}
+              >
                 <FontAwesomeIcon icon={faTimes} className="me-2" />
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" size="lg" disabled={!canSubmit}>
+              <Button type="submit" variant="primary" size="lg" disabled={isSubmitting}>
                 <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
                 Submit Changes
-                {locUpdateProps.isLoading && (
+                {isSubmitting && (
                   <LoadingSpinner isBlockElement={false} spinnerVariant="light" size="sm" />
                 )}
               </Button>
             </div>
 
-            {lookup.status === "failed" && (
-              <ErrorAlert errorMessages={lookup.errorMessages} className="mt-3 mb-0" />
-            )}
             {locUpdateProps.isError && (
               <ErrorAlert errorMessages={locUpdateProps.errorMessages} className="mt-3 mb-0" />
             )}

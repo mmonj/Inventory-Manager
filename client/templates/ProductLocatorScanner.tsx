@@ -23,7 +23,7 @@ import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { ProductLocatorModal } from "@client/components/productLocator/ProductLocatorModal";
 import { LocationItem } from "@client/components/productLocator/productLocatorIndex";
 import { getProductLocation } from "@client/util/productLocator";
-import { createProductLookup } from "@client/util/productLocator/productLookup";
+import { createProductLookup, isAssignableLookup } from "@client/util/productLocator/productLookup";
 import { toast } from "@client/util/toast";
 
 import "@client/scss/stock_tracker/scanner.scss";
@@ -57,7 +57,7 @@ export function Template(props: templates.ProductLocatorScanner) {
   }
 
   // Created once, since picking a store reloads the page and BarcodeScanner keeps its first callback
-  const [productLookup] = useState(() =>
+  const [productLookupStore] = useState(() =>
     createProductLookup((upc) =>
       getProductLocation(
         upc,
@@ -67,37 +67,37 @@ export function Template(props: templates.ProductLocatorScanner) {
     )
   );
   const lookup = useSyncExternalStore(
-    productLookup.subscribe,
-    productLookup.getLookup,
-    productLookup.getLookup
+    productLookupStore.subscribe,
+    productLookupStore.getLookup,
+    productLookupStore.getLookup
   );
   const product = lookup.status === "found" ? lookup.product : null;
 
-  const isAddLocationOpen = !!store && modalShow && lookup.status !== "idle";
+  const isAssignmentModalOpen = !!store && modalShow && isAssignableLookup(lookup);
 
   // The camera keeps scanning behind Add Location, and any Carryover opened from it, so scans are
   // paused for as long as it's mounted. The cleanup resumes them however it closes.
   useEffect(() => {
-    if (!isAddLocationOpen) return;
+    if (!isAssignmentModalOpen) return;
 
-    productLookup.pauseScans();
-    return productLookup.resumeScans;
-  }, [isAddLocationOpen, productLookup]);
+    productLookupStore.pauseScans();
+    return productLookupStore.resumeScans;
+  }, [isAssignmentModalOpen, productLookupStore]);
 
   async function scanSuccessCallback(decodedText: string): Promise<void> {
     console.log("Scanned code:", decodedText);
-    await productLookup.submitScan(decodedText);
+    await productLookupStore.submitScan(decodedText);
   }
 
   async function handleAddSuccess(upc: string): Promise<void> {
     setModalShow(() => false);
     toast.success("Location added.");
-    await productLookup.refresh(upc);
+    await productLookupStore.refresh(upc);
   }
 
   async function handleCarryoverSuccess(upc: string): Promise<void> {
     setModalShow(() => false);
-    await productLookup.refresh(upc);
+    await productLookupStore.refresh(upc);
   }
 
   return (
@@ -238,7 +238,7 @@ export function Template(props: templates.ProductLocatorScanner) {
                     variant="primary"
                     size="lg"
                     className="shadow-sm"
-                    onClick={() => void productLookup.refresh(lookup.upc)}
+                    onClick={() => void productLookupStore.refresh(lookup.upc)}
                   >
                     <FontAwesomeIcon icon={faRedo} className="me-2" />
                     Try again
@@ -246,7 +246,7 @@ export function Template(props: templates.ProductLocatorScanner) {
                 </div>
               )}
 
-              {(lookup.status === "found" || lookup.status === "not-found") && (
+              {isAssignableLookup(lookup) && (
                 <div className="my-4 text-center">
                   <Button
                     variant="primary"
@@ -263,7 +263,7 @@ export function Template(props: templates.ProductLocatorScanner) {
           )}
         </section>
         <section>
-          {isAddLocationOpen && (
+          {isAssignmentModalOpen && (
             <ProductLocatorModal
               lookup={lookup}
               planograms={props.planograms}

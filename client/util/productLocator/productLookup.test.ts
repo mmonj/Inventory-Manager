@@ -1,9 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { createProductLookup } from "./productLookup";
+import { TProductLookup, createProductLookup, isAssignableLookup } from "./productLookup";
 
 const UPC_A = "111111111111";
 const UPC_B = "222222222222";
+
+describe("isAssignableLookup", () => {
+  it.each<[TProductLookup, boolean]>([
+    [{ status: "idle" }, false],
+    [{ status: "loading", upc: UPC_A }, false],
+    [{ status: "found", upc: UPC_A, product: { upc: UPC_A } as never }, true],
+    [{ status: "not-found", upc: UPC_A, errorMessages: ["Not found"] }, true],
+    [{ status: "failed", upc: UPC_A, errorMessages: ["Server error"] }, false],
+  ])("%o is %s", (lookup, isAssignable) => {
+    expect(isAssignableLookup(lookup)).toBe(isAssignable);
+  });
+});
 
 function foundReply(upc: string): Response {
   return new Response(

@@ -10,7 +10,9 @@ export type TProductLookup =
   | { status: "not-found"; upc: string; errorMessages: string[] }
   | { status: "failed"; upc: string; errorMessages: string[] };
 
-export type TStartedProductLookup = Exclude<TProductLookup, { status: "idle" }>;
+type TStartedProductLookup = Exclude<TProductLookup, { status: "idle" }>;
+
+export type TAssignableProductLookup = Extract<TProductLookup, { status: "found" | "not-found" }>;
 
 type TLookUpProduct = (upc: string) => Promise<ApiResponse<interfaces.IProductLocations>>;
 
@@ -34,6 +36,11 @@ async function resolveLookup(
   } catch (error) {
     return { status: "failed", upc, errorMessages: await getFailureMessages(error as Error) };
   }
+}
+
+/** The lookup settled whether the Product exists, so a Home Location Assignment can start from it. */
+export function isAssignableLookup(lookup: TProductLookup): lookup is TAssignableProductLookup {
+  return lookup.status === "found" || lookup.status === "not-found";
 }
 
 /**
