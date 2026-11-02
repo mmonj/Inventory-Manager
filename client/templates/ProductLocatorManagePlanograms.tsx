@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 
 import { Context, interfaces, reverse, templates } from "@reactivated";
+import { parseISO } from "date-fns";
 import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
 import { Alert, Badge, Button, Card, ListGroup } from "react-bootstrap";
 import Select from "react-select";
@@ -13,6 +14,7 @@ import { EditPlanogramModal } from "@client/components/productLocator/EditPlanog
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
 import { fetchByReactivated } from "@client/util/commonUtil";
+import { getPlanogramSections } from "@client/util/productLocator/planogramUtil";
 import { toast } from "@client/util/toast";
 
 import "@client/scss/product_locator/monospace-text.scss";
@@ -191,12 +193,12 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
         {selectedStore && !planogramsFetcher.isLoading && planogramsFetcher.data && (
           <Card className="shadow-sm border-0 mb-4">
             <Card.Header className="bg-primary text-white">
-              <h5 className="mb-0">Active Planograms for {selectedStore.label}</h5>
+              <h5 className="mb-0">Planograms for {selectedStore.label}</h5>
             </Card.Header>
             <Card.Body className="p-0">
               {planogramsFetcher.data.planograms.length === 0 ? (
                 <div className="p-4 text-center text-muted">
-                  <p className="mb-0">No active planograms found for this store.</p>
+                  <p className="mb-0">No planograms found for this store.</p>
                 </div>
               ) : (
                 <>
@@ -206,74 +208,86 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
                       {planogramsFetcher.data.planograms.length !== 1 ? "s" : ""} found
                     </small>
                   </div>
-                  <ListGroup variant="flush">
-                    <LazyMotion features={domAnimation}>
-                      <AnimatePresence mode="popLayout">
-                        {[...planogramsFetcher.data.planograms]
-                          .sort(
-                            (a, b) =>
-                              new Date(b.planogram.date_start).getTime() -
-                              new Date(a.planogram.date_start).getTime()
-                          )
-                          .map(({ planogram, product_count: productCount }) => {
-                            const isSeasonal = planogram.plano_type_info.value === "seasonal";
-                            return (
-                              <ListGroup.Item
-                                key={planogram.pk}
-                                as={m.div}
-                                layout
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                transition={{ duration: 0.2 }}
-                                className="d-flex justify-content-between align-items-center"
-                              >
-                                <div>
-                                  <h6 className="mb-1 fw-bold">{planogram.name}</h6>
-                                  <small className="text-muted">
-                                    Started: {new Date(planogram.date_start).toLocaleDateString()}
-                                    {" · "}
-                                    {productCount} product{productCount !== 1 ? "s" : ""}
-                                  </small>
-                                </div>
-                                <div className="d-flex align-items-center gap-2">
-                                  <Badge
-                                    bg={isSeasonal ? "warning" : "info"}
-                                    text={isSeasonal ? "light" : "white"}
+                  <LazyMotion features={domAnimation}>
+                    {getPlanogramSections(planogramsFetcher.data.planograms).map((section) => (
+                      <React.Fragment key={section.title}>
+                        <div className="px-3 py-2 bg-light border-bottom small fw-semibold">
+                          {section.title}
+                        </div>
+                        <ListGroup variant="flush">
+                          <AnimatePresence mode="popLayout">
+                            {section.storePlanograms.map(
+                              ({ planogram, product_count: productCount }) => {
+                                const isSeasonal = planogram.plano_type_info.value === "seasonal";
+                                return (
+                                  <ListGroup.Item
+                                    key={planogram.pk}
+                                    as={m.div}
+                                    layout
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.95 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="d-flex justify-content-between align-items-center"
                                   >
-                                    {planogram.plano_type_info.label}
-                                  </Badge>
-                                  <Button
-                                    variant="outline-primary"
-                                    size="sm"
-                                    onClick={() =>
-                                      setEditingPlanogram({
-                                        pk: planogram.pk,
-                                        name: planogram.name,
-                                        planoType: planogram.plano_type_info.value,
-                                      })
-                                    }
-                                    title="Edit planogram"
-                                  >
-                                    <FontAwesomeIcon icon={faPencilAlt} />
-                                  </Button>
-                                  <Button
-                                    variant="outline-danger"
-                                    size="sm"
-                                    onClick={() =>
-                                      handleDeletePlanogram(planogram.pk, planogram.name)
-                                    }
-                                    title="Delete planogram"
-                                  >
-                                    <FontAwesomeIcon icon={faTrash} />
-                                  </Button>
-                                </div>
-                              </ListGroup.Item>
-                            );
-                          })}
-                      </AnimatePresence>
-                    </LazyMotion>
-                  </ListGroup>
+                                    <div>
+                                      <h6 className="mb-1 fw-bold">{planogram.name}</h6>
+                                      <small className="text-muted">
+                                        Started:{" "}
+                                        {parseISO(planogram.date_start).toLocaleDateString()}
+                                        {" · "}
+                                        {planogram.date_end !== null && (
+                                          <>
+                                            Ends:{" "}
+                                            {parseISO(planogram.date_end).toLocaleDateString()}
+                                            {" · "}
+                                          </>
+                                        )}
+                                        {productCount} product{productCount !== 1 ? "s" : ""}
+                                      </small>
+                                    </div>
+                                    <div className="d-flex align-items-center gap-2">
+                                      <Badge
+                                        bg={isSeasonal ? "warning" : "info"}
+                                        text={isSeasonal ? "light" : "white"}
+                                      >
+                                        {planogram.plano_type_info.label}
+                                      </Badge>
+                                      <Button
+                                        variant="outline-primary"
+                                        size="sm"
+                                        onClick={() =>
+                                          setEditingPlanogram({
+                                            pk: planogram.pk,
+                                            name: planogram.name,
+                                            planoType: planogram.plano_type_info.value,
+                                            dateEnd: planogram.date_end,
+                                          })
+                                        }
+                                        title="Edit planogram"
+                                      >
+                                        <FontAwesomeIcon icon={faPencilAlt} />
+                                      </Button>
+                                      <Button
+                                        variant="outline-danger"
+                                        size="sm"
+                                        onClick={() =>
+                                          handleDeletePlanogram(planogram.pk, planogram.name)
+                                        }
+                                        title="Delete planogram"
+                                      >
+                                        <FontAwesomeIcon icon={faTrash} />
+                                      </Button>
+                                    </div>
+                                  </ListGroup.Item>
+                                );
+                              }
+                            )}
+                          </AnimatePresence>
+                        </ListGroup>
+                      </React.Fragment>
+                    ))}
+                  </LazyMotion>
                 </>
               )}
             </Card.Body>

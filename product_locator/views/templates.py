@@ -14,7 +14,9 @@ class ProductLocatorIndex(NamedTuple):
 @template
 class ProductLocatorScanner(NamedTuple):
     stores: list[Pick[Store, "pk", "name"]]
-    planograms: list[Pick[Planogram, "pk", "name", "date_start", "date_end", "store.pk"]]
+    planograms: list[
+        Pick[Planogram, "pk", "name", "date_start", "date_end", "is_outdated", "store.pk"]
+    ]
 
 
 @template

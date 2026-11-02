@@ -137,7 +137,7 @@ export function Template(props: templates.ProductLocatorScanner) {
                       </div>
                       <div className="list-group list-group-flush">
                         {getProductFetcher.data.product.home_locations.map((location) => {
-                          if (location.planogram.date_end !== null) return null;
+                          if (location.planogram.is_outdated) return null;
 
                           return <LocationItem key={location.pk} location={location} />;
                         })}
@@ -148,7 +148,7 @@ export function Template(props: templates.ProductLocatorScanner) {
 
               {getProductFetcher.data &&
                 getProductFetcher.data.product.home_locations.some(
-                  (loc) => loc.planogram.date_end !== null
+                  (location) => location.planogram.is_outdated
                 ) && (
                   <Card
                     className="shadow-sm border-0 border-danger mb-4"
@@ -166,7 +166,7 @@ export function Template(props: templates.ProductLocatorScanner) {
                       </div>
                       <div className="list-group list-group-flush">
                         {getProductFetcher.data.product.home_locations
-                          .filter((location) => location.planogram.date_end !== null)
+                          .filter((location) => location.planogram.is_outdated)
                           .map((location) => (
                             <LocationItem
                               key={location.pk}

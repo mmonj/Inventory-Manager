@@ -6,7 +6,7 @@ import Modal from "react-bootstrap/Modal";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Tooltip from "react-bootstrap/Tooltip";
 
-import { Context, Planogram_0344C0Aff5, interfaces, reverse } from "@reactivated";
+import { Context, interfaces, reverse, templates } from "@reactivated";
 
 import {
   faCheckCircle,
@@ -41,7 +41,7 @@ function animateWithPulse(element: HTMLElement | null) {
 interface Props {
   modalShow: boolean;
   onHide: () => void;
-  planograms: Planogram_0344C0Aff5[];
+  planograms: templates.ProductLocatorScanner["planograms"];
   scannedUpc: string;
   productName?: string;
   storeId: number;
@@ -234,7 +234,7 @@ export function ProductLocatorModal({
                 className="form-select form-select-lg"
               >
                 {planograms.map((planogram) => {
-                  if (planogram.store?.pk !== storeId || planogram.date_end !== null) {
+                  if (planogram.store?.pk !== storeId || planogram.is_outdated) {
                     return;
                   }
                   return (

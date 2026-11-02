@@ -1,9 +1,10 @@
+from datetime import date
 from typing import Any, Literal, NamedTuple, cast
 
 from checkdigit import gs1
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.db.models.functions import Trim, Upper
 from django.utils import timezone
 
@@ -58,11 +59,24 @@ class Planogram(models.Model):
             raise ValidationError(
                 {"horizontal_section_thresholds": "Must be a list of single-character strings."}
             )
+        # Either date stays unparsed here when clean_fields rejected it
+        if (
+            type(self.date_end) is date
+            and type(self.date_start) is date
+            and self.date_end < self.date_start
+        ):
+            raise ValidationError({"date_end": "End date can't be before the start date."})
+
+    @classmethod
+    def get_current_planograms(cls) -> "QuerySet[Planogram]":
+        return cls.objects.filter(Q(date_end__isnull=True) | Q(date_end__gte=timezone.localdate()))
 
     def get_plano_status(self) -> str:
-        if self.date_end is None:
-            return ""
-        return " [OUTDATED]"
+        return " [OUTDATED]" if self.is_outdated else ""
+
+    @property
+    def is_outdated(self) -> bool:
+        return self.date_end is not None and self.date_end < timezone.localdate()
 
     @property
     def plano_type_info(self) -> TPlanoType:

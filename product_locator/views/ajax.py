@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, cast
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -69,7 +69,7 @@ def get_product_locations_by_name(
             Prefetch(
                 "home_locations",
                 queryset=HomeLocation.objects.filter(
-                    planogram__store__pk=store_id, planogram__date_end__isnull=True
+                    planogram__store__pk=store_id, planogram__in=Planogram.get_current_planograms()
                 ),
             )
         )
@@ -137,7 +137,7 @@ def create_new_scan_audit(request: DrfRequest) -> HttpResponse:
 @permission_classes([IsAuthenticated])
 def get_planograms_by_store(request: DrfRequest, store_id: int) -> HttpResponse:
     planograms = (
-        Planogram.objects.filter(store__pk=store_id, date_end__isnull=True)
+        Planogram.objects.filter(store__pk=store_id)
         .annotate(product_count=Count("locations__products", distinct=True))
         .order_by("-date_start")
     )
@@ -201,6 +201,8 @@ def edit_planogram(request: DrfRequest) -> HttpResponse:
 
     planogram.name = request_data.name.strip()
     planogram.plano_type = request_data.plano_type
+    # full_clean parses the raw string into a date
+    planogram.date_end = cast("Any", request_data.date_end or None)
     try:
         planogram.full_clean()
     except ValidationError as ex:
@@ -214,7 +216,7 @@ def edit_planogram(request: DrfRequest) -> HttpResponse:
             label=request_data.label,
         )
         if text_dump_result.ok:
-            planogram.save(update_fields=["name", "plano_type"])
+            planogram.save(update_fields=["name", "plano_type", "date_end"])
 
     if not text_dump_result.ok:
         return error_json_response(text_dump_result.err, status=400)

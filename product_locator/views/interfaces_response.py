@@ -37,6 +37,7 @@ class IHomeLocationUpdate(NamedTuple):
         "planogram.name",
         "planogram.date_start",
         "planogram.date_end",
+        "planogram.is_outdated",
         "planogram.plano_type_info",
     ]
 
@@ -53,6 +54,7 @@ class TStorePlanogram(NamedTuple):
         "name",
         "date_start",
         "date_end",
+        "is_outdated",
         "plano_type_info",
     ]
     product_count: int
@@ -77,6 +79,7 @@ class IProductLocations(NamedTuple):
         "home_locations.planogram.name",
         "home_locations.planogram.date_start",
         "home_locations.planogram.date_end",
+        "home_locations.planogram.is_outdated",
         "home_locations.planogram.plano_type_info",
     ]
 

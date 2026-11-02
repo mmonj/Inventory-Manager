@@ -31,6 +31,7 @@ class IEditPlanogram:
     planogram_id: int
     name: str
     plano_type: str
+    date_end: str | None
     planogram_text_dump: str
     is_reset_planogram: bool
     label: str

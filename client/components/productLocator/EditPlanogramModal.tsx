@@ -23,7 +23,7 @@ interface Props {
   show: boolean;
   onHide: () => void;
   storeName: string;
-  planogram: { pk: number; name: string; planoType: TPlanoType["value"] };
+  planogram: { pk: number; name: string; planoType: TPlanoType["value"]; dateEnd: string | null };
   planoTypeChoices: TPlanoType[];
   onSuccess: () => void;
 }
@@ -34,6 +34,7 @@ export function EditPlanogramModal(props: Props) {
 
   const [name, setName] = useState(props.planogram.name);
   const [planoType, setPlanoType] = useState(props.planogram.planoType);
+  const [dateEnd, setDateEnd] = useState(props.planogram.dateEnd ?? "");
   const [planogramTextDump, setPlanogramTextDump] = useState("");
   const [isResetPlanogram, setIsResetPlanogram] = useState(false);
   const [label, setLabel] = useState("");
@@ -41,7 +42,10 @@ export function EditPlanogramModal(props: Props) {
   const hasTextDump = planogramTextDump.trim() !== "";
   const isResetRequested = hasTextDump && isResetPlanogram;
   const hasChanges =
-    name.trim() !== props.planogram.name || planoType !== props.planogram.planoType || hasTextDump;
+    name.trim() !== props.planogram.name ||
+    planoType !== props.planogram.planoType ||
+    dateEnd !== (props.planogram.dateEnd ?? "") ||
+    hasTextDump;
 
   function getDefaultResetLabel() {
     return `${format(new Date(), "MM-dd-yy")} reset`;
@@ -72,6 +76,7 @@ export function EditPlanogramModal(props: Props) {
           planogram_id: props.planogram.pk,
           name,
           plano_type: planoType,
+          date_end: dateEnd === "" ? null : dateEnd,
           planogram_text_dump: planogramTextDump,
           is_reset_planogram: isResetRequested,
           label,
@@ -138,6 +143,22 @@ export function EditPlanogramModal(props: Props) {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="mb-3">
+            <label htmlFor="edit-planogram-end-date" className="form-label fw-semibold">
+              End Date
+            </label>
+            <input
+              type="date"
+              id="edit-planogram-end-date"
+              className="form-control"
+              value={dateEnd}
+              onChange={(event) => setDateEnd(event.target.value)}
+            />
+            <small className="form-text text-muted">
+              Optional. The planogram stays current through this date.
+            </small>
           </div>
 
           <div className="mb-3">

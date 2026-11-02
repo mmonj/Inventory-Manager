@@ -427,6 +427,7 @@ def post_planogram_edit(client: Client, planogram: Planogram, **overrides: Any) 
             "planogram_id": planogram.pk,
             "name": planogram.name,
             "plano_type": planogram.plano_type,
+            "date_end": planogram.date_end,
             "planogram_text_dump": "",
             "is_reset_planogram": False,
             "label": "",
