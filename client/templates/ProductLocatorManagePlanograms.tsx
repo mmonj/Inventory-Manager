@@ -131,9 +131,9 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
     if (isSuccess) {
       formElement.reset();
 
-      if (createdPlanogram.num_products_parsed > 0) {
+      if (createdPlanogram.num_products > 0) {
         toast.success(
-          `Created "${createdPlanogram.planogram.name}" with ${String(createdPlanogram.num_products_added)} of ${String(createdPlanogram.num_products_parsed)} item(s).`
+          `Created "${createdPlanogram.planogram.name}" with ${String(createdPlanogram.num_products)} product(s).`
         );
       } else {
         toast.success(`Created "${createdPlanogram.planogram.name}".`);

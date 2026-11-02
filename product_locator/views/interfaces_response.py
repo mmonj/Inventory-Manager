@@ -105,13 +105,11 @@ class IPlanogramUpdateApplied(NamedTuple):
 @interface
 class IPlanogramEdited(NamedTuple):
     planogram: Pick[Planogram, "pk", "name"]
-    num_products_added: int | None
-    num_products_parsed: int | None
+    num_products: int
     planogram_update: Pick[PlanogramUpdate, "pk", "label"] | None
 
 
 @interface
 class IPlanogramCreated(NamedTuple):
     planogram: Pick[Planogram, "pk", "name", "date_start", "date_end", "plano_type_info"]
-    num_products_added: int
-    num_products_parsed: int
+    num_products: int

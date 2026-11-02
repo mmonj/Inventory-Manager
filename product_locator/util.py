@@ -15,13 +15,9 @@ def normalize_location_name(name: str) -> str:
     return name.strip().upper()
 
 
-def add_location_records(
-    product_list: list[IImportedProductInfo],
-    planogram: Planogram,
-) -> TResult[int, list[str]]:
+def check_new_products(product_list: list[IImportedProductInfo]) -> TResult[None, list[str]]:
     """
-    Validates every new product before writing anything. If any product is invalid, no
-    HomeLocation/Product/relation writes from this call are persisted (all-or-nothing import).
+    Validates every product that doesn't exist yet. Writes nothing.
     """
     product_errors: list[str] = []
     for product_data in product_list:
@@ -42,6 +38,21 @@ def add_location_records(
     if product_errors:
         return TFailure(product_errors)
 
+    return TSuccess(None)
+
+
+def add_location_records(
+    product_list: list[IImportedProductInfo],
+    planogram: Planogram,
+) -> TResult[None, list[str]]:
+    """
+    Validates every new product before writing anything. If any product is invalid, no
+    HomeLocation/Product/relation writes from this call are persisted (all-or-nothing import).
+    """
+    check_result = check_new_products(product_list)
+    if not check_result.ok:
+        return check_result
+
     with transaction.atomic():
         new_locations = [
             HomeLocation(name=product_data["location"], planogram=planogram)
@@ -55,17 +66,15 @@ def add_location_records(
             loc.name: loc for loc in planogram.locations.all()
         }
 
-        num_products_added = 0
         for product_data in product_list:
             product = Product.objects.filter(upc=product_data["upc"]).first()
             if product is None:
                 product = Product.objects.create(upc=product_data["upc"], name=product_data["name"])
 
-            num_products_added += 1
             home_location = home_locations.get(product_data["location"])
             if home_location is None:
                 continue
 
             product.home_locations.add(home_location)
 
-    return TSuccess(num_products_added)
+    return TSuccess(None)

@@ -50,10 +50,10 @@ def add_location_through_view(
 
 
 def test_parsing_uppercases_locations() -> None:
-    product_list, parse_errors = parse_data(f"Card {UPC_1} b12\n")
+    parse_result = parse_data(f"Card {UPC_1} b12\n")
 
-    assert parse_errors == []
-    assert product_list == [{"upc": UPC_1, "name": "Card", "location": "B12"}]
+    assert parse_result.ok
+    assert parse_result.value == [{"upc": UPC_1, "name": "Card", "location": "B12"}]
 
 
 def test_manual_add_treats_case_and_whitespace_variants_as_one_location(
@@ -68,9 +68,10 @@ def test_manual_add_treats_case_and_whitespace_variants_as_one_location(
 
 
 def test_import_with_both_spellings_shares_one_location(planogram: Planogram) -> None:
-    product_list, _parse_errors = parse_data(f"Card {UPC_1} a1\nCard {UPC_2} A1\n")
+    parse_result = parse_data(f"Card {UPC_1} a1\nCard {UPC_2} A1\n")
+    assert parse_result.ok
 
-    add_result = add_location_records(product_list, planogram)
+    add_result = add_location_records(parse_result.value, planogram)
 
     assert add_result.ok
     home_location = planogram.locations.get()
@@ -79,9 +80,10 @@ def test_import_with_both_spellings_shares_one_location(planogram: Planogram) ->
 
 
 def test_queueing_refuses_both_spellings_as_a_location_used_twice(planogram: Planogram) -> None:
-    product_list, _parse_errors = parse_data(f"Card {UPC_1} a1\nCard {UPC_2} A1\n")
+    parse_result = parse_data(f"Card {UPC_1} a1\nCard {UPC_2} A1\n")
+    assert parse_result.ok
 
-    queue_result = queue_planogram_update("Update", product_list, planogram)
+    queue_result = queue_planogram_update("Update", parse_result.value, planogram)
 
     assert not queue_result.ok
     assert queue_result.err == ["Location A1 has more than one product in the new layout."]

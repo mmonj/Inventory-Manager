@@ -2,7 +2,6 @@ import logging
 from typing import Any, cast
 
 from django.core.exceptions import ValidationError
-from django.db import transaction
 from django.db.models import Count, Prefetch
 from django.http import HttpResponse
 from rest_framework.decorators import api_view, permission_classes
@@ -13,7 +12,7 @@ from rest_framework.request import Request as DrfRequest
 
 from server.utils.common import error_json_response, validate_structure
 
-from .. import planogram_parser, planogram_updates, util
+from .. import planogram_import, planogram_updates, util
 from ..models import HomeLocation, Planogram, PlanogramUpdate, Product, ProductScanAudit, Store
 from . import interfaces_response
 from .interfaces_request import (
@@ -203,29 +202,19 @@ def edit_planogram(request: DrfRequest) -> HttpResponse:
     planogram.plano_type = request_data.plano_type
     # full_clean parses the raw string into a date
     planogram.date_end = cast("Any", request_data.date_end or None)
-    try:
-        planogram.full_clean()
-    except ValidationError as ex:
-        return error_json_response(ex.messages, status=400)
 
-    with transaction.atomic():
-        text_dump_result = planogram_updates.apply_planogram_text_dump(
-            request_data.planogram_text_dump,
-            planogram,
-            is_reset_planogram=request_data.is_reset_planogram,
-            label=request_data.label,
-        )
-        if text_dump_result.ok:
-            planogram.save(update_fields=["name", "plano_type", "date_end"])
-
-    if not text_dump_result.ok:
-        return error_json_response(text_dump_result.err, status=400)
+    import_result = planogram_import.import_planogram(
+        planogram,
+        request_data.planogram_text_dump,
+        reset_label=request_data.label if request_data.is_reset_planogram else None,
+    )
+    if not import_result.ok:
+        return error_json_response(import_result.err, status=400)
 
     return interfaces_response.IPlanogramEdited(
         planogram=planogram,
-        num_products_added=text_dump_result.value.num_products_added,
-        num_products_parsed=text_dump_result.value.num_products_parsed,
-        planogram_update=text_dump_result.value.planogram_update,
+        num_products=import_result.value.num_products,
+        planogram_update=import_result.value.planogram_update,
     ).render(request)
 
 
@@ -236,7 +225,7 @@ def create_planogram(request: DrfRequest) -> HttpResponse:
 
     store = Store.objects.filter(pk=request_data.store_id).first()
     if store is None:
-        raise DrfNotFound(f"Store with ID {request_data.store_id} not found")
+        return error_json_response([f"Store with ID {request_data.store_id} not found"], status=404)
 
     planogram_kwargs: dict[str, Any] = {
         "name": request_data.name.strip(),
@@ -249,33 +238,12 @@ def create_planogram(request: DrfRequest) -> HttpResponse:
         )
 
     planogram = Planogram(**planogram_kwargs)
-    try:
-        planogram.full_clean()
-    except ValidationError as ex:
-        raise DrfValidationError(ex.messages) from ex
-
-    planogram_text_dump = request_data.planogram_text_dump
-    product_list, parse_errors = (
-        planogram_parser.parse_data(planogram_text_dump)
-        if planogram_text_dump.strip()
-        else ([], [])
-    )
-    if parse_errors:
-        return error_json_response(parse_errors, status=400)
-
-    with transaction.atomic():
-        planogram.save()
-
-        add_result = util.add_location_records(product_list, planogram)
-        if not add_result.ok:
-            # Roll back the planogram too -- a failed text dump must not leave it behind empty.
-            transaction.set_rollback(True)
-            return error_json_response(add_result.err, status=400)
+    import_result = planogram_import.import_planogram(planogram, request_data.planogram_text_dump)
+    if not import_result.ok:
+        return error_json_response(import_result.err, status=400)
 
     logger.info("Created planogram '%s' for store '%s'", planogram.name, store.name)
 
     return interfaces_response.IPlanogramCreated(
-        planogram=planogram,
-        num_products_added=add_result.value,
-        num_products_parsed=len(product_list),
+        planogram=planogram, num_products=import_result.value.num_products
     ).render(request)

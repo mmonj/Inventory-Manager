@@ -2,58 +2,22 @@ import logging
 from collections import Counter
 from typing import NamedTuple
 
+from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from server.utils.typedefs import TFailure, TResult, TSuccess
 
-from . import planogram_parser
 from .models import Planogram, PlanogramUpdate
 from .types import IImportedProductInfo, TNewPlanoSnapshot, TOldPlanoSnapshot
-from .util import add_location_records
+from .util import add_location_records, check_new_products
 
 logger = logging.getLogger("main_logger")
-
-
-class TAppliedTextDump(NamedTuple):
-    num_products_added: int | None
-    num_products_parsed: int | None
-    planogram_update: PlanogramUpdate | None
 
 
 class TAppliedPlanogramUpdate(NamedTuple):
     planogram_update: PlanogramUpdate
     num_locations_removed: int
     num_locations_added: int
-
-
-def apply_planogram_text_dump(
-    planogram_text_dump: str, planogram: Planogram, *, is_reset_planogram: bool, label: str
-) -> TResult[TAppliedTextDump, list[str]]:
-    """
-    Add the text dump's products to the planogram, or queue them as a planogram update if it is
-    being reset. A blank text dump changes nothing. Writes nothing when it fails.
-    """
-    if not planogram_text_dump.strip():
-        return (
-            TFailure(["A planogram reset needs a planogram text dump."])
-            if is_reset_planogram
-            else TSuccess(TAppliedTextDump(None, None, None))
-        )
-
-    product_list, parse_errors = planogram_parser.parse_data(planogram_text_dump)
-    if parse_errors:
-        return TFailure(parse_errors)
-
-    if is_reset_planogram:
-        queue_result = queue_planogram_update(label, product_list, planogram)
-        if not queue_result.ok:
-            return queue_result
-        return TSuccess(TAppliedTextDump(None, None, queue_result.value))
-
-    add_result = add_location_records(product_list, planogram)
-    if not add_result.ok:
-        return add_result
-    return TSuccess(TAppliedTextDump(add_result.value, len(product_list), None))
 
 
 def queue_planogram_update(
@@ -75,6 +39,20 @@ def queue_planogram_update(
     if duplicate_location_errors:
         return TFailure(duplicate_location_errors)
 
+    check_result = check_new_products(product_list)
+    if not check_result.ok:
+        return check_result
+
+    planogram_update = PlanogramUpdate(
+        label=cleaned_label,
+        planogram=planogram,
+        new_plano=_build_new_plano(product_list),
+    )
+    try:
+        planogram_update.full_clean()
+    except ValidationError as ex:
+        return TFailure(ex.messages)
+
     with transaction.atomic():
         superseded_count = planogram.planogram_updates.filter(
             status=PlanogramUpdate.Status.PENDING
@@ -86,11 +64,7 @@ def queue_planogram_update(
                 planogram,
             )
 
-        planogram_update = PlanogramUpdate.objects.create(
-            label=cleaned_label,
-            planogram=planogram,
-            new_plano=_build_new_plano(product_list),
-        )
+        planogram_update.save()
 
     return TSuccess(planogram_update)
 

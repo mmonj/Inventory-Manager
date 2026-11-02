@@ -87,9 +87,9 @@ export function EditPlanogramModal(props: Props) {
     if (isSuccess) {
       if (data.planogram_update !== null) {
         toast.success(`Queued planogram update "${data.planogram_update.label}".`);
-      } else if (data.num_products_parsed !== null) {
+      } else if (data.num_products > 0) {
         toast.success(
-          `Submitted ${String(data.num_products_added)} out of ${String(data.num_products_parsed)} item(s) successfully.`
+          `Saved "${data.planogram.name}" with ${String(data.num_products)} product(s).`
         );
       } else {
         toast.success(`Saved "${data.planogram.name}".`);
@@ -203,6 +203,7 @@ export function EditPlanogramModal(props: Props) {
                 className="form-control"
                 value={label}
                 onChange={(event) => setLabel(event.target.value)}
+                maxLength={100}
                 required
               />
               <small className="form-text text-muted">

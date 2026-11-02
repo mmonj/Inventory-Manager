@@ -1,9 +1,10 @@
 import logging
 import re
-from collections.abc import Callable
 
 from checkdigit import gs1
 from natsort import natsorted
+
+from server.utils.typedefs import TFailure, TResult, TSuccess
 
 from .types import IImportedProductInfo
 from .util import normalize_location_name
@@ -29,9 +30,7 @@ LOCATION_FIRST_ITEM_ATTRIBUTES_RE = re.compile(
 )
 
 
-def parse_data(
-    planogram_text_dump: str,
-) -> tuple[list[IImportedProductInfo], list[str]]:
+def parse_data(planogram_text_dump: str) -> TResult[list[IImportedProductInfo], list[str]]:
     product_list: list[IImportedProductInfo] = []
     lines_not_matched: list[str] = []
     invalid_upcs: list[str] = []
@@ -66,10 +65,10 @@ def parse_data(
         logger.info("Invalid UPC check digit: '%s'", upc)
         errors.append(f"Invalid UPC (failed check digit): {upc}")
 
-    # assert_unique(product_list, "upc", key=lambda e: e["upc"])
-    # assert_unique(product_list, "location", key=lambda e: e["location"])
+    if errors:
+        return TFailure(errors)
 
-    return natsorted(product_list, key=lambda p: p["location"], reverse=True), errors
+    return TSuccess(natsorted(product_list, key=lambda p: p["location"], reverse=True))
 
 
 def match_whole_line(line: str) -> list[re.Match[str]]:
@@ -93,22 +92,3 @@ def is_whole_line_matched(matches: list[re.Match[str]], line: str) -> bool:
     )
 
     return not has_gaps and not any(UPC_RE.search(match.group("name")) for match in matches)
-
-
-def assert_unique(
-    product_list: list[IImportedProductInfo],
-    unique_type: str,
-    key: Callable[[IImportedProductInfo], str],
-) -> None:
-    if key is None:
-        return
-
-    uniques = set()
-    for product in product_list:
-        value = key(product)
-
-        if value in uniques:
-            raise ValueError(f"{unique_type} duplicate found: {value} --> {product}")
-        uniques.add(value)
-
-    logger.info("Validated as unique all %s values", unique_type)

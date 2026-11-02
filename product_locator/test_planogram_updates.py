@@ -40,6 +40,20 @@ def queue_update(planogram: Planogram, *products: IImportedProductInfo) -> Plano
     return result.value
 
 
+def stored_update(planogram: Planogram, *products: IImportedProductInfo) -> PlanogramUpdate:
+    """
+    An update already pending, which skips the checks made when queueing one.
+    """
+    return PlanogramUpdate.objects.create(
+        label="Fall reset",
+        planogram=planogram,
+        new_plano={
+            product["location"]: {"upc": product["upc"], "name": product["name"]}
+            for product in products
+        },
+    )
+
+
 def layout_of(planogram: Planogram) -> dict[str, list[str]]:
     return {
         location.name: sorted(product.upc for product in location.products.all())
@@ -122,7 +136,7 @@ def test_applying_reports_home_locations_not_product_links(planogram: Planogram)
 
 def test_invalid_upc_rolls_the_whole_apply_back(planogram: Planogram) -> None:
     place_product(planogram, "A1", UPC_1)
-    update = queue_update(
+    update = stored_update(
         planogram, imported_product("A1", UPC_2), imported_product("A2", INVALID_UPC)
     )
 
@@ -136,7 +150,7 @@ def test_invalid_upc_rolls_the_whole_apply_back(planogram: Planogram) -> None:
 
 def test_overlong_product_name_rolls_the_whole_apply_back(planogram: Planogram) -> None:
     place_product(planogram, "A1", UPC_1)
-    update = queue_update(planogram, imported_product("A1", UPC_2, name="x" * 101))
+    update = stored_update(planogram, imported_product("A1", UPC_2, name="x" * 101))
 
     result = apply_planogram_update(update)
 
@@ -365,8 +379,7 @@ def test_creating_with_a_text_dump_fills_the_new_planogram(
     response = post_new_planogram(superuser_client, store, text_dump)
 
     assert response.status_code == 200
-    assert response.json()["num_products_added"] == 2
-    assert response.json()["num_products_parsed"] == 2
+    assert response.json()["num_products"] == 2
     assert layout_of(store.planograms.get()) == {"A1": [UPC_1], "A2": [UPC_2]}
 
 
@@ -397,7 +410,7 @@ def test_creating_with_a_blank_text_dump_makes_an_empty_planogram(
     response = post_new_planogram(superuser_client, store, blank_text_dump)
 
     assert response.status_code == 200
-    assert response.json()["num_products_parsed"] == 0
+    assert response.json()["num_products"] == 0
     assert layout_of(store.planograms.get()) == {}
 
 
@@ -443,7 +456,7 @@ def test_editing_renames_a_planogram(superuser_client: Client, planogram: Planog
 
     assert response.status_code == 200
     assert response.json()["planogram"]["name"] == "Fall Plano"
-    assert response.json()["num_products_parsed"] is None
+    assert response.json()["num_products"] == 0
     planogram.refresh_from_db()
     assert planogram.name == "Fall Plano"
 
@@ -509,8 +522,7 @@ def test_editing_with_a_text_dump_saves_the_name_and_the_products(
     )
 
     assert response.status_code == 200
-    assert response.json()["num_products_added"] == 1
-    assert response.json()["num_products_parsed"] == 1
+    assert response.json()["num_products"] == 1
     planogram.refresh_from_db()
     assert planogram.name == "Fall Plano"
     assert layout_of(planogram) == {"A1": [UPC_1]}
@@ -583,10 +595,10 @@ def test_failed_edit_saves_nothing(
 def test_parsing_rejects_a_location_that_is_not_a_letter_and_digits(location: str) -> None:
     line = f"Cat Box {UPC_1} {location}"
 
-    product_list, parse_errors = parse_data(line)
+    parse_result = parse_data(line)
 
-    assert product_list == []
-    assert parse_errors == [f"No data was parsed from line: {line}"]
+    assert not parse_result.ok
+    assert parse_result.err == [f"No data was parsed from line: {line}"]
 
 
 @pytest.mark.parametrize(
@@ -609,27 +621,27 @@ def test_parsing_rejects_a_location_that_is_not_a_letter_and_digits(location: st
     ],
 )
 def test_parsing_rejects_a_line_with_any_malformed_entry(line: str) -> None:
-    product_list, parse_errors = parse_data(line)
+    parse_result = parse_data(line)
 
-    assert product_list == []
-    assert parse_errors == [f"No data was parsed from line: {line}"]
+    assert not parse_result.ok
+    assert parse_result.err == [f"No data was parsed from line: {line}"]
 
 
 def test_parsing_reads_several_entries_on_one_line() -> None:
-    product_list, parse_errors = parse_data(f"Cat Box {UPC_1} A1 Dog Toy {UPC_2} A2")
+    parse_result = parse_data(f"Cat Box {UPC_1} A1 Dog Toy {UPC_2} A2")
 
-    assert parse_errors == []
-    assert sorted(product["upc"] for product in product_list) == sorted([UPC_1, UPC_2])
+    assert parse_result.ok
+    assert sorted(product["upc"] for product in parse_result.value) == sorted([UPC_1, UPC_2])
 
 
 @pytest.mark.parametrize(
     "line", [f"Cat Box {UPC_1} A123", f"A123 Section 1 {UPC_1} Cat Box"], ids=["tail", "section"]
 )
 def test_parsing_accepts_a_three_digit_location(line: str) -> None:
-    product_list, parse_errors = parse_data(line)
+    parse_result = parse_data(line)
 
-    assert parse_errors == []
-    assert product_list == [{"upc": UPC_1, "name": "Cat Box", "location": "A123"}]
+    assert parse_result.ok
+    assert parse_result.value == [{"upc": UPC_1, "name": "Cat Box", "location": "A123"}]
 
 
 def test_creating_with_a_bad_location_creates_no_planogram(
