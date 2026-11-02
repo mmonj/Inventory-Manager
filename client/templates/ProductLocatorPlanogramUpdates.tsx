@@ -29,7 +29,8 @@ function describeStep(step: TChainStep): string {
 }
 
 export function Template(props: templates.ProductLocatorPlanogramUpdates) {
-  const [selectedUpdate, setSelectedUpdate] = useState<TPlanogramUpdate | null>(null);
+  const [planogramUpdates, setPlanogramUpdates] = useState(props.planogram_updates);
+  const [selectedUpdatePk, setSelectedUpdatePk] = useState<number | null>(null);
   // The move checklist only helps whoever is physically rearranging the shelf: applying an
   // update replaces the planogram's locations with new_plano server-side regardless of what's
   // checked off, so this state is deliberately not persisted.
@@ -49,6 +50,8 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
     });
   }
 
+  const selectedUpdate =
+    planogramUpdates.find((planogramUpdate) => planogramUpdate.pk === selectedUpdatePk) ?? null;
   const movePlan = selectedUpdate
     ? buildMovePlan(selectedUpdate.old_plano, selectedUpdate.new_plano)
     : null;
@@ -70,7 +73,11 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
     );
 
     if (isSuccess) {
-      setSelectedUpdate((prev) => (prev ? { ...prev, status: "applied" } : prev));
+      setPlanogramUpdates((prev) =>
+        prev.map((prevUpdate) =>
+          prevUpdate.pk === planogramUpdate.pk ? { ...prevUpdate, status: "applied" } : prevUpdate
+        )
+      );
     }
   }
 
@@ -84,21 +91,21 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
             <h5 className="mb-0">Pending &amp; Recent Updates</h5>
           </Card.Header>
           <Card.Body className="p-0">
-            {props.planogram_updates.length === 0 ? (
+            {planogramUpdates.length === 0 ? (
               <div className="p-4 text-center text-muted">
                 <p className="mb-0">No planogram updates found.</p>
               </div>
             ) : (
               <ListGroup variant="flush">
-                {props.planogram_updates.map((planogramUpdate) => (
+                {planogramUpdates.map((planogramUpdate) => (
                   <ListGroup.Item
                     key={planogramUpdate.pk}
                     action
-                    active={selectedUpdate?.pk === planogramUpdate.pk}
+                    active={selectedUpdatePk === planogramUpdate.pk}
                     disabled={planogramUpdate.status !== "pending"}
                     className={planogramUpdate.status !== "pending" ? "text-muted bg-light" : ""}
                     onClick={() => {
-                      setSelectedUpdate(planogramUpdate);
+                      setSelectedUpdatePk(planogramUpdate.pk);
                       setCompletedStepKeys(new Set());
                     }}
                   >
