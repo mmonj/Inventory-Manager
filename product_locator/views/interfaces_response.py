@@ -96,6 +96,18 @@ class IPlanogramCleared(NamedTuple):
     num_products_removed: int
 
 
+class TPlanogramProductRow(NamedTuple):
+    location_name: str
+    product: Pick[Product, "pk", "upc", "name"]
+
+
+@interface
+class IPlanogramProducts(NamedTuple):
+    rows: list[TPlanogramProductRow]
+    num_products: int
+    num_locations: int
+
+
 @interface
 class IPlanogramUpdateApplied(NamedTuple):
     planogram_update: Pick[

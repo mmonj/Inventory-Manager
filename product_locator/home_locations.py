@@ -1,4 +1,5 @@
 import logging
+from typing import NamedTuple
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -10,6 +11,11 @@ from .models import HomeLocation, Planogram, Product
 from .types import IImportedProductInfo
 
 logger = logging.getLogger("main_logger")
+
+
+class TPlacement(NamedTuple):
+    location_name: str
+    product: Product
 
 
 def find_or_create_product(upc: str, name: str = "") -> TResult[Product, list[str]]:
@@ -56,6 +62,26 @@ def clear_planogram(planogram: Planogram) -> TResult[int, list[str]]:
     logger.info("Cleared planogram '%s' of %d product(s)", planogram, num_products_removed)
 
     return TSuccess(num_products_removed)
+
+
+def get_planogram_placements(planogram: Planogram) -> list[TPlacement]:
+    """
+    Every home location and product pair in the planogram, ordered by location, name and UPC.
+    """
+    placements = [
+        TPlacement(home_location.name, product)
+        for home_location in planogram.locations.prefetch_related("products")
+        for product in home_location.products.all()
+    ]
+
+    return sorted(
+        placements,
+        key=lambda placement: (
+            home_location_names.natural_sort_key(placement.location_name),
+            placement.product.name.casefold(),
+            placement.product.upc,
+        ),
+    )
 
 
 def assign_home_location(

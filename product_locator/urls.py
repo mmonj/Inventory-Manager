@@ -49,6 +49,11 @@ ajax = [
         name="get_planograms_by_store",
     ),
     path(
+        "ajax/get_planogram_products/<int:planogram_id>/",
+        ajax_views.get_planogram_products,
+        name="get_planogram_products",
+    ),
+    path(
         "ajax/delete_planogram/<int:planogram_id>/",
         ajax_views.delete_planogram,
         name="delete_planogram",

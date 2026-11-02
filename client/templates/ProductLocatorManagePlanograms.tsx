@@ -6,13 +6,14 @@ import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
 import { Alert, Badge, Button, Card, Dropdown, ListGroup } from "react-bootstrap";
 import Select from "react-select";
 
-import { faEraser, faPencilAlt, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faEraser, faList, faPencilAlt, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ErrorAlert } from "@client/components/ErrorAlert";
 import { Layout } from "@client/components/Layout";
 import { LoadingSpinner } from "@client/components/LoadingSpinner";
 import { EditPlanogramModal } from "@client/components/productLocator/EditPlanogramModal";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
+import { PlanogramProductsModal } from "@client/components/productLocator/PlanogramProductsModal";
 import { useFetch } from "@client/hooks/useFetch";
 import { fetchByReactivated } from "@client/util/commonUtil";
 import { getPlanogramSections } from "@client/util/productLocator/planogramUtil";
@@ -22,10 +23,12 @@ import "@client/scss/product_locator/monospace-text.scss";
 
 type SelectOption = { value: number; label: string };
 type EditablePlanogram = React.ComponentProps<typeof EditPlanogramModal>["planogram"];
+type ViewedPlanogram = { pk: number; name: string; hasPendingUpdate: boolean };
 
 export function Template(props: templates.ProductLocatorManagePlanograms) {
   const [selectedStore, setSelectedStore] = useState<SelectOption | null>(null);
   const [editingPlanogram, setEditingPlanogram] = useState<EditablePlanogram | null>(null);
+  const [viewingPlanogram, setViewingPlanogram] = useState<ViewedPlanogram | null>(null);
   const djangoContext = useContext(Context);
   const planogramsFetcher = useFetch<interfaces.IPlanogramsByStore>();
   const createPlanogramFetcher = useFetch<interfaces.IPlanogramCreated>();
@@ -329,6 +332,19 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
                                             Edit
                                           </Dropdown.Item>
                                           <Dropdown.Item
+                                            disabled={productCount === 0}
+                                            onClick={() =>
+                                              setViewingPlanogram({
+                                                pk: planogram.pk,
+                                                name: planogram.name,
+                                                hasPendingUpdate,
+                                              })
+                                            }
+                                          >
+                                            <FontAwesomeIcon icon={faList} className="me-2" />
+                                            Show Products
+                                          </Dropdown.Item>
+                                          <Dropdown.Item
                                             className={productCount > 0 ? "text-danger" : undefined}
                                             disabled={productCount === 0}
                                             onClick={() =>
@@ -477,6 +493,16 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
           planogram={editingPlanogram}
           planoTypeChoices={props.plano_type_choices}
           onSuccess={refetchPlanograms}
+        />
+      )}
+
+      {viewingPlanogram && (
+        <PlanogramProductsModal
+          onHide={() => setViewingPlanogram(null)}
+          planogramId={viewingPlanogram.pk}
+          planogramName={viewingPlanogram.name}
+          storeName={selectedStore?.label ?? ""}
+          hasPendingUpdate={viewingPlanogram.hasPendingUpdate}
         />
       )}
     </Layout>

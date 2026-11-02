@@ -15,6 +15,7 @@ pytestmark = pytest.mark.django_db
 UPC_1 = "012345678905"
 UPC_2 = "843740198695"
 UPC_3 = "843740135607"
+UPC_4 = "036000291452"
 INVALID_UPC = "012345678906"
 
 
@@ -431,6 +432,101 @@ def test_clear_endpoint_refuses_regular_users(
 
     assert response.status_code == 403
     assert layout_of(planogram) == {"A1": [UPC_1]}
+
+
+def get_planogram_products(client: Client, planogram_id: int) -> Any:
+    return client.get(
+        reverse("product_locator:get_planogram_products", args=[planogram_id]),
+        headers={"Accept": "application/json"},
+    )
+
+
+def listed_rows(response: Any) -> list[tuple[str, str, str]]:
+    return [
+        (row["location_name"], row["product"]["name"], row["product"]["upc"])
+        for row in response.json()["rows"]
+    ]
+
+
+def test_products_sort_by_natural_location_order(
+    superuser_client: Client, planogram: Planogram
+) -> None:
+    place_product(planogram, "A10", UPC_1, "Card")
+    place_product(planogram, "B1", UPC_2, "Card")
+    place_product(planogram, "A2", UPC_3, "Card")
+
+    response = get_planogram_products(superuser_client, planogram.pk)
+
+    assert response.status_code == 200
+    assert listed_rows(response) == [
+        ("A2", "Card", UPC_3),
+        ("A10", "Card", UPC_1),
+        ("B1", "Card", UPC_2),
+    ]
+
+
+def test_products_at_one_location_sort_by_name_then_upc(
+    superuser_client: Client, planogram: Planogram
+) -> None:
+    place_product(planogram, "A1", UPC_2, "Zebra")
+    place_product(planogram, "A1", UPC_3, "Apple")
+    place_product(planogram, "A1", UPC_1, "Apple")
+    place_product(planogram, "A1", UPC_4, "")
+
+    response = get_planogram_products(superuser_client, planogram.pk)
+
+    assert listed_rows(response) == [
+        ("A1", "", UPC_4),
+        ("A1", "Apple", UPC_1),
+        ("A1", "Apple", UPC_3),
+        ("A1", "Zebra", UPC_2),
+    ]
+
+
+def test_products_list_one_row_per_home_location(
+    superuser_client: Client, planogram: Planogram
+) -> None:
+    place_product(planogram, "A1", UPC_1)
+    place_product(planogram, "A1", UPC_2)
+    place_product(planogram, "C4", UPC_1)
+
+    response = get_planogram_products(superuser_client, planogram.pk)
+
+    assert listed_rows(response) == [
+        ("A1", "Card", UPC_1),
+        ("A1", "Card", UPC_2),
+        ("C4", "Card", UPC_1),
+    ]
+    assert response.json()["num_products"] == 2
+    assert response.json()["num_locations"] == 2
+
+
+def test_products_leave_out_other_planograms_and_pending_updates(
+    superuser_client: Client, planogram: Planogram
+) -> None:
+    other_planogram = Planogram.objects.create(name="Seasonal", store=planogram.store)
+    place_product(planogram, "A1", UPC_1)
+    place_product(other_planogram, "B2", UPC_2)
+    queue_update(planogram, imported_product("C3", UPC_3))
+
+    response = get_planogram_products(superuser_client, planogram.pk)
+
+    assert listed_rows(response) == [("A1", "Card", UPC_1)]
+
+
+def test_products_of_a_missing_planogram_is_a_404(superuser_client: Client) -> None:
+    response = get_planogram_products(superuser_client, 999_999)
+
+    assert response.status_code == 404
+    assert isinstance(response.json(), list)
+
+
+def test_products_endpoint_refuses_regular_users(
+    regular_user_client: Client, planogram: Planogram
+) -> None:
+    response = get_planogram_products(regular_user_client, planogram.pk)
+
+    assert response.status_code == 403
 
 
 @pytest.fixture

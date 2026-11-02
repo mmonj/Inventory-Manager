@@ -189,6 +189,28 @@ def get_planograms_by_store(request: DrfRequest, store_id: int) -> HttpResponse:
     ).render(request)
 
 
+@api_view(["GET"])
+@permission_classes([IsSuperuser])
+def get_planogram_products(request: DrfRequest, planogram_id: int) -> HttpResponse:
+    planogram = Planogram.objects.filter(pk=planogram_id).first()
+
+    if planogram is None:
+        return error_json_response([f"Planogram with ID {planogram_id} not found"], status=404)
+
+    placements = home_locations.get_planogram_placements(planogram)
+
+    return interfaces_response.IPlanogramProducts(
+        rows=[
+            interfaces_response.TPlanogramProductRow(
+                location_name=placement.location_name, product=placement.product
+            )
+            for placement in placements
+        ],
+        num_products=len({placement.product.pk for placement in placements}),
+        num_locations=len({placement.location_name for placement in placements}),
+    ).render(request)
+
+
 @api_view(["DELETE"])
 @permission_classes([IsSuperuser])
 def delete_planogram(request: DrfRequest, planogram_id: int) -> HttpResponse:
