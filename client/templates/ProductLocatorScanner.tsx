@@ -1,11 +1,11 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useSyncExternalStore } from "react";
 
 import Alert from "react-bootstrap/Alert";
 import Badge from "react-bootstrap/Badge";
 import Button from "react-bootstrap/Button";
 import Card from "react-bootstrap/Card";
 
-import { Context, interfaces, reverse, templates } from "@reactivated";
+import { Context, reverse, templates } from "@reactivated";
 
 import {
   faCheckCircle,
@@ -22,9 +22,8 @@ import { FieldRepStoreSelector } from "@client/components/StoreSelector";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { ProductLocatorModal } from "@client/components/productLocator/ProductLocatorModal";
 import { LocationItem } from "@client/components/productLocator/productLocatorIndex";
-import { useFetch } from "@client/hooks/useFetch";
 import { getProductLocation } from "@client/util/productLocator";
-import { getProductLookupStatus } from "@client/util/productLocator/addLocationForm";
+import { createProductLookup } from "@client/util/productLocator/productLookup";
 
 import "@client/scss/stock_tracker/scanner.scss";
 import "@client/scss/product_locator/location-item.scss";
@@ -43,13 +42,9 @@ function handleStoreSubmission(storePk: string): void {
 
 export function Template(props: templates.ProductLocatorScanner) {
   const [store, setStore] = useState<TStore | null>(null);
-  const [scannedUpc, setScannedUpc] = useState("");
-  const [notFoundUpc, setNotFoundUpc] = useState<string | null>(null);
   const [modalShow, setModalShow] = useState(false);
-  // Refs, since BarcodeScanner holds on to the scan callback from its first render
-  const latestUpcRef = useRef("");
+  // A ref, since BarcodeScanner holds on to the scan callback from its first render
   const isCarryoverOpenRef = useRef(false);
-  const getProductFetcher = useFetch<interfaces.IProductLocations>();
   const djangoContext = React.useContext(Context);
 
   // Get store from query param `store-id`
@@ -62,32 +57,22 @@ export function Template(props: templates.ProductLocatorScanner) {
     setStore(() => storeFromQueryParam);
   }
 
-  const lookupStatus = getProductLookupStatus({
-    isLoading: getProductFetcher.isLoading,
-    isError: getProductFetcher.isError,
-    hasProduct: getProductFetcher.data !== null,
-    isNotFound: notFoundUpc === scannedUpc,
-  });
-
-  async function lookUpProduct(upc: string): Promise<void> {
-    latestUpcRef.current = upc;
-    setScannedUpc(() => upc);
-    setNotFoundUpc(() => null);
-
-    await getProductFetcher.fetchData(async () => {
-      const lookupResponse = await getProductLocation(
+  // Created once, since picking a store reloads the page and BarcodeScanner keeps its first callback
+  const [productLookup] = useState(() =>
+    createProductLookup((upc) =>
+      getProductLocation(
         upc,
-        store!.pk,
+        storeFromQueryParam!.pk,
         reverse("product_locator:get_product_location")
-      );
-      // useFetch doesn't report a status, and a 404 is the only failure that means a new UPC
-      if (lookupResponse.status === 404) {
-        setNotFoundUpc(() => upc);
-      }
-
-      return lookupResponse;
-    });
-  }
+      )
+    )
+  );
+  const lookup = useSyncExternalStore(
+    productLookup.subscribe,
+    productLookup.getLookup,
+    productLookup.getLookup
+  );
+  const product = lookup.status === "found" ? lookup.product : null;
 
   async function scanSuccessCallback(decodedText: string): Promise<void> {
     console.log("Scanned code:", decodedText);
@@ -95,18 +80,12 @@ export function Template(props: templates.ProductLocatorScanner) {
     // and the Add Location modal under it has to stay as the rep left it.
     if (isCarryoverOpenRef.current) return;
 
-    await lookUpProduct(decodedText);
-  }
-
-  async function handleAddSuccess(upc: string): Promise<void> {
-    if (upc === latestUpcRef.current) {
-      await lookUpProduct(upc);
-    }
+    await productLookup.submitScan(decodedText);
   }
 
   async function handleCarryoverSuccess(upc: string): Promise<void> {
     setModalShow(() => false);
-    await lookUpProduct(upc);
+    await productLookup.refresh(upc);
   }
 
   return (
@@ -142,7 +121,7 @@ export function Template(props: templates.ProductLocatorScanner) {
                 </Card.Body>
               </Card>
 
-              {getProductFetcher.isLoading && (
+              {lookup.status === "loading" && (
                 <Card className="shadow-sm border-0 mb-4">
                   <Card.Body className="p-5">
                     <div className="d-flex flex-column align-items-center">
@@ -153,12 +132,12 @@ export function Template(props: templates.ProductLocatorScanner) {
                 </Card>
               )}
 
-              {getProductFetcher.isError && (
+              {(lookup.status === "not-found" || lookup.status === "failed") && (
                 <Alert variant="danger" className="shadow-sm border-0">
                   <div className="d-flex align-items-center">
                     <FontAwesomeIcon icon={faExclamationTriangle} className="me-2 fs-4" />
                     <div>
-                      {getProductFetcher.errorMessages.map((message, idx) => (
+                      {lookup.errorMessages.map((message, idx) => (
                         <div key={idx}>{message}</div>
                       ))}
                     </div>
@@ -166,34 +145,31 @@ export function Template(props: templates.ProductLocatorScanner) {
                 </Alert>
               )}
 
-              {getProductFetcher.data &&
-                getProductFetcher.data.product.home_locations.length > 0 && (
-                  <Card className="shadow-sm border-0 mb-4">
-                    <Card.Header className="bg-success text-white py-3">
-                      <h6 className="mb-0 fw-bold">
-                        <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
-                        Active Locations
-                      </h6>
-                    </Card.Header>
-                    <Card.Body className="p-3">
-                      <div className="mb-3 pb-2 border-bottom">
-                        <strong>Product:</strong> {getProductFetcher.data.product.name}
-                      </div>
-                      <div className="list-group list-group-flush">
-                        {getProductFetcher.data.product.home_locations.map((location) => {
-                          if (location.planogram.is_outdated) return null;
+              {product && product.home_locations.length > 0 && (
+                <Card className="shadow-sm border-0 mb-4">
+                  <Card.Header className="bg-success text-white py-3">
+                    <h6 className="mb-0 fw-bold">
+                      <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
+                      Active Locations
+                    </h6>
+                  </Card.Header>
+                  <Card.Body className="p-3">
+                    <div className="mb-3 pb-2 border-bottom">
+                      <strong>Product:</strong> {product.name}
+                    </div>
+                    <div className="list-group list-group-flush">
+                      {product.home_locations.map((location) => {
+                        if (location.planogram.is_outdated) return null;
 
-                          return <LocationItem key={location.pk} location={location} />;
-                        })}
-                      </div>
-                    </Card.Body>
-                  </Card>
-                )}
+                        return <LocationItem key={location.pk} location={location} />;
+                      })}
+                    </div>
+                  </Card.Body>
+                </Card>
+              )}
 
-              {getProductFetcher.data &&
-                getProductFetcher.data.product.home_locations.some(
-                  (location) => location.planogram.is_outdated
-                ) && (
+              {product &&
+                product.home_locations.some((location) => location.planogram.is_outdated) && (
                   <Card
                     className="shadow-sm border-0 border-danger mb-4"
                     style={{ borderWidth: "2px !important" }}
@@ -206,10 +182,10 @@ export function Template(props: templates.ProductLocatorScanner) {
                     </Card.Header>
                     <Card.Body className="p-3">
                       <div className="mb-3 pb-2 border-bottom">
-                        <strong>Product:</strong> {getProductFetcher.data.product.name}
+                        <strong>Product:</strong> {product.name}
                       </div>
                       <div className="list-group list-group-flush">
-                        {getProductFetcher.data.product.home_locations
+                        {product.home_locations
                           .filter((location) => location.planogram.is_outdated)
                           .map((location) => (
                             <LocationItem
@@ -223,7 +199,7 @@ export function Template(props: templates.ProductLocatorScanner) {
                   </Card>
                 )}
 
-              {getProductFetcher.data?.product.home_locations.length === 0 && (
+              {product?.home_locations.length === 0 && (
                 <Alert variant="warning" className="shadow-sm border-0 text-center py-4">
                   <FontAwesomeIcon
                     icon={faExclamationTriangle}
@@ -232,25 +208,25 @@ export function Template(props: templates.ProductLocatorScanner) {
                   />
                   <h5 className="fw-bold mb-2 text-light">No Locations Found for This Store</h5>
                   <p className="mb-2">
-                    <strong>Name:</strong> {getProductFetcher.data.product.name}
+                    <strong>Name:</strong> {product.name}
                   </p>
                   <p className="mb-0">
                     UPC{" "}
                     <Badge bg="secondary" className="mx-1">
-                      {getProductFetcher.data.product.upc}
+                      {product.upc}
                     </Badge>{" "}
                     has no locations assigned to this store
                   </p>
                 </Alert>
               )}
 
-              {lookupStatus === "failed" && (
+              {lookup.status === "failed" && (
                 <div className="my-4 text-center">
                   <Button
                     variant="primary"
                     size="lg"
                     className="shadow-sm"
-                    onClick={() => void lookUpProduct(scannedUpc)}
+                    onClick={() => void productLookup.refresh(lookup.upc)}
                   >
                     <FontAwesomeIcon icon={faRedo} className="me-2" />
                     Try again
@@ -258,7 +234,7 @@ export function Template(props: templates.ProductLocatorScanner) {
                 </div>
               )}
 
-              {(lookupStatus === "found" || lookupStatus === "not-found") && (
+              {(lookup.status === "found" || lookup.status === "not-found") && (
                 <div className="my-4 text-center">
                   <Button
                     variant="primary"
@@ -275,19 +251,13 @@ export function Template(props: templates.ProductLocatorScanner) {
           )}
         </section>
         <section>
-          {!!store && modalShow && (
+          {!!store && modalShow && lookup.status !== "idle" && (
             <ProductLocatorModal
-              scannedUpc={scannedUpc}
+              lookup={lookup}
               planograms={props.planograms}
-              lookupStatus={lookupStatus}
-              lookupErrorMessages={getProductFetcher.errorMessages}
-              productName={
-                lookupStatus === "found" ? getProductFetcher.data?.product.name : undefined
-              }
               storeId={store.pk}
-              modalShow={modalShow}
               onHide={() => setModalShow(() => false)}
-              onAddSuccess={handleAddSuccess}
+              onAddSuccess={productLookup.refresh}
               onCarryoverOpenChange={(isOpen) => {
                 isCarryoverOpenRef.current = isOpen;
               }}
