@@ -49,13 +49,12 @@ export function getRelatedProducts(
     Accept: "application/json",
   };
 
-  return fetch(
-    reverse("product_locator:get_product_locations_by_name", {
-      store_id: storeId,
-      product_name: productName,
-    }),
-    { headers: headers }
-  );
+  // The name goes in the query string since reverse() doesn't encode, and a path segment can't
+  // hold a "/" even when encoded
+  const params = new URLSearchParams({ product_name: productName });
+  const searchUrl = reverse("product_locator:get_product_locations_by_name", { store_id: storeId });
+
+  return fetch(`${searchUrl}?${params.toString()}`, { headers: headers });
 }
 
 export function postHomeLocationCarryover(

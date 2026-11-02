@@ -163,10 +163,8 @@ def test_product_search_follows_the_end_date(
     Product.objects.create(upc=UPC_1, name="Birthday Card").home_locations.add(home_location)
 
     response = superuser_client.get(
-        reverse(
-            "product_locator:get_product_locations_by_name",
-            args=[planogram.store_id, "Birthday"],
-        ),
+        reverse("product_locator:get_product_locations_by_name", args=[planogram.store_id]),
+        data={"product_name": "Birthday"},
         headers={"Accept": "application/json"},
     )
 

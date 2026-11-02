@@ -23,6 +23,7 @@ from .interfaces_request import (
     ICreatePlanogram,
     IEditPlanogram,
     INewScanAuditRequest,
+    IProductNameSearch,
 )
 from .permissions import IsSuperuser
 
@@ -59,9 +60,12 @@ def get_product_location(request: DrfRequest) -> HttpResponse:
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def get_product_locations_by_name(
-    request: DrfRequest, store_id: int, product_name: str
-) -> HttpResponse:
+def get_product_locations_by_name(request: DrfRequest, store_id: int) -> HttpResponse:
+    request_data = validate_structure(request.GET, IProductNameSearch)
+    product_name = request_data.product_name.strip()
+    if product_name == "":
+        return error_json_response(["Enter a product name to search for."], status=400)
+
     products = (
         Product.objects.filter(name__icontains=product_name)
         .order_by("name")

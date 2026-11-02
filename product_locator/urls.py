@@ -19,7 +19,7 @@ ajax = [
         "ajax/get_product_location/", ajax_views.get_product_location, name="get_product_location"
     ),
     path(
-        "ajax/get_product_locations_by_name/<int:store_id>/<str:product_name>/",
+        "ajax/get_product_locations_by_name/<int:store_id>/",
         ajax_views.get_product_locations_by_name,
         name="get_product_locations_by_name",
     ),

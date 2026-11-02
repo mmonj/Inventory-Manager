@@ -19,9 +19,28 @@ def find_or_create_product(upc: str, name: str = "") -> TResult[Product, list[st
     try:
         product, _is_new_product = Product.objects.get_or_create(upc=upc, defaults={"name": name})
     except ValidationError as ex:
+        # A rival request can create the UPC after the lookup, and Product.save's full_clean then
+        # reports it as a duplicate
+        rival_product = Product.objects.filter(upc=upc).first()
+        if rival_product is not None:
+            return TSuccess(rival_product)
+
         return TFailure(ex.messages)
 
     return TSuccess(product)
+
+
+def get_planogram_refusal(planogram: Planogram, store_id: int) -> str | None:
+    """
+    The reason a planogram can't take new products at this Store, if there is one.
+    """
+    if planogram.is_outdated:
+        return f"Planogram '{planogram.name}' has ended."
+
+    if planogram.store_id != store_id:
+        return f"Planogram '{planogram.name}' belongs to another store."
+
+    return None
 
 
 def assign_home_location(
@@ -36,11 +55,9 @@ def assign_home_location(
             [f"'{location_name}' is not a valid location. Use a letter and 1-3 digits, like A15."]
         )
 
-    if planogram.is_outdated:
-        return TFailure([f"Planogram '{planogram.name}' has ended."])
-
-    if planogram.store_id != store_id:
-        return TFailure([f"Planogram '{planogram.name}' belongs to another store."])
+    planogram_refusal = get_planogram_refusal(planogram, store_id)
+    if planogram_refusal is not None:
+        return TFailure([planogram_refusal])
 
     with transaction.atomic():
         product_result = find_or_create_product(upc, product_name)
@@ -62,15 +79,38 @@ def carry_over_home_locations(
     """
     Gives the Product at `upc` the home locations `older_product` has in the chosen planograms,
     creating it with the older name if needed. The older Product keeps its home locations.
+    A refusal of any chosen planogram refuses the whole request and writes nothing.
     """
+    if not planogram_ids:
+        return TFailure(["Choose at least one planogram."])
+
+    planograms = Planogram.objects.in_bulk(planogram_ids)
+    older_home_locations = list(older_product.home_locations.filter(planogram_id__in=planogram_ids))
+    older_planogram_ids = {home_location.planogram_id for home_location in older_home_locations}
+
+    planogram_refusals: list[str] = []
+    for planogram_id in planogram_ids:
+        planogram = planograms.get(planogram_id)
+        if planogram is None:
+            planogram_refusals.append(f"Planogram with ID {planogram_id} not found.")
+            continue
+
+        planogram_refusal = get_planogram_refusal(planogram, store_id)
+        if planogram_refusal is not None:
+            planogram_refusals.append(planogram_refusal)
+        elif planogram_id not in older_planogram_ids:
+            planogram_refusals.append(
+                f"Planogram '{planogram.name}' no longer holds '{older_product.name}'."
+            )
+
+    if planogram_refusals:
+        return TFailure(planogram_refusals)
+
     with transaction.atomic():
         product_result = find_or_create_product(upc, older_product.name)
         if not product_result.ok:
             return product_result
 
-        older_home_locations = older_product.home_locations.filter(
-            planogram_id__in=planogram_ids, planogram__store_id=store_id
-        )
         logger.info(
             "Carrying over locations from '%s' to '%s'", older_product, product_result.value
         )

@@ -8,6 +8,11 @@ class GetProductLocationRequest:
 
 
 @frozen
+class IProductNameSearch:
+    product_name: str
+
+
+@frozen
 class IAppendScanAudit:
     scan_audit_id: int
     upc: str

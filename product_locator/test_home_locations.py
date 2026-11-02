@@ -1,8 +1,10 @@
 from datetime import timedelta
+from threading import Thread
 from typing import Any
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.db import connections
 from django.test import Client
 from django.urls import reverse
 from django.utils import timezone
@@ -56,17 +58,31 @@ def post_scan(client: Client, scan_audit: ProductScanAudit, upc: str) -> Any:
 
 
 def post_carryover(
-    client: Client, older_product: Product, planograms: list[Planogram], store: Store
+    client: Client,
+    older_product: Product,
+    planograms: list[Planogram],
+    store: Store,
+    **overrides: Any,
 ) -> Any:
+    request_body = {
+        "upc": UPC_1,
+        "older_product_id": older_product.pk,
+        "planogram_ids": [planogram.pk for planogram in planograms],
+        "store_id": store.pk,
+        **overrides,
+    }
     return client.post(
         reverse("product_locator:carry_over_home_locations"),
-        data={
-            "upc": UPC_1,
-            "older_product_id": older_product.pk,
-            "planogram_ids": [planogram.pk for planogram in planograms],
-            "store_id": store.pk,
-        },
+        data=request_body,
         content_type="application/json",
+        headers={"accept": "application/json"},
+    )
+
+
+def search_by_name(client: Client, store: Store, product_name: str) -> Any:
+    return client.get(
+        reverse("product_locator:get_product_locations_by_name", kwargs={"store_id": store.pk}),
+        data={"product_name": product_name},
         headers={"accept": "application/json"},
     )
 
@@ -79,6 +95,23 @@ def assert_refused(response: Any, status_code: int = 400) -> None:
     assert all(isinstance(message, str) for message in error_messages)
     assert not Product.objects.exists()
     assert not HomeLocation.objects.exists()
+
+
+def assert_carryover_refused(response: Any, status_code: int = 400, naming: str = "") -> None:
+    assert response.status_code == status_code
+    error_messages = response.json()
+    assert isinstance(error_messages, list)
+    assert error_messages
+    assert all(isinstance(message, str) for message in error_messages)
+    assert any(naming in message for message in error_messages)
+    assert not Product.objects.filter(upc=UPC_1).exists()
+
+
+@pytest.fixture
+def older_product(planogram: Planogram) -> Product:
+    product = Product.objects.create(upc=OLDER_UPC, name="Older Card")
+    product.home_locations.add(HomeLocation.objects.create(name="A1", planogram=planogram))
+    return product
 
 
 @pytest.mark.parametrize("location", ["NOT A LOCATION", "A1234", "AB1", "", "   "])
@@ -334,16 +367,185 @@ def test_carryover_links_an_existing_name_outside_the_grammar(
     assert [location.name for location in product.home_locations.all()] == ["OUTDATED99"]
 
 
-def test_carryover_never_links_a_planogram_from_another_store(
-    logged_in_client: Client, planogram: Planogram, store: Store
+def test_carryover_refuses_a_planogram_from_another_store(
+    logged_in_client: Client, older_product: Product, planogram: Planogram, store: Store
 ) -> None:
     other_store = Store.objects.create(name="T2000")
-    older_product = Product.objects.create(upc=OLDER_UPC, name="Older Card")
-    older_product.home_locations.add(HomeLocation.objects.create(name="A1", planogram=planogram))
+    other_store_planogram = Planogram.objects.create(name="Other Inline", store=other_store)
+    older_product.home_locations.add(
+        HomeLocation.objects.create(name="B2", planogram=other_store_planogram)
+    )
 
-    post_carryover(logged_in_client, older_product, [planogram], other_store)
+    response = post_carryover(
+        logged_in_client, older_product, [planogram, other_store_planogram], store
+    )
 
-    assert not HomeLocation.objects.filter(products__upc=UPC_1).exists()
+    assert_carryover_refused(response, naming="Other Inline")
+
+
+def test_carryover_refuses_an_outdated_planogram(
+    logged_in_client: Client, older_product: Product, planogram: Planogram, store: Store
+) -> None:
+    outdated_planogram = Planogram.objects.create(
+        name="Last Season", store=store, date_end=timezone.localdate() - timedelta(days=1)
+    )
+    older_product.home_locations.add(
+        HomeLocation.objects.create(name="B2", planogram=outdated_planogram)
+    )
+
+    response = post_carryover(
+        logged_in_client, older_product, [planogram, outdated_planogram], store
+    )
+
+    assert_carryover_refused(response, naming="Last Season")
+
+
+def test_carryover_refuses_a_planogram_that_no_longer_holds_the_older_product(
+    logged_in_client: Client, older_product: Product, planogram: Planogram, store: Store
+) -> None:
+    emptied_planogram = Planogram.objects.create(name="Emptied", store=store)
+
+    response = post_carryover(
+        logged_in_client, older_product, [planogram, emptied_planogram], store
+    )
+
+    assert_carryover_refused(response, naming="Emptied")
+
+
+def test_carryover_refuses_a_missing_planogram(
+    logged_in_client: Client, older_product: Product, planogram: Planogram, store: Store
+) -> None:
+    missing_planogram_id = planogram.pk + 1000
+
+    response = post_carryover(
+        logged_in_client,
+        older_product,
+        [],
+        store,
+        planogram_ids=[planogram.pk, missing_planogram_id],
+    )
+
+    assert_carryover_refused(response, naming=str(missing_planogram_id))
+
+
+def test_carryover_refusal_links_nothing_to_an_existing_product(
+    logged_in_client: Client, older_product: Product, planogram: Planogram, store: Store
+) -> None:
+    existing_product = Product.objects.create(upc=UPC_1, name="Original Card")
+    emptied_planogram = Planogram.objects.create(name="Emptied", store=store)
+
+    response = post_carryover(
+        logged_in_client, older_product, [planogram, emptied_planogram], store
+    )
+
+    assert response.status_code == 400
+    assert not existing_product.home_locations.exists()
+
+
+def test_carryover_refuses_an_empty_planogram_list(
+    logged_in_client: Client, older_product: Product, store: Store
+) -> None:
+    response = post_carryover(logged_in_client, older_product, [], store)
+
+    assert_carryover_refused(response)
+
+
+def test_carryover_returns_404_for_a_missing_older_product(
+    logged_in_client: Client, older_product: Product, planogram: Planogram, store: Store
+) -> None:
+    missing_product_id = older_product.pk + 1000
+
+    response = post_carryover(
+        logged_in_client,
+        older_product,
+        [planogram],
+        store,
+        older_product_id=missing_product_id,
+    )
+
+    assert_carryover_refused(response, status_code=404, naming=str(missing_product_id))
+
+
+@pytest.mark.parametrize("upc", ["012345678900", "123"], ids=["bad_check_digit", "too_short"])
+def test_carryover_refuses_an_invalid_new_upc(
+    logged_in_client: Client,
+    older_product: Product,
+    planogram: Planogram,
+    store: Store,
+    upc: str,
+) -> None:
+    response = post_carryover(logged_in_client, older_product, [planogram], store, upc=upc)
+
+    assert_carryover_refused(response)
+    assert not Product.objects.filter(upc=upc).exists()
+
+
+def test_carryover_keeps_the_name_of_an_existing_upc(
+    logged_in_client: Client, older_product: Product, planogram: Planogram, store: Store
+) -> None:
+    Product.objects.create(upc=UPC_1, name="Original Card")
+
+    response = post_carryover(logged_in_client, older_product, [planogram], store)
+
+    assert response.status_code == 200
+    assert response.json()["product"]["name"] == "Original Card"
+    product = Product.objects.get(upc=UPC_1)
+    assert product.name == "Original Card"
+    assert [location.name for location in product.home_locations.all()] == ["A1"]
+
+
+def test_carryover_double_submit_leaves_one_product_without_duplicate_links(
+    logged_in_client: Client, older_product: Product, planogram: Planogram, store: Store
+) -> None:
+    for _submit_number in range(2):
+        response = post_carryover(logged_in_client, older_product, [planogram], store)
+        assert response.status_code == 200
+
+    product = Product.objects.get(upc=UPC_1)
+    assert product.home_locations.count() == 1
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize(
+    "is_rival_first_in_validation",
+    [True, False],
+    ids=["rival_seen_by_validation", "rival_commits_after_validation"],
+)
+def test_carryover_succeeds_when_another_request_creates_the_upc_first(
+    logged_in_client: Client,
+    older_product: Product,
+    planogram: Planogram,
+    store: Store,
+    monkeypatch: pytest.MonkeyPatch,
+    is_rival_first_in_validation: bool,
+) -> None:
+    original_full_clean = Product.full_clean
+
+    def commit_rival_product_on_its_own_connection(upc: str) -> None:
+        def create_rival_product() -> None:
+            # bulk_create skips Product.save, so it doesn't re-enter the patched full_clean
+            Product.objects.bulk_create([Product(upc=upc, name="Rival Card")])
+            connections.close_all()
+
+        rival_thread = Thread(target=create_rival_product)
+        rival_thread.start()
+        rival_thread.join()
+
+    def full_clean_during_a_race(self: Product, *args: Any, **kwargs: Any) -> None:
+        if is_rival_first_in_validation:
+            commit_rival_product_on_its_own_connection(self.upc)
+        original_full_clean(self, *args, **kwargs)
+        if not is_rival_first_in_validation:
+            commit_rival_product_on_its_own_connection(self.upc)
+
+    monkeypatch.setattr(Product, "full_clean", full_clean_during_a_race)
+
+    response = post_carryover(logged_in_client, older_product, [planogram], store)
+
+    assert response.status_code == 200
+    product = Product.objects.get(upc=UPC_1)
+    assert product.name == "Rival Card"
+    assert [location.name for location in product.home_locations.all()] == ["A1"]
 
 
 def test_carryover_requires_a_login(planogram: Planogram, store: Store) -> None:
@@ -356,18 +558,43 @@ def test_carryover_requires_a_login(planogram: Planogram, store: Store) -> None:
 
 
 def test_search_by_name_includes_each_product_upc(
-    logged_in_client: Client, planogram: Planogram, store: Store
+    logged_in_client: Client, older_product: Product, store: Store
 ) -> None:
-    older_product = Product.objects.create(upc=OLDER_UPC, name="Older Card")
-    older_product.home_locations.add(HomeLocation.objects.create(name="A1", planogram=planogram))
-
-    response = logged_in_client.get(
-        reverse(
-            "product_locator:get_product_locations_by_name",
-            kwargs={"store_id": store.pk, "product_name": "older"},
-        ),
-        headers={"accept": "application/json"},
-    )
+    response = search_by_name(logged_in_client, store, "older")
 
     assert response.status_code == 200
     assert [product["upc"] for product in response.json()["products"]] == [OLDER_UPC]
+
+
+@pytest.mark.parametrize(
+    "product_name", ["Mom/Dad", "Why? Not", "Card #1", "100% Fun", "..", "a&b=c", "Dad\\Son"]
+)
+def test_search_by_name_finds_names_with_url_special_characters(
+    logged_in_client: Client, planogram: Planogram, store: Store, product_name: str
+) -> None:
+    matching_product = Product.objects.create(upc=OLDER_UPC, name=f"Birthday {product_name} Card")
+    matching_product.home_locations.add(HomeLocation.objects.create(name="A1", planogram=planogram))
+
+    response = search_by_name(logged_in_client, store, product_name)
+
+    assert response.status_code == 200
+    assert [product["upc"] for product in response.json()["products"]] == [OLDER_UPC]
+
+
+def test_search_by_name_with_no_matches_returns_an_empty_list(
+    logged_in_client: Client, older_product: Product, store: Store
+) -> None:
+    response = search_by_name(logged_in_client, store, "nothing like this")
+
+    assert response.status_code == 200
+    assert response.json()["products"] == []
+
+
+@pytest.mark.parametrize("product_name", ["", "   "])
+def test_search_by_name_refuses_blank_text(
+    logged_in_client: Client, older_product: Product, store: Store, product_name: str
+) -> None:
+    response = search_by_name(logged_in_client, store, product_name)
+
+    assert response.status_code == 400
+    assert isinstance(response.json(), list)

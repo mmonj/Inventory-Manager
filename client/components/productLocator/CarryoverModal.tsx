@@ -1,5 +1,6 @@
 import React from "react";
 
+import Alert from "react-bootstrap/Alert";
 import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
 import ListGroup from "react-bootstrap/ListGroup";
@@ -7,7 +8,12 @@ import Modal from "react-bootstrap/Modal";
 
 import { Context, interfaces } from "@reactivated";
 
-import { faCheckCircle, faSearch, faTimes } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCheckCircle,
+  faExclamationTriangle,
+  faSearch,
+  faTimes,
+} from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { useFetch } from "@client/hooks/useFetch";
@@ -28,6 +34,21 @@ interface Props {
   onSuccess: () => void;
 }
 
+function CarryoverErrors({ errorMessages }: { errorMessages: string[] }) {
+  return (
+    <Alert variant="danger" className="mb-3">
+      <div className="d-flex align-items-center">
+        <FontAwesomeIcon icon={faExclamationTriangle} className="me-2 fs-5" />
+        <div>
+          {errorMessages.map((message, index) => (
+            <div key={index}>{message}</div>
+          ))}
+        </div>
+      </div>
+    </Alert>
+  );
+}
+
 export function CarryoverModal({ upc, initialSearchText, storeId, onHide, onSuccess }: Props) {
   const searchFetch = useFetch<interfaces.MatchingProducts>();
   const carryoverFetch = useFetch<interfaces.IProductLocatorProduct>();
@@ -46,8 +67,9 @@ export function CarryoverModal({ upc, initialSearchText, storeId, onHide, onSucc
   }
 
   React.useEffect(() => {
-    if (initialSearchText !== "") {
-      void search(initialSearchText);
+    const initialProductName = initialSearchText.trim();
+    if (initialProductName !== "") {
+      void search(initialProductName);
     }
   }, []);
 
@@ -124,6 +146,15 @@ export function CarryoverModal({ upc, initialSearchText, storeId, onHide, onSucc
           </Button>
         </form>
 
+        {searchFetch.isError && <CarryoverErrors errorMessages={searchFetch.errorMessages} />}
+
+        {searchFetch.data?.products.length === 0 && (
+          <Alert variant="secondary" className="mb-3">
+            No products with a current planogram at this store match that name. Cancel to type the
+            name yourself.
+          </Alert>
+        )}
+
         {searchFetch.data && (
           <ListGroup className="mb-3">
             {searchFetch.data.products.map((product) => (
@@ -156,6 +187,8 @@ export function CarryoverModal({ upc, initialSearchText, storeId, onHide, onSucc
             ))}
           </fieldset>
         )}
+
+        {carryoverFetch.isError && <CarryoverErrors errorMessages={carryoverFetch.errorMessages} />}
 
         <div className="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
           <Button variant="outline-secondary" size="lg" onClick={onHide}>
