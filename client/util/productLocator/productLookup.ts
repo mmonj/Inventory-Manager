@@ -43,6 +43,7 @@ async function resolveLookup(
 export function createProductLookup(lookUpProduct: TLookUpProduct) {
   let lookup: TProductLookup = { status: "idle" };
   let currentLookupId = 0;
+  let areScansPaused = false;
   const listeners = new Set<() => void>();
 
   function setLookup(newLookup: TProductLookup): void {
@@ -67,8 +68,22 @@ export function createProductLookup(lookUpProduct: TLookUpProduct) {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    submitScan: runLookup,
-    /** Re-runs the lookup for `upc`, unless the rep has since scanned a different UPC. */
+    /** Looks up a scanned UPC. A scan made while paused is dropped, not queued. */
+    submitScan: async (upc: string): Promise<void> => {
+      if (!areScansPaused) {
+        await runLookup(upc);
+      }
+    },
+    pauseScans: (): void => {
+      areScansPaused = true;
+    },
+    resumeScans: (): void => {
+      areScansPaused = false;
+    },
+    /**
+     * Re-runs the lookup for `upc`, unless the rep has since scanned a different UPC. This is a
+     * direct lookup, so it still runs while scans are paused.
+     */
     refresh: async (upc: string): Promise<void> => {
       if (lookup.status !== "idle" && lookup.upc === upc) {
         await runLookup(upc);

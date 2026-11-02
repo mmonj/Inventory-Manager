@@ -1,6 +1,5 @@
 import React from "react";
 
-import { Alert } from "react-bootstrap";
 import Button from "react-bootstrap/Button";
 import Modal from "react-bootstrap/Modal";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
@@ -40,7 +39,6 @@ interface Props {
   planograms: templates.ProductLocatorScanner["planograms"];
   storeId: number;
   onAddSuccess: (upc: string) => void;
-  onCarryoverOpenChange: (isOpen: boolean) => void;
   onCarryoverSuccess: (upc: string) => void;
 }
 
@@ -50,7 +48,6 @@ export function ProductLocatorModal({
   planograms,
   storeId,
   onAddSuccess,
-  onCarryoverOpenChange,
   onCarryoverSuccess,
 }: Props) {
   const locUpdateProps = useFetch<interfaces.IHomeLocationUpdate>();
@@ -80,12 +77,10 @@ export function ProductLocatorModal({
       upc: lookup.upc,
       initialSearchText: productNameRef.current!.value.trim(),
     });
-    onCarryoverOpenChange(true);
   }
 
   function handleCloseCarryover(): void {
     setCarryoverRequest(null);
-    onCarryoverOpenChange(false);
   }
 
   return (
@@ -132,11 +127,7 @@ export function ProductLocatorModal({
                   Product Name
                 </label>
                 <div className="d-flex gap-2">
-                  {/* The camera keeps scanning behind this modal, so the lookup can change while it's
-                    open. The key remounts the input to pick up the new defaultValue, and leaves
-                    typed text alone for as long as there's no stored name to show. */}
                   <input
-                    key={productName ?? ""}
                     ref={productNameRef}
                     defaultValue={productName}
                     type="text"
@@ -223,14 +214,6 @@ export function ProductLocatorModal({
             )}
             {locUpdateProps.isError && (
               <ErrorAlert errorMessages={locUpdateProps.errorMessages} className="mt-3 mb-0" />
-            )}
-            {!locUpdateProps.isError && !locUpdateProps.isLoading && locUpdateProps.data && (
-              <Alert variant="success" className="mt-3 mb-0">
-                <div className="d-flex align-items-center">
-                  <FontAwesomeIcon icon={faCheckCircle} className="me-2 fs-5" />
-                  <strong>Submitted successfully!</strong>
-                </div>
-              </Alert>
             )}
           </form>
         </Modal.Body>

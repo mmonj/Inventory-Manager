@@ -250,6 +250,83 @@ describe("createProductLookup", () => {
     });
   });
 
+  describe("pausing scans", () => {
+    it("drops a scan made while paused", () => {
+      const { lookUp, pendingReplies } = createFakeLookup();
+      const productLookup = createProductLookup(lookUp);
+
+      productLookup.pauseScans();
+      void productLookup.submitScan(UPC_A);
+
+      expect(productLookup.getLookup()).toEqual({ status: "idle" });
+      expect(pendingReplies).toHaveLength(0);
+    });
+
+    it("leaves the current lookup alone when a scan is dropped", async () => {
+      const { lookUp, pendingReplies } = createFakeLookup();
+      const productLookup = createProductLookup(lookUp);
+      void productLookup.submitScan(UPC_A);
+      pendingReplies[0].resolve(foundReply(UPC_A));
+      await repliesSettled();
+
+      productLookup.pauseScans();
+      void productLookup.submitScan(UPC_B);
+
+      expect(productLookup.getLookup()).toMatchObject({ status: "found", upc: UPC_A });
+    });
+
+    it("doesn't replay a dropped scan on resume", async () => {
+      const { lookUp, pendingReplies } = createFakeLookup();
+      const productLookup = createProductLookup(lookUp);
+
+      productLookup.pauseScans();
+      void productLookup.submitScan(UPC_A);
+      productLookup.resumeScans();
+      await repliesSettled();
+
+      expect(productLookup.getLookup()).toEqual({ status: "idle" });
+      expect(pendingReplies).toHaveLength(0);
+    });
+
+    it("takes scans again after resuming", () => {
+      const { lookUp } = createFakeLookup();
+      const productLookup = createProductLookup(lookUp);
+
+      productLookup.pauseScans();
+      productLookup.resumeScans();
+      void productLookup.submitScan(UPC_A);
+
+      expect(productLookup.getLookup()).toEqual({ status: "loading", upc: UPC_A });
+    });
+
+    it("still runs a refresh while paused", async () => {
+      const { lookUp, pendingReplies } = createFakeLookup();
+      const productLookup = createProductLookup(lookUp);
+      void productLookup.submitScan(UPC_A);
+      pendingReplies[0].resolve(notFoundReply(UPC_A));
+      await repliesSettled();
+
+      productLookup.pauseScans();
+      void productLookup.refresh(UPC_A);
+      pendingReplies[1].resolve(foundReply(UPC_A));
+      await repliesSettled();
+
+      expect(productLookup.getLookup()).toMatchObject({ status: "found", upc: UPC_A });
+    });
+
+    it("still accepts a reply that was on its way when paused", async () => {
+      const { lookUp, pendingReplies } = createFakeLookup();
+      const productLookup = createProductLookup(lookUp);
+      void productLookup.submitScan(UPC_A);
+
+      productLookup.pauseScans();
+      pendingReplies[0].resolve(foundReply(UPC_A));
+      await repliesSettled();
+
+      expect(productLookup.getLookup()).toMatchObject({ status: "found", upc: UPC_A });
+    });
+  });
+
   describe("subscribe", () => {
     it("notifies listeners of every change until unsubscribed", async () => {
       const { lookUp, pendingReplies } = createFakeLookup();

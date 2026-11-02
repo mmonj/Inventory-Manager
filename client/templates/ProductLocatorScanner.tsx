@@ -1,4 +1,4 @@
-import React, { useRef, useState, useSyncExternalStore } from "react";
+import React, { useEffect, useState, useSyncExternalStore } from "react";
 
 import Alert from "react-bootstrap/Alert";
 import Badge from "react-bootstrap/Badge";
@@ -24,6 +24,7 @@ import { ProductLocatorModal } from "@client/components/productLocator/ProductLo
 import { LocationItem } from "@client/components/productLocator/productLocatorIndex";
 import { getProductLocation } from "@client/util/productLocator";
 import { createProductLookup } from "@client/util/productLocator/productLookup";
+import { toast } from "@client/util/toast";
 
 import "@client/scss/stock_tracker/scanner.scss";
 import "@client/scss/product_locator/location-item.scss";
@@ -43,8 +44,6 @@ function handleStoreSubmission(storePk: string): void {
 export function Template(props: templates.ProductLocatorScanner) {
   const [store, setStore] = useState<TStore | null>(null);
   const [modalShow, setModalShow] = useState(false);
-  // A ref, since BarcodeScanner holds on to the scan callback from its first render
-  const isCarryoverOpenRef = useRef(false);
   const djangoContext = React.useContext(Context);
 
   // Get store from query param `store-id`
@@ -74,13 +73,26 @@ export function Template(props: templates.ProductLocatorScanner) {
   );
   const product = lookup.status === "found" ? lookup.product : null;
 
+  const isAddLocationOpen = !!store && modalShow && lookup.status !== "idle";
+
+  // The camera keeps scanning behind Add Location, and any Carryover opened from it, so scans are
+  // paused for as long as it's mounted. The cleanup resumes them however it closes.
+  useEffect(() => {
+    if (!isAddLocationOpen) return;
+
+    productLookup.pauseScans();
+    return productLookup.resumeScans;
+  }, [isAddLocationOpen, productLookup]);
+
   async function scanSuccessCallback(decodedText: string): Promise<void> {
     console.log("Scanned code:", decodedText);
-    // The camera keeps scanning behind the modals. A Carryover is pinned to the UPC it opened on,
-    // and the Add Location modal under it has to stay as the rep left it.
-    if (isCarryoverOpenRef.current) return;
-
     await productLookup.submitScan(decodedText);
+  }
+
+  async function handleAddSuccess(upc: string): Promise<void> {
+    setModalShow(() => false);
+    toast.success("Location added.");
+    await productLookup.refresh(upc);
   }
 
   async function handleCarryoverSuccess(upc: string): Promise<void> {
@@ -251,16 +263,13 @@ export function Template(props: templates.ProductLocatorScanner) {
           )}
         </section>
         <section>
-          {!!store && modalShow && lookup.status !== "idle" && (
+          {isAddLocationOpen && (
             <ProductLocatorModal
               lookup={lookup}
               planograms={props.planograms}
               storeId={store.pk}
               onHide={() => setModalShow(() => false)}
-              onAddSuccess={productLookup.refresh}
-              onCarryoverOpenChange={(isOpen) => {
-                isCarryoverOpenRef.current = isOpen;
-              }}
+              onAddSuccess={handleAddSuccess}
               onCarryoverSuccess={handleCarryoverSuccess}
             />
           )}
