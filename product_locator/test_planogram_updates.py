@@ -329,6 +329,110 @@ def test_store_planograms_count_ignores_a_pending_update(
     assert product_counts_for_store(regular_user_client, planogram) == [1]
 
 
+def pending_flags_for_store(client: Client, planogram: Planogram) -> list[bool]:
+    response = client.get(
+        reverse("product_locator:get_planograms_by_store", args=[planogram.store_id]),
+        headers={"Accept": "application/json"},
+    )
+    assert response.status_code == 200
+    return [entry["has_pending_update"] for entry in response.json()["planograms"]]
+
+
+def test_store_planograms_flag_a_pending_update(
+    regular_user_client: Client, planogram: Planogram
+) -> None:
+    assert pending_flags_for_store(regular_user_client, planogram) == [False]
+
+    queue_update(planogram, imported_product("A1", UPC_1))
+
+    assert pending_flags_for_store(regular_user_client, planogram) == [True]
+
+
+def test_store_planograms_dont_flag_an_applied_update(
+    regular_user_client: Client, planogram: Planogram
+) -> None:
+    update = queue_update(planogram, imported_product("A1", UPC_1))
+    assert apply_planogram_update(update).ok
+
+    assert pending_flags_for_store(regular_user_client, planogram) == [False]
+
+
+def clear_planogram(client: Client, planogram_id: int) -> Any:
+    return client.post(
+        reverse("product_locator:clear_planogram", args=[planogram_id]),
+        headers={"Accept": "application/json"},
+    )
+
+
+def test_clearing_removes_home_locations_but_keeps_planogram_and_products(
+    superuser_client: Client, planogram: Planogram
+) -> None:
+    place_product(planogram, "A1", UPC_1)
+    place_product(planogram, "A1", UPC_2)
+    place_product(planogram, "C4", UPC_1)
+
+    response = clear_planogram(superuser_client, planogram.pk)
+
+    assert response.status_code == 200
+    assert response.json()["num_products_removed"] == 2
+    assert Planogram.objects.filter(pk=planogram.pk).exists()
+    assert not HomeLocation.objects.filter(planogram=planogram).exists()
+    assert Product.objects.filter(upc__in=[UPC_1, UPC_2]).count() == 2
+
+
+def test_clearing_leaves_other_planograms_alone(
+    superuser_client: Client, planogram: Planogram
+) -> None:
+    other_planogram = Planogram.objects.create(name="Seasonal", store=planogram.store)
+    place_product(planogram, "A1", UPC_1)
+    place_product(other_planogram, "A1", UPC_1)
+
+    clear_planogram(superuser_client, planogram.pk)
+
+    assert layout_of(other_planogram) == {"A1": [UPC_1]}
+
+
+def test_clearing_keeps_a_pending_update_applicable(
+    superuser_client: Client, planogram: Planogram
+) -> None:
+    place_product(planogram, "A1", UPC_1)
+    update = queue_update(planogram, imported_product("B2", UPC_2))
+
+    clear_planogram(superuser_client, planogram.pk)
+
+    update.refresh_from_db()
+    assert update.status == PlanogramUpdate.Status.PENDING
+    assert apply_planogram_update(update).ok
+    assert layout_of(planogram) == {"B2": [UPC_2]}
+
+
+def test_clearing_an_empty_planogram_changes_nothing(
+    superuser_client: Client, planogram: Planogram
+) -> None:
+    response = clear_planogram(superuser_client, planogram.pk)
+
+    assert response.status_code == 200
+    assert response.json()["num_products_removed"] == 0
+
+
+def test_clearing_a_missing_planogram_is_a_404(superuser_client: Client) -> None:
+    response = clear_planogram(superuser_client, 999_999)
+
+    assert response.status_code == 404
+    assert isinstance(response.json(), list)
+
+
+def test_clear_endpoint_refuses_regular_users(
+    regular_user_client: Client, planogram: Planogram
+) -> None:
+    place_product(planogram, "A1", UPC_1)
+
+    response = clear_planogram(regular_user_client, planogram.pk)
+
+    assert response.status_code == 403
+    assert layout_of(planogram) == {"A1": [UPC_1]}
+
+
 @pytest.fixture
 def superuser_client() -> Client:
     client = Client()

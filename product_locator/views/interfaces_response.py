@@ -59,6 +59,7 @@ class TStorePlanogram(NamedTuple):
         "plano_type_info",
     ]
     product_count: int
+    has_pending_update: bool
 
 
 @interface
@@ -88,6 +89,11 @@ class IProductLocations(NamedTuple):
 @interface
 class ISuccess(NamedTuple):
     success: bool
+
+
+@interface
+class IPlanogramCleared(NamedTuple):
+    num_products_removed: int
 
 
 @interface

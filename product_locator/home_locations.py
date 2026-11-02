@@ -43,6 +43,21 @@ def get_planogram_refusal(planogram: Planogram, store_id: int) -> str | None:
     return None
 
 
+def clear_planogram(planogram: Planogram) -> TResult[int, list[str]]:
+    """
+    Removes all of the planogram's home locations. Returns how many products that took off it.
+    """
+    with transaction.atomic():
+        num_products_removed = (
+            Product.objects.filter(home_locations__planogram=planogram).distinct().count()
+        )
+        planogram.locations.all().delete()
+
+    logger.info("Cleared planogram '%s' of %d product(s)", planogram, num_products_removed)
+
+    return TSuccess(num_products_removed)
+
+
 def assign_home_location(
     upc: str, product_name: str, location_name: str, planogram: Planogram, store_id: int
 ) -> TResult[HomeLocation, list[str]]:

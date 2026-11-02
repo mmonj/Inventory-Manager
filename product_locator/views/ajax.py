@@ -2,7 +2,7 @@ import logging
 from typing import Any, cast
 
 from django.core.exceptions import ValidationError
-from django.db.models import Count, Prefetch
+from django.db.models import Count, Exists, OuterRef, Prefetch
 from django.http import HttpResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import NotFound as DrfNotFound
@@ -166,14 +166,23 @@ def create_new_scan_audit(request: DrfRequest) -> HttpResponse:
 def get_planograms_by_store(request: DrfRequest, store_id: int) -> HttpResponse:
     planograms = (
         Planogram.objects.filter(store__pk=store_id)
-        .annotate(product_count=Count("locations__products", distinct=True))
+        .annotate(
+            product_count=Count("locations__products", distinct=True),
+            has_pending_update=Exists(
+                PlanogramUpdate.objects.filter(
+                    planogram=OuterRef("pk"), status=PlanogramUpdate.Status.PENDING
+                )
+            ),
+        )
         .order_by("-date_start")
     )
 
     return interfaces_response.IPlanogramsByStore(
         planograms=[
             interfaces_response.TStorePlanogram(
-                planogram=planogram, product_count=planogram.product_count
+                planogram=planogram,
+                product_count=planogram.product_count,
+                has_pending_update=planogram.has_pending_update,
             )
             for planogram in planograms
         ]
@@ -191,6 +200,23 @@ def delete_planogram(request: DrfRequest, planogram_id: int) -> HttpResponse:
     planogram.delete()
 
     return interfaces_response.ISuccess(success=True).render(request)
+
+
+@api_view(["POST"])
+@permission_classes([IsSuperuser])
+def clear_planogram(request: DrfRequest, planogram_id: int) -> HttpResponse:
+    planogram = Planogram.objects.filter(pk=planogram_id).first()
+
+    if planogram is None:
+        return error_json_response([f"Planogram with ID {planogram_id} not found"], status=404)
+
+    clear_result = home_locations.clear_planogram(planogram)
+    if not clear_result.ok:
+        return error_json_response(clear_result.err, status=400)
+
+    return interfaces_response.IPlanogramCleared(num_products_removed=clear_result.value).render(
+        request
+    )
 
 
 @api_view(["POST"])

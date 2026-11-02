@@ -13,6 +13,7 @@ function storePlanogram(name: string, dateStart: string, isOutdated: boolean) {
       plano_type_info: { value: "regular" as const, label: "Regular Planogram" },
     },
     product_count: 0,
+    has_pending_update: false,
   };
 }
 

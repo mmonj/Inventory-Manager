@@ -3,10 +3,10 @@ import React, { useContext, useState } from "react";
 import { Context, interfaces, reverse, templates } from "@reactivated";
 import { parseISO } from "date-fns";
 import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
-import { Alert, Badge, Button, Card, ListGroup } from "react-bootstrap";
+import { Alert, Badge, Button, Card, Dropdown, ListGroup } from "react-bootstrap";
 import Select from "react-select";
 
-import { faPencilAlt, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faEraser, faPencilAlt, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ErrorAlert } from "@client/components/ErrorAlert";
 import { Layout } from "@client/components/Layout";
@@ -31,6 +31,8 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
   const createPlanogramFetcher = useFetch<interfaces.IPlanogramCreated>();
   const deletePlanogramFetcher = useFetch<interfaces.ISuccess>();
   const [lastDeleteStoreId, setLastDeleteStoreId] = useState<number | null>(null);
+  const clearPlanogramFetcher = useFetch<interfaces.IPlanogramCleared>();
+  const [lastClearStoreId, setLastClearStoreId] = useState<number | null>(null);
 
   async function refetchPlanograms() {
     if (selectedStore) {
@@ -86,6 +88,45 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
     );
 
     if (isSuccess) {
+      await refetchPlanograms();
+    }
+  }
+
+  async function handleClearPlanogram(
+    planogramId: number,
+    planogramName: string,
+    productCount: number,
+    hasPendingUpdate: boolean
+  ) {
+    const pendingUpdateNote = hasPendingUpdate
+      ? "\n\nIts pending planogram update will stay pending."
+      : "";
+
+    const firstConfirm = window.confirm(
+      `Are you sure you want to clear the planogram "${planogramName}"?\n\nThis will remove its ${String(productCount)} product(s) and cannot be undone.${pendingUpdateNote}`
+    );
+
+    if (!firstConfirm) return;
+
+    const secondConfirm = window.confirm(
+      `FINAL CONFIRMATION: Clear "${planogramName}"?\n\nThis will remove all ${String(productCount)} product(s) from the planogram.`
+    );
+
+    if (!secondConfirm) return;
+
+    setLastClearStoreId(selectedStore?.value ?? null);
+    const [isSuccess, clearedPlanogram] = await clearPlanogramFetcher.fetchData(() =>
+      fetchByReactivated<interfaces.IPlanogramCleared>(
+        reverse("product_locator:clear_planogram", { planogram_id: planogramId }),
+        djangoContext.csrf_token,
+        "POST"
+      )
+    );
+
+    if (isSuccess) {
+      toast.success(
+        `Cleared "${planogramName}": ${String(clearedPlanogram.num_products_removed)} product(s) removed.`
+      );
       await refetchPlanograms();
     }
   }
@@ -197,6 +238,10 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
           <ErrorAlert errorMessages={deletePlanogramFetcher.errorMessages} />
         )}
 
+        {clearPlanogramFetcher.isError && selectedStore?.value === lastClearStoreId && (
+          <ErrorAlert errorMessages={clearPlanogramFetcher.errorMessages} />
+        )}
+
         {/* Planograms List */}
         {selectedStore && !planogramsFetcher.isLoading && planogramsFetcher.data && (
           <Card className="shadow-sm border-0 mb-4">
@@ -225,7 +270,11 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
                         <ListGroup variant="flush">
                           <AnimatePresence mode="popLayout">
                             {section.storePlanograms.map(
-                              ({ planogram, product_count: productCount }) => {
+                              ({
+                                planogram,
+                                product_count: productCount,
+                                has_pending_update: hasPendingUpdate,
+                              }) => {
                                 const isSeasonal = planogram.plano_type_info.value === "seasonal";
                                 return (
                                   <ListGroup.Item
@@ -261,31 +310,51 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
                                       >
                                         {planogram.plano_type_info.label}
                                       </Badge>
-                                      <Button
-                                        variant="outline-primary"
-                                        size="sm"
-                                        onClick={() =>
-                                          setEditingPlanogram({
-                                            pk: planogram.pk,
-                                            name: planogram.name,
-                                            planoType: planogram.plano_type_info.value,
-                                            dateEnd: planogram.date_end,
-                                          })
-                                        }
-                                        title="Edit planogram"
-                                      >
-                                        <FontAwesomeIcon icon={faPencilAlt} />
-                                      </Button>
-                                      <Button
-                                        variant="outline-danger"
-                                        size="sm"
-                                        onClick={() =>
-                                          handleDeletePlanogram(planogram.pk, planogram.name)
-                                        }
-                                        title="Delete planogram"
-                                      >
-                                        <FontAwesomeIcon icon={faTrash} />
-                                      </Button>
+                                      <Dropdown align="end">
+                                        <Dropdown.Toggle variant="outline-secondary" size="sm">
+                                          Actions
+                                        </Dropdown.Toggle>
+                                        <Dropdown.Menu>
+                                          <Dropdown.Item
+                                            onClick={() =>
+                                              setEditingPlanogram({
+                                                pk: planogram.pk,
+                                                name: planogram.name,
+                                                planoType: planogram.plano_type_info.value,
+                                                dateEnd: planogram.date_end,
+                                              })
+                                            }
+                                          >
+                                            <FontAwesomeIcon icon={faPencilAlt} className="me-2" />
+                                            Edit
+                                          </Dropdown.Item>
+                                          <Dropdown.Item
+                                            className={productCount > 0 ? "text-danger" : undefined}
+                                            disabled={productCount === 0}
+                                            onClick={() =>
+                                              handleClearPlanogram(
+                                                planogram.pk,
+                                                planogram.name,
+                                                productCount,
+                                                hasPendingUpdate
+                                              )
+                                            }
+                                          >
+                                            <FontAwesomeIcon icon={faEraser} className="me-2" />
+                                            Clear Planogram
+                                          </Dropdown.Item>
+                                          <Dropdown.Divider />
+                                          <Dropdown.Item
+                                            className="text-danger"
+                                            onClick={() =>
+                                              handleDeletePlanogram(planogram.pk, planogram.name)
+                                            }
+                                          >
+                                            <FontAwesomeIcon icon={faTrash} className="me-2" />
+                                            Delete
+                                          </Dropdown.Item>
+                                        </Dropdown.Menu>
+                                      </Dropdown>
                                     </div>
                                   </ListGroup.Item>
                                 );
