@@ -6,10 +6,10 @@ from django.db import transaction
 from server.utils.typedefs import TFailure, TResult, TSuccess
 
 from . import planogram_parser
+from .home_locations import add_location_records
 from .models import Planogram, PlanogramUpdate
 from .planogram_updates import queue_planogram_update
 from .types import IImportedProductInfo
-from .util import add_location_records
 
 
 class TPlanogramImport(NamedTuple):

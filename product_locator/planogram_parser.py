@@ -6,12 +6,11 @@ from natsort import natsorted
 
 from server.utils.typedefs import TFailure, TResult, TSuccess
 
+from .home_location_names import LOCATION_PATTERN, normalize_location_name
 from .types import IImportedProductInfo
-from .util import normalize_location_name
 
 logger = logging.getLogger("main_logger")
 
-LOCATION_PATTERN = r"[a-z][0-9]{1,3}"
 UPC_RE = re.compile(r"\b\d{12}\b")
 
 # ITEM_ATTRIBUTES_RE = r"(.+?)[ \t]+(\d{12})(?:[ \t]+\d)?[ \t]+([a-z]\d+)"

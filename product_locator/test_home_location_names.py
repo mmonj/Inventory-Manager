@@ -8,10 +8,11 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import Client
 from django.urls import reverse
 
+from .home_location_names import is_valid_location_name, normalize_location_name
+from .home_locations import add_location_records
 from .models import HomeLocation, Planogram, PlanogramUpdate, Store
 from .planogram_parser import parse_data
 from .planogram_updates import queue_planogram_update
-from .util import add_location_records
 
 pytestmark = pytest.mark.django_db
 
@@ -54,6 +55,59 @@ def test_parsing_uppercases_locations() -> None:
 
     assert parse_result.ok
     assert parse_result.value == [{"upc": UPC_1, "name": "Card", "location": "B12"}]
+
+
+@pytest.mark.parametrize(
+    "line",
+    [f"Card {UPC_1} b123", f"b123 Section 1 {UPC_1} Card"],
+    ids=["tail", "section"],
+)
+def test_parsing_accepts_and_uppercases_a_three_digit_location(line: str) -> None:
+    parse_result = parse_data(line)
+
+    assert parse_result.ok
+    assert parse_result.value == [{"upc": UPC_1, "name": "Card", "location": "B123"}]
+
+
+@pytest.mark.parametrize("location", ["B", "B1234", "BB1", "1B", "B1Z", "OUTDATED99"])
+def test_parsing_rejects_a_name_outside_the_grammar(location: str) -> None:
+    line = f"Card {UPC_1} {location}"
+
+    parse_result = parse_data(line)
+
+    assert not parse_result.ok
+    assert parse_result.err == [f"No data was parsed from line: {line}"]
+
+
+@pytest.mark.parametrize("name", [" a15 ", "a15", "A15", "\ta15\n"])
+def test_normalizing_strips_and_uppercases(name: str) -> None:
+    assert normalize_location_name(name) == "A15"
+
+
+@pytest.mark.parametrize("name", ["A1", "Z99", "B123"])
+def test_validity_check_accepts_a_letter_and_one_to_three_digits(name: str) -> None:
+    assert is_valid_location_name(name)
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "",
+        "A",
+        "1",
+        "A1234",
+        "AB1",
+        "1A",
+        "A1Z",
+        "A 1",
+        "OUTDATED99",
+        "NOT A LOCATION",
+        "A1\n",
+        "a1",
+    ],
+)
+def test_validity_check_rejects_anything_else(name: str) -> None:
+    assert not is_valid_location_name(name)
 
 
 def test_manual_add_treats_case_and_whitespace_variants_as_one_location(

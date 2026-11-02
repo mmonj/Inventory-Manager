@@ -12,7 +12,7 @@ from rest_framework.request import Request as DrfRequest
 
 from server.utils.common import error_json_response, validate_structure
 
-from .. import planogram_import, planogram_updates, util
+from .. import home_location_names, planogram_import, planogram_updates
 from ..models import HomeLocation, Planogram, PlanogramUpdate, Product, ProductScanAudit, Store
 from . import interfaces_response
 from .interfaces_request import (
@@ -93,7 +93,7 @@ def add_new_product_location(request: DrfRequest) -> HttpResponse:
 
     planogram = Planogram.objects.get(id=request_data.planogram_id)
     location, _is_new_location = HomeLocation.objects.select_related("planogram").get_or_create(
-        name=util.normalize_location_name(request_data.location), planogram=planogram
+        name=home_location_names.normalize_location_name(request_data.location), planogram=planogram
     )
 
     if location not in product.home_locations.select_related("planogram", "planogram__store").all():

@@ -11,10 +11,6 @@ from .types import IImportedProductInfo
 logger = logging.getLogger("main_logger")
 
 
-def normalize_location_name(name: str) -> str:
-    return name.strip().upper()
-
-
 def check_new_products(product_list: list[IImportedProductInfo]) -> TResult[None, list[str]]:
     """
     Validates every product that doesn't exist yet. Writes nothing.

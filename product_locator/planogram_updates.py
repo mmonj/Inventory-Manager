@@ -7,9 +7,9 @@ from django.db import transaction
 
 from server.utils.typedefs import TFailure, TResult, TSuccess
 
+from .home_locations import add_location_records, check_new_products
 from .models import Planogram, PlanogramUpdate
 from .types import IImportedProductInfo, TNewPlanoSnapshot, TOldPlanoSnapshot
-from .util import add_location_records, check_new_products
 
 logger = logging.getLogger("main_logger")
 
