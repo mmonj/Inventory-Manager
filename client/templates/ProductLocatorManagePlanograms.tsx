@@ -114,10 +114,12 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
     planogramList.createPlanogram
       .mutateAsync({
         storeId: selectedStore.value,
-        name: formData.get("name") as string,
-        planoType: formData.get("plano_type") as string,
-        horizontalSectionThresholds: thresholdsResult.thresholds,
-        planogramTextDump: formData.get("planogram_text_dump") as string,
+        body: {
+          name: formData.get("name") as string,
+          plano_type: formData.get("plano_type") as string,
+          horizontal_section_thresholds: thresholdsResult.thresholds ?? null,
+          planogram_text_dump: formData.get("planogram_text_dump") as string,
+        },
       })
       .then((createdPlanogram) => {
         formElement.reset();

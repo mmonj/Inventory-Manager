@@ -1,18 +1,11 @@
 import { useContext } from "react";
 
-import { Context, interfaces, reverse } from "@reactivated";
+import { Context, interfaces } from "@reactivated";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { fetchByReactivated, fetchJsonOrThrow, getErrorMessages } from "@client/util/commonUtil";
-
-export interface INewPlanogram {
-  storeId: number;
-  name: string;
-  planoType: string;
-  horizontalSectionThresholds: string[] | undefined;
-  planogramTextDump: string;
-}
+import { fetchJsonOrThrow, getErrorMessages } from "@client/util/commonUtil";
+import { createProductLocatorApi } from "@client/util/productLocator/productLocatorApi";
 
 const PLANOGRAMS_QUERY_KEY = "planograms";
 
@@ -24,18 +17,12 @@ const PLANOGRAMS_QUERY_KEY = "planograms";
 export function usePlanogramList(storeId: number | null) {
   const djangoContext = useContext(Context);
   const queryClient = useQueryClient();
+  const productLocatorApi = createProductLocatorApi(djangoContext.csrf_token);
 
   const planogramsQuery = useQuery({
     queryKey: [PLANOGRAMS_QUERY_KEY, storeId],
-    queryFn: () =>
-      fetchJsonOrThrow(
-        fetchByReactivated<interfaces.IPlanogramsByStore>(
-          // `enabled` below keeps this from running without a store, so the 0 is never sent
-          reverse("product_locator:get_planograms_by_store", { store_id: storeId ?? 0 }),
-          djangoContext.csrf_token,
-          "GET"
-        )
-      ),
+    // `enabled` below keeps this from running without a store, so the 0 is never sent
+    queryFn: () => fetchJsonOrThrow(productLocatorApi.listPlanograms(storeId ?? 0)),
     enabled: storeId !== null,
   });
 
@@ -45,43 +32,19 @@ export function usePlanogramList(storeId: number | null) {
 
   const deletePlanogram = useMutation({
     mutationFn: (planogramId: number) =>
-      fetchJsonOrThrow(
-        fetchByReactivated<interfaces.ISuccess>(
-          reverse("product_locator:delete_planogram", { planogram_id: planogramId }),
-          djangoContext.csrf_token,
-          "DELETE"
-        )
-      ),
+      fetchJsonOrThrow(productLocatorApi.deletePlanogram(planogramId)),
     onSuccess: refreshPlanograms,
   });
 
   const clearPlanogram = useMutation({
     mutationFn: (planogramId: number) =>
-      fetchJsonOrThrow(
-        fetchByReactivated<interfaces.IPlanogramCleared>(
-          reverse("product_locator:clear_planogram", { planogram_id: planogramId }),
-          djangoContext.csrf_token,
-          "POST"
-        )
-      ),
+      fetchJsonOrThrow(productLocatorApi.clearPlanogram(planogramId)),
     onSuccess: refreshPlanograms,
   });
 
   const createPlanogram = useMutation({
-    mutationFn: (newPlanogram: INewPlanogram) =>
-      fetchJsonOrThrow(
-        fetchByReactivated<interfaces.IPlanogramCreated>(
-          reverse("product_locator:create_planogram", { store_id: newPlanogram.storeId }),
-          djangoContext.csrf_token,
-          "POST",
-          JSON.stringify({
-            name: newPlanogram.name,
-            plano_type: newPlanogram.planoType,
-            horizontal_section_thresholds: newPlanogram.horizontalSectionThresholds ?? null,
-            planogram_text_dump: newPlanogram.planogramTextDump,
-          } satisfies interfaces.ICreatePlanogramRequest)
-        )
-      ),
+    mutationFn: (newPlanogram: { storeId: number; body: interfaces.ICreatePlanogramRequest }) =>
+      fetchJsonOrThrow(productLocatorApi.createPlanogram(newPlanogram.storeId, newPlanogram.body)),
     onSuccess: refreshPlanograms,
   });
 

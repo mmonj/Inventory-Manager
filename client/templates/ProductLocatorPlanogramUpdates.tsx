@@ -1,6 +1,6 @@
 import React, { useContext, useState } from "react";
 
-import { Context, interfaces, reverse, templates } from "@reactivated";
+import { Context, interfaces, templates } from "@reactivated";
 import { Accordion, Alert, Badge, Button, Card, ListGroup } from "react-bootstrap";
 
 import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
@@ -8,7 +8,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
-import { fetchByReactivated } from "@client/util/commonUtil";
+import { createProductLocatorApi } from "@client/util/productLocator/productLocatorApi";
 import {
   type TChainStep,
   type TPlanogramUpdate,
@@ -36,6 +36,7 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
   // checked off, so this state is deliberately not persisted.
   const [completedStepKeys, setCompletedStepKeys] = useState<Set<string>>(new Set());
   const djangoContext = useContext(Context);
+  const productLocatorApi = createProductLocatorApi(djangoContext.csrf_token);
   const applyFetcher = useFetch<interfaces.IPlanogramUpdateApplied>();
 
   function toggleStepCompleted(stepKey: string) {
@@ -63,13 +64,7 @@ export function Template(props: templates.ProductLocatorPlanogramUpdates) {
     if (!confirmed) return;
 
     const [isSuccess] = await applyFetcher.fetchData(() =>
-      fetchByReactivated<interfaces.IPlanogramUpdateApplied>(
-        reverse("product_locator:apply_planogram_update", {
-          planogram_update_id: planogramUpdate.pk,
-        }),
-        djangoContext.csrf_token,
-        "POST"
-      )
+      productLocatorApi.applyPlanogramUpdate(planogramUpdate.pk)
     );
 
     if (isSuccess) {

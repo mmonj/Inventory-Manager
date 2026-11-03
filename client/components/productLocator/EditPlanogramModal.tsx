@@ -1,6 +1,6 @@
 import React, { useContext, useState } from "react";
 
-import { Context, interfaces, reverse, templates } from "@reactivated";
+import { Context, interfaces, templates } from "@reactivated";
 import { Alert, Button, Modal } from "react-bootstrap";
 import { format } from "date-fns";
 
@@ -12,7 +12,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { LoadingSpinner } from "@client/components/LoadingSpinner";
 import { useFetch } from "@client/hooks/useFetch";
-import { fetchByReactivated } from "@client/util/commonUtil";
+import { createProductLocatorApi } from "@client/util/productLocator/productLocatorApi";
 import { toast } from "@client/util/toast";
 
 import "@client/scss/product_locator/monospace-text.scss";
@@ -30,6 +30,7 @@ interface Props {
 
 export function EditPlanogramModal(props: Props) {
   const djangoContext = useContext(Context);
+  const productLocatorApi = createProductLocatorApi(djangoContext.csrf_token);
   const submitFetcher = useFetch<interfaces.IPlanogramEdited>();
 
   const [name, setName] = useState(props.planogram.name);
@@ -68,19 +69,14 @@ export function EditPlanogramModal(props: Props) {
     event.preventDefault();
 
     const [isSuccess, data] = await submitFetcher.fetchData(() =>
-      fetchByReactivated<interfaces.IPlanogramEdited>(
-        reverse("product_locator:edit_planogram", { planogram_id: props.planogram.pk }),
-        djangoContext.csrf_token,
-        "POST",
-        JSON.stringify({
-          name,
-          plano_type: planoType,
-          date_end: dateEnd === "" ? null : dateEnd,
-          planogram_text_dump: planogramTextDump,
-          is_reset_planogram: isResetRequested,
-          label,
-        } satisfies interfaces.IEditPlanogramRequest)
-      )
+      productLocatorApi.editPlanogram(props.planogram.pk, {
+        name,
+        plano_type: planoType,
+        date_end: dateEnd === "" ? null : dateEnd,
+        planogram_text_dump: planogramTextDump,
+        is_reset_planogram: isResetRequested,
+        label,
+      })
     );
 
     if (isSuccess) {

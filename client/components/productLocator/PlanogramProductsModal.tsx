@@ -8,7 +8,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { ErrorAlert } from "@client/components/ErrorAlert";
 import { LoadingSpinner } from "@client/components/LoadingSpinner";
 import { useFetch } from "@client/hooks/useFetch";
-import { fetchByReactivated } from "@client/util/commonUtil";
+import { createProductLocatorApi } from "@client/util/productLocator/productLocatorApi";
 
 interface Props {
   onHide: () => void;
@@ -20,17 +20,12 @@ interface Props {
 
 export function PlanogramProductsModal(props: Props) {
   const djangoContext = useContext(Context);
+  const productLocatorApi = createProductLocatorApi(djangoContext.csrf_token);
   const productsFetcher = useFetch<interfaces.IPlanogramProducts>();
   const planogramProducts = productsFetcher.data;
 
   useEffect(() => {
-    void productsFetcher.fetchData(() =>
-      fetchByReactivated<interfaces.IPlanogramProducts>(
-        reverse("product_locator:get_planogram_products", { planogram_id: props.planogramId }),
-        djangoContext.csrf_token,
-        "GET"
-      )
-    );
+    void productsFetcher.fetchData(() => productLocatorApi.getPlanogramProducts(props.planogramId));
   }, []);
 
   return (

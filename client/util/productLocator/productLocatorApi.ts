@@ -97,5 +97,73 @@ export function createProductLocatorApi(csrfToken: string) {
         body
       );
     },
+
+    listPlanograms(storeId: number): ApiPromise<interfaces.IPlanogramsByStore> {
+      return fetchByReactivated<interfaces.IPlanogramsByStore>(
+        reverse("product_locator:get_planograms_by_store", { store_id: storeId }),
+        csrfToken,
+        "GET"
+      );
+    },
+
+    getPlanogramProducts(planogramId: number): ApiPromise<interfaces.IPlanogramProducts> {
+      return fetchByReactivated<interfaces.IPlanogramProducts>(
+        reverse("product_locator:get_planogram_products", { planogram_id: planogramId }),
+        csrfToken,
+        "GET"
+      );
+    },
+
+    createPlanogram(
+      storeId: number,
+      body: interfaces.ICreatePlanogramRequest
+    ): ApiPromise<interfaces.IPlanogramCreated> {
+      return fetchByReactivated<interfaces.IPlanogramCreated, interfaces.ICreatePlanogramRequest>(
+        reverse("product_locator:create_planogram", { store_id: storeId }),
+        csrfToken,
+        "POST",
+        body
+      );
+    },
+
+    editPlanogram(
+      planogramId: number,
+      body: interfaces.IEditPlanogramRequest
+    ): ApiPromise<interfaces.IPlanogramEdited> {
+      return fetchByReactivated<interfaces.IPlanogramEdited, interfaces.IEditPlanogramRequest>(
+        reverse("product_locator:edit_planogram", { planogram_id: planogramId }),
+        csrfToken,
+        "POST",
+        body
+      );
+    },
+
+    clearPlanogram(planogramId: number): ApiPromise<interfaces.IPlanogramCleared> {
+      return fetchByReactivated<interfaces.IPlanogramCleared>(
+        reverse("product_locator:clear_planogram", { planogram_id: planogramId }),
+        csrfToken,
+        "POST"
+      );
+    },
+
+    deletePlanogram(planogramId: number): ApiPromise<interfaces.ISuccess> {
+      return fetchByReactivated<interfaces.ISuccess>(
+        reverse("product_locator:delete_planogram", { planogram_id: planogramId }),
+        csrfToken,
+        "DELETE"
+      );
+    },
+
+    applyPlanogramUpdate(
+      planogramUpdateId: number
+    ): ApiPromise<interfaces.IPlanogramUpdateApplied> {
+      return fetchByReactivated<interfaces.IPlanogramUpdateApplied>(
+        reverse("product_locator:apply_planogram_update", {
+          planogram_update_id: planogramUpdateId,
+        }),
+        csrfToken,
+        "POST"
+      );
+    },
   };
 }
