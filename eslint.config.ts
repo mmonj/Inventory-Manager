@@ -1,9 +1,11 @@
 import { default as reactivated } from "reactivated/dist/eslint.config";
+import tseslint from "typescript-eslint";
 
 type Config = typeof reactivated;
 
 export default [
   ...reactivated,
+  { ignores: ["collected/"] },
   {
     languageOptions: {
       parserOptions: {
@@ -24,5 +26,11 @@ export default [
       "import/order": "off",
       "react/no-unescaped-entities": "off",
     },
+  },
+  // Runs as a service worker, which the project's DOM types don't describe
+  { ...tseslint.configs.disableTypeChecked, files: ["client/html/sw.js"] },
+  {
+    files: ["client/html/sw.js"],
+    languageOptions: { globals: { self: "readonly", URL: "readonly" } },
   },
 ] satisfies Config;
