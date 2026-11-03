@@ -9,7 +9,7 @@ import { ErrorAlert } from "@client/components/ErrorAlert";
 import { Layout } from "@client/components/Layout";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { useFetch } from "@client/hooks/useFetch";
-import { createNewScanAudit, postToScanAudit } from "@client/util/productLocator";
+import { createProductLocatorApi } from "@client/util/productLocator/productLocatorApi";
 
 import "@client/scss/stock_tracker/scanner.scss";
 
@@ -30,6 +30,7 @@ export function Template(props: templates.ProductLocatorScanAudit) {
   const createNewScanAuditFetch = useFetch<interfaces.IScanAuditCreation>();
   const addToScanAuditFetch = useFetch<interfaces.IProductLocatorProduct>();
   const djangoContext = React.useContext(Context);
+  const productLocatorApi = createProductLocatorApi(djangoContext.csrf_token);
 
   const scanAuditSelectRef = React.useRef<HTMLSelectElement>(null);
   const newScanAuditInputRef = React.useRef<HTMLInputElement>(null);
@@ -55,7 +56,7 @@ export function Template(props: templates.ProductLocatorScanAudit) {
     const newScanAuditProductType = newScanAuditInputRef.current!.value.trim();
 
     const [isSuccess, result] = await createNewScanAuditFetch.fetchData(() =>
-      createNewScanAudit(newScanAuditProductType, djangoContext.csrf_token)
+      productLocatorApi.createScanAudit({ product_type: newScanAuditProductType })
     );
 
     if (isSuccess) {
@@ -66,7 +67,7 @@ export function Template(props: templates.ProductLocatorScanAudit) {
 
   async function scanSuccessCallback(decodedText: string) {
     const [isSuccess] = await addToScanAuditFetch.fetchData(() =>
-      postToScanAudit(selectedScanAuditId!, decodedText, djangoContext.csrf_token)
+      productLocatorApi.addToScanAudit(selectedScanAuditId!, { upc: decodedText })
     );
 
     if (isSuccess) {

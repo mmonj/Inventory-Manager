@@ -170,11 +170,35 @@ export async function fetchJsonOrThrow<T>(responsePromise: ApiPromise<T>): Promi
   return response.json();
 }
 
+/** A typed JSON body: a plain object or array, as opposed to a ready-made `BodyInit`. */
+function isJsonBody(payloadBody: unknown): payloadBody is object {
+  return (
+    Array.isArray(payloadBody) ||
+    (typeof payloadBody === "object" &&
+      payloadBody !== null &&
+      Object.getPrototypeOf(payloadBody) === Object.prototype)
+  );
+}
+
 export function fetchByReactivated<T>(
   url: string,
   csrfToken: string,
   method: string,
-  payloadBody: BodyInit | undefined = undefined,
+  payloadBody?: BodyInit,
+  contentType?: string
+): ApiPromise<T>;
+/** Sends `body` as JSON, so its type is checked against the request type given as `TBody`. */
+export function fetchByReactivated<TResponse, TBody extends object>(
+  url: string,
+  csrfToken: string,
+  method: string,
+  body: TBody
+): ApiPromise<TResponse>;
+export function fetchByReactivated<T>(
+  url: string,
+  csrfToken: string,
+  method: string,
+  payloadBody: BodyInit | object | undefined = undefined,
   contentType = "application/json"
 ): ApiPromise<T> {
   const headers = {
@@ -185,7 +209,7 @@ export function fetchByReactivated<T>(
 
   return fetch(url, {
     method: method,
-    body: payloadBody,
+    body: isJsonBody(payloadBody) ? JSON.stringify(payloadBody) : payloadBody,
     headers: headers,
   });
 }
