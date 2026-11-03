@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { ApiResponse, IHttpError, TNotFoundErrorList } from "@client/types";
 import { getFailureMessages } from "@client/util/commonUtil";
@@ -8,11 +8,18 @@ export function useFetch<T>() {
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const [errorMessages, setErrorMessages] = useState<string[]>([]);
+  // Only the latest call may update the state above. An earlier call that replies last still
+  // resolves with its own outcome, but must not overwrite what the latest call reported.
+  const latestCallIdRef = useRef(0);
 
   const fetchData = async (
     fetchCallback: () => Promise<ApiResponse<T>>,
     onSuccess?: () => void
   ) => {
+    latestCallIdRef.current += 1;
+    const callId = latestCallIdRef.current;
+    const isLatestCall = () => callId === latestCallIdRef.current;
+
     setData(() => null);
     setIsLoading(() => true);
     setIsError(() => false);
@@ -29,27 +36,33 @@ export function useFetch<T>() {
         return resp.json();
       })
       .then((data: T) => {
-        setData(() => data);
-        setIsError(() => false);
-        setErrorMessages(() => []);
+        if (isLatestCall()) {
+          setData(() => data);
+          setIsError(() => false);
+          setErrorMessages(() => []);
+        }
 
         onSuccess?.();
 
         return [true, data] as const;
       })
       .catch(async function (errorResp: ApiResponse<IHttpError | TNotFoundErrorList | Error>) {
-        setData(() => null);
-        setIsError(() => true);
-
         const messages = await getFailureMessages(
           errorResp as ApiResponse<IHttpError | TNotFoundErrorList> | Error
         );
-        setErrorMessages(() => messages);
+
+        if (isLatestCall()) {
+          setData(() => null);
+          setIsError(() => true);
+          setErrorMessages(() => messages);
+        }
 
         return [false, errorResp, messages] as const;
       })
       .finally(() => {
-        setIsLoading(() => false);
+        if (isLatestCall()) {
+          setIsLoading(() => false);
+        }
       });
   };
 
