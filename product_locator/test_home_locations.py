@@ -49,11 +49,12 @@ def post_home_location_assignment(client: Client, **overrides: Any) -> Any:
     )
 
 
-def post_scan(client: Client, scan_audit: ProductScanAudit, upc: str) -> Any:
+def post_scan(client: Client, scan_audit_id: int, upc: Any) -> Any:
     return client.post(
-        reverse("product_locator:add_upc_to_scan_audit"),
-        data={"scan_audit_id": scan_audit.pk, "upc": upc},
+        reverse("product_locator:add_upc_to_scan_audit", args=[scan_audit_id]),
+        data={"upc": upc},
         content_type="application/json",
+        headers={"Accept": "application/json"},
     )
 
 
@@ -284,7 +285,7 @@ def test_assignment_requires_a_login(planogram: Planogram, store: Store) -> None
 def test_scan_audit_refuses_an_invalid_upc(
     logged_in_client: Client, scan_audit: ProductScanAudit, upc: str
 ) -> None:
-    response = post_scan(logged_in_client, scan_audit, upc)
+    response = post_scan(logged_in_client, scan_audit.pk, upc)
 
     assert_refused(response)
     assert not scan_audit.products_in_stock.exists()
@@ -293,7 +294,7 @@ def test_scan_audit_refuses_an_invalid_upc(
 def test_scan_audit_adds_a_new_upc_with_a_blank_name(
     logged_in_client: Client, scan_audit: ProductScanAudit
 ) -> None:
-    response = post_scan(logged_in_client, scan_audit, NEWER_UPC)
+    response = post_scan(logged_in_client, scan_audit.pk, NEWER_UPC)
 
     assert response.status_code == 200
     product = Product.objects.get(upc=NEWER_UPC)
@@ -306,12 +307,70 @@ def test_scan_audit_keeps_the_name_of_an_existing_upc(
 ) -> None:
     product = Product.objects.create(upc=NEWER_UPC, name="Original Card")
 
-    response = post_scan(logged_in_client, scan_audit, NEWER_UPC)
+    response = post_scan(logged_in_client, scan_audit.pk, NEWER_UPC)
 
     assert response.status_code == 200
     product.refresh_from_db()
     assert product.name == "Original Card"
     assert list(scan_audit.products_in_stock.all()) == [product]
+
+
+def test_scan_audit_returns_404_for_a_missing_scan_audit(
+    logged_in_client: Client, scan_audit: ProductScanAudit
+) -> None:
+    missing_scan_audit_id = scan_audit.pk + 1
+
+    response = post_scan(logged_in_client, missing_scan_audit_id, NEWER_UPC)
+
+    assert response.status_code == 404
+    assert not Product.objects.exists()
+
+
+@pytest.mark.parametrize(
+    "request_body",
+    [{"upc": {"code": NEWER_UPC}}, {}],
+    ids=["wrong_typed_upc", "missing_upc"],
+)
+def test_scan_audit_refuses_a_malformed_request_body(
+    logged_in_client: Client, scan_audit: ProductScanAudit, request_body: dict[str, Any]
+) -> None:
+    response = logged_in_client.post(
+        reverse("product_locator:add_upc_to_scan_audit", args=[scan_audit.pk]),
+        data=request_body,
+        content_type="application/json",
+    )
+
+    assert_refused(response)
+    assert not scan_audit.products_in_stock.exists()
+
+
+def test_create_new_scan_audit_starts_an_empty_audit_that_accepts_scans(
+    logged_in_client: Client,
+) -> None:
+    response = logged_in_client.post(
+        reverse("product_locator:create_new_scan_audit"),
+        data={"product_type": " Cards "},
+        content_type="application/json",
+        headers={"Accept": "application/json"},
+    )
+
+    assert response.status_code == 200
+    created_scan_audit = response.json()["scan_audit"]
+    assert created_scan_audit["product_type"] == "Cards"
+    scan_response = post_scan(logged_in_client, created_scan_audit["pk"], NEWER_UPC)
+    assert scan_response.status_code == 200
+    assert scan_response.json()["product"]["upc"] == NEWER_UPC
+
+
+def test_create_new_scan_audit_refuses_a_missing_product_type(logged_in_client: Client) -> None:
+    response = logged_in_client.post(
+        reverse("product_locator:create_new_scan_audit"),
+        data={},
+        content_type="application/json",
+    )
+
+    get_error_messages(response, 400)
+    assert not ProductScanAudit.objects.exists()
 
 
 def test_carryover_creates_the_product_with_the_older_name_and_returns_it(

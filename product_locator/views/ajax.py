@@ -18,11 +18,11 @@ from . import interfaces_response
 from .interfaces_request import (
     GetProductLocationRequest,
     IAddNewProductLocation,
-    IAppendScanAudit,
+    IAddUpcToScanAuditRequest,
     ICarryOverHomeLocations,
+    ICreateNewScanAuditRequest,
     ICreatePlanogram,
     IEditPlanogram,
-    INewScanAuditRequest,
     IProductNameSearch,
 )
 from .permissions import IsSuperuser
@@ -134,12 +134,12 @@ def carry_over_home_locations(request: DrfRequest) -> HttpResponse:
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def add_upc_to_scan_audit(request: DrfRequest) -> HttpResponse:
-    request_data = validate_structure(request.data, IAppendScanAudit)
+def add_upc_to_scan_audit(request: DrfRequest, scan_audit_id: int) -> HttpResponse:
+    request_data = validate_structure(request.data, IAddUpcToScanAuditRequest)
 
-    scan_audit = ProductScanAudit.objects.filter(pk=request_data.scan_audit_id).first()
+    scan_audit = ProductScanAudit.objects.filter(pk=scan_audit_id).first()
     if scan_audit is None:
-        raise DrfNotFound(f"Scan Audit ID '{request_data.scan_audit_id}' not found")
+        raise DrfNotFound(f"Scan Audit ID '{scan_audit_id}' not found")
 
     product_result = home_locations.find_or_create_product(request_data.upc)
     if not product_result.ok:
@@ -153,7 +153,7 @@ def add_upc_to_scan_audit(request: DrfRequest) -> HttpResponse:
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_new_scan_audit(request: DrfRequest) -> HttpResponse:
-    request_data = validate_structure(request.data, INewScanAuditRequest)
+    request_data = validate_structure(request.data, ICreateNewScanAuditRequest)
     scan_audit = ProductScanAudit.objects.create(
         product_type=request_data.product_type.strip() or None
     )

@@ -1,4 +1,7 @@
+from typing import NamedTuple
+
 from attr import frozen
+from reactivated import interface
 
 
 @frozen
@@ -12,14 +15,13 @@ class IProductNameSearch:
     product_name: str
 
 
-@frozen
-class IAppendScanAudit:
-    scan_audit_id: int
+@interface
+class IAddUpcToScanAuditRequest(NamedTuple):
     upc: str
 
 
-@frozen
-class INewScanAuditRequest:
+@interface
+class ICreateNewScanAuditRequest(NamedTuple):
     product_type: str
 
 

@@ -34,7 +34,7 @@ ajax = [
         name="carry_over_home_locations",
     ),
     path(
-        "ajax/add_upc_to_scan_audit/",
+        "ajax/add_upc_to_scan_audit/<int:scan_audit_id>/",
         ajax_views.add_upc_to_scan_audit,
         name="add_upc_to_scan_audit",
     ),

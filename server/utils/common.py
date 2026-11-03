@@ -3,6 +3,7 @@ from typing import Any
 
 import cattrs
 import requests
+from cattrs.cols import is_namedtuple, namedtuple_dict_structure_factory
 from django.core.paginator import Page, Paginator
 from django.db import IntegrityError, models, transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -45,6 +46,8 @@ def cast_type[T](data: Any, _interface_class: type[T]) -> T:
 
 def validate_structure[T](data: Any, interface_class: type[T], is_api: bool = True) -> T:
     c = cattrs.Converter()
+    # cattrs builds NamedTuples from sequences by default; request bodies are dicts
+    c.register_structure_hook_factory(is_namedtuple, namedtuple_dict_structure_factory)
     try:
         obj = c.structure(data, interface_class)
     # if missing attribute

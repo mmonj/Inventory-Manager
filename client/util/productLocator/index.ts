@@ -91,13 +91,10 @@ export function postToScanAudit(
     "X-CSRFToken": csrfToken,
   };
 
-  return fetch(reverse("product_locator:add_upc_to_scan_audit"), {
+  return fetch(reverse("product_locator:add_upc_to_scan_audit", { scan_audit_id }), {
     method: "POST",
     headers: headers,
-    body: JSON.stringify({
-      scan_audit_id: scan_audit_id,
-      upc: upc,
-    }),
+    body: JSON.stringify({ upc } satisfies interfaces.IAddUpcToScanAuditRequest),
   });
 }
 
@@ -114,8 +111,6 @@ export function createNewScanAudit(
   return fetch(reverse("product_locator:create_new_scan_audit"), {
     method: "POST",
     headers: headers,
-    body: JSON.stringify({
-      product_type: product_type,
-    }),
+    body: JSON.stringify({ product_type } satisfies interfaces.ICreateNewScanAuditRequest),
   });
 }
