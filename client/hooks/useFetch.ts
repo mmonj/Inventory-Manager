@@ -21,6 +21,8 @@ export function useFetch<T>() {
     return fetchCallback()
       .then((resp) => {
         if (!resp.ok) {
+          // Caught by the .catch below, which reads the error messages from the response body
+          // eslint-disable-next-line @typescript-eslint/only-throw-error
           throw resp;
         }
 

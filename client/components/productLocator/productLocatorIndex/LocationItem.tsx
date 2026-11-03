@@ -5,8 +5,6 @@ import { interfaces } from "@reactivated";
 
 import classNames from "classnames";
 
-import type { Color } from "react-bootstrap/types";
-
 type LocationItemProps = {
   location: interfaces.IProductLocations["product"]["home_locations"][number];
   locationType?: "outdated" | "current";
@@ -48,7 +46,7 @@ export function LocationItem({ location, locationType = "current" }: LocationIte
             <Badge
               bg={variants[locationType].locationBadgeBg}
               className="me-2"
-              text={variants[locationType].planoText as Color}
+              text={variants[locationType].planoText}
             >
               Location
             </Badge>
@@ -63,7 +61,7 @@ export function LocationItem({ location, locationType = "current" }: LocationIte
             <Badge
               bg={variants[locationType].planogramBadgeBg}
               className={classNames("me-2", { "seasonal-badge": isSeasonal })}
-              text={variants[locationType].planoText as Color}
+              text={variants[locationType].planoText}
             >
               {isSeasonal ? "🌟 Seasonal" : "Planogram"}
             </Badge>

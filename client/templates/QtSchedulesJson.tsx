@@ -47,8 +47,7 @@ export function Template(props: templates.QtSchedulesJson) {
       return;
     }
 
-    const downloadCheckbox = form.querySelector("#download-checkbox") as HTMLInputElement;
-    if (downloadCheckbox?.checked) {
+    if (downloadCheckboxRef.current?.checked === true) {
       const data = result.rep_sync_data.schedule;
 
       const fullUsername = result.rep_sync_data.rep_detail.username;
