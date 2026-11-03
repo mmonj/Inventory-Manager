@@ -47,3 +47,30 @@ export function getPlanogramsFromHomeLocations(
 
   return [...planogramsByPk.values()];
 }
+
+export type THorizontalSectionThresholdsResult =
+  { ok: true; thresholds: string[] | undefined } | { ok: false; errorMessage: string };
+
+/** Parses the create form's "G, J"-style input. Blank input means no thresholds. */
+export function parseHorizontalSectionThresholds(
+  rawInput: string
+): THorizontalSectionThresholdsResult {
+  const trimmedInput = rawInput.trim();
+  if (!trimmedInput) {
+    return { ok: true, thresholds: undefined };
+  }
+
+  const thresholds = trimmedInput
+    .split(/[\s,]+/)
+    .filter(Boolean)
+    .map((threshold) => threshold.toUpperCase());
+
+  if (thresholds.some((threshold) => threshold.length !== 1)) {
+    return {
+      ok: false,
+      errorMessage: "Each section threshold must be a single character (e.g. G, J).",
+    };
+  }
+
+  return { ok: true, thresholds };
+}

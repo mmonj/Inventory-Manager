@@ -5,6 +5,8 @@ import { MotionConfig } from "motion/react";
 
 import { Provider, getServerData, getTemplate } from "@reactivated";
 
+import { QueryProvider } from "@client/components/QueryProvider";
+
 import "@client/scss/bs-dark/bootstrap.scss";
 import "@client/scss/shared.scss";
 import "@client/scss/survey_worker/styles.scss";
@@ -16,9 +18,11 @@ ReactDOM.hydrateRoot(
   document,
   <React.StrictMode>
     <MotionConfig reducedMotion="user">
-      <Provider value={context}>
-        <Template {...props} />
-      </Provider>
+      <QueryProvider>
+        <Provider value={context}>
+          <Template {...props} />
+        </Provider>
+      </QueryProvider>
     </MotionConfig>
   </React.StrictMode>
 );

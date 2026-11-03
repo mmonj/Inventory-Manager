@@ -1,6 +1,6 @@
-import React, { useContext, useState } from "react";
+import React, { useState } from "react";
 
-import { Context, interfaces, reverse, templates } from "@reactivated";
+import { templates } from "@reactivated";
 import { parseISO } from "date-fns";
 import { AnimatePresence, LazyMotion, domAnimation, m } from "motion/react";
 import { Alert, Badge, Button, Card, Dropdown, ListGroup } from "react-bootstrap";
@@ -8,15 +8,17 @@ import Select from "react-select";
 
 import { faEraser, faList, faPencilAlt, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { ErrorAlert } from "@client/components/ErrorAlert";
 import { Layout } from "@client/components/Layout";
 import { LoadingSpinner } from "@client/components/LoadingSpinner";
 import { EditPlanogramModal } from "@client/components/productLocator/EditPlanogramModal";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { PlanogramProductsModal } from "@client/components/productLocator/PlanogramProductsModal";
-import { useFetch } from "@client/hooks/useFetch";
-import { fetchByReactivated } from "@client/util/commonUtil";
-import { getPlanogramSections } from "@client/util/productLocator/planogramUtil";
+import { usePlanogramList } from "@client/hooks/productLocator/usePlanogramList";
+import { getErrorMessages } from "@client/util/commonUtil";
+import {
+  getPlanogramSections,
+  parseHorizontalSectionThresholds,
+} from "@client/util/productLocator/planogramUtil";
 import { toast } from "@client/util/toast";
 
 import "@client/scss/product_locator/monospace-text.scss";
@@ -29,46 +31,19 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
   const [selectedStore, setSelectedStore] = useState<SelectOption | null>(null);
   const [editingPlanogram, setEditingPlanogram] = useState<EditablePlanogram | null>(null);
   const [viewingPlanogram, setViewingPlanogram] = useState<ViewedPlanogram | null>(null);
-  const djangoContext = useContext(Context);
-  const planogramsFetcher = useFetch<interfaces.IPlanogramsByStore>();
-  const createPlanogramFetcher = useFetch<interfaces.IPlanogramCreated>();
-  const deletePlanogramFetcher = useFetch<interfaces.ISuccess>();
-  const [lastDeleteStoreId, setLastDeleteStoreId] = useState<number | null>(null);
-  const clearPlanogramFetcher = useFetch<interfaces.IPlanogramCleared>();
-  const [lastClearStoreId, setLastClearStoreId] = useState<number | null>(null);
-
-  async function refetchPlanograms() {
-    if (selectedStore) {
-      await planogramsFetcher.fetchData(() =>
-        fetchByReactivated<interfaces.IPlanogramsByStore>(
-          reverse("product_locator:get_planograms_by_store", { store_id: selectedStore.value }),
-          djangoContext.csrf_token,
-          "GET"
-        )
-      );
-    }
-  }
+  const planogramList = usePlanogramList(selectedStore?.value ?? null);
+  const { planograms, isListLoading, listErrorMessages } = planogramList;
 
   const storeOptions: SelectOption[] = props.stores.map((store) => ({
     value: store.pk,
     label: store.name,
   }));
 
-  async function handleStoreChange(option: SelectOption | null) {
+  function handleStoreChange(option: SelectOption | null) {
     setSelectedStore(option);
-
-    if (option) {
-      await planogramsFetcher.fetchData(() =>
-        fetchByReactivated<interfaces.IPlanogramsByStore>(
-          reverse("product_locator:get_planograms_by_store", { store_id: option.value }),
-          djangoContext.csrf_token,
-          "GET"
-        )
-      );
-    }
   }
 
-  async function handleDeletePlanogram(planogramId: number, planogramName: string) {
+  function handleDeletePlanogram(planogramId: number, planogramName: string) {
     const firstConfirm = window.confirm(
       `Are you sure you want to delete the planogram "${planogramName}"?\n\nThis action cannot be undone.`
     );
@@ -81,21 +56,12 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
 
     if (!secondConfirm) return;
 
-    setLastDeleteStoreId(selectedStore?.value ?? null);
-    const [isSuccess] = await deletePlanogramFetcher.fetchData(() =>
-      fetchByReactivated<interfaces.ISuccess>(
-        reverse("product_locator:delete_planogram", { planogram_id: planogramId }),
-        djangoContext.csrf_token,
-        "DELETE"
-      )
-    );
-
-    if (isSuccess) {
-      await refetchPlanograms();
-    }
+    planogramList.deletePlanogram.mutateAsync(planogramId).catch((error: Error) => {
+      toast.error(`Failed to delete "${planogramName}".`, ...getErrorMessages(error));
+    });
   }
 
-  async function handleClearPlanogram(
+  function handleClearPlanogram(
     planogramId: number,
     planogramName: string,
     productCount: number,
@@ -117,82 +83,56 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
 
     if (!secondConfirm) return;
 
-    setLastClearStoreId(selectedStore?.value ?? null);
-    const [isSuccess, clearedPlanogram] = await clearPlanogramFetcher.fetchData(() =>
-      fetchByReactivated<interfaces.IPlanogramCleared>(
-        reverse("product_locator:clear_planogram", { planogram_id: planogramId }),
-        djangoContext.csrf_token,
-        "POST"
-      )
-    );
-
-    if (isSuccess) {
-      toast.success(
-        `Cleared "${planogramName}": ${String(clearedPlanogram.num_products_removed)} product(s) removed.`
-      );
-      await refetchPlanograms();
-    }
+    planogramList.clearPlanogram
+      .mutateAsync(planogramId)
+      .then((clearedPlanogram) => {
+        toast.success(
+          `Cleared "${planogramName}": ${String(clearedPlanogram.num_products_removed)} product(s) removed.`
+        );
+      })
+      .catch((error: Error) => {
+        toast.error(`Failed to clear "${planogramName}".`, ...getErrorMessages(error));
+      });
   }
 
-  async function handleCreatePlanogram(event: React.FormEvent<HTMLFormElement>) {
+  function handleCreatePlanogram(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!selectedStore) return;
 
     const formElement = event.currentTarget;
     const formData = new FormData(formElement);
-    const name = formData.get("name") as string;
-    const planoType = formData.get("plano_type") as string;
-    const thresholdsRaw = (formData.get("horizontal_section_thresholds") as string).trim();
-    const planogramTextDump = formData.get("planogram_text_dump") as string;
+    const thresholdsResult = parseHorizontalSectionThresholds(
+      formData.get("horizontal_section_thresholds") as string
+    );
 
-    const horizontalSectionThresholds = thresholdsRaw
-      ? thresholdsRaw
-          .split(/[\s,]+/)
-          .filter(Boolean)
-          .map((token) => token.toUpperCase())
-      : undefined;
-
-    if (
-      horizontalSectionThresholds !== undefined &&
-      horizontalSectionThresholds.some((token) => token.length !== 1)
-    ) {
-      alert("Each section threshold must be a single character (e.g. G, J).");
+    if (!thresholdsResult.ok) {
+      alert(thresholdsResult.errorMessage);
       return;
     }
 
-    const [isSuccess, createdPlanogram] = await createPlanogramFetcher.fetchData(() =>
-      fetchByReactivated<interfaces.IPlanogramCreated>(
-        reverse("product_locator:create_planogram"),
-        djangoContext.csrf_token,
-        "POST",
-        JSON.stringify({
-          name,
-          plano_type: planoType,
-          store_id: selectedStore.value,
-          horizontal_section_thresholds: horizontalSectionThresholds,
-          planogram_text_dump: planogramTextDump,
-        })
-      )
-    );
+    planogramList.createPlanogram
+      .mutateAsync({
+        storeId: selectedStore.value,
+        name: formData.get("name") as string,
+        planoType: formData.get("plano_type") as string,
+        horizontalSectionThresholds: thresholdsResult.thresholds,
+        planogramTextDump: formData.get("planogram_text_dump") as string,
+      })
+      .then((createdPlanogram) => {
+        formElement.reset();
 
-    if (isSuccess) {
-      formElement.reset();
-
-      if (createdPlanogram.num_products > 0) {
-        toast.success(
-          `Created "${createdPlanogram.planogram.name}" with ${String(createdPlanogram.num_products)} product(s).`
-        );
-      } else {
-        toast.success(`Created "${createdPlanogram.planogram.name}".`);
-      }
-
-      try {
-        await refetchPlanograms();
-      } catch (error) {
-        console.error("Failed to refresh planograms after creating a new one:", error);
-      }
-    }
+        if (createdPlanogram.num_products > 0) {
+          toast.success(
+            `Created "${createdPlanogram.planogram.name}" with ${String(createdPlanogram.num_products)} product(s).`
+          );
+        } else {
+          toast.success(`Created "${createdPlanogram.planogram.name}".`);
+        }
+      })
+      .catch((error: Error) => {
+        toast.error("Failed to create the planogram.", ...getErrorMessages(error));
+      });
   }
 
   return (
@@ -216,7 +156,7 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
         </Card>
 
         {/* Loading state */}
-        {planogramsFetcher.isLoading && (
+        {isListLoading && (
           <Card className="shadow-sm border-0 mb-4">
             <Card.Body className="p-4 text-center">
               <LoadingSpinner isBlockElement={true} />
@@ -226,33 +166,25 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
         )}
 
         {/* Error state */}
-        {planogramsFetcher.errorMessages.length > 0 && (
+        {listErrorMessages.length > 0 && (
           <Alert variant="danger" className="mb-4">
             <strong>Error loading planograms:</strong>
             <ul className="mb-0 mt-2">
-              {planogramsFetcher.errorMessages.map((error, idx) => (
+              {listErrorMessages.map((error, idx) => (
                 <li key={idx}>{error}</li>
               ))}
             </ul>
           </Alert>
         )}
 
-        {deletePlanogramFetcher.isError && selectedStore?.value === lastDeleteStoreId && (
-          <ErrorAlert errorMessages={deletePlanogramFetcher.errorMessages} />
-        )}
-
-        {clearPlanogramFetcher.isError && selectedStore?.value === lastClearStoreId && (
-          <ErrorAlert errorMessages={clearPlanogramFetcher.errorMessages} />
-        )}
-
         {/* Planograms List */}
-        {selectedStore && !planogramsFetcher.isLoading && planogramsFetcher.data && (
+        {selectedStore && !isListLoading && planograms && (
           <Card className="shadow-sm border-0 mb-4">
             <Card.Header className="bg-primary text-white">
               <h5 className="mb-0">Planograms for {selectedStore.label}</h5>
             </Card.Header>
             <Card.Body className="p-0">
-              {planogramsFetcher.data.planograms.length === 0 ? (
+              {planograms.length === 0 ? (
                 <div className="p-4 text-center text-muted">
                   <p className="mb-0">No planograms found for this store.</p>
                 </div>
@@ -260,12 +192,12 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
                 <>
                   <div className="p-3 bg-light border-bottom">
                     <small className="text-muted">
-                      {planogramsFetcher.data.planograms.length} planogram
-                      {planogramsFetcher.data.planograms.length !== 1 ? "s" : ""} found
+                      {planograms.length} planogram
+                      {planograms.length !== 1 ? "s" : ""} found
                     </small>
                   </div>
                   <LazyMotion features={domAnimation}>
-                    {getPlanogramSections(planogramsFetcher.data.planograms).map((section) => (
+                    {getPlanogramSections(planograms).map((section) => (
                       <React.Fragment key={section.title}>
                         <div className="px-3 py-2 bg-light border-bottom small fw-semibold">
                           {section.title}
@@ -388,7 +320,7 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
         )}
 
         {/* Create New Planogram Form */}
-        {selectedStore && !planogramsFetcher.isLoading && (
+        {selectedStore && !isListLoading && (
           <Card className="shadow-sm border-0">
             <Card.Header className="bg-success text-white">
               <h5 className="mb-0">
@@ -462,23 +394,13 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
                   type="submit"
                   variant="success"
                   className="w-100"
-                  disabled={createPlanogramFetcher.isLoading}
+                  disabled={planogramList.createPlanogram.isPending}
                 >
                   Create Planogram
-                  {createPlanogramFetcher.isLoading && (
+                  {planogramList.createPlanogram.isPending && (
                     <LoadingSpinner isBlockElement={false} spinnerVariant="light" size="sm" />
                   )}
                 </Button>
-
-                {createPlanogramFetcher.isError && (
-                  <Alert variant="danger" className="mt-3 mb-0">
-                    <ul className="mb-0">
-                      {createPlanogramFetcher.errorMessages.map((error, idx) => (
-                        <li key={idx}>{error}</li>
-                      ))}
-                    </ul>
-                  </Alert>
-                )}
               </form>
             </Card.Body>
           </Card>
@@ -492,7 +414,7 @@ export function Template(props: templates.ProductLocatorManagePlanograms) {
           storeName={selectedStore?.label ?? ""}
           planogram={editingPlanogram}
           planoTypeChoices={props.plano_type_choices}
-          onSuccess={refetchPlanograms}
+          onSuccess={() => void planogramList.refreshPlanograms()}
         />
       )}
 

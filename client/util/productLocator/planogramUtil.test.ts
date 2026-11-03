@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   getPlanogramSections,
   getPlanogramsFromHomeLocations,
+  parseHorizontalSectionThresholds,
   splitHomeLocations,
 } from "./planogramUtil";
 
@@ -110,5 +111,29 @@ describe("splitHomeLocations", () => {
 
     expect(currentHomeLocations).toEqual([]);
     expect(homeLocationNames(outdatedHomeLocations)).toEqual(["A1"]);
+  });
+});
+
+describe("parseHorizontalSectionThresholds", () => {
+  it("treats blank input as no thresholds", () => {
+    expect(parseHorizontalSectionThresholds("   ")).toEqual({ ok: true, thresholds: undefined });
+  });
+
+  it("splits on commas and spaces and uppercases each letter", () => {
+    expect(parseHorizontalSectionThresholds(" g, j  k,,m ")).toEqual({
+      ok: true,
+      thresholds: ["G", "J", "K", "M"],
+    });
+  });
+
+  it("rejects a threshold longer than one character", () => {
+    expect(parseHorizontalSectionThresholds("G, JK")).toEqual({
+      ok: false,
+      errorMessage: "Each section threshold must be a single character (e.g. G, J).",
+    });
+  });
+
+  it("returns an empty list when the input is only separators", () => {
+    expect(parseHorizontalSectionThresholds(" , ,")).toEqual({ ok: true, thresholds: [] });
   });
 });

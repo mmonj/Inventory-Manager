@@ -130,6 +130,46 @@ export function encodeQtAddress(address: SurveyWorkerQtraxWebsiteTypedefsAddress
   );
 }
 
+/** Thrown by `fetchJsonOrThrow`, carrying the same messages `useFetch` would show. */
+export class FetchError extends Error {
+  messages: string[];
+
+  constructor(messages: string[]) {
+    super(messages.join("\n"));
+    this.name = "FetchError";
+    this.messages = messages;
+  }
+}
+
+/** The messages to show for a TanStack Query error, or none when there isn't one. */
+export function getErrorMessages(error: Error | null): string[] {
+  if (error === null) {
+    return [];
+  }
+  return error instanceof FetchError ? error.messages : [error.message];
+}
+
+/**
+ * For TanStack Query's `queryFn`/`mutationFn`: resolves with the parsed body of a 2xx response,
+ * and throws a `FetchError` for anything else (non-2xx or a network failure).
+ */
+export async function fetchJsonOrThrow<T>(responsePromise: ApiPromise<T>): Promise<T> {
+  let response: ApiResponse<T>;
+  try {
+    response = await responsePromise;
+  } catch (error) {
+    throw new FetchError(await getFailureMessages(error as Error));
+  }
+
+  if (!response.ok) {
+    throw new FetchError(
+      await getFailureMessages(response as ApiResponse<IHttpError | TNotFoundErrorList>)
+    );
+  }
+
+  return response.json();
+}
+
 export function fetchByReactivated<T>(
   url: string,
   csrfToken: string,
