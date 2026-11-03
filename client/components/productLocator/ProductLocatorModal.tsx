@@ -17,7 +17,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { useFetch } from "@client/hooks/useFetch";
-import { postNewProductLocation } from "@client/util/productLocator";
+import { createProductLocatorApi } from "@client/util/productLocator/productLocatorApi";
 import {
   LOCATION_NAME_INPUT_PATTERN,
   readAddLocationForm,
@@ -55,6 +55,7 @@ export function ProductLocatorModal({
 }: Props) {
   const locUpdateProps = useFetch<interfaces.IHomeLocationUpdate>();
   const djangoContext = React.useContext(Context);
+  const productLocatorApi = createProductLocatorApi(djangoContext.csrf_token);
   const [carryoverRequest, setCarryoverRequest] = React.useState<ICarryoverRequest | null>(null);
   const [formErrorMessage, setFormErrorMessage] = React.useState<string | null>(null);
 
@@ -74,18 +75,15 @@ export function ProductLocatorModal({
     }
     setFormErrorMessage(null);
 
-    const assignment = {
-      upc: lookup.upc,
-      product_name: formResult.productName,
-      location: formResult.locationName,
-    } satisfies interfaces.IAddNewProductLocationRequest;
-
     await locUpdateProps.fetchData(
       () =>
-        postNewProductLocation(
-          assignment,
+        productLocatorApi.assignHomeLocation(
           { storeId, planogramId: formResult.planogramId },
-          djangoContext.csrf_token
+          {
+            upc: lookup.upc,
+            product_name: formResult.productName,
+            location: formResult.locationName,
+          }
         ),
       () => onAddSuccess(lookup.upc)
     );

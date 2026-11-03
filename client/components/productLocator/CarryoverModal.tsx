@@ -12,7 +12,7 @@ import { faCheckCircle, faSearch, faTimes } from "@fortawesome/free-solid-svg-ic
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { useFetch } from "@client/hooks/useFetch";
-import { getRelatedProducts, postHomeLocationCarryover } from "@client/util/productLocator";
+import { createProductLocatorApi } from "@client/util/productLocator/productLocatorApi";
 import { getPlanogramsFromHomeLocations } from "@client/util/productLocator/planogramUtil";
 
 import { ErrorAlert } from "../ErrorAlert";
@@ -34,6 +34,7 @@ export function CarryoverModal({ upc, initialSearchText, storeId, onHide, onSucc
   const searchFetch = useFetch<interfaces.MatchingProducts>();
   const carryoverFetch = useFetch<interfaces.IProductLocatorProduct>();
   const djangoContext = React.useContext(Context);
+  const productLocatorApi = createProductLocatorApi(djangoContext.csrf_token);
 
   const [searchText, setSearchText] = React.useState(initialSearchText);
   const [olderProduct, setOlderProduct] = React.useState<TMatchingProduct | null>(null);
@@ -47,7 +48,9 @@ export function CarryoverModal({ upc, initialSearchText, storeId, onHide, onSucc
     setOlderProduct(null);
     setTickedPlanogramIds([]);
     setIsSubmitErrorStale(true);
-    await searchFetch.fetchData(() => getRelatedProducts(productName, storeId));
+    await searchFetch.fetchData(() =>
+      productLocatorApi.searchProductsByName(storeId, { product_name: productName })
+    );
   }
 
   React.useEffect(() => {
@@ -90,12 +93,9 @@ export function CarryoverModal({ upc, initialSearchText, storeId, onHide, onSucc
     setIsSubmitErrorStale(false);
     await carryoverFetch.fetchData(
       () =>
-        postHomeLocationCarryover(
-          upc,
-          olderProduct!.pk,
-          tickedPlanogramIds,
-          storeId,
-          djangoContext.csrf_token
+        productLocatorApi.carryOverHomeLocations(
+          { storeId, olderProductId: olderProduct!.pk },
+          { upc, planogram_ids: tickedPlanogramIds }
         ),
       onSuccess
     );

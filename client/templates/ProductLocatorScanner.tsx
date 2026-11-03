@@ -22,8 +22,8 @@ import { FieldRepStoreSelector } from "@client/components/StoreSelector";
 import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { ProductLocatorModal } from "@client/components/productLocator/ProductLocatorModal";
 import { LocationItem } from "@client/components/productLocator/productLocatorIndex";
-import { getProductLocation } from "@client/util/productLocator";
 import { splitHomeLocations } from "@client/util/productLocator/planogramUtil";
+import { createProductLocatorApi } from "@client/util/productLocator/productLocatorApi";
 import { createProductLookup, isAssignableLookup } from "@client/util/productLocator/productLookup";
 import { toast } from "@client/util/toast";
 
@@ -58,9 +58,12 @@ export function Template(props: templates.ProductLocatorScanner) {
   }
 
   // Created once, since picking a store reloads the page and BarcodeScanner keeps its first callback
-  const [productLookupStore] = useState(() =>
-    createProductLookup((upc) => getProductLocation(upc, storeFromQueryParam!.pk))
-  );
+  const [productLookupStore] = useState(() => {
+    const productLocatorApi = createProductLocatorApi(djangoContext.csrf_token);
+    return createProductLookup((upc) =>
+      productLocatorApi.lookUpProduct(storeFromQueryParam!.pk, upc)
+    );
+  });
   const lookup = useSyncExternalStore(
     productLookupStore.subscribe,
     productLookupStore.getLookup,
