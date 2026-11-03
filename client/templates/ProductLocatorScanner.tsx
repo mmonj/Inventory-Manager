@@ -23,6 +23,7 @@ import { NavigationBar } from "@client/components/productLocator/NavigationBar";
 import { ProductLocatorModal } from "@client/components/productLocator/ProductLocatorModal";
 import { LocationItem } from "@client/components/productLocator/productLocatorIndex";
 import { getProductLocation } from "@client/util/productLocator";
+import { splitHomeLocations } from "@client/util/productLocator/planogramUtil";
 import { createProductLookup, isAssignableLookup } from "@client/util/productLocator/productLookup";
 import { toast } from "@client/util/toast";
 
@@ -72,6 +73,9 @@ export function Template(props: templates.ProductLocatorScanner) {
     productLookupStore.getLookup
   );
   const product = lookup.status === "found" ? lookup.product : null;
+  const { currentHomeLocations, outdatedHomeLocations } = splitHomeLocations(
+    product?.home_locations ?? []
+  );
 
   const isAssignmentModalOpen = !!store && modalShow && isAssignableLookup(lookup);
 
@@ -157,12 +161,12 @@ export function Template(props: templates.ProductLocatorScanner) {
                 </Alert>
               )}
 
-              {product && product.home_locations.length > 0 && (
+              {product && currentHomeLocations.length > 0 && (
                 <Card className="shadow-sm border-0 mb-4">
                   <Card.Header className="bg-success text-white py-3">
                     <h6 className="mb-0 fw-bold">
                       <FontAwesomeIcon icon={faCheckCircle} className="me-2" />
-                      Active Locations
+                      Current Locations
                     </h6>
                   </Card.Header>
                   <Card.Body className="p-3">
@@ -170,46 +174,41 @@ export function Template(props: templates.ProductLocatorScanner) {
                       <strong>Product:</strong> {product.name}
                     </div>
                     <div className="list-group list-group-flush">
-                      {product.home_locations.map((location) => {
-                        if (location.planogram.is_outdated) return null;
-
-                        return <LocationItem key={location.pk} location={location} />;
-                      })}
+                      {currentHomeLocations.map((location) => (
+                        <LocationItem key={location.pk} location={location} />
+                      ))}
                     </div>
                   </Card.Body>
                 </Card>
               )}
 
-              {product &&
-                product.home_locations.some((location) => location.planogram.is_outdated) && (
-                  <Card
-                    className="shadow-sm border-0 border-danger mb-4"
-                    style={{ borderWidth: "2px !important" }}
-                  >
-                    <Card.Header className="bg-danger text-white py-3">
-                      <h6 className="mb-0 fw-bold">
-                        <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
-                        Outdated Locations
-                      </h6>
-                    </Card.Header>
-                    <Card.Body className="p-3">
-                      <div className="mb-3 pb-2 border-bottom">
-                        <strong>Product:</strong> {product.name}
-                      </div>
-                      <div className="list-group list-group-flush">
-                        {product.home_locations
-                          .filter((location) => location.planogram.is_outdated)
-                          .map((location) => (
-                            <LocationItem
-                              key={location.pk}
-                              location={location}
-                              locationType="outdated"
-                            />
-                          ))}
-                      </div>
-                    </Card.Body>
-                  </Card>
-                )}
+              {product && outdatedHomeLocations.length > 0 && (
+                <Card
+                  className="shadow-sm border-0 border-danger mb-4"
+                  style={{ borderWidth: "2px !important" }}
+                >
+                  <Card.Header className="bg-danger text-white py-3">
+                    <h6 className="mb-0 fw-bold">
+                      <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" />
+                      Outdated Locations
+                    </h6>
+                  </Card.Header>
+                  <Card.Body className="p-3">
+                    <div className="mb-3 pb-2 border-bottom">
+                      <strong>Product:</strong> {product.name}
+                    </div>
+                    <div className="list-group list-group-flush">
+                      {outdatedHomeLocations.map((location) => (
+                        <LocationItem
+                          key={location.pk}
+                          location={location}
+                          locationType="outdated"
+                        />
+                      ))}
+                    </div>
+                  </Card.Body>
+                </Card>
+              )}
 
               {product?.home_locations.length === 0 && (
                 <Alert variant="warning" className="shadow-sm border-0 text-center py-4">

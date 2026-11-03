@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { getPlanogramSections, getPlanogramsFromHomeLocations } from "./planogramUtil";
+import {
+  getPlanogramSections,
+  getPlanogramsFromHomeLocations,
+  splitHomeLocations,
+} from "./planogramUtil";
 
 function storePlanogram(name: string, dateStart: string, isOutdated: boolean) {
   return {
@@ -75,5 +79,36 @@ describe("getPlanogramsFromHomeLocations", () => {
 
   it("gives an empty list for a product with no home locations", () => {
     expect(getPlanogramsFromHomeLocations([])).toEqual([]);
+  });
+});
+
+function scannedHomeLocation(name: string, isOutdated: boolean) {
+  return { name, planogram: { is_outdated: isOutdated } };
+}
+
+function homeLocationNames(homeLocations: ReturnType<typeof scannedHomeLocation>[]) {
+  return homeLocations.map(({ name }) => name);
+}
+
+describe("splitHomeLocations", () => {
+  it("separates current home locations from outdated ones, keeping their order", () => {
+    const { currentHomeLocations, outdatedHomeLocations } = splitHomeLocations([
+      scannedHomeLocation("A1", false),
+      scannedHomeLocation("B2", true),
+      scannedHomeLocation("C3", false),
+      scannedHomeLocation("D4", true),
+    ]);
+
+    expect(homeLocationNames(currentHomeLocations)).toEqual(["A1", "C3"]);
+    expect(homeLocationNames(outdatedHomeLocations)).toEqual(["B2", "D4"]);
+  });
+
+  it("gives no current locations for a product whose only home locations are outdated", () => {
+    const { currentHomeLocations, outdatedHomeLocations } = splitHomeLocations([
+      scannedHomeLocation("A1", true),
+    ]);
+
+    expect(currentHomeLocations).toEqual([]);
+    expect(homeLocationNames(outdatedHomeLocations)).toEqual(["A1"]);
   });
 });

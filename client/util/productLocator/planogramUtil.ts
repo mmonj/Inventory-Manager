@@ -29,6 +29,15 @@ export function getPlanogramSections(storePlanograms: TStorePlanogram[]): Planog
   return sections.filter((section) => section.storePlanograms.length > 0);
 }
 
+export function splitHomeLocations<THomeLocation extends { planogram: { is_outdated: boolean } }>(
+  homeLocations: THomeLocation[]
+): { currentHomeLocations: THomeLocation[]; outdatedHomeLocations: THomeLocation[] } {
+  return {
+    currentHomeLocations: homeLocations.filter(({ planogram }) => !planogram.is_outdated),
+    outdatedHomeLocations: homeLocations.filter(({ planogram }) => planogram.is_outdated),
+  };
+}
+
 export function getPlanogramsFromHomeLocations(
   homeLocations: TMatchingHomeLocation[]
 ): TMatchingPlanogram[] {
