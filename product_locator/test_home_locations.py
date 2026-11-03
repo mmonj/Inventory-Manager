@@ -1,6 +1,7 @@
 from datetime import timedelta
 from threading import Thread
 from typing import Any
+from urllib.parse import quote
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -670,18 +671,43 @@ def test_search_by_name_refuses_blank_text(
     assert isinstance(response.json(), list)
 
 
+def look_up_product(client: Client, store: Store, upc: str) -> Any:
+    # Encoded the way the client does it. reverse() would encode the "%" again, so the UPC is
+    # swapped in afterwards
+    url_placeholder = "UPC_PLACEHOLDER"
+    lookup_url = reverse("product_locator:get_product_location", args=[store.pk, url_placeholder])
+    return client.get(
+        lookup_url.replace(url_placeholder, quote(upc, safe="")),
+        headers={"accept": "application/json"},
+    )
+
+
+def test_lookup_returns_the_stores_home_locations_for_a_known_upc(
+    logged_in_client: Client, older_product: Product, store: Store
+) -> None:
+    other_store_planogram = Planogram.objects.create(
+        name="Elsewhere", store=Store.objects.create(name="T2000")
+    )
+    older_product.home_locations.add(
+        HomeLocation.objects.create(name="Z9", planogram=other_store_planogram)
+    )
+
+    response = look_up_product(logged_in_client, store, OLDER_UPC)
+
+    assert response.status_code == 200
+    found_product = response.json()["product"]
+    assert found_product["upc"] == OLDER_UPC
+    assert [location["name"] for location in found_product["home_locations"]] == ["A1"]
+
+
 @pytest.mark.parametrize(
     ("upc", "status_code"),
-    [(NEWER_UPC, 404), ("012345678900", 400)],
-    ids=["unknown_upc", "invalid_upc"],
+    [(NEWER_UPC, 404), ("012345678900", 400), ("01234/678905", 400)],
+    ids=["unknown_upc", "invalid_upc", "upc_with_a_slash"],
 )
 def test_lookup_only_reports_404_for_a_valid_upc_with_no_product(
     logged_in_client: Client, store: Store, upc: str, status_code: int
 ) -> None:
-    response = logged_in_client.get(
-        reverse("product_locator:get_product_location"),
-        data={"upc": upc, "store_id": str(store.pk)},
-        headers={"accept": "application/json"},
-    )
+    response = look_up_product(logged_in_client, store, upc)
 
     assert response.status_code == status_code

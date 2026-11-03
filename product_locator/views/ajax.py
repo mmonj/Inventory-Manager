@@ -16,14 +16,13 @@ from .. import home_locations, planogram_import, planogram_updates
 from ..models import HomeLocation, Planogram, PlanogramUpdate, Product, ProductScanAudit, Store
 from . import interfaces_response
 from .interfaces_request import (
-    GetProductLocationRequest,
     IAddNewProductLocation,
     IAddUpcToScanAuditRequest,
     ICarryOverHomeLocations,
     ICreateNewScanAuditRequest,
     ICreatePlanogram,
     IEditPlanogram,
-    IProductNameSearch,
+    IGetProductLocationsByNameRequest,
 )
 from .permissions import IsSuperuser
 
@@ -32,10 +31,9 @@ logger = logging.getLogger("main_logger")
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def get_product_location(request: DrfRequest) -> HttpResponse:
-    request_data = validate_structure(request.GET, GetProductLocationRequest)
+def get_product_location(request: DrfRequest, store_id: int, upc: str) -> HttpResponse:
     try:
-        Product(upc=request_data.upc).clean()
+        Product(upc=upc).clean()
     except ValidationError as ex:
         raise DrfValidationError(ex.messages) from ex
 
@@ -43,17 +41,17 @@ def get_product_location(request: DrfRequest) -> HttpResponse:
         Product.objects.prefetch_related(
             Prefetch(
                 "home_locations",
-                queryset=HomeLocation.objects.filter(planogram__store__pk=request_data.store_id)
+                queryset=HomeLocation.objects.filter(planogram__store__pk=store_id)
                 .select_related("planogram")
                 .order_by("-planogram__date_start"),
             ),
         )
-        .filter(upc=request_data.upc)
+        .filter(upc=upc)
         .first()
     )
 
     if product is None:
-        raise DrfNotFound(f"Product with UPC {request_data.upc} not found")
+        raise DrfNotFound(f"Product with UPC {upc} not found")
 
     return interfaces_response.IProductLocations(product).render(request)
 
@@ -61,7 +59,7 @@ def get_product_location(request: DrfRequest) -> HttpResponse:
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_product_locations_by_name(request: DrfRequest, store_id: int) -> HttpResponse:
-    request_data = validate_structure(request.GET, IProductNameSearch)
+    request_data = validate_structure(request.GET, IGetProductLocationsByNameRequest)
     product_name = request_data.product_name.strip()
     if product_name == "":
         return error_json_response(["Enter a product name to search for."], status=400)

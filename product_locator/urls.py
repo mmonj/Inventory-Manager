@@ -15,8 +15,12 @@ pages = [
 ]
 
 ajax = [
+    # `path:` so a typed UPC holding a "/" still reaches the view and gets its invalid-UPC 400,
+    # instead of missing the route and reading as an unknown UPC
     path(
-        "ajax/get_product_location/", ajax_views.get_product_location, name="get_product_location"
+        "ajax/get_product_location/<int:store_id>/<path:upc>/",
+        ajax_views.get_product_location,
+        name="get_product_location",
     ),
     path(
         "ajax/get_product_locations_by_name/<int:store_id>/",

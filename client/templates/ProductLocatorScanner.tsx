@@ -5,7 +5,7 @@ import Badge from "react-bootstrap/Badge";
 import Button from "react-bootstrap/Button";
 import Card from "react-bootstrap/Card";
 
-import { Context, reverse, templates } from "@reactivated";
+import { Context, templates } from "@reactivated";
 
 import {
   faCheckCircle,
@@ -59,13 +59,7 @@ export function Template(props: templates.ProductLocatorScanner) {
 
   // Created once, since picking a store reloads the page and BarcodeScanner keeps its first callback
   const [productLookupStore] = useState(() =>
-    createProductLookup((upc) =>
-      getProductLocation(
-        upc,
-        storeFromQueryParam!.pk,
-        reverse("product_locator:get_product_location")
-      )
-    )
+    createProductLookup((upc) => getProductLocation(upc, storeFromQueryParam!.pk))
   );
   const lookup = useSyncExternalStore(
     productLookupStore.subscribe,

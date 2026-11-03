@@ -4,16 +4,15 @@ import { ApiResponse } from "@client/types";
 
 export function getProductLocation(
   upc: string,
-  store_id: number,
-  action_path: string
+  storeId: number
 ): Promise<ApiResponse<interfaces.IProductLocations>> {
-  const searchParams = new URLSearchParams();
-  searchParams.append("upc", upc);
-  searchParams.append("store_id", store_id.toString());
+  // reverse() doesn't encode its args, and a scanned code could hold URL special characters
+  const lookupUrl = reverse("product_locator:get_product_location", {
+    store_id: storeId,
+    upc: encodeURIComponent(upc),
+  });
 
-  const action_url = action_path + "?" + searchParams.toString();
-
-  return fetch(action_url, { method: "GET", headers: { Accept: "application/json" } });
+  return fetch(lookupUrl, { method: "GET", headers: { Accept: "application/json" } });
 }
 
 export function postNewProductLocation(
@@ -51,7 +50,10 @@ export function getRelatedProducts(
 
   // The name goes in the query string since reverse() doesn't encode, and a path segment can't
   // hold a "/" even when encoded
-  const searchParams = new URLSearchParams({ product_name: productName });
+  const searchQuery = {
+    product_name: productName,
+  } satisfies interfaces.IGetProductLocationsByNameRequest;
+  const searchParams = new URLSearchParams(searchQuery);
   const searchUrl = reverse("product_locator:get_product_locations_by_name", { store_id: storeId });
 
   return fetch(`${searchUrl}?${searchParams.toString()}`, { headers: headers });

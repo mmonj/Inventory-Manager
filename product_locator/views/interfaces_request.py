@@ -4,14 +4,8 @@ from attr import frozen
 from reactivated import interface
 
 
-@frozen
-class GetProductLocationRequest:
-    upc: str
-    store_id: int
-
-
-@frozen
-class IProductNameSearch:
+@interface
+class IGetProductLocationsByNameRequest(NamedTuple):
     product_name: str
 
 
