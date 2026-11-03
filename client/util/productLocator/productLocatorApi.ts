@@ -39,7 +39,8 @@ export function createProductLocatorApi(csrfToken: string) {
     },
 
     assignHomeLocation(
-      { storeId, planogramId }: { storeId: number; planogramId: number },
+      storeId: number,
+      planogramId: number,
       body: interfaces.IAddNewProductLocationRequest
     ): ApiPromise<interfaces.IHomeLocationUpdate> {
       return fetchByReactivated<
@@ -57,7 +58,8 @@ export function createProductLocatorApi(csrfToken: string) {
     },
 
     carryOverHomeLocations(
-      { storeId, olderProductId }: { storeId: number; olderProductId: number },
+      storeId: number,
+      olderProductId: number,
       body: interfaces.ICarryOverHomeLocationsRequest
     ): ApiPromise<interfaces.IProductLocatorProduct> {
       return fetchByReactivated<

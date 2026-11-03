@@ -93,10 +93,10 @@ export function CarryoverModal({ upc, initialSearchText, storeId, onHide, onSucc
     setIsSubmitErrorStale(false);
     await carryoverFetch.fetchData(
       () =>
-        productLocatorApi.carryOverHomeLocations(
-          { storeId, olderProductId: olderProduct!.pk },
-          { upc, planogram_ids: tickedPlanogramIds }
-        ),
+        productLocatorApi.carryOverHomeLocations(storeId, olderProduct!.pk, {
+          upc,
+          planogram_ids: tickedPlanogramIds,
+        }),
       onSuccess
     );
   }

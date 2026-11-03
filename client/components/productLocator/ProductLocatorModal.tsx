@@ -77,14 +77,11 @@ export function ProductLocatorModal({
 
     await locUpdateProps.fetchData(
       () =>
-        productLocatorApi.assignHomeLocation(
-          { storeId, planogramId: formResult.planogramId },
-          {
-            upc: lookup.upc,
-            product_name: formResult.productName,
-            location: formResult.locationName,
-          }
-        ),
+        productLocatorApi.assignHomeLocation(storeId, formResult.planogramId, {
+          upc: lookup.upc,
+          product_name: formResult.productName,
+          location: formResult.locationName,
+        }),
       () => onAddSuccess(lookup.upc)
     );
   }

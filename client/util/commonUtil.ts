@@ -170,15 +170,21 @@ export async function fetchJsonOrThrow<T>(responsePromise: ApiPromise<T>): Promi
   return response.json();
 }
 
-/** A typed JSON body: a plain object or array, as opposed to a ready-made `BodyInit`. */
-function isJsonBody(payloadBody: unknown): payloadBody is object {
+/** A ready-made `BodyInit` that `fetch` takes as is, as opposed to a typed body to send as JSON. */
+function isBodyInit(payloadBody: unknown): payloadBody is BodyInit {
   return (
-    Array.isArray(payloadBody) ||
-    (typeof payloadBody === "object" &&
-      payloadBody !== null &&
-      Object.getPrototypeOf(payloadBody) === Object.prototype)
+    typeof payloadBody === "string" ||
+    payloadBody instanceof Blob ||
+    payloadBody instanceof FormData ||
+    payloadBody instanceof URLSearchParams ||
+    payloadBody instanceof ArrayBuffer ||
+    ArrayBuffer.isView(payloadBody) ||
+    (typeof ReadableStream !== "undefined" && payloadBody instanceof ReadableStream)
   );
 }
+
+/** A request type to send as JSON: any object type that isn't a ready-made `BodyInit`. */
+type JsonBody<TBody> = TBody extends BodyInit ? never : TBody;
 
 export function fetchByReactivated<T>(
   url: string,
@@ -192,7 +198,7 @@ export function fetchByReactivated<TResponse, TBody extends object>(
   url: string,
   csrfToken: string,
   method: string,
-  body: TBody
+  body: JsonBody<TBody>
 ): ApiPromise<TResponse>;
 export function fetchByReactivated<T>(
   url: string,
@@ -209,7 +215,10 @@ export function fetchByReactivated<T>(
 
   return fetch(url, {
     method: method,
-    body: isJsonBody(payloadBody) ? JSON.stringify(payloadBody) : payloadBody,
+    body:
+      payloadBody === undefined || isBodyInit(payloadBody)
+        ? payloadBody
+        : JSON.stringify(payloadBody),
     headers: headers,
   });
 }
