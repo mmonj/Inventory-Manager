@@ -73,12 +73,12 @@ ajax = [
         name="apply_planogram_update",
     ),
     path(
-        "ajax/edit_planogram/",
+        "ajax/edit_planogram/<int:planogram_id>/",
         ajax_views.edit_planogram,
         name="edit_planogram",
     ),
     path(
-        "ajax/create_planogram/",
+        "ajax/create_planogram/<int:store_id>/",
         ajax_views.create_planogram,
         name="create_planogram",
     ),

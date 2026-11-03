@@ -236,13 +236,26 @@ def regular_user_client() -> Client:
     return client
 
 
-@pytest.mark.parametrize(
-    "route_name", ["product_locator:edit_planogram", "product_locator:create_planogram"]
-)
-def test_manage_endpoints_refuse_regular_users(
-    regular_user_client: Client, route_name: str
+def test_edit_endpoint_refuses_regular_users(
+    regular_user_client: Client, planogram: Planogram
 ) -> None:
-    response = regular_user_client.post(reverse(route_name), {}, content_type="application/json")
+    response = regular_user_client.post(
+        reverse("product_locator:edit_planogram", args=[planogram.pk]),
+        {},
+        content_type="application/json",
+    )
+
+    assert response.status_code == 403
+
+
+def test_create_endpoint_refuses_regular_users(
+    regular_user_client: Client, planogram: Planogram
+) -> None:
+    response = regular_user_client.post(
+        reverse("product_locator:create_planogram", args=[planogram.store_id]),
+        {},
+        content_type="application/json",
+    )
 
     assert response.status_code == 403
 
@@ -537,14 +550,13 @@ def superuser_client() -> Client:
 
 
 def post_new_planogram(
-    client: Client, store: Store, planogram_text_dump: str, name: str = "Fall Plano"
+    client: Client, store_id: int, planogram_text_dump: str, name: str = "Fall Plano"
 ) -> Any:
     return client.post(
-        reverse("product_locator:create_planogram"),
+        reverse("product_locator:create_planogram", args=[store_id]),
         {
             "name": name,
             "plano_type": Planogram.PlanoType.SEASONAL,
-            "store_id": store.pk,
             "planogram_text_dump": planogram_text_dump,
         },
         content_type="application/json",
@@ -557,15 +569,36 @@ def store() -> Store:
     return Store.objects.create(name="T2000")
 
 
+def test_creating_adds_the_planogram_to_the_store_in_the_path(
+    superuser_client: Client, store: Store
+) -> None:
+    other_store = Store.objects.create(name="T2001")
+
+    response = post_new_planogram(superuser_client, other_store.pk, "")
+
+    assert response.status_code == 200
+    assert other_store.planograms.get().name == "Fall Plano"
+    assert not store.planograms.exists()
+
+
+def test_creating_for_a_missing_store_is_a_404(superuser_client: Client, store: Store) -> None:
+    missing_store_id = store.pk + 1
+
+    response = post_new_planogram(superuser_client, missing_store_id, "")
+
+    assert response.status_code == 404
+    assert not Planogram.objects.exists()
+
+
 def test_creating_trims_the_planogram_name(superuser_client: Client, store: Store) -> None:
-    response = post_new_planogram(superuser_client, store, "", name="  Fall Plano  ")
+    response = post_new_planogram(superuser_client, store.pk, "", name="  Fall Plano  ")
 
     assert response.status_code == 200
     assert store.planograms.get().name == "Fall Plano"
 
 
 def test_creating_refuses_a_blank_planogram_name(superuser_client: Client, store: Store) -> None:
-    response = post_new_planogram(superuser_client, store, "", name="   ")
+    response = post_new_planogram(superuser_client, store.pk, "", name="   ")
 
     assert response.status_code == 400
     assert not store.planograms.exists()
@@ -576,7 +609,7 @@ def test_creating_with_a_text_dump_fills_the_new_planogram(
 ) -> None:
     text_dump = f"A1 Section 1 {UPC_1} Cat Box\nA2 Section 1 {UPC_2} Spectacular"
 
-    response = post_new_planogram(superuser_client, store, text_dump)
+    response = post_new_planogram(superuser_client, store.pk, text_dump)
 
     assert response.status_code == 200
     assert response.json()["num_products"] == 2
@@ -586,7 +619,7 @@ def test_creating_with_a_text_dump_fills_the_new_planogram(
 def test_creating_with_a_text_dump_queues_no_planogram_update(
     superuser_client: Client, store: Store
 ) -> None:
-    response = post_new_planogram(superuser_client, store, f"A1 Section 1 {UPC_1} Cat Box")
+    response = post_new_planogram(superuser_client, store.pk, f"A1 Section 1 {UPC_1} Cat Box")
 
     assert response.status_code == 200
     assert not PlanogramUpdate.objects.exists()
@@ -597,7 +630,7 @@ def test_creating_with_a_text_dump_allows_two_products_at_one_location(
 ) -> None:
     text_dump = f"A1 Section 1 {UPC_1} Cat Box\nA1 Section 1 {UPC_2} Spectacular"
 
-    response = post_new_planogram(superuser_client, store, text_dump)
+    response = post_new_planogram(superuser_client, store.pk, text_dump)
 
     assert response.status_code == 200
     assert layout_of(store.planograms.get()) == {"A1": [UPC_1, UPC_2]}
@@ -607,7 +640,7 @@ def test_creating_with_a_text_dump_allows_two_products_at_one_location(
 def test_creating_with_a_blank_text_dump_makes_an_empty_planogram(
     superuser_client: Client, store: Store, blank_text_dump: str
 ) -> None:
-    response = post_new_planogram(superuser_client, store, blank_text_dump)
+    response = post_new_planogram(superuser_client, store.pk, blank_text_dump)
 
     assert response.status_code == 200
     assert response.json()["num_products"] == 0
@@ -615,7 +648,7 @@ def test_creating_with_a_blank_text_dump_makes_an_empty_planogram(
 
 
 def test_unparseable_text_dump_creates_no_planogram(superuser_client: Client, store: Store) -> None:
-    response = post_new_planogram(superuser_client, store, "not a planogram line")
+    response = post_new_planogram(superuser_client, store.pk, "not a planogram line")
 
     assert response.status_code == 400
     assert not store.planograms.exists()
@@ -626,18 +659,21 @@ def test_invalid_product_in_text_dump_creates_no_planogram(
 ) -> None:
     overlong_name = "x" * 101
 
-    response = post_new_planogram(superuser_client, store, f"A1 Section 1 {UPC_1} {overlong_name}")
+    response = post_new_planogram(
+        superuser_client, store.pk, f"A1 Section 1 {UPC_1} {overlong_name}"
+    )
 
     assert response.status_code == 400
     assert not store.planograms.exists()
     assert not Product.objects.filter(upc=UPC_1).exists()
 
 
-def post_planogram_edit(client: Client, planogram: Planogram, **overrides: Any) -> Any:
+def post_planogram_edit(
+    client: Client, planogram: Planogram, planogram_id: int | None = None, **overrides: Any
+) -> Any:
     return client.post(
-        reverse("product_locator:edit_planogram"),
+        reverse("product_locator:edit_planogram", args=[planogram_id or planogram.pk]),
         {
-            "planogram_id": planogram.pk,
             "name": planogram.name,
             "plano_type": planogram.plano_type,
             "date_end": planogram.date_end,
@@ -659,6 +695,33 @@ def test_editing_renames_a_planogram(superuser_client: Client, planogram: Planog
     assert response.json()["num_products"] == 0
     planogram.refresh_from_db()
     assert planogram.name == "Fall Plano"
+
+
+def test_editing_changes_only_the_planogram_in_the_path(
+    superuser_client: Client, planogram: Planogram
+) -> None:
+    other_planogram = Planogram.objects.create(name="Seasonal", store=planogram.store)
+
+    response = post_planogram_edit(
+        superuser_client, planogram, planogram_id=other_planogram.pk, name="Fall Plano"
+    )
+
+    assert response.status_code == 200
+    assert response.json()["planogram"]["pk"] == other_planogram.pk
+    other_planogram.refresh_from_db()
+    planogram.refresh_from_db()
+    assert other_planogram.name == "Fall Plano"
+    assert planogram.name == "Inline"
+
+
+def test_editing_a_missing_planogram_is_a_404(
+    superuser_client: Client, planogram: Planogram
+) -> None:
+    missing_planogram_id = planogram.pk + 1
+
+    response = post_planogram_edit(superuser_client, planogram, planogram_id=missing_planogram_id)
+
+    assert response.status_code == 404
 
 
 def test_editing_changes_the_planogram_type(superuser_client: Client, planogram: Planogram) -> None:
@@ -847,7 +910,7 @@ def test_parsing_accepts_a_three_digit_location(line: str) -> None:
 def test_creating_with_a_bad_location_creates_no_planogram(
     superuser_client: Client, store: Store
 ) -> None:
-    response = post_new_planogram(superuser_client, store, f"Cat Box {UPC_1} XYZ")
+    response = post_new_planogram(superuser_client, store.pk, f"Cat Box {UPC_1} XYZ")
 
     assert response.status_code == 400
     assert not store.planograms.exists()

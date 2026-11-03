@@ -69,18 +69,17 @@ export function EditPlanogramModal(props: Props) {
 
     const [isSuccess, data] = await submitFetcher.fetchData(() =>
       fetchByReactivated<interfaces.IPlanogramEdited>(
-        reverse("product_locator:edit_planogram"),
+        reverse("product_locator:edit_planogram", { planogram_id: props.planogram.pk }),
         djangoContext.csrf_token,
         "POST",
         JSON.stringify({
-          planogram_id: props.planogram.pk,
           name,
           plano_type: planoType,
           date_end: dateEnd === "" ? null : dateEnd,
           planogram_text_dump: planogramTextDump,
           is_reset_planogram: isResetRequested,
           label,
-        })
+        } satisfies interfaces.IEditPlanogramRequest)
       )
     );
 

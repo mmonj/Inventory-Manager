@@ -24,11 +24,10 @@ class ImportTest(TestCase):
         store = models.Store.objects.create(name="T3277")
         planogram = models.Planogram.objects.create(name="plano1 - 3277", store=store)
 
-        route = reverse("product_locator:edit_planogram")
+        route = reverse("product_locator:edit_planogram", args=[planogram.id])
         response = self.client.post(
             route,
             {
-                "planogram_id": planogram.id,
                 "name": planogram.name,
                 "plano_type": planogram.plano_type,
                 "date_end": None,
@@ -44,11 +43,10 @@ class ImportTest(TestCase):
         store = models.Store.objects.create(name="T3277v2")
         planogram = models.Planogram.objects.create(name="plano1 - 3277v2", store=store)
 
-        route = reverse("product_locator:edit_planogram")
+        route = reverse("product_locator:edit_planogram", args=[planogram.id])
         response = self.client.post(
             route,
             {
-                "planogram_id": planogram.id,
                 "name": planogram.name,
                 "plano_type": planogram.plano_type,
                 "date_end": None,

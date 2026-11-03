@@ -36,9 +36,8 @@ def days_from_today(days: int) -> date:
 
 def post_end_date(client: Client, planogram: Planogram, date_end: str | None) -> Any:
     return client.post(
-        reverse("product_locator:edit_planogram"),
+        reverse("product_locator:edit_planogram", args=[planogram.pk]),
         {
-            "planogram_id": planogram.pk,
             "name": planogram.name,
             "plano_type": planogram.plano_type,
             "date_end": date_end,

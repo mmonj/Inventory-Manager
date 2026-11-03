@@ -71,16 +71,15 @@ export function usePlanogramList(storeId: number | null) {
     mutationFn: (newPlanogram: INewPlanogram) =>
       fetchJsonOrThrow(
         fetchByReactivated<interfaces.IPlanogramCreated>(
-          reverse("product_locator:create_planogram"),
+          reverse("product_locator:create_planogram", { store_id: newPlanogram.storeId }),
           djangoContext.csrf_token,
           "POST",
           JSON.stringify({
             name: newPlanogram.name,
             plano_type: newPlanogram.planoType,
-            store_id: newPlanogram.storeId,
-            horizontal_section_thresholds: newPlanogram.horizontalSectionThresholds,
+            horizontal_section_thresholds: newPlanogram.horizontalSectionThresholds ?? null,
             planogram_text_dump: newPlanogram.planogramTextDump,
-          })
+          } satisfies interfaces.ICreatePlanogramRequest)
         )
       ),
     onSuccess: refreshPlanograms,

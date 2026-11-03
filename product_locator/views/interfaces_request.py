@@ -1,6 +1,5 @@
 from typing import NamedTuple
 
-from attr import frozen
 from reactivated import interface
 
 
@@ -32,9 +31,8 @@ class ICarryOverHomeLocationsRequest(NamedTuple):
     planogram_ids: list[int]
 
 
-@frozen
-class IEditPlanogram:
-    planogram_id: int
+@interface
+class IEditPlanogramRequest(NamedTuple):
     name: str
     plano_type: str
     date_end: str | None
@@ -43,10 +41,9 @@ class IEditPlanogram:
     label: str
 
 
-@frozen
-class ICreatePlanogram:
+@interface
+class ICreatePlanogramRequest(NamedTuple):
     name: str
     plano_type: str
-    store_id: int
     horizontal_section_thresholds: list[str] | None = None
     planogram_text_dump: str = ""

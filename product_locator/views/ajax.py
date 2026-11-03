@@ -20,8 +20,8 @@ from .interfaces_request import (
     IAddUpcToScanAuditRequest,
     ICarryOverHomeLocationsRequest,
     ICreateNewScanAuditRequest,
-    ICreatePlanogram,
-    IEditPlanogram,
+    ICreatePlanogramRequest,
+    IEditPlanogramRequest,
     IGetProductLocationsByNameRequest,
 )
 from .permissions import IsSuperuser
@@ -260,16 +260,12 @@ def apply_planogram_update(request: DrfRequest, planogram_update_id: int) -> Htt
 
 @api_view(["POST"])
 @permission_classes([IsSuperuser])
-def edit_planogram(request: DrfRequest) -> HttpResponse:
-    request_data = validate_structure(request.data, IEditPlanogram)
+def edit_planogram(request: DrfRequest, planogram_id: int) -> HttpResponse:
+    request_data = validate_structure(request.data, IEditPlanogramRequest)
 
-    planogram = (
-        Planogram.objects.select_related("store").filter(pk=request_data.planogram_id).first()
-    )
+    planogram = Planogram.objects.select_related("store").filter(pk=planogram_id).first()
     if planogram is None:
-        return error_json_response(
-            [f"Planogram with ID {request_data.planogram_id} not found"], status=404
-        )
+        return error_json_response([f"Planogram with ID {planogram_id} not found"], status=404)
 
     planogram.name = request_data.name.strip()
     planogram.plano_type = request_data.plano_type
@@ -293,12 +289,12 @@ def edit_planogram(request: DrfRequest) -> HttpResponse:
 
 @api_view(["POST"])
 @permission_classes([IsSuperuser])
-def create_planogram(request: DrfRequest) -> HttpResponse:
-    request_data = validate_structure(request.data, ICreatePlanogram)
+def create_planogram(request: DrfRequest, store_id: int) -> HttpResponse:
+    request_data = validate_structure(request.data, ICreatePlanogramRequest)
 
-    store = Store.objects.filter(pk=request_data.store_id).first()
+    store = Store.objects.filter(pk=store_id).first()
     if store is None:
-        return error_json_response([f"Store with ID {request_data.store_id} not found"], status=404)
+        return error_json_response([f"Store with ID {store_id} not found"], status=404)
 
     planogram_kwargs: dict[str, Any] = {
         "name": request_data.name.strip(),
