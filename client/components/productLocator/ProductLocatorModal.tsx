@@ -18,7 +18,10 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import { useFetch } from "@client/hooks/useFetch";
 import { postNewProductLocation } from "@client/util/productLocator";
-import { LOCATION_NAME_INPUT_PATTERN } from "@client/util/productLocator/addLocationForm";
+import {
+  LOCATION_NAME_INPUT_PATTERN,
+  readAddLocationForm,
+} from "@client/util/productLocator/addLocationForm";
 import { TAssignableProductLookup } from "@client/util/productLocator/productLookup";
 
 import { ErrorAlert } from "../ErrorAlert";
@@ -53,6 +56,7 @@ export function ProductLocatorModal({
   const locUpdateProps = useFetch<interfaces.IHomeLocationUpdate>();
   const djangoContext = React.useContext(Context);
   const [carryoverRequest, setCarryoverRequest] = React.useState<ICarryoverRequest | null>(null);
+  const [formErrorMessage, setFormErrorMessage] = React.useState<string | null>(null);
 
   // Only a lookup that found no Product makes this a new UPC. A found Product keeps its name locked,
   // so a name the server would ignore can't be sent as if it counted.
@@ -63,16 +67,24 @@ export function ProductLocatorModal({
   const productNameRef = React.useRef<HTMLInputElement>(null);
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    const formResult = readAddLocationForm(new FormData(event.currentTarget));
+    if (!formResult.ok) {
+      setFormErrorMessage(formResult.errorMessage);
+      return;
+    }
+    setFormErrorMessage(null);
+
+    const assignment = {
+      upc: lookup.upc,
+      product_name: formResult.productName,
+      location: formResult.locationName,
+    } satisfies interfaces.IAddNewProductLocationRequest;
 
     await locUpdateProps.fetchData(
       () =>
         postNewProductLocation(
-          lookup.upc,
-          formData.get("product-name") as string,
-          formData.get("new-location-name") as string,
-          Number(formData.get("planogram-id")),
-          storeId,
+          assignment,
+          { storeId, planogramId: formResult.planogramId },
           djangoContext.csrf_token
         ),
       () => onAddSuccess(lookup.upc)
@@ -224,7 +236,10 @@ export function ProductLocatorModal({
               </Button>
             </div>
 
-            {locUpdateProps.isError && (
+            {formErrorMessage !== null && (
+              <ErrorAlert errorMessages={[formErrorMessage]} className="mt-3 mb-0" />
+            )}
+            {formErrorMessage === null && locUpdateProps.isError && (
               <ErrorAlert errorMessages={locUpdateProps.errorMessages} className="mt-3 mb-0" />
             )}
           </form>

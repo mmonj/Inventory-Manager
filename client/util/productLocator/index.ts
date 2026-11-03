@@ -16,11 +16,8 @@ export function getProductLocation(
 }
 
 export function postNewProductLocation(
-  upc: string,
-  productName: string,
-  location: string,
-  planogramId: number,
-  storeId: number,
+  assignment: interfaces.IAddNewProductLocationRequest,
+  { storeId, planogramId }: { storeId: number; planogramId: number },
   csrfToken: string
 ): Promise<ApiResponse<interfaces.IHomeLocationUpdate>> {
   const assignmentUrl = reverse("product_locator:add_new_product_location", {
@@ -35,11 +32,7 @@ export function postNewProductLocation(
       "content-type": "application/json",
       "X-CSRFToken": csrfToken,
     },
-    body: JSON.stringify({
-      upc,
-      product_name: productName,
-      location,
-    } satisfies interfaces.IAddNewProductLocationRequest),
+    body: JSON.stringify(assignment),
   });
 }
 
@@ -89,7 +82,7 @@ export function postHomeLocationCarryover(
 }
 
 export function postToScanAudit(
-  scan_audit_id: number,
+  scanAuditId: number,
   upc: string,
   csrfToken: string
 ): Promise<ApiResponse<interfaces.IProductLocatorProduct>> {
@@ -99,7 +92,7 @@ export function postToScanAudit(
     "X-CSRFToken": csrfToken,
   };
 
-  return fetch(reverse("product_locator:add_upc_to_scan_audit", { scan_audit_id }), {
+  return fetch(reverse("product_locator:add_upc_to_scan_audit", { scan_audit_id: scanAuditId }), {
     method: "POST",
     headers: headers,
     body: JSON.stringify({ upc } satisfies interfaces.IAddUpcToScanAuditRequest),

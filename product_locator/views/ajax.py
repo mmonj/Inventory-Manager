@@ -6,7 +6,6 @@ from django.db.models import Count, Exists, OuterRef, Prefetch
 from django.http import HttpResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import NotFound as DrfNotFound
-from rest_framework.exceptions import ValidationError as DrfValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request as DrfRequest
 
@@ -32,10 +31,13 @@ logger = logging.getLogger("main_logger")
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_product_location(request: DrfRequest, store_id: int, upc: str) -> HttpResponse:
+    if not Store.objects.filter(pk=store_id).exists():
+        return error_json_response([f"Store with ID {store_id} not found"], status=404)
+
     try:
         Product(upc=upc).clean()
     except ValidationError as ex:
-        raise DrfValidationError(ex.messages) from ex
+        return error_json_response(ex.messages, status=400)
 
     product = (
         Product.objects.prefetch_related(
@@ -51,7 +53,7 @@ def get_product_location(request: DrfRequest, store_id: int, upc: str) -> HttpRe
     )
 
     if product is None:
-        raise DrfNotFound(f"Product with UPC {upc} not found")
+        return error_json_response([f"Product with UPC {upc} not found"], status=404)
 
     return interfaces_response.IProductLocations(product).render(request)
 
@@ -87,6 +89,9 @@ def get_product_locations_by_name(request: DrfRequest, store_id: int) -> HttpRes
 def add_new_product_location(request: DrfRequest, store_id: int, planogram_id: int) -> HttpResponse:
     request_data = validate_structure(request.data, IAddNewProductLocationRequest)
 
+    if not Store.objects.filter(pk=store_id).exists():
+        return error_json_response([f"Store with ID {store_id} not found"], status=404)
+
     planogram = Planogram.objects.filter(pk=planogram_id).first()
     if planogram is None:
         return error_json_response([f"Planogram with ID {planogram_id} not found"], status=404)
@@ -113,6 +118,9 @@ def carry_over_home_locations(
 ) -> HttpResponse:
     request_data = validate_structure(request.data, ICarryOverHomeLocationsRequest)
 
+    if not Store.objects.filter(pk=store_id).exists():
+        return error_json_response([f"Store with ID {store_id} not found"], status=404)
+
     older_product = Product.objects.filter(pk=older_product_id).first()
     if older_product is None:
         return error_json_response([f"Product with ID {older_product_id} not found"], status=404)
@@ -135,7 +143,7 @@ def add_upc_to_scan_audit(request: DrfRequest, scan_audit_id: int) -> HttpRespon
 
     scan_audit = ProductScanAudit.objects.filter(pk=scan_audit_id).first()
     if scan_audit is None:
-        raise DrfNotFound(f"Scan Audit ID '{scan_audit_id}' not found")
+        return error_json_response([f"Scan Audit ID '{scan_audit_id}' not found"], status=404)
 
     product_result = home_locations.find_or_create_product(request_data.upc)
     if not product_result.ok:

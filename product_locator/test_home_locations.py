@@ -167,6 +167,21 @@ def test_assignment_returns_404_for_a_missing_planogram(
     assert_refused(response, status_code=404)
 
 
+def test_assignment_returns_404_for_a_missing_store(
+    logged_in_client: Client, planogram: Planogram, store: Store
+) -> None:
+    missing_store_id = store.pk + 1000
+
+    response = post_home_location_assignment(
+        logged_in_client, planogram_id=planogram.pk, store_id=missing_store_id
+    )
+
+    error_messages = get_error_messages(response, 404)
+    assert any(str(missing_store_id) in message for message in error_messages)
+    assert not Product.objects.exists()
+    assert not HomeLocation.objects.exists()
+
+
 def test_assignment_refuses_an_existing_name_outside_the_grammar(
     logged_in_client: Client, planogram: Planogram, store: Store
 ) -> None:
@@ -312,8 +327,7 @@ def test_scan_audit_returns_404_for_a_missing_scan_audit(
 
     response = post_scan(logged_in_client, missing_scan_audit_id, NEWER_UPC)
 
-    assert response.status_code == 404
-    assert not Product.objects.exists()
+    assert_refused(response, status_code=404)
 
 
 @pytest.mark.parametrize(
@@ -528,6 +542,16 @@ def test_carryover_returns_404_for_a_missing_older_product(
     )
 
 
+def test_carryover_returns_404_for_a_missing_store(
+    logged_in_client: Client, older_product: Product, planogram: Planogram, store: Store
+) -> None:
+    missing_store = Store(pk=store.pk + 1000)
+
+    response = post_carryover(logged_in_client, older_product.pk, [planogram], missing_store)
+
+    assert_carryover_refused(response, status_code=404, expected_message_text=str(missing_store.pk))
+
+
 @pytest.mark.parametrize("upc", ["012345678900", "123"], ids=["bad_check_digit", "too_short"])
 def test_carryover_refuses_an_invalid_new_upc(
     logged_in_client: Client,
@@ -701,4 +725,15 @@ def test_lookup_only_reports_404_for_a_valid_upc_with_no_product(
 ) -> None:
     response = look_up_product(logged_in_client, store, upc)
 
-    assert response.status_code == status_code
+    get_error_messages(response, status_code)
+
+
+def test_lookup_returns_404_for_a_missing_store(
+    logged_in_client: Client, older_product: Product, store: Store
+) -> None:
+    missing_store = Store(pk=store.pk + 1000)
+
+    response = look_up_product(logged_in_client, missing_store, OLDER_UPC)
+
+    error_messages = get_error_messages(response, 404)
+    assert any(str(missing_store.pk) in message for message in error_messages)
