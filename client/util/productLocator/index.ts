@@ -16,27 +16,30 @@ export function getProductLocation(
 }
 
 export function postNewProductLocation(
-  formData: FormData,
-  formElm: HTMLFormElement,
+  upc: string,
+  productName: string,
+  location: string,
+  planogramId: number,
   storeId: number,
-  csrfTokenValue: string
+  csrfToken: string
 ): Promise<ApiResponse<interfaces.IHomeLocationUpdate>> {
-  const payload = {
-    upc: formData.get("upc-number"),
-    product_name: formData.get("product-name"),
-    planogram_id: formData.get("planogram-id"),
+  const assignmentUrl = reverse("product_locator:add_new_product_location", {
     store_id: storeId,
-    location: formData.get("new-location-name"),
-  };
+    planogram_id: planogramId,
+  });
 
-  return fetch(formElm.action, {
-    method: formElm.method,
+  return fetch(assignmentUrl, {
+    method: "POST",
     headers: {
       Accept: "application/json",
       "content-type": "application/json",
-      "X-CSRFToken": csrfTokenValue,
+      "X-CSRFToken": csrfToken,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      upc,
+      product_name: productName,
+      location,
+    } satisfies interfaces.IAddNewProductLocationRequest),
   });
 }
 
@@ -66,7 +69,12 @@ export function postHomeLocationCarryover(
   storeId: number,
   csrfToken: string
 ): Promise<ApiResponse<interfaces.IProductLocatorProduct>> {
-  return fetch(reverse("product_locator:carry_over_home_locations"), {
+  const carryoverUrl = reverse("product_locator:carry_over_home_locations", {
+    store_id: storeId,
+    older_product_id: olderProductId,
+  });
+
+  return fetch(carryoverUrl, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -75,10 +83,8 @@ export function postHomeLocationCarryover(
     },
     body: JSON.stringify({
       upc,
-      older_product_id: olderProductId,
       planogram_ids: planogramIds,
-      store_id: storeId,
-    }),
+    } satisfies interfaces.ICarryOverHomeLocationsRequest),
   });
 }
 

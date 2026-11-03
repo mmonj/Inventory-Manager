@@ -41,10 +41,12 @@ def logged_in_client() -> Client:
     return client
 
 
-def post_home_location_assignment(client: Client, **overrides: Any) -> Any:
+def post_home_location_assignment(
+    client: Client, planogram_id: int, store_id: int, **overrides: Any
+) -> Any:
     request_body = {"upc": NEWER_UPC, "product_name": "Card", "location": "A15", **overrides}
     return client.post(
-        reverse("product_locator:add_new_product_location"),
+        reverse("product_locator:add_new_product_location", args=[store_id, planogram_id]),
         data=request_body,
         content_type="application/json",
     )
@@ -61,20 +63,18 @@ def post_scan(client: Client, scan_audit_id: int, upc: Any) -> Any:
 
 def post_carryover(
     client: Client,
-    older_product: Product,
+    older_product_id: int,
     planograms: list[Planogram],
     store: Store,
     **overrides: Any,
 ) -> Any:
     request_body = {
         "upc": NEWER_UPC,
-        "older_product_id": older_product.pk,
         "planogram_ids": [planogram.pk for planogram in planograms],
-        "store_id": store.pk,
         **overrides,
     }
     return client.post(
-        reverse("product_locator:carry_over_home_locations"),
+        reverse("product_locator:carry_over_home_locations", args=[store.pk, older_product_id]),
         data=request_body,
         content_type="application/json",
         headers={"accept": "application/json"},
@@ -165,17 +165,6 @@ def test_assignment_returns_404_for_a_missing_planogram(
     )
 
     assert_refused(response, status_code=404)
-
-
-@pytest.mark.parametrize("planogram_id", ["not-a-number", "", None])
-def test_assignment_refuses_a_non_numeric_planogram_id(
-    logged_in_client: Client, store: Store, planogram_id: str | None
-) -> None:
-    response = post_home_location_assignment(
-        logged_in_client, planogram_id=planogram_id, store_id=store.pk
-    )
-
-    assert_refused(response)
 
 
 def test_assignment_refuses_an_existing_name_outside_the_grammar(
@@ -380,7 +369,7 @@ def test_carryover_creates_the_product_with_the_older_name_and_returns_it(
     older_product = Product.objects.create(upc=OLDER_UPC, name="Older Card")
     older_product.home_locations.add(HomeLocation.objects.create(name="A1", planogram=planogram))
 
-    response = post_carryover(logged_in_client, older_product, [planogram], store)
+    response = post_carryover(logged_in_client, older_product.pk, [planogram], store)
 
     assert response.status_code == 200
     assert response.json()["product"]["upc"] == NEWER_UPC
@@ -401,7 +390,7 @@ def test_carryover_links_every_older_location_in_a_chosen_planogram_only(
         HomeLocation.objects.create(name="C3", planogram=unchosen_planogram),
     )
 
-    response = post_carryover(logged_in_client, older_product, [planogram], store)
+    response = post_carryover(logged_in_client, older_product.pk, [planogram], store)
 
     assert response.status_code == 200
     product = Product.objects.get(upc=NEWER_UPC)
@@ -414,7 +403,7 @@ def test_carryover_leaves_the_older_product_its_home_locations(
     older_product = Product.objects.create(upc=OLDER_UPC, name="Older Card")
     older_product.home_locations.add(HomeLocation.objects.create(name="A1", planogram=planogram))
 
-    response = post_carryover(logged_in_client, older_product, [planogram], store)
+    response = post_carryover(logged_in_client, older_product.pk, [planogram], store)
 
     assert response.status_code == 200
     assert [location.name for location in older_product.home_locations.all()] == ["A1"]
@@ -429,7 +418,7 @@ def test_carryover_links_an_existing_name_outside_the_grammar(
         HomeLocation.objects.create(name="OUTDATED99", planogram=planogram)
     )
 
-    response = post_carryover(logged_in_client, older_product, [planogram], store)
+    response = post_carryover(logged_in_client, older_product.pk, [planogram], store)
 
     assert response.status_code == 200
     product = Product.objects.get(upc=NEWER_UPC)
@@ -446,7 +435,7 @@ def test_carryover_refuses_a_planogram_from_another_store(
     )
 
     response = post_carryover(
-        logged_in_client, older_product, [planogram, other_store_planogram], store
+        logged_in_client, older_product.pk, [planogram, other_store_planogram], store
     )
 
     assert_carryover_refused(response, expected_message_text="Other Inline")
@@ -463,7 +452,7 @@ def test_carryover_refuses_an_outdated_planogram(
     )
 
     response = post_carryover(
-        logged_in_client, older_product, [planogram, outdated_planogram], store
+        logged_in_client, older_product.pk, [planogram, outdated_planogram], store
     )
 
     assert_carryover_refused(response, expected_message_text="Last Season")
@@ -475,7 +464,7 @@ def test_carryover_refuses_a_planogram_that_no_longer_holds_the_older_product(
     emptied_planogram = Planogram.objects.create(name="Emptied", store=store)
 
     response = post_carryover(
-        logged_in_client, older_product, [planogram, emptied_planogram], store
+        logged_in_client, older_product.pk, [planogram, emptied_planogram], store
     )
 
     assert_carryover_refused(response, expected_message_text="Emptied")
@@ -488,7 +477,7 @@ def test_carryover_refuses_a_missing_planogram(
 
     response = post_carryover(
         logged_in_client,
-        older_product,
+        older_product.pk,
         [],
         store,
         planogram_ids=[planogram.pk, missing_planogram_id],
@@ -504,7 +493,7 @@ def test_carryover_refusal_links_nothing_to_an_existing_product(
     emptied_planogram = Planogram.objects.create(name="Emptied", store=store)
 
     response = post_carryover(
-        logged_in_client, older_product, [planogram, emptied_planogram], store
+        logged_in_client, older_product.pk, [planogram, emptied_planogram], store
     )
 
     assert response.status_code == 400
@@ -514,7 +503,15 @@ def test_carryover_refusal_links_nothing_to_an_existing_product(
 def test_carryover_refuses_an_empty_planogram_list(
     logged_in_client: Client, older_product: Product, store: Store
 ) -> None:
-    response = post_carryover(logged_in_client, older_product, [], store)
+    response = post_carryover(logged_in_client, older_product.pk, [], store)
+
+    assert_carryover_refused(response)
+
+
+def test_carryover_refuses_a_malformed_request_body(
+    logged_in_client: Client, older_product: Product, store: Store
+) -> None:
+    response = post_carryover(logged_in_client, older_product.pk, [], store, planogram_ids=7)
 
     assert_carryover_refused(response)
 
@@ -524,13 +521,7 @@ def test_carryover_returns_404_for_a_missing_older_product(
 ) -> None:
     missing_product_id = older_product.pk + 1000
 
-    response = post_carryover(
-        logged_in_client,
-        older_product,
-        [planogram],
-        store,
-        older_product_id=missing_product_id,
-    )
+    response = post_carryover(logged_in_client, missing_product_id, [planogram], store)
 
     assert_carryover_refused(
         response, status_code=404, expected_message_text=str(missing_product_id)
@@ -545,7 +536,7 @@ def test_carryover_refuses_an_invalid_new_upc(
     store: Store,
     upc: str,
 ) -> None:
-    response = post_carryover(logged_in_client, older_product, [planogram], store, upc=upc)
+    response = post_carryover(logged_in_client, older_product.pk, [planogram], store, upc=upc)
 
     assert_carryover_refused(response)
     assert not Product.objects.filter(upc=upc).exists()
@@ -556,7 +547,7 @@ def test_carryover_keeps_the_name_of_an_existing_upc(
 ) -> None:
     Product.objects.create(upc=NEWER_UPC, name="Original Card")
 
-    response = post_carryover(logged_in_client, older_product, [planogram], store)
+    response = post_carryover(logged_in_client, older_product.pk, [planogram], store)
 
     assert response.status_code == 200
     assert response.json()["product"]["name"] == "Original Card"
@@ -569,7 +560,7 @@ def test_carryover_double_submit_leaves_one_product_without_duplicate_links(
     logged_in_client: Client, older_product: Product, planogram: Planogram, store: Store
 ) -> None:
     for _submit_number in range(2):
-        response = post_carryover(logged_in_client, older_product, [planogram], store)
+        response = post_carryover(logged_in_client, older_product.pk, [planogram], store)
         assert response.status_code == 200
 
     product = Product.objects.get(upc=NEWER_UPC)
@@ -611,7 +602,7 @@ def test_carryover_succeeds_when_another_request_creates_the_upc_first(
 
     monkeypatch.setattr(Product, "full_clean", full_clean_during_a_race)
 
-    response = post_carryover(logged_in_client, older_product, [planogram], store)
+    response = post_carryover(logged_in_client, older_product.pk, [planogram], store)
 
     assert response.status_code == 200
     product = Product.objects.get(upc=NEWER_UPC)
@@ -622,7 +613,7 @@ def test_carryover_succeeds_when_another_request_creates_the_upc_first(
 def test_carryover_requires_a_login(planogram: Planogram, store: Store) -> None:
     older_product = Product.objects.create(upc=OLDER_UPC, name="Older Card")
 
-    response = post_carryover(Client(), older_product, [planogram], store)
+    response = post_carryover(Client(), older_product.pk, [planogram], store)
 
     assert response.status_code in {401, 403}
     assert not Product.objects.filter(upc=NEWER_UPC).exists()

@@ -38,14 +38,10 @@ def add_location_through_view(
     client: Client, planogram: Planogram, location: str, upc: str
 ) -> None:
     response = client.post(
-        reverse("product_locator:add_new_product_location"),
-        data={
-            "upc": upc,
-            "product_name": "Card",
-            "location": location,
-            "planogram_id": planogram.pk,
-            "store_id": planogram.store_id,
-        },
+        reverse(
+            "product_locator:add_new_product_location", args=[planogram.store_id, planogram.pk]
+        ),
+        data={"upc": upc, "product_name": "Card", "location": location},
         content_type="application/json",
     )
     assert response.status_code == 200

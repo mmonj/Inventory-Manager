@@ -28,12 +28,12 @@ ajax = [
         name="get_product_locations_by_name",
     ),
     path(
-        "ajax/add_new_product_location/",
+        "ajax/add_new_product_location/<int:store_id>/<int:planogram_id>/",
         ajax_views.add_new_product_location,
         name="add_new_product_location",
     ),
     path(
-        "ajax/carry_over_home_locations/",
+        "ajax/carry_over_home_locations/<int:store_id>/<int:older_product_id>/",
         ajax_views.carry_over_home_locations,
         name="carry_over_home_locations",
     ),

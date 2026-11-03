@@ -16,9 +16,9 @@ from .. import home_locations, planogram_import, planogram_updates
 from ..models import HomeLocation, Planogram, PlanogramUpdate, Product, ProductScanAudit, Store
 from . import interfaces_response
 from .interfaces_request import (
-    IAddNewProductLocation,
+    IAddNewProductLocationRequest,
     IAddUpcToScanAuditRequest,
-    ICarryOverHomeLocations,
+    ICarryOverHomeLocationsRequest,
     ICreateNewScanAuditRequest,
     ICreatePlanogram,
     IEditPlanogram,
@@ -84,21 +84,19 @@ def get_product_locations_by_name(request: DrfRequest, store_id: int) -> HttpRes
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def add_new_product_location(request: DrfRequest) -> HttpResponse:
-    request_data = validate_structure(request.data, IAddNewProductLocation)
+def add_new_product_location(request: DrfRequest, store_id: int, planogram_id: int) -> HttpResponse:
+    request_data = validate_structure(request.data, IAddNewProductLocationRequest)
 
-    planogram = Planogram.objects.filter(pk=request_data.planogram_id).first()
+    planogram = Planogram.objects.filter(pk=planogram_id).first()
     if planogram is None:
-        return error_json_response(
-            [f"Planogram with ID {request_data.planogram_id} not found"], status=404
-        )
+        return error_json_response([f"Planogram with ID {planogram_id} not found"], status=404)
 
     assign_result = home_locations.assign_home_location(
         request_data.upc,
         request_data.product_name,
         request_data.location,
         planogram,
-        request_data.store_id,
+        store_id,
     )
     if not assign_result.ok:
         return error_json_response(assign_result.err, status=400)
@@ -110,17 +108,17 @@ def add_new_product_location(request: DrfRequest) -> HttpResponse:
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def carry_over_home_locations(request: DrfRequest) -> HttpResponse:
-    request_data = validate_structure(request.data, ICarryOverHomeLocations)
+def carry_over_home_locations(
+    request: DrfRequest, store_id: int, older_product_id: int
+) -> HttpResponse:
+    request_data = validate_structure(request.data, ICarryOverHomeLocationsRequest)
 
-    older_product = Product.objects.filter(pk=request_data.older_product_id).first()
+    older_product = Product.objects.filter(pk=older_product_id).first()
     if older_product is None:
-        return error_json_response(
-            [f"Product with ID {request_data.older_product_id} not found"], status=404
-        )
+        return error_json_response([f"Product with ID {older_product_id} not found"], status=404)
 
     carryover_result = home_locations.carry_over_home_locations(
-        request_data.upc, older_product, request_data.planogram_ids, request_data.store_id
+        request_data.upc, older_product, request_data.planogram_ids, store_id
     )
     if not carryover_result.ok:
         return error_json_response(carryover_result.err, status=400)

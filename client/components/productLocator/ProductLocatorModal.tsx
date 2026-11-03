@@ -5,7 +5,7 @@ import Modal from "react-bootstrap/Modal";
 import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Tooltip from "react-bootstrap/Tooltip";
 
-import { Context, interfaces, reverse, templates } from "@reactivated";
+import { Context, interfaces, templates } from "@reactivated";
 
 import {
   faCheckCircle,
@@ -63,11 +63,18 @@ export function ProductLocatorModal({
   const productNameRef = React.useRef<HTMLInputElement>(null);
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    const formData = new FormData(event.target as HTMLFormElement);
-    const formElm = event.target as HTMLFormElement;
+    const formData = new FormData(event.currentTarget);
 
     await locUpdateProps.fetchData(
-      () => postNewProductLocation(formData, formElm, storeId, djangoContext.csrf_token),
+      () =>
+        postNewProductLocation(
+          lookup.upc,
+          formData.get("product-name") as string,
+          formData.get("new-location-name") as string,
+          Number(formData.get("planogram-id")),
+          storeId,
+          djangoContext.csrf_token
+        ),
       () => onAddSuccess(lookup.upc)
     );
   }
@@ -106,11 +113,7 @@ export function ProductLocatorModal({
           </Modal.Title>
         </Modal.Header>
         <Modal.Body className="p-4">
-          <form
-            onSubmit={handleSubmit}
-            action={reverse("product_locator:add_new_product_location")}
-            method="POST"
-          >
+          <form onSubmit={handleSubmit}>
             <fieldset>
               <legend className="h5 mb-3">
                 <FontAwesomeIcon icon={faMapMarkerAlt} className="me-2 text-primary" />

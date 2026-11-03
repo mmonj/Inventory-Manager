@@ -19,21 +19,17 @@ class ICreateNewScanAuditRequest(NamedTuple):
     product_type: str
 
 
-@frozen
-class IAddNewProductLocation:
+@interface
+class IAddNewProductLocationRequest(NamedTuple):
     upc: str
     product_name: str
-    planogram_id: int
-    store_id: int
     location: str
 
 
-@frozen
-class ICarryOverHomeLocations:
+@interface
+class ICarryOverHomeLocationsRequest(NamedTuple):
     upc: str
-    older_product_id: int
     planogram_ids: list[int]
-    store_id: int
 
 
 @frozen
