@@ -17,6 +17,7 @@ import {
   UnscheduledServiceOrderListItem,
 } from "@client/components/QtScheduleCalendar";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
+import { useRepSchedule } from "@client/hooks/qtSurveyWorker/useRepSchedule";
 import { fetchByReactivated } from "@client/util/commonUtil";
 import {
   INITIAL_CALENDAR_MODE,
@@ -26,7 +27,6 @@ import {
   calendarModeReducer,
 } from "@client/util/qtSurveyWorker/calendarMode";
 import {
-  TSchedule,
   TServiceOrder,
   TUnscheduledOrderBy,
   UNSCHEDULED_ORDER_BY_OPTIONS,
@@ -38,7 +38,6 @@ import {
   isSunday,
   sortServiceOrdersBy,
   toDateKey,
-  withServiceOrdersRescheduled,
 } from "@client/util/qtSurveyWorker/scheduleUtils";
 import {
   buildScheduleView,
@@ -84,7 +83,6 @@ function CalendarModeCheckbox(props: ICalendarModeCheckboxProps) {
 
 export function Template(props: templates.QtSchedule) {
   const context = React.useContext(Context);
-  const fetchRepSchedule = useFetch<interfaces.QtViewRepDetail>();
   const scheduleServiceOrderFetch = useFetch<interfaces.QtScheduleChangeReport>();
   const unscheduleServiceOrderFetch = useFetch<interfaces.QtScheduleChangeReport>();
   const swapServiceOrdersFetch = useFetch<interfaces.QtScheduleChangeReport>();
@@ -95,12 +93,9 @@ export function Template(props: templates.QtSchedule) {
   // buttons' loading/error states don't interfere with each other.
   const clearDateFetch = useFetch<interfaces.QtScheduleChangeReport>();
 
-  // guard against a duplicate initial fetch if the mount effect below somehow fires twice
-  // to work around hydration remounts
-  const hasFetchedInitialSchedule = React.useRef(false);
-
   const [selectedRepId, setSelectedRepId] = React.useState<number | null>(null);
-  const [localSchedule, setLocalSchedule] = React.useState<TSchedule | null>(null);
+  const repSchedule = useRepSchedule(selectedRepId);
+  const { schedule, patchRepSchedule, reloadRepSchedule } = repSchedule;
   const [calendarMode, dispatchCalendarMode] = React.useReducer(
     calendarModeReducer,
     INITIAL_CALENDAR_MODE
@@ -116,60 +111,33 @@ export function Template(props: templates.QtSchedule) {
   const autoScheduleSelectedDates =
     calendarMode.kind === "autoSchedule" ? calendarMode.selectedDates : [];
 
-  React.useEffect(() => {
-    // Only update on an actual successful fetch - useFetch nulls `data` the instant a new
-    // fetch starts, and if we mirrored that here every refetch (e.g. auto-schedule's
-    // post-mutation refresh) would momentarily unmount the whole calendar/unscheduled-list UI
-    // and reset in-progress state like the selected date. The previous schedule stays on
-    // screen (behind the loading indicator) until the new one is ready. Switching reps clears
-    // localSchedule explicitly in handleSelectRep instead, since showing the old rep's data
-    // while the new one loads would be wrong.
-    if (fetchRepSchedule.data !== null) {
-      setLocalSchedule(fetchRepSchedule.data.rep_sync_data.schedule);
-
-      if (fetchRepSchedule.data.sync_error !== null) {
-        toast.warning(fetchRepSchedule.data.sync_error);
-      } else if (context.user.is_superuser) {
-        // superuser-only to cut noise for regular users, not as access control
-        if (fetchRepSchedule.data.is_cached) {
-          toast.warning("Showing cached schedule data.");
-        } else {
-          toast.success("Fetched fresh schedule data.");
-        }
-      }
-    }
-  }, [fetchRepSchedule.data]);
-
-  async function fetchScheduleForRep(repId: number, forceFresh = false) {
-    const baseUrl = reverse("survey_worker:qt_view_rep_schedule", { rep_id: repId });
-    // forceFresh overrides the URL's use_cache param - used right after a server-side mutation
-    // (e.g. auto-scheduling), to get what Qt reports rather than the stored schedule.
-    const useCache = forceFresh
-      ? "off"
-      : new URLSearchParams(window.location.search).get("use_cache");
-    const url = useCache !== null ? `${baseUrl}?use_cache=${useCache}` : baseUrl;
-
-    return fetchRepSchedule.fetchData(() =>
-      fetchByReactivated<interfaces.QtViewRepDetail>(url, context.csrf_token, "GET")
-    );
-  }
+  // The rep whose default date was last picked, so a rep's later refetches leave the date alone
+  const defaultDateRepIdRef = React.useRef<number | null>(null);
 
   // Auto-selects today (or tomorrow if today is no longer an allowed scheduling date, e.g.
-  // already submitted) right after a rep's schedule first loads - saves a manual click for the
-  // common "pick up where I left off" case. Only called from the initial-selection call sites
-  // below, not from forceFresh refetches (auto-schedule/bulk-unschedule/clear-date), where the
-  // user's current selection must be left alone.
-  function selectDefaultDate(schedule: TSchedule) {
+  // already submitted) when a rep's schedule first appears, from cache or network - saves a
+  // manual click for the common "pick up where I left off" case. Later refetches (e.g. after
+  // auto-scheduling) leave the user's current selection alone.
+  React.useEffect(() => {
+    if (
+      selectedRepId === null ||
+      schedule === null ||
+      defaultDateRepIdRef.current === selectedRepId
+    ) {
+      return;
+    }
+
+    defaultDateRepIdRef.current = selectedRepId;
     dispatchCalendarMode({
       type: "selectDate",
       date: getDefaultSelectedDate(schedule, new Date()),
     });
-  }
+  }, [selectedRepId, schedule]);
 
-  async function handleSelectRep(event: React.ChangeEvent<HTMLSelectElement>) {
+  function handleSelectRep(event: React.ChangeEvent<HTMLSelectElement>) {
     const repId = Number(event.target.value);
     dispatchCalendarMode({ type: "fieldRepChanged" });
-    setLocalSchedule(null);
+    defaultDateRepIdRef.current = null;
 
     if (repId < 0) {
       setSelectedRepId(null);
@@ -178,19 +146,10 @@ export function Template(props: templates.QtSchedule) {
 
     setSelectedRepId(repId);
     localStorage.setItem(LAST_SELECTED_REP_ID_KEY, repId.toString());
-
-    const [isSuccess, result] = await fetchScheduleForRep(repId);
-    if (isSuccess && result.rep_sync_data.schedule !== null) {
-      selectDefaultDate(result.rep_sync_data.schedule);
-    }
   }
 
-  // load last selected rep ID on mount and auto-fetch their schedule
+  // restore the last selected rep on mount, since SSR can't read local storage
   React.useEffect(() => {
-    if (hasFetchedInitialSchedule.current) {
-      return;
-    }
-
     const lastSelectedRepId = localStorage.getItem(LAST_SELECTED_REP_ID_KEY);
     if (lastSelectedRepId === null || lastSelectedRepId === "") {
       return;
@@ -201,17 +160,9 @@ export function Template(props: templates.QtSchedule) {
       return;
     }
 
-    hasFetchedInitialSchedule.current = true;
     setSelectedRepId(storedId);
-    void fetchScheduleForRep(storedId).then(([isSuccess, result]) => {
-      if (isSuccess && result.rep_sync_data.schedule !== null) {
-        selectDefaultDate(result.rep_sync_data.schedule);
-      }
-    });
-    // intentionally run once on mount, not on every rep_details/fetchScheduleForRep change
+    // intentionally run once on mount, not on every rep_details change
   }, []);
-
-  const schedule = localSchedule;
 
   // Auto-scheduling, Swap, Bulk-Unschedule, and Clear Date all POST then immediately refetch the
   // schedule (see handleExecuteAutoSchedule/handleExecuteSwap/handleExecuteBulkUnschedule/
@@ -248,10 +199,6 @@ export function Template(props: templates.QtSchedule) {
 
   const isJobClientFilterActive = selectedJobClients.size < allJobClients.length;
 
-  function rescheduleServiceOrdersLocally(serviceOrderIds: Iterable<number>, date: Date | string) {
-    setLocalSchedule((current) => withServiceOrdersRescheduled(current, serviceOrderIds, date));
-  }
-
   // The date the calendar shows the service order on ("" if unscheduled), so the server can refuse the change
   // if the stored schedule has it somewhere else
   function getCurrentDateKey(so: TServiceOrder): string {
@@ -262,7 +209,8 @@ export function Template(props: templates.QtSchedule) {
   }
 
   async function handleScheduleServiceOrder(so: TServiceOrder, date: Date) {
-    if (selectedRepId === null) {
+    const sentRepId = selectedRepId;
+    if (sentRepId === null) {
       return;
     }
 
@@ -272,7 +220,7 @@ export function Template(props: templates.QtSchedule) {
         context.csrf_token,
         "POST",
         new URLSearchParams({
-          rep_id: selectedRepId.toString(),
+          rep_id: sentRepId.toString(),
           service_order_id: so.ServiceOrderId.toString(),
           date: toDateKey(date),
           current_date: getCurrentDateKey(so),
@@ -293,11 +241,12 @@ export function Template(props: templates.QtSchedule) {
     }
 
     // The server applied the same change to its stored schedule
-    rescheduleServiceOrdersLocally([so.ServiceOrderId], date);
+    patchRepSchedule(sentRepId, [so.ServiceOrderId], date);
   }
 
   async function handleUnscheduleServiceOrder(so: TServiceOrder) {
-    if (selectedRepId === null || schedule === null) {
+    const sentRepId = selectedRepId;
+    if (sentRepId === null || schedule === null) {
       return;
     }
 
@@ -311,7 +260,7 @@ export function Template(props: templates.QtSchedule) {
         context.csrf_token,
         "POST",
         new URLSearchParams({
-          rep_id: selectedRepId.toString(),
+          rep_id: sentRepId.toString(),
           service_order_id: so.ServiceOrderId.toString(),
           current_date: getCurrentDateKey(so),
         }),
@@ -331,12 +280,13 @@ export function Template(props: templates.QtSchedule) {
     }
 
     // The server applied the same change to its stored schedule
-    rescheduleServiceOrdersLocally([so.ServiceOrderId], schedule.UnscheduledDate);
+    patchRepSchedule(sentRepId, [so.ServiceOrderId], schedule.UnscheduledDate);
   }
 
   async function handleExecuteSwap() {
+    const sentRepId = selectedRepId;
     if (
-      selectedRepId === null ||
+      sentRepId === null ||
       calendarMode.kind !== "dateSwap" ||
       calendarMode.selectedDates.length !== 2
     ) {
@@ -370,7 +320,7 @@ export function Template(props: templates.QtSchedule) {
         context.csrf_token,
         "POST",
         new URLSearchParams({
-          rep_id: selectedRepId.toString(),
+          rep_id: sentRepId.toString(),
           date_a: dateAKey,
           date_b: dateBKey,
           service_order_ids_a: serviceOrderIdsA.join(","),
@@ -389,7 +339,7 @@ export function Template(props: templates.QtSchedule) {
     // refetch rather than rebuilding that locally; force-bypass the cache/freshness-delta since
     // the schedule was just mutated server-side
     setIsSwapRefetching(true);
-    await fetchScheduleForRep(selectedRepId, true);
+    await reloadRepSchedule(sentRepId);
     setIsSwapRefetching(false);
 
     dispatchCalendarMode({ type: "scheduleChangeApplied" });
@@ -438,8 +388,9 @@ export function Template(props: templates.QtSchedule) {
     calendarMode.kind === "autoSchedule" ? calendarMode.selectedServiceOrderIds : null;
 
   async function handleExecuteAutoSchedule() {
+    const sentRepId = selectedRepId;
     if (
-      selectedRepId === null ||
+      sentRepId === null ||
       visibleAutoScheduleSelectedServiceOrderIds.size === 0 ||
       autoScheduleSelectedDates.length === 0
     ) {
@@ -476,7 +427,7 @@ export function Template(props: templates.QtSchedule) {
         context.csrf_token,
         "POST",
         new URLSearchParams({
-          rep_id: selectedRepId.toString(),
+          rep_id: sentRepId.toString(),
           service_order_ids: serviceOrderIds.join(","),
           dates: dateKeys.join(","),
         }),
@@ -494,7 +445,7 @@ export function Template(props: templates.QtSchedule) {
     // stale view; force-bypass the cache/freshness-delta since the schedule may have mutated
     // server-side
     setIsAutoScheduleRefetching(true);
-    await fetchScheduleForRep(selectedRepId, true);
+    await reloadRepSchedule(sentRepId);
     setIsAutoScheduleRefetching(false);
 
     dispatchCalendarMode({ type: "scheduleChangeApplied" });
@@ -518,7 +469,8 @@ export function Template(props: templates.QtSchedule) {
     failureAlertPrefix: string,
     onApplied: () => void
   ): Promise<void> {
-    if (selectedRepId === null || dateKeys.length === 0) {
+    const sentRepId = selectedRepId;
+    if (sentRepId === null || dateKeys.length === 0) {
       return;
     }
 
@@ -528,7 +480,7 @@ export function Template(props: templates.QtSchedule) {
         context.csrf_token,
         "POST",
         new URLSearchParams({
-          rep_id: selectedRepId.toString(),
+          rep_id: sentRepId.toString(),
           dates: dateKeys.join(","),
         }),
         "application/x-www-form-urlencoded"
@@ -542,7 +494,7 @@ export function Template(props: templates.QtSchedule) {
 
     // force-bypass the cache/freshness-delta since we just mutated the schedule server-side
     setRefetching(true);
-    await fetchScheduleForRep(selectedRepId, true);
+    await reloadRepSchedule(sentRepId);
     setRefetching(false);
 
     onApplied();
@@ -636,7 +588,7 @@ export function Template(props: templates.QtSchedule) {
             <Form.Select
               value={selectedRepId ?? -1}
               onChange={handleSelectRep}
-              disabled={fetchRepSchedule.isLoading || isCalendarBusy}
+              disabled={isCalendarBusy}
             >
               <option value={-1}>Select a rep...</option>
               {props.rep_details.map((rep) => (
@@ -648,7 +600,7 @@ export function Template(props: templates.QtSchedule) {
           </Form.Group>
         </div>
 
-        {fetchRepSchedule.isLoading && schedule === null && (
+        {repSchedule.isScheduleLoading && (
           <div className="d-flex flex-column align-items-center justify-content-center text-center py-5 my-3 bg-body-tertiary border rounded-3">
             <Spinner animation="border" role="status" style={{ width: "3.5rem", height: "3.5rem" }}>
               <span className="visually-hidden">Loading...</span>
@@ -661,7 +613,7 @@ export function Template(props: templates.QtSchedule) {
           </div>
         )}
 
-        {fetchRepSchedule.isLoading && schedule !== null && (
+        {repSchedule.isScheduleRefreshing && (
           <div
             className="d-inline-flex align-items-center gap-2 px-3 py-2 mb-3 rounded-pill text-white shadow-sm"
             style={{
@@ -674,7 +626,7 @@ export function Template(props: templates.QtSchedule) {
             <span className="fw-semibold">Refreshing schedule…</span>
           </div>
         )}
-        {fetchRepSchedule.isError && (
+        {repSchedule.isScheduleError && (
           <Alert variant="danger" className="d-flex">
             <FontAwesomeIcon icon={faTriangleExclamation} className="fs-3 me-3 flex-shrink-0" />
             <div>
@@ -682,7 +634,7 @@ export function Template(props: templates.QtSchedule) {
                 Failed to fetch schedule
               </Alert.Heading>
               <ListGroup variant="flush" className="mb-2">
-                {fetchRepSchedule.errorMessages.map((message, idx) => (
+                {repSchedule.scheduleErrorMessages.map((message, idx) => (
                   <ListGroup.Item key={idx} variant="danger" className="px-0 py-1 border-0">
                     {message}
                   </ListGroup.Item>
@@ -697,7 +649,9 @@ export function Template(props: templates.QtSchedule) {
         )}
 
         {selectedRepId !== null && schedule !== null && (
-          <div className="position-relative">
+          // keyed by rep so a cached schedule shown on a rep switch remounts, instead of the
+          // previous rep's service orders lingering in their exit animations
+          <div key={selectedRepId} className="position-relative">
             {isCalendarBusy && (
               <div
                 className="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center"
