@@ -56,5 +56,50 @@ export function createSurveyWorkerApi(csrfToken: string) {
         body
       );
     },
+
+    swapServiceOrders(
+      repId: number,
+      body: interfaces.IQtSwapServiceOrdersRequest
+    ): ApiPromise<interfaces.QtScheduleChangeReport> {
+      return fetchByReactivated<
+        interfaces.QtScheduleChangeReport,
+        interfaces.IQtSwapServiceOrdersRequest
+      >(
+        reverse("survey_worker:qt_swap_service_orders", { rep_id: repId }),
+        csrfToken,
+        "POST",
+        body
+      );
+    },
+
+    executeAutoSchedule(
+      repId: number,
+      body: interfaces.IQtExecuteAutoScheduleRequest
+    ): ApiPromise<interfaces.QtScheduleChangeReport> {
+      return fetchByReactivated<
+        interfaces.QtScheduleChangeReport,
+        interfaces.IQtExecuteAutoScheduleRequest
+      >(
+        reverse("survey_worker:qt_execute_auto_schedule", { rep_id: repId }),
+        csrfToken,
+        "POST",
+        body
+      );
+    },
+
+    executeBulkUnschedule(
+      repId: number,
+      body: interfaces.IQtExecuteBulkUnscheduleRequest
+    ): ApiPromise<interfaces.QtScheduleChangeReport> {
+      return fetchByReactivated<
+        interfaces.QtScheduleChangeReport,
+        interfaces.IQtExecuteBulkUnscheduleRequest
+      >(
+        reverse("survey_worker:qt_execute_bulk_unschedule", { rep_id: repId }),
+        csrfToken,
+        "POST",
+        body
+      );
+    },
   };
 }

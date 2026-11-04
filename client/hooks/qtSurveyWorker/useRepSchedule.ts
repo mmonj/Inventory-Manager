@@ -4,6 +4,7 @@ import { Context, interfaces } from "@reactivated";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { ApiPromise } from "@client/types";
 import { fetchJsonOrThrow, getErrorMessages } from "@client/util/commonUtil";
 import {
   TSchedule,
@@ -115,8 +116,8 @@ export function useRepSchedule(repId: number | null) {
   });
 
   /**
-   * Interim, until batch schedule changes move into this hook: reloads a rep's schedule straight
-   * from Qt after a change. A failed reload lands in that rep's read state instead of throwing.
+   * Reloads a rep's schedule straight from Qt after a batch change. A failed reload lands in that
+   * rep's read state instead of throwing, so the change still resolves with its report.
    */
   async function reloadRepSchedule(changedRepId: number) {
     const queryKey = repScheduleQueryKey(changedRepId);
@@ -133,6 +134,49 @@ export function useRepSchedule(repId: number | null) {
     }
   }
 
+  /**
+   * Sends a batch change, then reloads the schedule of the rep it was sent for, since a partial
+   * change may have left service orders anywhere and Qt is the only one who knows where. The
+   * mutation stays pending through the reload.
+   */
+  async function changeAndReload(
+    changedRepId: number,
+    send: () => ApiPromise<interfaces.QtScheduleChangeReport>
+  ) {
+    const report = await fetchJsonOrThrow(send());
+    await reloadRepSchedule(changedRepId);
+    return report;
+  }
+
+  const swapServiceOrders = useMutation({
+    mutationFn: (change: { repId: number; body: interfaces.IQtSwapServiceOrdersRequest }) =>
+      changeAndReload(change.repId, () =>
+        surveyWorkerApi.swapServiceOrders(change.repId, change.body)
+      ),
+  });
+
+  const executeAutoSchedule = useMutation({
+    mutationFn: (change: { repId: number; body: interfaces.IQtExecuteAutoScheduleRequest }) =>
+      changeAndReload(change.repId, () =>
+        surveyWorkerApi.executeAutoSchedule(change.repId, change.body)
+      ),
+  });
+
+  const executeBulkUnschedule = useMutation({
+    mutationFn: (change: { repId: number; body: interfaces.IQtExecuteBulkUnscheduleRequest }) =>
+      changeAndReload(change.repId, () =>
+        surveyWorkerApi.executeBulkUnschedule(change.repId, change.body)
+      ),
+  });
+
+  // A bulk unschedule of one date, with its own pending state so its button spins on its own
+  const clearDate = useMutation({
+    mutationFn: (change: { repId: number; body: interfaces.IQtExecuteBulkUnscheduleRequest }) =>
+      changeAndReload(change.repId, () =>
+        surveyWorkerApi.executeBulkUnschedule(change.repId, change.body)
+      ),
+  });
+
   const repScheduleReply = repId === null ? undefined : repScheduleQuery.data;
 
   return {
@@ -143,7 +187,10 @@ export function useRepSchedule(repId: number | null) {
     scheduleErrorMessages: getErrorMessages(repScheduleQuery.error),
     scheduleServiceOrder,
     unscheduleServiceOrder,
-    reloadRepSchedule,
+    swapServiceOrders,
+    executeAutoSchedule,
+    executeBulkUnschedule,
+    clearDate,
   };
 }
 

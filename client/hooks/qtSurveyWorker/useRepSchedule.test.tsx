@@ -77,6 +77,25 @@ function scheduleServiceOrderUrl(repId: number) {
   return reverse("survey_worker:qt_schedule_service_order", { rep_id: repId });
 }
 
+function reloadScheduleUrl(repId: number) {
+  return `${scheduleUrl(repId)}?use_cache=off`;
+}
+
+function swapServiceOrdersUrl(repId: number) {
+  return reverse("survey_worker:qt_swap_service_orders", { rep_id: repId });
+}
+
+function executeBulkUnscheduleUrl(repId: number) {
+  return reverse("survey_worker:qt_execute_bulk_unschedule", { rep_id: repId });
+}
+
+function sentBody(fetchStub: ReturnType<typeof createFakeServer>["fetchStub"], url: string) {
+  const [, sentRequest] = fetchStub.mock.calls.find(
+    ([calledUrl]) => calledUrl === url
+  ) as unknown as [string, RequestInit];
+  return JSON.parse(sentRequest.body as string) as unknown;
+}
+
 function Wrapper({ children }: { children: React.ReactNode }) {
   const contextValue = {
     csrf_token: "test-csrf-token",
@@ -201,5 +220,65 @@ describe("useRepSchedule", () => {
 
     rerender({ repId: REP_A_ID });
     expect(datesScheduled(result.current.schedule)).toEqual(["2026-11-10T00:00:00"]);
+  });
+
+  it("writes a batch schedule change's reload into the schedule of the rep it was sent for", async () => {
+    const { result, rerender } = await renderAndVisitRepAThenRepB();
+    const swapBody = {
+      date_a: "2026-11-10",
+      date_b: "2026-11-11",
+      service_order_ids_a: [1],
+      service_order_ids_b: [],
+    } satisfies interfaces.IQtSwapServiceOrdersRequest;
+
+    act(() => {
+      result.current.swapServiceOrders.mutate({ repId: REP_A_ID, body: swapBody });
+    });
+    await fakeServer.reply(swapServiceOrdersUrl(REP_A_ID), {
+      outcomes: [],
+      aborted_early: false,
+    } satisfies interfaces.QtScheduleChangeReport);
+
+    await waitFor(() => expect(fakeServer.hasPendingReply(reloadScheduleUrl(REP_A_ID))).toBe(true));
+    expect(result.current.swapServiceOrders.isPending).toBe(true);
+    expect(sentBody(fakeServer.fetchStub, swapServiceOrdersUrl(REP_A_ID))).toEqual(swapBody);
+
+    await fakeServer.reply(reloadScheduleUrl(REP_A_ID), scheduleReply(REP_A_ID, "Rep A swapped"));
+    await waitFor(() => expect(result.current.swapServiceOrders.isSuccess).toBe(true));
+    expect(serviceOrderDescriptions(result.current.schedule)).toEqual(["Rep B reset"]);
+
+    rerender({ repId: REP_A_ID });
+    expect(serviceOrderDescriptions(result.current.schedule)).toEqual(["Rep A swapped"]);
+  });
+
+  it("resolves a batch schedule change with its report when the reload fails", async () => {
+    const { result } = renderHook(() => useRepSchedule(REP_A_ID), { wrapper: Wrapper });
+    await fakeServer.reply(scheduleUrl(REP_A_ID), scheduleReply(REP_A_ID, "Rep A reset"));
+    await waitFor(() => expect(result.current.schedule).not.toBeNull());
+    const partialFailureReport = {
+      outcomes: [
+        { service_order_id: 1, outcome: "failed", target_date: null, message: "Rejected" },
+      ],
+      aborted_early: true,
+    } satisfies interfaces.QtScheduleChangeReport;
+
+    let clearDatePromise: Promise<interfaces.QtScheduleChangeReport> | undefined;
+    act(() => {
+      clearDatePromise = result.current.clearDate.mutateAsync({
+        repId: REP_A_ID,
+        body: { dates: ["2026-11-10"] },
+      });
+    });
+    await fakeServer.reply(executeBulkUnscheduleUrl(REP_A_ID), partialFailureReport);
+    await fakeServer.reply(reloadScheduleUrl(REP_A_ID), ["Qt couldn't be reached"], 502);
+
+    await expect(clearDatePromise).resolves.toEqual(partialFailureReport);
+    expect(sentBody(fakeServer.fetchStub, executeBulkUnscheduleUrl(REP_A_ID))).toEqual({
+      dates: ["2026-11-10"],
+    });
+    await waitFor(() =>
+      expect(result.current.scheduleErrorMessages).toEqual(["Qt couldn't be reached"])
+    );
+    expect(serviceOrderDescriptions(result.current.schedule)).toEqual(["Rep A reset"]);
   });
 });
