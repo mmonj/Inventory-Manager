@@ -51,6 +51,30 @@ import "@client/scss/react-day-picker.scss";
 
 const LAST_SELECTED_REP_ID_KEY = "calendar-rep-id-last-used";
 
+/** A `ButtonWithSpinner` fetch state that spins while a schedule change is pending. */
+function scheduleChangeFetchState(scheduleChange: { isPending: boolean }) {
+  return { isLoading: scheduleChange.isPending, isError: false, errorMessages: [] };
+}
+
+/**
+ * Sends a schedule change and resolves with its report, or toasts why the request failed and
+ * resolves with null.
+ */
+async function sendScheduleChange<TVariables>(
+  scheduleChange: {
+    mutateAsync: (variables: TVariables) => Promise<interfaces.QtScheduleChangeReport>;
+  },
+  variables: TVariables,
+  failureMessage: string
+): Promise<interfaces.QtScheduleChangeReport | null> {
+  try {
+    return await scheduleChange.mutateAsync(variables);
+  } catch (error) {
+    toast.error(failureMessage, ...getErrorMessages(error as Error));
+    return null;
+  }
+}
+
 interface ICalendarModeCheckboxProps {
   kind: TEnterableModeKind;
   id: string;
@@ -90,7 +114,7 @@ export function Template(props: templates.QtSchedule) {
     swapServiceOrders,
     executeAutoSchedule,
     executeBulkUnschedule,
-    clearDate,
+    bulkUnscheduleOneDate,
   } = repSchedule;
   const [calendarMode, dispatchCalendarMode] = React.useReducer(
     calendarModeReducer,
@@ -161,12 +185,12 @@ export function Template(props: templates.QtSchedule) {
   }, []);
 
   // Auto-scheduling, Swap, Bulk-Unschedule, and Clear Date each stay pending through the POST
-  // and the reload that follows it, and both legs block interaction with the content below,
+  // and the quick sync that follows it, and both legs block interaction with the content below,
   // since the calendar/unscheduled list would otherwise be actionable against a schedule
   // that's either not yet applied or about to be replaced.
   const isAutoScheduling = executeAutoSchedule.isPending;
   const isBulkUnscheduling = executeBulkUnschedule.isPending;
-  const isClearingDate = clearDate.isPending;
+  const isClearingDate = bulkUnscheduleOneDate.isPending;
   const isSwapping = swapServiceOrders.isPending;
   const isCalendarBusy = isAutoScheduling || isBulkUnscheduling || isClearingDate || isSwapping;
   // A single service order change doesn't cover the calendar, but still locks the rep select so
@@ -182,7 +206,7 @@ export function Template(props: templates.QtSchedule) {
   );
 
   const allJobClients = React.useMemo(
-    () => Array.from(new Set(serviceOrders.map((so) => so.JobClient))).sort(),
+    () => Array.from(new Set(serviceOrders.map((serviceOrder) => serviceOrder.JobClient))).sort(),
     [serviceOrders]
   );
 
@@ -194,30 +218,31 @@ export function Template(props: templates.QtSchedule) {
 
   // The date the calendar shows the service order on (null if unscheduled), so the server can
   // refuse the change if the stored schedule has it somewhere else
-  function getCurrentDateKey(so: TServiceOrder): string | null {
-    if (schedule === null || so.DateScheduled === schedule.UnscheduledDate) {
+  function getCurrentDateKey(serviceOrder: TServiceOrder): string | null {
+    if (schedule === null || serviceOrder.DateScheduled === schedule.UnscheduledDate) {
       return null;
     }
-    return toDateKey(new Date(so.DateScheduled));
+    return toDateKey(new Date(serviceOrder.DateScheduled));
   }
 
-  async function handleScheduleServiceOrder(so: TServiceOrder, date: Date) {
+  async function handleScheduleServiceOrder(serviceOrder: TServiceOrder, date: Date) {
     if (selectedRepId === null) {
       return;
     }
 
-    let report: interfaces.QtScheduleChangeReport;
-    try {
-      report = await scheduleServiceOrder.mutateAsync({
+    const report = await sendScheduleChange(
+      scheduleServiceOrder,
+      {
         repId: selectedRepId,
         body: {
-          service_order_id: so.ServiceOrderId,
+          service_order_id: serviceOrder.ServiceOrderId,
           date: toDateKey(date),
-          current_date: getCurrentDateKey(so),
+          current_date: getCurrentDateKey(serviceOrder),
         },
-      });
-    } catch (error) {
-      toast.error("Failed to schedule service order", ...getErrorMessages(error as Error));
+      },
+      "Failed to schedule service order"
+    );
+    if (report === null) {
       return;
     }
 
@@ -227,23 +252,27 @@ export function Template(props: templates.QtSchedule) {
     }
   }
 
-  async function handleUnscheduleServiceOrder(so: TServiceOrder) {
+  async function handleUnscheduleServiceOrder(serviceOrder: TServiceOrder) {
     if (selectedRepId === null) {
       return;
     }
 
-    if (!confirm(`Unschedule service order ${so.ServiceOrderId}?`)) {
+    if (!confirm(`Unschedule service order ${serviceOrder.ServiceOrderId}?`)) {
       return;
     }
 
-    let report: interfaces.QtScheduleChangeReport;
-    try {
-      report = await unscheduleServiceOrder.mutateAsync({
+    const report = await sendScheduleChange(
+      unscheduleServiceOrder,
+      {
         repId: selectedRepId,
-        body: { service_order_id: so.ServiceOrderId, current_date: getCurrentDateKey(so) },
-      });
-    } catch (error) {
-      toast.error("Failed to unschedule service order", ...getErrorMessages(error as Error));
+        body: {
+          service_order_id: serviceOrder.ServiceOrderId,
+          current_date: getCurrentDateKey(serviceOrder),
+        },
+      },
+      "Failed to unschedule service order"
+    );
+    if (report === null) {
       return;
     }
 
@@ -268,8 +297,12 @@ export function Template(props: templates.QtSchedule) {
     const dateBKey = toDateKey(dateB);
 
     // only physical-visit SOs are swappable between dates
-    const serviceOrderIdsA = scheduleView.getPhysicalVisitsOn(dateA).map((so) => so.ServiceOrderId);
-    const serviceOrderIdsB = scheduleView.getPhysicalVisitsOn(dateB).map((so) => so.ServiceOrderId);
+    const serviceOrderIdsA = scheduleView
+      .getPhysicalVisitsOn(dateA)
+      .map((serviceOrder) => serviceOrder.ServiceOrderId);
+    const serviceOrderIdsB = scheduleView
+      .getPhysicalVisitsOn(dateB)
+      .map((serviceOrder) => serviceOrder.ServiceOrderId);
 
     if (serviceOrderIdsA.length === 0 && serviceOrderIdsB.length === 0) {
       alert("Neither selected date has any physical-visit service orders to swap.");
@@ -285,10 +318,10 @@ export function Template(props: templates.QtSchedule) {
     }
 
     // A partial swap may have put some SOs back or left them unscheduled (see swap_dates), so
-    // the hook reloads the schedule from Qt rather than rebuilding that locally
-    let result: interfaces.QtScheduleChangeReport;
-    try {
-      result = await swapServiceOrders.mutateAsync({
+    // the hook quick-syncs the schedule from Qt rather than rebuilding that locally
+    const result = await sendScheduleChange(
+      swapServiceOrders,
+      {
         repId: sentRepId,
         body: {
           date_a: dateAKey,
@@ -296,9 +329,10 @@ export function Template(props: templates.QtSchedule) {
           service_order_ids_a: serviceOrderIdsA,
           service_order_ids_b: serviceOrderIdsB,
         },
-      });
-    } catch (error) {
-      toast.error("Failed to swap service orders", ...getErrorMessages(error as Error));
+      },
+      "Failed to swap service orders"
+    );
+    if (result === null) {
       return;
     }
 
@@ -360,11 +394,11 @@ export function Template(props: templates.QtSchedule) {
     // only physical-visit SOs are eligible for auto-scheduling
     const serviceOrderIds = serviceOrders
       .filter(
-        (so) =>
-          visibleAutoScheduleSelectedServiceOrderIds.has(so.ServiceOrderId) &&
-          so.Address.IsPhysicalVisit
+        (serviceOrder) =>
+          visibleAutoScheduleSelectedServiceOrderIds.has(serviceOrder.ServiceOrderId) &&
+          serviceOrder.Address.IsPhysicalVisit
       )
-      .map((so) => so.ServiceOrderId);
+      .map((serviceOrder) => serviceOrder.ServiceOrderId);
     const dateKeys = autoScheduleSelectedDates.map((date) => toDateKey(date));
 
     if (serviceOrderIds.length === 0) {
@@ -382,15 +416,13 @@ export function Template(props: templates.QtSchedule) {
     }
 
     // the server may have partially applied the schedule (some SOs may have been scheduled
-    // before a later one failed), so the hook reloads it from Qt either way
-    let result: interfaces.QtScheduleChangeReport;
-    try {
-      result = await executeAutoSchedule.mutateAsync({
-        repId: sentRepId,
-        body: { service_order_ids: serviceOrderIds, dates: dateKeys },
-      });
-    } catch (error) {
-      toast.error("Failed to auto-schedule service orders", ...getErrorMessages(error as Error));
+    // before a later one failed), so the hook quick-syncs it from Qt either way
+    const result = await sendScheduleChange(
+      executeAutoSchedule,
+      { repId: sentRepId, body: { service_order_ids: serviceOrderIds, dates: dateKeys } },
+      "Failed to auto-schedule service orders"
+    );
+    if (result === null) {
       return;
     }
 
@@ -404,13 +436,13 @@ export function Template(props: templates.QtSchedule) {
 
   // Shared by Bulk-Unschedule and Clear Date - both unschedule whole dates (Clear Date just
   // scopes it to the one selected date) and follow the same success/failure/partial-failure
-  // handling: the hook reloads the schedule regardless of outcome (the server unscheduled
+  // handling: the hook quick-syncs the schedule regardless of outcome (the server unscheduled
   // whatever it could, so guessing the result locally would risk drifting from reality), then
   // onApplied runs and aborted_early/per-SO failures are reported without treating them as a
   // hard failure. A failed request returns before onApplied, so the user can retry.
   async function executeUnscheduleDates(
     dateKeys: string[],
-    mutation: typeof executeBulkUnschedule,
+    bulkUnschedule: typeof executeBulkUnschedule,
     failureAlertPrefix: string,
     onApplied: () => void
   ): Promise<void> {
@@ -419,11 +451,12 @@ export function Template(props: templates.QtSchedule) {
       return;
     }
 
-    let result: interfaces.QtScheduleChangeReport;
-    try {
-      result = await mutation.mutateAsync({ repId: sentRepId, body: { dates: dateKeys } });
-    } catch (error) {
-      toast.error(failureAlertPrefix, ...getErrorMessages(error as Error));
+    const result = await sendScheduleChange(
+      bulkUnschedule,
+      { repId: sentRepId, body: { dates: dateKeys } },
+      failureAlertPrefix
+    );
+    if (result === null) {
       return;
     }
 
@@ -492,7 +525,7 @@ export function Template(props: templates.QtSchedule) {
 
     await executeUnscheduleDates(
       [toDateKey(selectedDate)],
-      clearDate,
+      bulkUnscheduleOneDate,
       "Failed to clear date",
       // Clear Date keeps its date selected, so the user can see it's now empty
       () => {}
@@ -541,7 +574,7 @@ export function Template(props: templates.QtSchedule) {
           </div>
         )}
 
-        {repSchedule.isScheduleRefreshing && (
+        {repSchedule.isScheduleReloading && (
           <div
             className="d-inline-flex align-items-center gap-2 px-3 py-2 mb-3 rounded-pill text-white shadow-sm"
             style={{
@@ -577,8 +610,9 @@ export function Template(props: templates.QtSchedule) {
         )}
 
         {selectedRepId !== null && schedule !== null && (
-          // keyed by rep so a cached schedule shown on a rep switch remounts, instead of the
-          // previous rep's service orders lingering in their exit animations
+          // keyed by rep so switching reps remounts the calendar with the schedule already loaded
+          // for the new rep, instead of the previous rep's service orders lingering in their exit
+          // animations
           <div key={selectedRepId} className="position-relative">
             {isCalendarBusy && (
               <div
@@ -855,11 +889,7 @@ export function Template(props: templates.QtSchedule) {
                         className="btn btn-warning btn-sm"
                         disabled={calendarMode.selectedDates.length !== 2}
                         spinnerVariant="black"
-                        fetchState={{
-                          isLoading: swapServiceOrders.isPending,
-                          isError: false,
-                          errorMessages: [],
-                        }}
+                        fetchState={scheduleChangeFetchState(swapServiceOrders)}
                         onClick={() => void handleExecuteSwap()}
                       >
                         Execute Swap
@@ -873,11 +903,7 @@ export function Template(props: templates.QtSchedule) {
                           visibleAutoScheduleSelectedServiceOrderIds.size === 0 ||
                           autoScheduleSelectedDates.length === 0
                         }
-                        fetchState={{
-                          isLoading: executeAutoSchedule.isPending,
-                          isError: false,
-                          errorMessages: [],
-                        }}
+                        fetchState={scheduleChangeFetchState(executeAutoSchedule)}
                         spinnerVariant="dark"
                         onClick={() => void handleExecuteAutoSchedule()}
                       >
@@ -889,11 +915,7 @@ export function Template(props: templates.QtSchedule) {
                         type="button"
                         className="btn btn-warning btn-sm"
                         disabled={calendarMode.selectedDates.length === 0}
-                        fetchState={{
-                          isLoading: executeBulkUnschedule.isPending,
-                          isError: false,
-                          errorMessages: [],
-                        }}
+                        fetchState={scheduleChangeFetchState(executeBulkUnschedule)}
                         spinnerVariant="black"
                         onClick={() => void handleExecuteBulkUnschedule()}
                       >
@@ -993,11 +1015,7 @@ export function Template(props: templates.QtSchedule) {
                             physicalVisitServiceOrdersForSelectedDate.length === 0
                           }
                           spinnerVariant="white"
-                          fetchState={{
-                            isLoading: clearDate.isPending,
-                            isError: false,
-                            errorMessages: [],
-                          }}
+                          fetchState={scheduleChangeFetchState(bulkUnscheduleOneDate)}
                           onClick={() => void handleClearScheduledDate()}
                         >
                           Clear Date

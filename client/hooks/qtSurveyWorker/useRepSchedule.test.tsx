@@ -10,6 +10,7 @@ import { QueryProvider } from "@client/components/QueryProvider";
 import { useRepSchedule } from "@client/hooks/qtSurveyWorker/useRepSchedule";
 import { TSchedule } from "@client/util/qtSurveyWorker/scheduleUtils";
 import { makeAddress, makeServiceOrder } from "@client/util/qtSurveyWorker/serviceOrderFixtures";
+import { IToast, subscribeToasts } from "@client/util/toast";
 
 const REP_A_ID = 1;
 const REP_B_ID = 2;
@@ -33,6 +34,34 @@ function scheduleReply(repId: number, description: string): interfaces.QtViewRep
     is_cached: false,
     sync_error: null,
   };
+}
+
+/** A schedule reply that also carries a sync error, which the hook shows as a toast. */
+function scheduleReplyWithSyncError(
+  repId: number,
+  description: string,
+  syncError: string
+): interfaces.QtViewRepDetail {
+  return { ...scheduleReply(repId, description), sync_error: syncError };
+}
+
+/** Records the messages of every toast shown from now on. */
+function recordToastMessages() {
+  const shownToastIds = new Set<number>();
+  const toastMessages: string[] = [];
+  let isFirstCall = true;
+  const unsubscribe = subscribeToasts((toasts: IToast[]) => {
+    for (const shownToast of toasts) {
+      if (!shownToastIds.has(shownToast.id)) {
+        shownToastIds.add(shownToast.id);
+        if (!isFirstCall) {
+          toastMessages.push(...shownToast.messages);
+        }
+      }
+    }
+    isFirstCall = false;
+  });
+  return { toastMessages, unsubscribe };
 }
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -77,7 +106,7 @@ function scheduleServiceOrderUrl(repId: number) {
   return reverse("survey_worker:qt_schedule_service_order", { rep_id: repId });
 }
 
-function reloadScheduleUrl(repId: number) {
+function quickSyncScheduleUrl(repId: number) {
   return `${scheduleUrl(repId)}?use_cache=off`;
 }
 
@@ -110,11 +139,11 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 }
 
 function serviceOrderDescriptions(schedule: TSchedule | null) {
-  return schedule?.ServiceOrders.map((so) => so.ServiceOrderDescription);
+  return schedule?.ServiceOrders.map((serviceOrder) => serviceOrder.ServiceOrderDescription);
 }
 
 function datesScheduled(schedule: TSchedule | null) {
-  return schedule?.ServiceOrders.map((so) => so.DateScheduled);
+  return schedule?.ServiceOrders.map((serviceOrder) => serviceOrder.DateScheduled);
 }
 
 describe("useRepSchedule", () => {
@@ -148,18 +177,18 @@ describe("useRepSchedule", () => {
     return hook;
   }
 
-  it("shows a rep's cached schedule while their refetch is in flight after switching back", async () => {
+  it("shows the schedule already loaded for a rep while their refetch is in flight after switching back", async () => {
     const { result, rerender } = await renderAndVisitRepAThenRepB();
 
     rerender({ repId: REP_A_ID });
 
     expect(serviceOrderDescriptions(result.current.schedule)).toEqual(["Rep A reset"]);
     await waitFor(() => expect(fakeServer.hasPendingReply(scheduleUrl(REP_A_ID))).toBe(true));
-    expect(result.current.isScheduleRefreshing).toBe(true);
+    expect(result.current.isScheduleReloading).toBe(true);
     expect(result.current.isScheduleLoading).toBe(false);
   });
 
-  it("keeps the cached schedule and exposes the error when a refetch fails", async () => {
+  it("keeps the loaded schedule and exposes the error when a refetch fails", async () => {
     const { result, rerender } = await renderAndVisitRepAThenRepB();
 
     rerender({ repId: REP_A_ID });
@@ -222,7 +251,37 @@ describe("useRepSchedule", () => {
     expect(datesScheduled(result.current.schedule)).toEqual(["2026-11-10T00:00:00"]);
   });
 
-  it("writes a batch schedule change's reload into the schedule of the rep it was sent for", async () => {
+  it("keeps a single service order change when a refetch started before it replies after it", async () => {
+    const { result, rerender } = await renderAndVisitRepAThenRepB();
+    rerender({ repId: REP_A_ID });
+    await waitFor(() => expect(fakeServer.hasPendingReply(scheduleUrl(REP_A_ID))).toBe(true));
+    const repAServiceOrderId = result.current.schedule?.ServiceOrders[0].ServiceOrderId ?? 0;
+
+    act(() => {
+      result.current.scheduleServiceOrder.mutate({
+        repId: REP_A_ID,
+        body: { service_order_id: repAServiceOrderId, date: "2026-11-10", current_date: null },
+      });
+    });
+    await fakeServer.reply(scheduleServiceOrderUrl(REP_A_ID), {
+      outcomes: [
+        {
+          service_order_id: repAServiceOrderId,
+          outcome: "scheduled",
+          target_date: "2026-11-10",
+          message: "",
+        },
+      ],
+      aborted_early: false,
+    } satisfies interfaces.QtScheduleChangeReport);
+    await waitFor(() => expect(result.current.scheduleServiceOrder.isSuccess).toBe(true));
+    await fakeServer.reply(scheduleUrl(REP_A_ID), scheduleReply(REP_A_ID, "Rep A reset"));
+
+    await waitFor(() => expect(result.current.isScheduleReloading).toBe(false));
+    expect(datesScheduled(result.current.schedule)).toEqual(["2026-11-10T00:00:00"]);
+  });
+
+  it("writes a batch schedule change's quick sync into the schedule of the rep it was sent for", async () => {
     const { result, rerender } = await renderAndVisitRepAThenRepB();
     const swapBody = {
       date_a: "2026-11-10",
@@ -239,11 +298,16 @@ describe("useRepSchedule", () => {
       aborted_early: false,
     } satisfies interfaces.QtScheduleChangeReport);
 
-    await waitFor(() => expect(fakeServer.hasPendingReply(reloadScheduleUrl(REP_A_ID))).toBe(true));
+    await waitFor(() =>
+      expect(fakeServer.hasPendingReply(quickSyncScheduleUrl(REP_A_ID))).toBe(true)
+    );
     expect(result.current.swapServiceOrders.isPending).toBe(true);
     expect(sentBody(fakeServer.fetchStub, swapServiceOrdersUrl(REP_A_ID))).toEqual(swapBody);
 
-    await fakeServer.reply(reloadScheduleUrl(REP_A_ID), scheduleReply(REP_A_ID, "Rep A swapped"));
+    await fakeServer.reply(
+      quickSyncScheduleUrl(REP_A_ID),
+      scheduleReply(REP_A_ID, "Rep A swapped")
+    );
     await waitFor(() => expect(result.current.swapServiceOrders.isSuccess).toBe(true));
     expect(serviceOrderDescriptions(result.current.schedule)).toEqual(["Rep B reset"]);
 
@@ -251,7 +315,46 @@ describe("useRepSchedule", () => {
     expect(serviceOrderDescriptions(result.current.schedule)).toEqual(["Rep A swapped"]);
   });
 
-  it("resolves a batch schedule change with its report when the reload fails", async () => {
+  it("doesn't toast about a read that a batch change's quick sync cancelled", async () => {
+    const { result, rerender } = await renderAndVisitRepAThenRepB();
+    rerender({ repId: REP_A_ID });
+    await waitFor(() => expect(fakeServer.hasPendingReply(scheduleUrl(REP_A_ID))).toBe(true));
+    const { toastMessages, unsubscribe } = recordToastMessages();
+
+    act(() => {
+      result.current.swapServiceOrders.mutate({
+        repId: REP_A_ID,
+        body: {
+          date_a: "2026-11-10",
+          date_b: "2026-11-11",
+          service_order_ids_a: [1],
+          service_order_ids_b: [],
+        },
+      });
+    });
+    await fakeServer.reply(swapServiceOrdersUrl(REP_A_ID), {
+      outcomes: [],
+      aborted_early: false,
+    } satisfies interfaces.QtScheduleChangeReport);
+    await waitFor(() =>
+      expect(fakeServer.hasPendingReply(quickSyncScheduleUrl(REP_A_ID))).toBe(true)
+    );
+    await fakeServer.reply(
+      scheduleUrl(REP_A_ID),
+      scheduleReplyWithSyncError(REP_A_ID, "Rep A before swap", "Cancelled read's sync error")
+    );
+    await fakeServer.reply(
+      quickSyncScheduleUrl(REP_A_ID),
+      scheduleReplyWithSyncError(REP_A_ID, "Rep A swapped", "Quick sync's sync error")
+    );
+    await waitFor(() => expect(result.current.swapServiceOrders.isSuccess).toBe(true));
+    unsubscribe();
+
+    expect(serviceOrderDescriptions(result.current.schedule)).toEqual(["Rep A swapped"]);
+    expect(toastMessages).toEqual(["Quick sync's sync error"]);
+  });
+
+  it("resolves a batch schedule change with its report when the quick sync fails", async () => {
     const { result } = renderHook(() => useRepSchedule(REP_A_ID), { wrapper: Wrapper });
     await fakeServer.reply(scheduleUrl(REP_A_ID), scheduleReply(REP_A_ID, "Rep A reset"));
     await waitFor(() => expect(result.current.schedule).not.toBeNull());
@@ -262,17 +365,17 @@ describe("useRepSchedule", () => {
       aborted_early: true,
     } satisfies interfaces.QtScheduleChangeReport;
 
-    let clearDatePromise: Promise<interfaces.QtScheduleChangeReport> | undefined;
+    let bulkUnscheduleOneDatePromise: Promise<interfaces.QtScheduleChangeReport> | undefined;
     act(() => {
-      clearDatePromise = result.current.clearDate.mutateAsync({
+      bulkUnscheduleOneDatePromise = result.current.bulkUnscheduleOneDate.mutateAsync({
         repId: REP_A_ID,
         body: { dates: ["2026-11-10"] },
       });
     });
     await fakeServer.reply(executeBulkUnscheduleUrl(REP_A_ID), partialFailureReport);
-    await fakeServer.reply(reloadScheduleUrl(REP_A_ID), ["Qt couldn't be reached"], 502);
+    await fakeServer.reply(quickSyncScheduleUrl(REP_A_ID), ["Qt couldn't be reached"], 502);
 
-    await expect(clearDatePromise).resolves.toEqual(partialFailureReport);
+    await expect(bulkUnscheduleOneDatePromise).resolves.toEqual(partialFailureReport);
     expect(sentBody(fakeServer.fetchStub, executeBulkUnscheduleUrl(REP_A_ID))).toEqual({
       dates: ["2026-11-10"],
     });

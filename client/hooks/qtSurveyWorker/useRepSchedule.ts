@@ -11,7 +11,7 @@ import {
   describeScheduleChangeProblems,
   withServiceOrdersRescheduled,
 } from "@client/util/qtSurveyWorker/scheduleUtils";
-import { createSurveyWorkerApi } from "@client/util/qtSurveyWorker/surveyWorkerApi";
+import { TUseCache, createSurveyWorkerApi } from "@client/util/qtSurveyWorker/surveyWorkerApi";
 import { toast } from "@client/util/toast";
 
 const REP_SCHEDULE_QUERY_KEY = "qtRepSchedule";
@@ -20,10 +20,19 @@ function repScheduleQueryKey(repId: number) {
   return [REP_SCHEDULE_QUERY_KEY, repId];
 }
 
+/** A schedule change's variables: the rep it's sent for, and the body sent to that rep's endpoint. */
+export type TRepScheduleChange<TBody> = { repId: number; body: TBody };
+
+/** The page's `use_cache` query parameter, ignored unless it's one the server understands. */
+function getUseCacheFromUrl(): TUseCache {
+  const useCache = new URLSearchParams(window.location.search).get("use_cache");
+  return useCache === "on" || useCache === "off" ? useCache : null;
+}
+
 /**
- * The selected field rep's schedule, cached per rep, so a slow reply for a rep the user already
- * left can't show up under another rep. Switching back to a rep shows their cached schedule while
- * a fresh copy loads, and the server's freshness window is the only freshness rule.
+ * The selected field rep's schedule, kept per rep, so a slow reply for a rep the user already
+ * left can't show up under another rep. Switching back to a rep shows the schedule already loaded
+ * for them while a newer copy loads, and the server's freshness window is the only freshness rule.
  */
 export function useRepSchedule(repId: number | null) {
   const djangoContext = useContext(Context);
@@ -36,9 +45,14 @@ export function useRepSchedule(repId: number | null) {
     shownRepIdRef.current = repId;
   }, [repId]);
 
-  async function fetchRepSchedule(requestedRepId: number, useCache: string | null) {
+  // A cancelled read's reply never reaches the query's data, so it gets no toast
+  async function fetchRepSchedule(
+    requestedRepId: number,
+    useCache: TUseCache,
+    signal: AbortSignal
+  ) {
     const reply = await fetchJsonOrThrow(surveyWorkerApi.getRepSchedule(requestedRepId, useCache));
-    if (requestedRepId === shownRepIdRef.current) {
+    if (!signal.aborted && requestedRepId === shownRepIdRef.current) {
       announceReply(reply, djangoContext.user.is_superuser);
     }
     return reply;
@@ -47,37 +61,39 @@ export function useRepSchedule(repId: number | null) {
   const repScheduleQuery = useQuery({
     queryKey: repScheduleQueryKey(repId ?? 0),
     // `enabled` below keeps this from running without a rep, so the 0 is never sent
-    queryFn: () =>
-      fetchRepSchedule(repId ?? 0, new URLSearchParams(window.location.search).get("use_cache")),
+    queryFn: ({ signal }) => fetchRepSchedule(repId ?? 0, getUseCacheFromUrl(), signal),
     enabled: repId !== null,
     staleTime: 0,
   });
 
   /**
-   * Moves service orders in a rep's cached schedule, for a change Qt accepted and the server
-   * already applied to its stored schedule. `getDate` picks the date from the cached schedule,
-   * since an unscheduled service order's date is the schedule's own placeholder.
+   * Moves service orders in the schedule already loaded for a rep, for a change Qt accepted and
+   * the server already applied to its stored schedule. `getDate` picks the date from the loaded
+   * schedule, since an unscheduled service order's date is the schedule's own placeholder.
    */
-  function patchRepSchedule(
+  async function patchRepSchedule(
     changedRepId: number,
     serviceOrderIds: Iterable<number>,
-    getDate: (cachedSchedule: TSchedule) => string
+    getDate: (loadedSchedule: TSchedule) => string
   ) {
+    // A read already in flight may reply with the schedule from before the change, so it can't
+    // be allowed to land over the patch
+    await queryClient.cancelQueries({ queryKey: repScheduleQueryKey(changedRepId) });
     queryClient.setQueryData<interfaces.QtViewRepDetail>(
       repScheduleQueryKey(changedRepId),
-      (cachedReply) => {
-        const cachedSchedule = cachedReply?.rep_sync_data.schedule;
-        if (cachedReply === undefined || cachedSchedule === null || cachedSchedule === undefined) {
-          return cachedReply;
+      (loadedReply) => {
+        const loadedSchedule = loadedReply?.rep_sync_data.schedule;
+        if (loadedReply === undefined || loadedSchedule === null || loadedSchedule === undefined) {
+          return loadedReply;
         }
         return {
-          ...cachedReply,
+          ...loadedReply,
           rep_sync_data: {
-            ...cachedReply.rep_sync_data,
+            ...loadedReply.rep_sync_data,
             schedule: withServiceOrdersRescheduled(
-              cachedSchedule,
+              loadedSchedule,
               serviceOrderIds,
-              getDate(cachedSchedule)
+              getDate(loadedSchedule)
             ),
           },
         };
@@ -88,11 +104,11 @@ export function useRepSchedule(repId: number | null) {
   // Each change patches the schedule of the rep it was sent for, not whichever rep is on screen
   // when it finishes. A report with problems means Qt didn't make the change, so nothing moves.
   const scheduleServiceOrder = useMutation({
-    mutationFn: (change: { repId: number; body: interfaces.IQtScheduleServiceOrderRequest }) =>
+    mutationFn: (change: TRepScheduleChange<interfaces.IQtScheduleServiceOrderRequest>) =>
       fetchJsonOrThrow(surveyWorkerApi.scheduleServiceOrder(change.repId, change.body)),
-    onSuccess: (report, change) => {
+    onSuccess: async (report, change) => {
       if (describeScheduleChangeProblems(report) === null) {
-        patchRepSchedule(
+        await patchRepSchedule(
           change.repId,
           [change.body.service_order_id],
           () => `${change.body.date}T00:00:00`
@@ -102,31 +118,31 @@ export function useRepSchedule(repId: number | null) {
   });
 
   const unscheduleServiceOrder = useMutation({
-    mutationFn: (change: { repId: number; body: interfaces.IQtUnscheduleServiceOrderRequest }) =>
+    mutationFn: (change: TRepScheduleChange<interfaces.IQtUnscheduleServiceOrderRequest>) =>
       fetchJsonOrThrow(surveyWorkerApi.unscheduleServiceOrder(change.repId, change.body)),
-    onSuccess: (report, change) => {
+    onSuccess: async (report, change) => {
       if (describeScheduleChangeProblems(report) === null) {
-        patchRepSchedule(
+        await patchRepSchedule(
           change.repId,
           [change.body.service_order_id],
-          (cachedSchedule) => cachedSchedule.UnscheduledDate
+          (loadedSchedule) => loadedSchedule.UnscheduledDate
         );
       }
     },
   });
 
   /**
-   * Reloads a rep's schedule straight from Qt after a batch change. A failed reload lands in that
-   * rep's read state instead of throwing, so the change still resolves with its report.
+   * Gets a rep's schedule through a Qt quick sync after a batch change. A failed quick sync lands
+   * in that rep's read state instead of throwing, so the change still resolves with its report.
    */
-  async function reloadRepSchedule(changedRepId: number) {
+  async function quickSyncRepSchedule(changedRepId: number) {
     const queryKey = repScheduleQueryKey(changedRepId);
     // A read already in flight may come from the stored schedule, so it can't stand in for this one
     await queryClient.cancelQueries({ queryKey });
     try {
       await queryClient.fetchQuery({
         queryKey,
-        queryFn: () => fetchRepSchedule(changedRepId, "off"),
+        queryFn: ({ signal }) => fetchRepSchedule(changedRepId, "off", signal),
         staleTime: 0,
       });
     } catch {
@@ -135,54 +151,55 @@ export function useRepSchedule(repId: number | null) {
   }
 
   /**
-   * Sends a batch change, then reloads the schedule of the rep it was sent for, since a partial
-   * change may have left service orders anywhere and Qt is the only one who knows where. The
-   * mutation stays pending through the reload.
+   * Sends a batch change, then quick-syncs the schedule of the rep it was sent for, since a
+   * partial change may have left service orders anywhere and Qt is the only one who knows where.
+   * The mutation stays pending through the quick sync.
    */
-  async function changeAndReload(
+  async function changeAndQuickSync(
     changedRepId: number,
     send: () => ApiPromise<interfaces.QtScheduleChangeReport>
   ) {
     const report = await fetchJsonOrThrow(send());
-    await reloadRepSchedule(changedRepId);
+    await quickSyncRepSchedule(changedRepId);
     return report;
   }
 
+  function bulkUnscheduleMutationOptions() {
+    return {
+      mutationFn: (change: TRepScheduleChange<interfaces.IQtExecuteBulkUnscheduleRequest>) =>
+        changeAndQuickSync(change.repId, () =>
+          surveyWorkerApi.executeBulkUnschedule(change.repId, change.body)
+        ),
+    };
+  }
+
   const swapServiceOrders = useMutation({
-    mutationFn: (change: { repId: number; body: interfaces.IQtSwapServiceOrdersRequest }) =>
-      changeAndReload(change.repId, () =>
+    mutationFn: (change: TRepScheduleChange<interfaces.IQtSwapServiceOrdersRequest>) =>
+      changeAndQuickSync(change.repId, () =>
         surveyWorkerApi.swapServiceOrders(change.repId, change.body)
       ),
   });
 
   const executeAutoSchedule = useMutation({
-    mutationFn: (change: { repId: number; body: interfaces.IQtExecuteAutoScheduleRequest }) =>
-      changeAndReload(change.repId, () =>
+    mutationFn: (change: TRepScheduleChange<interfaces.IQtExecuteAutoScheduleRequest>) =>
+      changeAndQuickSync(change.repId, () =>
         surveyWorkerApi.executeAutoSchedule(change.repId, change.body)
       ),
   });
 
-  const executeBulkUnschedule = useMutation({
-    mutationFn: (change: { repId: number; body: interfaces.IQtExecuteBulkUnscheduleRequest }) =>
-      changeAndReload(change.repId, () =>
-        surveyWorkerApi.executeBulkUnschedule(change.repId, change.body)
-      ),
-  });
+  const executeBulkUnschedule = useMutation(bulkUnscheduleMutationOptions());
 
-  // A bulk unschedule of one date, with its own pending state so its button spins on its own
-  const clearDate = useMutation({
-    mutationFn: (change: { repId: number; body: interfaces.IQtExecuteBulkUnscheduleRequest }) =>
-      changeAndReload(change.repId, () =>
-        surveyWorkerApi.executeBulkUnschedule(change.repId, change.body)
-      ),
-  });
+  // The same bulk unschedule, used for one date, with its own pending state so its button spins
+  // on its own
+  const bulkUnscheduleOneDate = useMutation(bulkUnscheduleMutationOptions());
 
   const repScheduleReply = repId === null ? undefined : repScheduleQuery.data;
 
   return {
     schedule: repScheduleReply?.rep_sync_data.schedule ?? null,
     isScheduleLoading: repScheduleQuery.isLoading,
-    isScheduleRefreshing: repScheduleQuery.isFetching && repScheduleReply !== undefined,
+    // A newer copy is loading for a rep whose schedule is already shown
+    isScheduleReloading: repScheduleQuery.isFetching && repScheduleReply !== undefined,
     isScheduleError: repId !== null && repScheduleQuery.isError,
     scheduleErrorMessages: getErrorMessages(repScheduleQuery.error),
     scheduleServiceOrder,
@@ -190,7 +207,7 @@ export function useRepSchedule(repId: number | null) {
     swapServiceOrders,
     executeAutoSchedule,
     executeBulkUnschedule,
-    clearDate,
+    bulkUnscheduleOneDate,
   };
 }
 
