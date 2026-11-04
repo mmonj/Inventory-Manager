@@ -1,10 +1,10 @@
 from datetime import date
-from typing import Any, Literal, NamedTuple, cast
+from typing import Any, Literal, NamedTuple, Self, TypeVar, cast
 
 from checkdigit import gs1
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Q, QuerySet
+from django.db.models import Q
 from django.db.models.functions import Trim, Upper
 from django.utils import timezone
 
@@ -19,8 +19,22 @@ class Store(models.Model):
         return self.name
 
 
+# Generic so django-stubs keeps `.annotate(...)` fields on querysets built from Planogram.objects
+_TPlanogram = TypeVar("_TPlanogram", bound=models.Model)
+
 TPlanoTypeValue = Literal["regular", "seasonal", "other"]
 TPlanogramUpdateStatus = Literal["pending", "applied", "superseded"]
+
+
+class PlanogramQuerySet(models.QuerySet[_TPlanogram]):
+    def current(self) -> Self:
+        return self.filter(Q(date_end__isnull=True) | Q(date_end__gte=timezone.localdate()))
+
+    def current_at(self, store: Store) -> Self:
+        """
+        The store's current planograms, the only ones that can take new products.
+        """
+        return self.filter(store=store).current()
 
 
 class Planogram(models.Model):
@@ -43,6 +57,8 @@ class Planogram(models.Model):
     date_start = models.DateField(null=False, blank=False, default=timezone.now)
     date_end = models.DateField(null=True, blank=True)
     horizontal_section_thresholds = models.JSONField(default=list, blank=True)
+
+    objects = models.Manager.from_queryset(PlanogramQuerySet)()
 
     class Meta:
         unique_together = ("name", "store")
@@ -67,9 +83,17 @@ class Planogram(models.Model):
         ):
             raise ValidationError({"date_end": "End date can't be before the start date."})
 
-    @classmethod
-    def get_current_planograms(cls) -> "QuerySet[Planogram]":
-        return cls.objects.filter(Q(date_end__isnull=True) | Q(date_end__gte=timezone.localdate()))
+    def get_refusal_at(self, store: Store) -> str | None:
+        """
+        The reason this planogram can't take new products at the store, if there is one.
+        """
+        if self.is_outdated:
+            return f"Planogram '{self.name}' has ended."
+
+        if self.store_id != store.pk:
+            return f"Planogram '{self.name}' belongs to another store."
+
+        return None
 
     def get_plano_status(self) -> str:
         return " [OUTDATED]" if self.is_outdated else ""

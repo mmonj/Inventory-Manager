@@ -30,8 +30,6 @@ import { toast } from "@client/util/toast";
 import "@client/scss/stock_tracker/scanner.scss";
 import "@client/scss/product_locator/location-item.scss";
 
-type TStore = templates.ProductLocatorScanner["stores"][number];
-
 function scanErrorCallback(errorMessage: string) {
   console.log("Error occurred on scan. Message:", errorMessage);
 }
@@ -43,26 +41,14 @@ function handleStoreSubmission(storePk: string): void {
 }
 
 export function Template(props: templates.ProductLocatorScanner) {
-  const [store, setStore] = useState<TStore | null>(null);
+  const { store } = props;
   const [modalShow, setModalShow] = useState(false);
   const djangoContext = React.useContext(Context);
-
-  // Get store from query param `store-id`
-  const storeIdFromQueryParam =
-    new URL(djangoContext.request.url).searchParams.get("store-id") ?? "";
-  const storeFromQueryParam = props.stores.find(
-    (store) => store.pk === parseInt(storeIdFromQueryParam)
-  );
-  if (storeFromQueryParam !== undefined && storeFromQueryParam.pk !== store?.pk) {
-    setStore(() => storeFromQueryParam);
-  }
 
   // Created once, since picking a store reloads the page and BarcodeScanner keeps its first callback
   const [productLookupStore] = useState(() => {
     const productLocatorApi = createProductLocatorApi(djangoContext.csrf_token);
-    return createProductLookup((upc) =>
-      productLocatorApi.lookUpProduct(storeFromQueryParam!.pk, upc)
-    );
+    return createProductLookup((upc) => productLocatorApi.lookUpProduct(store!.pk, upc));
   });
   const lookup = useSyncExternalStore(
     productLookupStore.subscribe,

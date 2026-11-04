@@ -62,7 +62,7 @@ def test_planogram_is_outdated_only_after_its_end_date(
 
     assert planogram.is_outdated is is_outdated
     assert (planogram.plano_status == " [OUTDATED]") is is_outdated
-    assert Planogram.get_current_planograms().filter(pk=planogram.pk).exists() is not is_outdated
+    assert Planogram.objects.current().filter(pk=planogram.pk).exists() is not is_outdated
 
 
 def test_editing_sets_an_end_date(superuser_client: Client, planogram: Planogram) -> None:
@@ -169,3 +169,40 @@ def test_product_search_follows_the_end_date(
 
     assert response.status_code == 200
     assert (len(response.json()["products"]) == 1) is is_found
+
+
+@pytest.mark.parametrize(("days_until_end", "is_current"), [(None, True), (0, True), (-1, False)])
+def test_a_stores_current_planograms_follow_the_end_date(
+    planogram: Planogram, days_until_end: int | None, is_current: bool
+) -> None:
+    planogram.date_end = None if days_until_end is None else days_from_today(days_until_end)
+    planogram.save()
+
+    assert planogram.store is not None
+    current_planograms = Planogram.objects.current_at(planogram.store)
+    assert current_planograms.filter(pk=planogram.pk).exists() is is_current
+
+
+def test_a_stores_current_planograms_leave_out_other_stores(planogram: Planogram) -> None:
+    other_store = Store.objects.create(name="T2000")
+
+    assert not Planogram.objects.current_at(other_store).exists()
+
+
+def test_a_current_planogram_at_its_own_store_has_no_refusal(planogram: Planogram) -> None:
+    assert planogram.store is not None
+    assert planogram.get_refusal_at(planogram.store) is None
+
+
+def test_an_outdated_planogram_is_refused_as_ended(planogram: Planogram) -> None:
+    planogram.date_end = days_from_today(-1)
+    planogram.save()
+
+    assert planogram.store is not None
+    assert planogram.get_refusal_at(planogram.store) == "Planogram 'Inline' has ended."
+
+
+def test_a_planogram_from_another_store_is_refused(planogram: Planogram) -> None:
+    other_store = Store.objects.create(name="T2000")
+
+    assert planogram.get_refusal_at(other_store) == "Planogram 'Inline' belongs to another store."

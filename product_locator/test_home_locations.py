@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 from threading import Thread
 from typing import Any
@@ -686,6 +687,17 @@ def test_search_by_name_refuses_blank_text(
     assert isinstance(response.json(), list)
 
 
+def test_search_by_name_returns_404_for_a_missing_store(
+    logged_in_client: Client, older_product: Product, store: Store
+) -> None:
+    missing_store = Store(pk=store.pk + 1000)
+
+    response = search_by_name(logged_in_client, missing_store, "older")
+
+    error_messages = get_error_messages(response, 404)
+    assert any(str(missing_store.pk) in message for message in error_messages)
+
+
 def look_up_product(client: Client, store: Store, upc: str) -> Any:
     # Encoded the way the client does it. reverse() would encode the "%" again, so the UPC is
     # swapped in afterwards
@@ -737,3 +749,40 @@ def test_lookup_returns_404_for_a_missing_store(
 
     error_messages = get_error_messages(response, 404)
     assert any(str(missing_store.pk) in message for message in error_messages)
+
+
+def open_scanner(client: Client, store_id: str | None) -> Any:
+    query_params = {} if store_id is None else {"store-id": store_id}
+    return client.get(
+        reverse("product_locator:scanner"),
+        data=query_params,
+        headers={"accept": "application/json"},
+    )
+
+
+def test_scanner_offers_only_the_chosen_stores_current_planograms(
+    logged_in_client: Client, planogram: Planogram, store: Store
+) -> None:
+    Planogram.objects.create(
+        name="Ended", store=store, date_end=timezone.localdate() - timedelta(days=1)
+    )
+    Planogram.objects.create(name="Elsewhere", store=Store.objects.create(name="T2000"))
+
+    response = open_scanner(logged_in_client, str(store.pk))
+
+    assert response.status_code == 200
+    scanner_props = json.loads(response.content)["props"]
+    assert scanner_props["store"] == {"pk": store.pk, "name": store.name}
+    assert scanner_props["planograms"] == [{"pk": planogram.pk, "name": planogram.name}]
+
+
+@pytest.mark.parametrize("store_id", [None, "", "abc", "999999", "99999999999999999999"])
+def test_scanner_without_a_known_store_offers_no_planograms(
+    logged_in_client: Client, planogram: Planogram, store_id: str | None
+) -> None:
+    response = open_scanner(logged_in_client, store_id)
+
+    assert response.status_code == 200
+    scanner_props = json.loads(response.content)["props"]
+    assert scanner_props["store"] is None
+    assert scanner_props["planograms"] == []

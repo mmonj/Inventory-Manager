@@ -62,10 +62,16 @@ def get_product_location(request: DrfRequest, store_id: int, upc: str) -> HttpRe
 @permission_classes([IsAuthenticated])
 def get_product_locations_by_name(request: DrfRequest, store_id: int) -> HttpResponse:
     request_data = validate_structure(request.GET, IGetProductLocationsByNameRequest)
+
+    store = Store.objects.filter(pk=store_id).first()
+    if store is None:
+        return error_json_response([f"Store with ID {store_id} not found"], status=404)
+
     product_name = request_data.product_name.strip()
     if product_name == "":
         return error_json_response(["Enter a product name to search for."], status=400)
 
+    # Only the planograms a carryover can join, so the search never offers one it would refuse
     products = (
         Product.objects.filter(name__icontains=product_name)
         .order_by("name")
@@ -73,7 +79,7 @@ def get_product_locations_by_name(request: DrfRequest, store_id: int) -> HttpRes
             Prefetch(
                 "home_locations",
                 queryset=HomeLocation.objects.filter(
-                    planogram__store__pk=store_id, planogram__in=Planogram.get_current_planograms()
+                    planogram__in=Planogram.objects.current_at(store)
                 ),
             )
         )
@@ -89,7 +95,8 @@ def get_product_locations_by_name(request: DrfRequest, store_id: int) -> HttpRes
 def add_new_product_location(request: DrfRequest, store_id: int, planogram_id: int) -> HttpResponse:
     request_data = validate_structure(request.data, IAddNewProductLocationRequest)
 
-    if not Store.objects.filter(pk=store_id).exists():
+    store = Store.objects.filter(pk=store_id).first()
+    if store is None:
         return error_json_response([f"Store with ID {store_id} not found"], status=404)
 
     planogram = Planogram.objects.filter(pk=planogram_id).first()
@@ -101,7 +108,7 @@ def add_new_product_location(request: DrfRequest, store_id: int, planogram_id: i
         request_data.product_name,
         request_data.location,
         planogram,
-        store_id,
+        store,
     )
     if not assign_result.ok:
         return error_json_response(assign_result.err, status=400)
@@ -118,7 +125,8 @@ def carry_over_home_locations(
 ) -> HttpResponse:
     request_data = validate_structure(request.data, ICarryOverHomeLocationsRequest)
 
-    if not Store.objects.filter(pk=store_id).exists():
+    store = Store.objects.filter(pk=store_id).first()
+    if store is None:
         return error_json_response([f"Store with ID {store_id} not found"], status=404)
 
     older_product = Product.objects.filter(pk=older_product_id).first()
@@ -126,7 +134,7 @@ def carry_over_home_locations(
         return error_json_response([f"Product with ID {older_product_id} not found"], status=404)
 
     carryover_result = home_locations.carry_over_home_locations(
-        request_data.upc, older_product, request_data.planogram_ids, store_id
+        request_data.upc, older_product, request_data.planogram_ids, store
     )
     if not carryover_result.ok:
         return error_json_response(carryover_result.err, status=400)

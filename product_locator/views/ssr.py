@@ -28,11 +28,17 @@ def index(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET"])
 def scanner(request: HttpRequest) -> HttpResponse:
     stores = Store.objects.all()
-    planograms = Planogram.objects.all().select_related("store")
 
-    return templates.ProductLocatorScanner(stores=list(stores), planograms=list(planograms)).render(
-        request
+    # A missing or unknown store shows the store picker
+    store_id = request.GET.get("store-id", "")
+    store = Store.objects.filter(pk=int(store_id)).first() if store_id.isdecimal() else None
+    planograms = (
+        Planogram.objects.current_at(store).order_by("-date_start") if store is not None else []
     )
+
+    return templates.ProductLocatorScanner(
+        stores=list(stores), store=store, planograms=list(planograms)
+    ).render(request)
 
 
 @login_required(login_url=reverse_lazy("stock_tracker:login_view"))

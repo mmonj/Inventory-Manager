@@ -183,16 +183,11 @@ export function ProductLocatorModal({
                   id="planogram-name-update"
                   className="form-select form-select-lg"
                 >
-                  {planograms.map((planogram) => {
-                    if (planogram.store?.pk !== storeId || planogram.is_outdated) {
-                      return;
-                    }
-                    return (
-                      <option key={planogram.pk} value={planogram.pk}>
-                        {planogram.name}
-                      </option>
-                    );
-                  })}
+                  {planograms.map((planogram) => (
+                    <option key={planogram.pk} value={planogram.pk}>
+                      {planogram.name}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="mb-3">

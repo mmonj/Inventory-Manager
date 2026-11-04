@@ -7,7 +7,7 @@ from django.db import transaction
 from server.utils.typedefs import TFailure, TResult, TSuccess
 
 from . import home_location_names
-from .models import HomeLocation, Planogram, Product
+from .models import HomeLocation, Planogram, Product, Store
 from .types import IImportedProductInfo
 
 logger = logging.getLogger("main_logger")
@@ -34,19 +34,6 @@ def find_or_create_product(upc: str, name: str = "") -> TResult[Product, list[st
         return TFailure(ex.messages)
 
     return TSuccess(product)
-
-
-def get_planogram_refusal(planogram: Planogram, store_id: int) -> str | None:
-    """
-    The reason a planogram can't take new products at this Store, if there is one.
-    """
-    if planogram.is_outdated:
-        return f"Planogram '{planogram.name}' has ended."
-
-    if planogram.store_id != store_id:
-        return f"Planogram '{planogram.name}' belongs to another store."
-
-    return None
 
 
 def clear_planogram(planogram: Planogram) -> TResult[int, list[str]]:
@@ -85,7 +72,7 @@ def get_planogram_placements(planogram: Planogram) -> list[TPlacement]:
 
 
 def assign_home_location(
-    upc: str, product_name: str, location_name: str, planogram: Planogram, store_id: int
+    upc: str, product_name: str, location_name: str, planogram: Planogram, store: Store
 ) -> TResult[HomeLocation, list[str]]:
     """
     Places a product at a home location, creating either if needed. A refusal writes nothing.
@@ -96,7 +83,7 @@ def assign_home_location(
             [f"'{location_name}' is not a valid location. Use a letter and 1-3 digits, like A15."]
         )
 
-    planogram_refusal = get_planogram_refusal(planogram, store_id)
+    planogram_refusal = planogram.get_refusal_at(store)
     if planogram_refusal is not None:
         return TFailure([planogram_refusal])
 
@@ -115,7 +102,7 @@ def assign_home_location(
 
 
 def carry_over_home_locations(
-    upc: str, older_product: Product, planogram_ids: list[int], store_id: int
+    upc: str, older_product: Product, planogram_ids: list[int], store: Store
 ) -> TResult[Product, list[str]]:
     """
     Gives the Product at `upc` the home locations `older_product` has in the chosen planograms,
@@ -136,7 +123,7 @@ def carry_over_home_locations(
             planogram_refusals.append(f"Planogram with ID {planogram_id} not found.")
             continue
 
-        planogram_refusal = get_planogram_refusal(planogram, store_id)
+        planogram_refusal = planogram.get_refusal_at(store)
         if planogram_refusal is not None:
             planogram_refusals.append(planogram_refusal)
         elif planogram_id not in older_planogram_ids:
