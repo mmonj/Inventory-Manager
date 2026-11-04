@@ -73,6 +73,10 @@ function scheduleUrl(repId: number) {
   return reverse("survey_worker:qt_view_rep_schedule", { rep_id: repId });
 }
 
+function scheduleServiceOrderUrl(repId: number) {
+  return reverse("survey_worker:qt_schedule_service_order", { rep_id: repId });
+}
+
 function Wrapper({ children }: { children: React.ReactNode }) {
   const contextValue = {
     csrf_token: "test-csrf-token",
@@ -88,6 +92,10 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 
 function serviceOrderDescriptions(schedule: TSchedule | null) {
   return schedule?.ServiceOrders.map((so) => so.ServiceOrderDescription);
+}
+
+function datesScheduled(schedule: TSchedule | null) {
+  return schedule?.ServiceOrders.map((so) => so.DateScheduled);
 }
 
 describe("useRepSchedule", () => {
@@ -142,5 +150,56 @@ describe("useRepSchedule", () => {
       expect(result.current.scheduleErrorMessages).toEqual(["Qt couldn't be reached"])
     );
     expect(serviceOrderDescriptions(result.current.schedule)).toEqual(["Rep A reset"]);
+  });
+
+  it("applies a single service order change to the rep it was sent for, after switching reps", async () => {
+    const { result, rerender } = renderHook(
+      ({ repId }: { repId: number | null }) => useRepSchedule(repId),
+      { wrapper: Wrapper, initialProps: { repId: REP_A_ID } }
+    );
+    await fakeServer.reply(scheduleUrl(REP_A_ID), scheduleReply(REP_A_ID, "Rep A reset"));
+    await waitFor(() => expect(result.current.schedule).not.toBeNull());
+    const repAServiceOrderId = result.current.schedule?.ServiceOrders[0].ServiceOrderId ?? 0;
+
+    act(() => {
+      result.current.scheduleServiceOrder.mutate({
+        repId: REP_A_ID,
+        body: { service_order_id: repAServiceOrderId, date: "2026-11-10", current_date: null },
+      });
+    });
+    await waitFor(() => expect(result.current.scheduleServiceOrder.isPending).toBe(true));
+
+    rerender({ repId: REP_B_ID });
+    await fakeServer.reply(scheduleUrl(REP_B_ID), scheduleReply(REP_B_ID, "Rep B reset"));
+    await waitFor(() =>
+      expect(serviceOrderDescriptions(result.current.schedule)).toEqual(["Rep B reset"])
+    );
+
+    await fakeServer.reply(scheduleServiceOrderUrl(REP_A_ID), {
+      outcomes: [
+        {
+          service_order_id: repAServiceOrderId,
+          outcome: "scheduled",
+          target_date: "2026-11-10",
+          message: "",
+        },
+      ],
+      aborted_early: false,
+    } satisfies interfaces.QtScheduleChangeReport);
+    await waitFor(() => expect(result.current.scheduleServiceOrder.isSuccess).toBe(true));
+
+    expect(datesScheduled(result.current.schedule)).toEqual([""]);
+    expect(fakeServer.hasPendingReply(scheduleUrl(REP_A_ID))).toBe(false);
+    const [, sentRequest] = fakeServer.fetchStub.mock.calls.find(
+      ([url]) => url === scheduleServiceOrderUrl(REP_A_ID)
+    ) as unknown as [string, RequestInit];
+    expect(JSON.parse(sentRequest.body as string)).toEqual({
+      service_order_id: repAServiceOrderId,
+      date: "2026-11-10",
+      current_date: null,
+    });
+
+    rerender({ repId: REP_A_ID });
+    expect(datesScheduled(result.current.schedule)).toEqual(["2026-11-10T00:00:00"]);
   });
 });

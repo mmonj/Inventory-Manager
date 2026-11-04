@@ -2,10 +2,14 @@ import { useContext, useEffect, useRef } from "react";
 
 import { Context, interfaces } from "@reactivated";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { fetchJsonOrThrow, getErrorMessages } from "@client/util/commonUtil";
-import { withServiceOrdersRescheduled } from "@client/util/qtSurveyWorker/scheduleUtils";
+import {
+  TSchedule,
+  describeScheduleChangeProblems,
+  withServiceOrdersRescheduled,
+} from "@client/util/qtSurveyWorker/scheduleUtils";
 import { createSurveyWorkerApi } from "@client/util/qtSurveyWorker/surveyWorkerApi";
 import { toast } from "@client/util/toast";
 
@@ -49,30 +53,66 @@ export function useRepSchedule(repId: number | null) {
   });
 
   /**
-   * Interim, until single service order changes move into this hook: moves service orders in a
-   * rep's cached schedule, for a change Qt accepted and the server already stored.
+   * Moves service orders in a rep's cached schedule, for a change Qt accepted and the server
+   * already applied to its stored schedule. `getDate` picks the date from the cached schedule,
+   * since an unscheduled service order's date is the schedule's own placeholder.
    */
   function patchRepSchedule(
     changedRepId: number,
     serviceOrderIds: Iterable<number>,
-    date: Date | string
+    getDate: (cachedSchedule: TSchedule) => string
   ) {
     queryClient.setQueryData<interfaces.QtViewRepDetail>(
       repScheduleQueryKey(changedRepId),
-      (cachedReply) =>
-        cachedReply && {
+      (cachedReply) => {
+        const cachedSchedule = cachedReply?.rep_sync_data.schedule;
+        if (cachedReply === undefined || cachedSchedule === null || cachedSchedule === undefined) {
+          return cachedReply;
+        }
+        return {
           ...cachedReply,
           rep_sync_data: {
             ...cachedReply.rep_sync_data,
             schedule: withServiceOrdersRescheduled(
-              cachedReply.rep_sync_data.schedule,
+              cachedSchedule,
               serviceOrderIds,
-              date
+              getDate(cachedSchedule)
             ),
           },
-        }
+        };
+      }
     );
   }
+
+  // Each change patches the schedule of the rep it was sent for, not whichever rep is on screen
+  // when it finishes. A report with problems means Qt didn't make the change, so nothing moves.
+  const scheduleServiceOrder = useMutation({
+    mutationFn: (change: { repId: number; body: interfaces.IQtScheduleServiceOrderRequest }) =>
+      fetchJsonOrThrow(surveyWorkerApi.scheduleServiceOrder(change.repId, change.body)),
+    onSuccess: (report, change) => {
+      if (describeScheduleChangeProblems(report) === null) {
+        patchRepSchedule(
+          change.repId,
+          [change.body.service_order_id],
+          () => `${change.body.date}T00:00:00`
+        );
+      }
+    },
+  });
+
+  const unscheduleServiceOrder = useMutation({
+    mutationFn: (change: { repId: number; body: interfaces.IQtUnscheduleServiceOrderRequest }) =>
+      fetchJsonOrThrow(surveyWorkerApi.unscheduleServiceOrder(change.repId, change.body)),
+    onSuccess: (report, change) => {
+      if (describeScheduleChangeProblems(report) === null) {
+        patchRepSchedule(
+          change.repId,
+          [change.body.service_order_id],
+          (cachedSchedule) => cachedSchedule.UnscheduledDate
+        );
+      }
+    },
+  });
 
   /**
    * Interim, until batch schedule changes move into this hook: reloads a rep's schedule straight
@@ -101,7 +141,8 @@ export function useRepSchedule(repId: number | null) {
     isScheduleRefreshing: repScheduleQuery.isFetching && repScheduleReply !== undefined,
     isScheduleError: repId !== null && repScheduleQuery.isError,
     scheduleErrorMessages: getErrorMessages(repScheduleQuery.error),
-    patchRepSchedule,
+    scheduleServiceOrder,
+    unscheduleServiceOrder,
     reloadRepSchedule,
   };
 }

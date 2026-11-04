@@ -18,7 +18,7 @@ import {
 } from "@client/components/QtScheduleCalendar";
 import { NavigationBar } from "@client/components/stockTracker/NavigationBar";
 import { useRepSchedule } from "@client/hooks/qtSurveyWorker/useRepSchedule";
-import { fetchByReactivated } from "@client/util/commonUtil";
+import { fetchByReactivated, getErrorMessages } from "@client/util/commonUtil";
 import {
   INITIAL_CALENDAR_MODE,
   TCalendarMode,
@@ -83,8 +83,6 @@ function CalendarModeCheckbox(props: ICalendarModeCheckboxProps) {
 
 export function Template(props: templates.QtSchedule) {
   const context = React.useContext(Context);
-  const scheduleServiceOrderFetch = useFetch<interfaces.QtScheduleChangeReport>();
-  const unscheduleServiceOrderFetch = useFetch<interfaces.QtScheduleChangeReport>();
   const swapServiceOrdersFetch = useFetch<interfaces.QtScheduleChangeReport>();
   const executeAutoScheduleFetch = useFetch<interfaces.QtScheduleChangeReport>();
   const executeBulkUnscheduleFetch = useFetch<interfaces.QtScheduleChangeReport>();
@@ -95,7 +93,7 @@ export function Template(props: templates.QtSchedule) {
 
   const [selectedRepId, setSelectedRepId] = React.useState<number | null>(null);
   const repSchedule = useRepSchedule(selectedRepId);
-  const { schedule, patchRepSchedule, reloadRepSchedule } = repSchedule;
+  const { schedule, scheduleServiceOrder, unscheduleServiceOrder, reloadRepSchedule } = repSchedule;
   const [calendarMode, dispatchCalendarMode] = React.useReducer(
     calendarModeReducer,
     INITIAL_CALENDAR_MODE
@@ -180,6 +178,10 @@ export function Template(props: templates.QtSchedule) {
   const isClearingDate = clearDateFetch.isLoading || isClearDateRefetching;
   const isSwapping = swapServiceOrdersFetch.isLoading || isSwapRefetching;
   const isCalendarBusy = isAutoScheduling || isBulkUnscheduling || isClearingDate || isSwapping;
+  // A single service order change doesn't cover the calendar, but still locks the rep select so
+  // the user can't lose track of it by switching reps
+  const isScheduleChanging =
+    isCalendarBusy || scheduleServiceOrder.isPending || unscheduleServiceOrder.isPending;
 
   // memoized so a re-render without a real schedule change doesn't produce a new array
   // reference each time - downstream useMemo/useEffect hooks key off this by reference
@@ -199,54 +201,43 @@ export function Template(props: templates.QtSchedule) {
 
   const isJobClientFilterActive = selectedJobClients.size < allJobClients.length;
 
-  // The date the calendar shows the service order on ("" if unscheduled), so the server can refuse the change
-  // if the stored schedule has it somewhere else
-  function getCurrentDateKey(so: TServiceOrder): string {
+  // The date the calendar shows the service order on (null if unscheduled), so the server can
+  // refuse the change if the stored schedule has it somewhere else
+  function getCurrentDateKey(so: TServiceOrder): string | null {
     if (schedule === null || so.DateScheduled === schedule.UnscheduledDate) {
-      return "";
+      return null;
     }
     return toDateKey(new Date(so.DateScheduled));
   }
 
   async function handleScheduleServiceOrder(so: TServiceOrder, date: Date) {
-    const sentRepId = selectedRepId;
-    if (sentRepId === null) {
+    if (selectedRepId === null) {
       return;
     }
 
-    const [isSuccess, result, errorMessages] = await scheduleServiceOrderFetch.fetchData(() =>
-      fetchByReactivated<interfaces.QtScheduleChangeReport>(
-        reverse("survey_worker:qt_schedule_service_order"),
-        context.csrf_token,
-        "POST",
-        new URLSearchParams({
-          rep_id: sentRepId.toString(),
-          service_order_id: so.ServiceOrderId.toString(),
+    let report: interfaces.QtScheduleChangeReport;
+    try {
+      report = await scheduleServiceOrder.mutateAsync({
+        repId: selectedRepId,
+        body: {
+          service_order_id: so.ServiceOrderId,
           date: toDateKey(date),
           current_date: getCurrentDateKey(so),
-        }),
-        "application/x-www-form-urlencoded"
-      )
-    );
-
-    if (!isSuccess) {
-      toast.error("Failed to schedule service order", ...errorMessages);
+        },
+      });
+    } catch (error) {
+      toast.error("Failed to schedule service order", ...getErrorMessages(error as Error));
       return;
     }
 
-    const problems = describeScheduleChangeProblems(result);
+    const problems = describeScheduleChangeProblems(report);
     if (problems !== null) {
       toast.error("Failed to schedule service order", problems);
-      return;
     }
-
-    // The server applied the same change to its stored schedule
-    patchRepSchedule(sentRepId, [so.ServiceOrderId], date);
   }
 
   async function handleUnscheduleServiceOrder(so: TServiceOrder) {
-    const sentRepId = selectedRepId;
-    if (sentRepId === null || schedule === null) {
+    if (selectedRepId === null) {
       return;
     }
 
@@ -254,33 +245,21 @@ export function Template(props: templates.QtSchedule) {
       return;
     }
 
-    const [isSuccess, result, errorMessages] = await unscheduleServiceOrderFetch.fetchData(() =>
-      fetchByReactivated<interfaces.QtScheduleChangeReport>(
-        reverse("survey_worker:qt_unschedule_service_order"),
-        context.csrf_token,
-        "POST",
-        new URLSearchParams({
-          rep_id: sentRepId.toString(),
-          service_order_id: so.ServiceOrderId.toString(),
-          current_date: getCurrentDateKey(so),
-        }),
-        "application/x-www-form-urlencoded"
-      )
-    );
-
-    if (!isSuccess) {
-      toast.error("Failed to unschedule service order", ...errorMessages);
+    let report: interfaces.QtScheduleChangeReport;
+    try {
+      report = await unscheduleServiceOrder.mutateAsync({
+        repId: selectedRepId,
+        body: { service_order_id: so.ServiceOrderId, current_date: getCurrentDateKey(so) },
+      });
+    } catch (error) {
+      toast.error("Failed to unschedule service order", ...getErrorMessages(error as Error));
       return;
     }
 
-    const problems = describeScheduleChangeProblems(result);
+    const problems = describeScheduleChangeProblems(report);
     if (problems !== null) {
       toast.error("Failed to unschedule service order", problems);
-      return;
     }
-
-    // The server applied the same change to its stored schedule
-    patchRepSchedule(sentRepId, [so.ServiceOrderId], schedule.UnscheduledDate);
   }
 
   async function handleExecuteSwap() {
@@ -588,7 +567,7 @@ export function Template(props: templates.QtSchedule) {
             <Form.Select
               value={selectedRepId ?? -1}
               onChange={handleSelectRep}
-              disabled={isCalendarBusy}
+              disabled={isScheduleChanging}
             >
               <option value={-1}>Select a rep...</option>
               {props.rep_details.map((rep) => (
@@ -840,7 +819,7 @@ export function Template(props: templates.QtSchedule) {
                                 disabled={
                                   selectedDate === undefined ||
                                   isSunday(selectedDate) ||
-                                  scheduleServiceOrderFetch.isLoading
+                                  scheduleServiceOrder.isPending
                                 }
                                 className="text-nowrap"
                                 style={{ width: "9.5rem" }}
@@ -1077,7 +1056,7 @@ export function Template(props: templates.QtSchedule) {
                                 <Button
                                   variant="danger"
                                   size="sm"
-                                  disabled={unscheduleServiceOrderFetch.isLoading}
+                                  disabled={unscheduleServiceOrder.isPending}
                                   onClick={() => handleUnscheduleServiceOrder(so)}
                                 >
                                   Unschedule
