@@ -1,7 +1,8 @@
 from pathlib import Path
 
+import pytest
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.urls import reverse
 
 from . import models
@@ -57,3 +58,32 @@ class ImportTest(TestCase):
             content_type="application/json",
         )
         self.assertEqual(400, response.status_code)
+
+
+@pytest.mark.django_db
+def test_body_with_wrong_shape_gets_400_naming_the_bad_fields(client: Client) -> None:
+    superuser = get_user_model().objects.create_superuser(
+        username="testuser",
+        password="testpass123",  # noqa: S106 -- test-only credential
+    )
+    client.force_login(superuser)
+    store = models.Store.objects.create(name="T3277v3")
+    planogram = models.Planogram.objects.create(name="plano1 - 3277v3", store=store)
+
+    response = client.post(
+        reverse("product_locator:edit_planogram", args=[planogram.id]),
+        {
+            "name": planogram.name,
+            "plano_type": planogram.plano_type,
+            "date_end": None,
+            "is_reset_planogram": {"not": "a bool"},
+            "label": "",
+        },
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    error_messages = response.json()
+    assert isinstance(error_messages, list)
+    assert all(isinstance(message, str) for message in error_messages)
+    assert any("planogram_text_dump" in message for message in error_messages)
