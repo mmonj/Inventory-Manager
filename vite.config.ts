@@ -24,6 +24,14 @@ const quietVendorWarnings: SassLogger = {
 // so defineConfig resolves untyped here even though it's fully typed under tsc.
 // eslint-disable-next-line @typescript-eslint/no-unsafe-call
 export default defineConfig({
+  server: {
+    // Vite's dev CORS middleware only allows localhost origins, and it answers
+    // preflight OPTIONS requests itself before they reach the proxy to Django.
+    // A cross-origin API client's preflight then comes back without
+    // Access-Control-Allow-Origin. Turning it off lets the preflight through to
+    // Django, where django-cors-headers (CORS_URLS_REGEX) handles it as it does in production.
+    cors: false,
+  },
   css: {
     preprocessorOptions: {
       scss: {
